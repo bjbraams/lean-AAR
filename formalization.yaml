@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+
+version: "v0.4"
+
+project:
+  name: "Special Functions following Andrews, Askey, and Roy"
+  authors:
+    - "Bastiaan J Braams"
+  license: "Apache-2.0"
+
+sources:
+  - title: "Special Functions"
+    authors:
+      - "George E. Andrews"
+      - "Richard Askey"
+      - "Ranjan Roy"
+    id: "https://doi.org/10.1017/CBO9781107325937"
+    type: "book"
+    relationship: "formalizes"
+
+automation:
+  methods:
+    - method: "agent"
+
+review:
+  status: "unchecked"

@@ -1,0 +1,6 @@
+.lake
+*.olean
+References/
+AGENTS.md
+*/AGENTS.md
+README.md
