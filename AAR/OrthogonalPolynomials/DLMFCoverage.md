@@ -1,6 +1,6 @@
 # DLMF Chapter 18 acquisition
 
-Reviewed 2026-09-16 against [NIST DLMF Chapter 18](https://dlmf.nist.gov/18), version 1.2.7 (2026-06-15), and the installed Mathlib 4.34.0 sources.
+Reviewed 2026-09-16 against [NIST DLMF Chapter 18](https://dlmf.nist.gov/18), version 1.2.7 (2026-06-15), and the installed Mathlib 4.34.0 sources. The project has since moved to Mathlib v4.35.0-rc2; this inventory was not re-reviewed against it.
 
 ## Scope and status
 

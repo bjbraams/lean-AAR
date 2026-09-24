@@ -2,7 +2,7 @@
 
 Reviewed against the live [NIST DLMF Chapter 5](https://dlmf.nist.gov/5) on
 2026-09-17 (Version 1.2.8, release 2026-09-15) and the project's local Mathlib
-**v4.34.0** sources.
+**v4.34.0** sources. The project has since moved to Mathlib v4.35.0-rc2; this inventory was not re-reviewed against it.
 
 This inventory covers numbered equations in §§5.2 and 5.4–5.18. Notation §5.1,
 graphics §5.3, applications §§5.19–5.20, and computation §§5.21–5.24 were not

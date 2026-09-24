@@ -1,7 +1,7 @@
 # DLMF Chapter 15 acquisition inventory
 
 Reviewed against the live [NIST DLMF Chapter 15](https://dlmf.nist.gov/15) on
-2026-09-16 and the project's local Mathlib **v4.34.0** sources.
+2026-09-16 and the project's local Mathlib **v4.34.0** sources. The project has since moved to Mathlib v4.35.0-rc2; this inventory was not re-reviewed against it.
 This inventory covers every numbered equation in the requested sections
 15.2, 15.4, 15.5, 15.6, 15.7, 15.8, 15.10, 15.11, and 15.12.
 The other sections were not acquired.

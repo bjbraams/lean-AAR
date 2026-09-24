@@ -11,7 +11,7 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 public import Mathlib.NumberTheory.Harmonic.EulerMascheroni
 
 /-!
-# DLMF Chapter 5 results already in Mathlib 4.34.0
+# DLMF Chapter 5 results already in Mathlib 4.35.0-rc2
 
 The following statement excerpts are deliberately commented out: the declarations
 belong to Mathlib. Variables implicit in the excerpts retain their upstream context.
