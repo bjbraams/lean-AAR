@@ -1,6 +1,7 @@
 name = "Main"
 version = "0.1.0"
 defaultTargets = ["Main"]
+buildDir = ".lake/build-AAR"
 
 [[lean_lib]]
 name = "Main"
