@@ -13,9 +13,9 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 /-!
 # Inequalities (DLMF §5.6)
 
-Real-variable forms are acquired on the source's stated ranges. The bound 5.6.8
-is restricted to `|ph z| ≤ π/2 - δ` with a positive real `x` stand-in, matching
-the Chapter 15 treatment of sectorial estimates.
+Real-variable inequalities and complex Gamma bounds from DLMF §5.6.
+The Gamma-ratio bound has real shifts `0 ≤ a` and `1 ≤ b - a` and holds
+on the open right half-plane. The final Gamma bound assumes `0 ≤ z.re`.
 -/
 
 @[expose] public section
@@ -76,14 +76,18 @@ theorem norm_Gamma_add_mul_I_ge {x y : ℝ} (hx : 1 / 2 ≤ x) :
     ‖Complex.Gamma (x + I * y)‖ ≥ Real.sqrt (1 / Real.cosh (π * y)) * Real.Gamma x := by
   sorry
 
+/-- A Gamma-ratio bound on the right half-plane for nonnegative real shifts
+separated by at least one. These restrictions are essential in DLMF 5.6.8. -/
 @[dlmf 5.6.E8]
-theorem Gamma_ratio_norm_le {a b : ℂ} {x : ℝ} (hx : 1 < x)
-    (hba : 0 ≤ (b - a).re) :
-    ‖Complex.Gamma (x + a) / Complex.Gamma (x + b)‖ ≤ x ^ (-(b - a).re) := by
+theorem Gamma_ratio_norm_le {a b : ℝ} {z : ℂ} (hz : 0 < z.re)
+    (ha : 0 ≤ a) (hba : 1 ≤ b - a) :
+    ‖Complex.Gamma (z + a) / Complex.Gamma (z + b)‖ ≤ ‖z‖ ^ (-(b - a)) := by
   sorry
 
+/-- A complex Gamma bound in the closed right half-plane, away from zero. -/
 @[dlmf 5.6.E9]
-theorem norm_Gamma_bound {z : ℂ} (hz : z ∈ slitPlane) (habs : 1 ≤ ‖z‖) :
+theorem norm_Gamma_bound {z : ℂ} (hz : z ∈ slitPlane) (habs : 1 ≤ ‖z‖)
+    (hre : 0 ≤ z.re) :
     ‖Complex.Gamma z‖ ≤
       Real.sqrt (2 * π) * ‖z‖ ^ (z.re - 1 / 2) * Real.exp (-π * |z.im| / 2) *
         Real.exp (1 / (6 * ‖z‖)) := by

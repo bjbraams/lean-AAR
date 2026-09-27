@@ -53,17 +53,13 @@ theorem confluentM_one_two (z : ℂ) (hz : z ≠ 0) :
   linear_combination (1 / 2 : ℂ) * key - (exp z / 2) * h2 + (1 / 2 : ℂ) * hexp +
     (1 / 2 : ℂ) * hexpneg
 
+/-- Tricomi U at zero first parameter, including integer second parameters. -/
 @[dlmf 13.6.E3]
--- NOTE (2026-09-17): as stated this is false under the project's totalized definition of
--- `confluentU` (Mathlib's `Gamma` vanishes at nonpositive integers): for `b = 1` both Gamma
--- prefactors vanish and `confluentU 0 1 z = 0`. It needs `1 - b` off the nonpositive integers.
-theorem confluentU_of_zero_param (b z : ℂ) : confluentU 0 b z = 1 := by
-  sorry
+theorem confluentU_of_zero_param (b z : ℂ) : confluentU 0 b z = 1 :=
+  confluentU_zero b z
 
+/-- The elementary shifted-parameter specialization of the continued Tricomi function. -/
 @[dlmf 13.6.E4]
--- NOTE (2026-09-17): as stated this is false under the project's totalized definition of
--- `confluentU`: for `a = 0` both Gamma prefactors vanish (`Gamma 0 = 0` in Mathlib), so the
--- left side is `0` while the right side is `1`. It needs `a` off the nonpositive integers.
 theorem confluentU_shift_one (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     confluentU a (a + 1) z = z ^ (-a) := by
   sorry
@@ -71,23 +67,22 @@ theorem confluentU_shift_one (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
 /-- Upper incomplete gamma via Tricomi's `U`, from DLMF 13.6.6. -/
 def GammaInc (s z : ℂ) : ℂ := exp (-z) * confluentU (1 - s) (1 - s) z
 
--- NOTE (2026-09-17): the first conjunct is false as stated when `a + 1` is a pole of `Γ`: for
--- `a = -2`, `z = 1` the left side is `M(-2,-1,-1) = -1` (terms with `(-1)_k = 0` vanish in Lean)
--- while `e⁻¹ M(1,-1,1) = 0`. It needs `∀ k, a + 1 ≠ -k` (Kummer's transformation
--- `confluentM_kummer_transform`).
+/-- Lower incomplete-Gamma identities with a regular denominator for Kummer M. -/
 @[dlmf 13.6.E5]
 theorem confluentM_lowerIncompleteGamma (a z : ℂ) (ha : a ≠ 0) {w : ℂ}
-    (hw : w ∈ slitPlane) (hz : w = z) :
+    (hw : w ∈ slitPlane) (hz : w = z) (hden : ∀ k : ℕ, a + 1 ≠ -k) :
     confluentM a (a + 1) (-z) = exp (-z) * confluentM 1 (a + 1) z ∧
       confluentM a (a + 1) (-z) = a * z ^ (-a) * lowerIncompleteGamma a z := by
   sorry
 
+/-- Incomplete-Gamma relations for U at noninteger parameter. -/
 @[dlmf 13.6.E6]
-theorem confluentU_upperIncompleteGamma (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem confluentU_upperIncompleteGamma (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (ha : ∀ k : ℤ, a ≠ k) :
     confluentU a a z = z ^ (1 - a) * confluentU 1 (2 - a) z ∧
       confluentU a a z = exp z * GammaInc (1 - a) z := by
   refine ⟨?_, ?_⟩
-  · simpa using confluentU_kummer_transform a a hz
+  · simpa using confluentU_kummer_transform a a hz ha
   · unfold GammaInc
     have : (1 : ℂ) - (1 - a) = a := by ring
     simp only [this]
@@ -332,29 +327,31 @@ theorem confluentU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
       (2 : ℂ) ^ (-(n : ℂ)) * z⁻¹ * hermitePhysEval n z := by
   sorry
 
+/-- Laguerre specialization of continued U, with a regular ordinary-M denominator. -/
 @[dlmf 13.6.E19]
--- NOTE (2026-09-17): as stated this is false under the project's totalized definition of
--- `confluentU`: for `α = 0` both Gamma prefactors vanish and the left side is `0`. It needs
--- `α` off the integers.
-theorem confluentU_laguerre (n : ℕ) (α z : ℂ) :
+theorem confluentU_laguerre (n : ℕ) (α z : ℂ) (hα : ∀ k : ℕ, α + 1 ≠ -k) :
     confluentU (-(n : ℂ)) (α + 1) z =
       (-1 : ℂ) ^ n * poch (α + 1) n * confluentM (-(n : ℂ)) (α + 1) z ∧
       confluentU (-(n : ℂ)) (α + 1) z = (-1 : ℂ) ^ n * n.factorial * laguerre α n z := by
   sorry
 
--- NOTE (2026-09-17): false as stated for natural `z ≥ n`: with `n = 1`, `z = 1` the project's
--- `U(-1, 1, a)` is `0` (Mathlib's `Γ` vanishes at the poles), while `(-z)_1 M(-1,1,a) = a - 1`.
+/-- Charlier specialization with nonzero scale and a regular ordinary-M denominator. -/
 @[dlmf 13.6.E20]
-theorem confluentU_charlier (n : ℕ) (z a : ℂ) :
+theorem confluentU_charlier (n : ℕ) (z a : ℂ) (ha : a ≠ 0)
+    (hz : ∀ k : ℕ, z - n + 1 ≠ -k) :
     confluentU (-(n : ℂ)) (z - n + 1) a =
       poch (-z) n * confluentM (-(n : ℂ)) (z - n + 1) a ∧
       confluentU (-(n : ℂ)) (z - n + 1) a = a ^ n * AAR.OrthogonalPolynomials.charlier a n z := by
   sorry
 
+/-- The terminating `₂F₀` expression for polynomial Tricomi U.
+A nonterminating `₂F₀` is generally divergent and cannot be interpreted as
+Mathlib's ordinary regularized hypergeometric power-series sum. -/
 @[dlmf 13.6.E21]
-theorem confluentU_eq_twoFzero (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a b z =
-      z ^ (-a) * regularizedHGFun {a, a - b + 1} (∅ : Multiset ℂ) (-z⁻¹) := by
+theorem confluentU_eq_twoFzero (n : ℕ) (b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    confluentU (-(n : ℂ)) b z =
+      z ^ n * regularizedHGFun {-(n : ℂ), -(n : ℂ) - b + 1}
+        (∅ : Multiset ℂ) (-z⁻¹) := by
   sorry
 
 @[dlmf 13.18.E1]
@@ -374,20 +371,16 @@ theorem whittakerM_sinh {z : ℂ} (hz : z ∈ slitPlane) :
   rw [← exp_add, neg_add_cancel, exp_zero, one_mul]
 
 @[dlmf 13.18.E2]
--- NOTE (2026-09-17): the two `whittakerW` conjuncts are false under the project's
--- totalized definition of `whittakerW` when `1 - 2κ` (resp. `2κ`) is a nonpositive integer, e.g.
--- `κ = 1/2`, where both Gamma prefactors vanish and `whittakerW` is `0`.
 theorem whittakerM_exp (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     whittakerM κ (κ - 1 / 2) z = exp (-z / 2) * z ^ κ ∧
       whittakerW κ (κ - 1 / 2) z = exp (-z / 2) * z ^ κ ∧
       whittakerW κ (-κ + 1 / 2) z = exp (-z / 2) * z ^ κ := by
   sorry
 
+/-- An exponential Whittaker-M specialization with a regular denominator parameter. -/
 @[dlmf 13.18.E3]
--- NOTE (2026-09-17): as stated this is false under the project's totalized definition of
--- `confluentM`: for `κ = 0` the right side of the definition is `exp (-z/2) * M(0,0,z)` with
--- `M(0,0,z) = 1`, not `exp (z/2)`. It needs `-2κ` off the nonpositive integers.
-theorem whittakerM_exp_neg (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerM_exp_neg (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (hκ : ∀ k : ℕ, -2 * κ ≠ -k) :
     whittakerM κ (-κ - 1 / 2) z = exp (z / 2) * z ^ (-κ) := by
   sorry
 
@@ -449,8 +442,10 @@ theorem whittakerW_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
       (2 : ℂ) ^ (-(n : ℂ)) * exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) * hermitePhysEval n z := by
   sorry
 
+/-- Laguerre specialization of W with a regular Kummer-M denominator. -/
 @[dlmf 13.18.E17]
-theorem whittakerW_laguerre (α : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerW_laguerre (α : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
+    (hα : ∀ k : ℕ, α + 1 ≠ -k) :
     whittakerW (α / 2 + 1 / 2 + n) (α / 2) z =
       (-1 : ℂ) ^ n * poch (α + 1) n * whittakerM (α / 2 + 1 / 2 + n) (α / 2) z ∧
       whittakerW (α / 2 + 1 / 2 + n) (α / 2) z =

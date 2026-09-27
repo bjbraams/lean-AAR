@@ -98,9 +98,11 @@ theorem qGamma_mono_left {q r x : ℝ} (hq0 : 0 < q) (hqr : q < r) (hr1 : r < 1)
     (qGamma q x).re < (qGamma r x).re := by
   sorry
 
+/-- Strict decrease of the q-Gamma function in its base when `1 < x < 2`.
+At `x = 2` the function is constant, so the upper restriction is essential. -/
 @[dlmf 5.18.E9]
 theorem qGamma_mono_right {q r x : ℝ} (hq0 : 0 < q) (hqr : q < r) (hr1 : r < 1)
-    (hx : 1 < x) :
+    (hx : 1 < x) (hx2 : x < 2) :
     (qGamma r x).re < (qGamma q x).re := by
   sorry
 

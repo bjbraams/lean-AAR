@@ -16,7 +16,9 @@ public import Mathlib.Analysis.Asymptotics.Lemmas
 # Whittaker functions (AAR §4.3)
 
 Whittaker's functions are the standard pair of solutions of the Whittaker equation,
-written in terms of Kummer's `M`.
+written in terms of Kummer's `M` and the continued Tricomi `U`.
+The `OnLog` definitions retain the logarithmic argument for monodromy;
+ordinary multiplication of the complex argument by `exp (2πi)` would lose that information.
 -/
 
 @[expose] public section
@@ -31,12 +33,26 @@ noncomputable section
 def whittakerM (κ μ z : ℂ) : ℂ :=
   exp (-z / 2) * z ^ (μ + 1 / 2) * confluentM (μ - κ + 1 / 2) (1 + 2 * μ) z
 
-/-- Whittaker's `W_{κ,μ}(z)`, the second solution as a linear combination of
-`M_{κ,μ}` and `M_{κ,-μ}` (valid for `2μ ∉ ℤ`). -/
-@[dlmf 13.14.E33]
+/-- Whittaker's principal-branch W, defined through the continued Tricomi function. -/
+@[dlmf 13.14.E3]
 def whittakerW (κ μ z : ℂ) : ℂ :=
-  Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * whittakerM κ μ z +
-    Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * whittakerM κ (-μ) z
+  exp (-z / 2) * z ^ (1 / 2 + μ) * confluentU (1 / 2 + μ - κ) (1 + 2 * μ) z
+
+/-- A half-integer Whittaker specialization whose former raw Gamma formula vanished. -/
+lemma whittakerW_half_zero (z : ℂ) :
+    whittakerW (1 / 2) 0 z = exp (-z / 2) * z ^ (1 / 2 : ℂ) := by
+  norm_num [whittakerW, confluentU_zero]
+
+/-- Whittaker's M on the logarithmic argument plane, which records full turns around zero. -/
+def whittakerMOnLog (κ μ w : ℂ) : ℂ :=
+  exp (-exp w / 2) * exp ((μ + 1 / 2) * w) *
+    confluentM (μ - κ + 1 / 2) (1 + 2 * μ) (exp w)
+
+/-- Whittaker's W connection formula on the logarithmic argument plane.
+It represents W when `2 * μ` is not an integer. -/
+def whittakerWOnLog (κ μ w : ℂ) : ℂ :=
+  Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * whittakerMOnLog κ μ w +
+    Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * whittakerMOnLog κ (-μ) w
 
 /-- Logarithmic derivative of the prefactor in Whittaker's `M`. -/
 lemma hasDerivAt_whittakerPrefactor (r : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
@@ -103,40 +119,22 @@ lemma analyticAt_whittakerM {κ μ z : ℂ} (hz : z ∈ slitPlane)
   · exact (hasFPowerSeriesOnBall_confluentM (a := μ - κ + 1 / 2) hμ).analyticAt_of_mem
       (by simp)
 
-/-- Whittaker's `W` satisfies the same equation. -/
-@[dlmf 13.14.E1]
-theorem whittakerW_ode {κ μ z : ℂ} (hz : z ∈ slitPlane)
+/-- The generic connection formula for W; the integer case uses continuation. -/
+@[dlmf 13.14.E33]
+lemma whittakerW_eq_connection {κ μ z : ℂ} (hz : z ∈ slitPlane)
     (hμ : ∀ k : ℤ, 2 * μ ≠ k) :
-    iteratedDeriv 2 (whittakerW κ μ) z +
-      (-1 / 4 + κ / z + (1 / 4 - μ ^ 2) / z ^ 2) * whittakerW κ μ z = 0 := by
-  have hpos : ∀ k : ℕ, 1 + 2 * μ ≠ -k := by
+    whittakerW κ μ z =
+      Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * whittakerM κ μ z +
+        Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * whittakerM κ (-μ) z := by
+  have hb : ∀ k : ℤ, (1 : ℂ) + 2 * μ ≠ k := by
     intro k hk
-    apply hμ (-(k : ℤ) - 1)
+    apply hμ (k - 1)
     push_cast
     linear_combination hk
-  have hneg : ∀ k : ℕ, 1 + 2 * (-μ) ≠ -k := by
-    intro k hk
-    apply hμ ((k : ℤ) + 1)
-    push_cast
-    linear_combination -hk
-  have hp := whittakerM_ode (κ := κ) hz hpos
-  have hn := whittakerM_ode (κ := κ) hz hneg
-  have hap := (analyticAt_whittakerM (κ := κ) hz hpos).contDiffAt (n := 2)
-  have han := (analyticAt_whittakerM (κ := κ) hz hneg).contDiffAt (n := 2)
   unfold whittakerW
-  rw [iteratedDeriv_fun_add (contDiffAt_const.mul hap) (contDiffAt_const.mul han),
-    iteratedDeriv_const_mul_field, iteratedDeriv_const_mul_field]
-  linear_combination
-    Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * hp +
-      Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * hn
-
-namespace AAR.Confluent
-
-@[dlmf 13.14.E3]
-theorem whittakerW_eq_confluentU {κ μ z : ℂ} (hz : z ∈ slitPlane) :
-    whittakerW κ μ z =
-      exp (-z / 2) * z ^ (1 / 2 + μ) * confluentU (1 / 2 + μ - κ) (1 + 2 * μ) z := by
-  unfold confluentU whittakerW whittakerM
+  rw [confluentU_eq_connection _ _ _ hb]
+  unfold confluentUConnection whittakerM
+  symm
   have hz0 := slitPlane_ne_zero hz
   have h1b : (1 : ℂ) - (1 + 2 * μ) = -2 * μ := by ring
   have hb1 : (1 + 2 * μ : ℂ) - 1 = 2 * μ := by ring
@@ -163,6 +161,47 @@ theorem whittakerW_eq_confluentU {κ μ z : ℂ} (hz : z ∈ slitPlane) :
       _ = _ := by rw [hpow]; ring
   rw [hswap]
   ring_nf
+
+/-- Whittaker's `W` satisfies the same equation. -/
+@[dlmf 13.14.E1]
+theorem whittakerW_ode {κ μ z : ℂ} (hz : z ∈ slitPlane)
+    (hμ : ∀ k : ℤ, 2 * μ ≠ k) :
+    iteratedDeriv 2 (whittakerW κ μ) z +
+      (-1 / 4 + κ / z + (1 / 4 - μ ^ 2) / z ^ 2) * whittakerW κ μ z = 0 := by
+  have hpos : ∀ k : ℕ, 1 + 2 * μ ≠ -k := by
+    intro k hk
+    apply hμ (-(k : ℤ) - 1)
+    push_cast
+    linear_combination hk
+  have hneg : ∀ k : ℕ, 1 + 2 * (-μ) ≠ -k := by
+    intro k hk
+    apply hμ ((k : ℤ) + 1)
+    push_cast
+    linear_combination -hk
+  have hp := whittakerM_ode (κ := κ) hz hpos
+  have hn := whittakerM_ode (κ := κ) hz hneg
+  have hap := (analyticAt_whittakerM (κ := κ) hz hpos).contDiffAt (n := 2)
+  have han := (analyticAt_whittakerM (κ := κ) hz hneg).contDiffAt (n := 2)
+  have heq : whittakerW κ μ =ᶠ[𝓝 z] (fun w =>
+      Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * whittakerM κ μ w +
+        Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * whittakerM κ (-μ) w) :=
+    Filter.eventually_of_mem (isOpen_slitPlane.mem_nhds hz) fun w hw =>
+      whittakerW_eq_connection hw hμ
+  rw [heq.iteratedDeriv_eq 2, whittakerW_eq_connection hz hμ]
+  rw [iteratedDeriv_fun_add (contDiffAt_const.mul hap) (contDiffAt_const.mul han),
+    iteratedDeriv_const_mul_field, iteratedDeriv_const_mul_field]
+  linear_combination
+    Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * hp +
+      Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * hn
+
+namespace AAR.Confluent
+
+/-- The definition of W through the continued Tricomi function. -/
+@[dlmf 13.14.E3]
+theorem whittakerW_eq_confluentU {κ μ z : ℂ} (hz : z ∈ slitPlane) :
+    whittakerW κ μ z =
+      exp (-z / 2) * z ^ (1 / 2 + μ) * confluentU (1 / 2 + μ - κ) (1 + 2 * μ) z := by
+  rfl
 
 @[dlmf 13.14.E4]
 theorem confluentM_eq_whittakerM {a b z : ℂ} (hz : z ∈ slitPlane)
@@ -217,38 +256,48 @@ theorem confluentU_eq_whittakerW {a b z : ℂ} (hz : z ∈ slitPlane) :
     _ = exp (z / 2) * z ^ (-b / 2) * whittakerW (b / 2 - a) (b / 2 - 1 / 2) z := by
           rw [hW]
 
+/-- The punctured parameter limit of normalized Whittaker M at a denominator pole. -/
 @[dlmf 13.14.E7]
 theorem tendsto_whittakerM_div_Gamma (κ : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    Tendsto (fun μ : ℂ => whittakerM κ μ z / Gamma (2 * μ + 1)) (𝓝 (-(n + 1 : ℂ) / 2))
+    Tendsto (fun μ : ℂ => whittakerM κ μ z / Gamma (2 * μ + 1)) (𝓝[≠] (-(n + 1 : ℂ) / 2))
       (𝓝 (poch (-(n : ℂ) / 2 - κ) (n + 1) / (n + 1).factorial *
         whittakerM κ ((n + 1 : ℂ) / 2) z)) := by
   sorry
 
+/-- Half-turn continuation of Whittaker M on the logarithmic argument plane. -/
 @[dlmf 13.14.E10]
--- NOTE (2026-09-17): as stated this is false: `z * exp (±π I) = -z` exactly, so the left side
--- does not depend on `sign`, while the right sides for the two signs differ unless
--- `exp (2 μ π I) = -1`. The DLMF statement concerns analytic continuation, which the
--- principal-branch definition of `whittakerM` cannot express.
-theorem whittakerM_neg_argument {κ μ z : ℂ} (hz : z ∈ slitPlane) (sign : Bool) :
-    whittakerM κ μ (z * exp ((if sign then 1 else -1) * π * I)) =
+theorem whittakerM_neg_argument {κ μ z : ℂ} (hz : z ∈ slitPlane) (sign : Bool)
+    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
+    whittakerMOnLog κ μ (log z + (if sign then 1 else -1) * π * I) =
       (if sign then 1 else -1) * I * exp ((if sign then 1 else -1) * μ * π * I) *
         whittakerM (-κ) μ z := by
   sorry
 
+/-- Full-turn continuation of Whittaker M, retaining the logarithmic argument. -/
 @[dlmf 13.14.E11]
--- NOTE (2026-09-17): as stated this is false: `z * exp (2 m π I) = z` exactly, so the left side
--- is `whittakerM κ μ z`, while the right side carries the factor `(-1)^m exp (2 m μ π I)`
--- (take `m = 1`, `μ = 0`, `κ = 1/2`, `z = 1`). The DLMF statement concerns analytic
--- continuation, which the principal-branch definition of `whittakerM` cannot express.
 theorem whittakerM_continuation {κ μ z : ℂ} (m : ℤ) (hz : z ∈ slitPlane) :
-    whittakerM κ μ (z * exp (2 * m * π * I)) =
+    whittakerMOnLog κ μ (log z + 2 * m * π * I) =
       (-1 : ℂ) ^ m * exp (2 * m * μ * π * I) * whittakerM κ μ z := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have ht : exp (2 * (m : ℂ) * π * I) = 1 := by
+    rw [show 2 * (m : ℂ) * π * I = (m : ℂ) * (2 * π * I) by ring,
+      exp_int_mul_two_pi_mul_I]
+  have he : exp (log z + 2 * m * π * I) = z := by rw [exp_add, ht, exp_log hz0, mul_one]
+  have hm : exp ((m : ℂ) * (π * I)) = (-1 : ℂ) ^ m := by
+    rw [exp_int_mul, exp_pi_mul_I]
+  have hp : exp ((μ + 1 / 2) * (log z + 2 * m * π * I)) =
+      (-1 : ℂ) ^ m * exp (2 * m * μ * π * I) * z ^ (μ + 1 / 2) := by
+    rw [show (μ + 1 / 2) * (log z + 2 * m * π * I) =
+      (m * (π * I) + 2 * m * μ * π * I) + log z * (μ + 1 / 2) by ring,
+      exp_add, exp_add, hm, cpow_def_of_ne_zero hz0]
+  simp only [whittakerMOnLog, whittakerM, he, hp]
+  ring
 
+/-- Full-turn continuation of Whittaker W at noninteger twice-order. -/
 @[dlmf 13.14.E12]
 theorem whittakerW_continuation {κ μ z : ℂ} (m : ℤ) (hz : z ∈ slitPlane)
     (hμ : ∀ n : ℤ, 2 * μ ≠ n) :
-    whittakerW κ μ (z * exp (2 * m * π * I)) =
+    whittakerWOnLog κ μ (log z + 2 * m * π * I) =
       (-1 : ℂ) ^ (m + 1) * 2 * π * I * sin (2 * π * μ * m) /
           (Gamma (1 / 2 - μ - κ) * Gamma (1 + 2 * μ) * sin (2 * π * μ)) *
         whittakerM κ μ z +
@@ -310,10 +359,18 @@ theorem wronskian_whittakerW_pair {κ μ z : ℂ} (hz : z ∈ slitPlane) (sign :
       exp (-(if sign then 1 else -1) * κ * π * I) := by
   sorry
 
+/-- Symmetry in the order for the generic W connection formula on the slit plane.
+Extension to half-integer orders requires the Tricomi parameter-limit API. -/
 @[dlmf 13.14.E31]
-theorem whittakerW_even_mu (κ μ z : ℂ) :
+theorem whittakerW_even_mu (κ μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (hμ : ∀ k : ℤ, 2 * μ ≠ k) :
     whittakerW κ μ z = whittakerW κ (-μ) z := by
-  unfold whittakerW
+  have hneg : ∀ k : ℤ, 2 * (-μ) ≠ k := by
+    intro k hk
+    apply hμ (-k)
+    push_cast
+    linear_combination -hk
+  rw [whittakerW_eq_connection hz hμ, whittakerW_eq_connection hz hneg]
   simp only [neg_neg]
   rw [add_comm]
   refine congrArg₂ (· + ·) ?_ ?_ <;> congr 1 <;> ring

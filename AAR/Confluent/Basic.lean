@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Complex.IntegerCompl
+public import Mathlib.Topology.Algebra.Module.Cardinality
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.Hypergeometric.Series
 public import AAR.Hypergeometric.EulerIntegral
@@ -25,6 +27,9 @@ public import Mathlib.RingTheory.Polynomial.Pochhammer
 
 The series is entire in `z` (AAR: the confluent limit of `₂F₁`). Mathlib's
 `regularizedHGFun {a} {c}` is the regularized form `M(a,c,z)/Γ(c)`.
+Tricomi's `U` uses the connection formula off the integers and parameter limits
+at integers; `confluentU_zero` verifies the continuation at zero first parameter.
+`confluentUOnLog` retains the logarithmic argument needed for monodromy.
 -/
 
 @[expose] public section
@@ -374,13 +379,67 @@ theorem tendsto_ordinaryHypergeometric_div_atTop {a c z : ℂ} :
   simpa only [← he, confluentM, confluentHGCoeff] using ht
 
 
-/-- Tricomi's function `U(a,b,z)`, principal branch, via the connection formula.
-Integer `b` makes the Gamma prefactors polar; those values are the corresponding
-limits, recorded separately. -/
-@[dlmf 13.2.E42]
-def confluentU (a b z : ℂ) : ℂ :=
+/-- The connection formula for Tricomi's function at noninteger second parameter.
+At integers, totalized Gamma factors do not give the continued value. -/
+def confluentUConnection (a b z : ℂ) : ℂ :=
   Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z +
     Gamma (b - 1) / Gamma a * z ^ (1 - b) * confluentM (a - b + 1) (2 - b) z
+
+/-- Tricomi's principal-branch function, with integer second parameters assigned
+by limits of the connection formula along noninteger parameters.
+The definition alone does not establish existence of these limits; a `Tendsto`
+theorem is required when using the integer branch. -/
+@[dlmf 13.2.E42]
+def confluentU (a b z : ℂ) : ℂ := by
+  classical
+  exact if ∀ k : ℤ, b ≠ k then confluentUConnection a b z else
+    Filter.limUnder (𝓝[integerComplement] b) (fun c => confluentUConnection a c z)
+
+/-- Tricomi's function agrees with its connection formula at noninteger parameters. -/
+lemma confluentU_eq_connection (a b z : ℂ) (hb : ∀ k : ℤ, b ≠ k) :
+    confluentU a b z = confluentUConnection a b z := by
+  simp [confluentU, hb]
+
+/-- The connection formula at zero first parameter is identically one away from integers. -/
+lemma confluentUConnection_zero (b z : ℂ) (hb : ∀ k : ℤ, b ≠ k) :
+    confluentUConnection 0 b z = 1 := by
+  have hp : ∀ k : ℕ, 1 - b ≠ -(k : ℂ) := by
+    intro k hk
+    apply hb ((k : ℤ) + 1)
+    push_cast
+    linear_combination -hk
+  simp only [confluentUConnection, confluentM_of_zero_param, Gamma_zero, div_zero,
+    zero_mul, add_zero, mul_one]
+  rw [show (0 : ℂ) - b + 1 = 1 - b by ring, div_self (Gamma_ne_zero hp)]
+
+/-- The connection formula at zero first parameter converges to one at every second parameter. -/
+lemma tendsto_confluentUConnection_zero (b z : ℂ) :
+    Tendsto (fun c => confluentUConnection 0 c z) (𝓝[integerComplement] b) (𝓝 1) := by
+  apply tendsto_const_nhds.congr'
+  filter_upwards [self_mem_nhdsWithin] with c hc
+  symm
+  apply confluentUConnection_zero c z
+  intro k hk
+  exact hc ⟨k, hk.symm⟩
+
+/-- Tricomi's value at zero first parameter, including integer second parameters. -/
+lemma confluentU_zero (b z : ℂ) : confluentU 0 b z = 1 := by
+  classical
+  unfold confluentU
+  split_ifs with hb
+  · exact confluentUConnection_zero b z hb
+  · have hd : Dense integerComplement :=
+      (Set.countable_range (fun k : ℤ => (k : ℂ))).dense_compl ℂ
+    have : NeBot (𝓝[integerComplement] b) :=
+      mem_closure_iff_nhdsWithin_neBot.mp (hd b)
+    exact (tendsto_confluentUConnection_zero b z).limUnder_eq
+
+/-- The noninteger connection formula on the logarithmic argument plane.
+The variable `w` represents a logarithm of the actual argument `exp w`. -/
+def confluentUOnLog (a b w : ℂ) : ℂ :=
+  Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b (exp w) +
+    Gamma (b - 1) / Gamma a * exp ((1 - b) * w) *
+      confluentM (a - b + 1) (2 - b) (exp w)
 
 /-- Euler's integral for Kummer's function, obtained by integrating the exponential
 series against the beta weight (AAR §4.2). This is the `M` form of DLMF 13.4.1. -/

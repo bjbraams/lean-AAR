@@ -872,13 +872,11 @@ private lemma iterate_mulDerivMul_congr {U : Set ℂ} (hU : IsOpen U) {f g : ℂ
     filter_upwards [hU.mem_nhds hw] with t ht
     rw [ih t ht]
 
--- NOTE (2026-09-17): as stated this is false for `μ = 0`, `n = 1` (allowed by `hμ`): the left
--- side is `M'(1/2-κ,1,z)`, while the right side vanishes because `poch (-2μ) 1 = 0` and the
--- project's totalized `whittakerM (κ - 1/2) (-1/2)` is finite. DLMF reads the product with the
--- regularized function.
+/-- An iterated Whittaker-M derivative with regular initial and shifted denominators. -/
 @[dlmf 13.15.E15]
 theorem iteratedDeriv_exp_mul_whittakerM {κ μ : ℂ} (n : ℕ) {z : ℂ}
-    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hz : z ∈ slitPlane) :
+    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hz : z ∈ slitPlane)
+    (hshift : ∀ k : ℕ, 1 + 2 * μ - n ≠ -k) :
     iteratedDeriv n (fun w => exp (w / 2) * w ^ (μ - 1 / 2) * whittakerM κ μ w) z =
       (-1 : ℂ) ^ n * poch (-2 * μ) n * exp (z / 2) * z ^ (μ - (n + 1) / 2) *
         whittakerM (κ - n / 2) (μ - n / 2) z := by
@@ -951,11 +949,11 @@ theorem iterate_mulDerivMul_whittakerM {κ μ : ℂ} (n : ℕ) {z : ℂ}
       z ^ ((n : ℂ) - κ - 1) * z ^ (μ + 1 / 2))) * h1 -
     (poch (μ - κ + 1 / 2) n * confluentM (μ - κ + 1 / 2 + n) (1 + 2 * μ) z) * h2
 
--- NOTE (2026-09-17): as stated this is false for `μ = 0`, `n = 1`, for the same reason as
--- 13.15.15 above.
+/-- An iterated Whittaker-M derivative with regular initial and shifted denominators. -/
 @[dlmf 13.15.E18]
 theorem iteratedDeriv_exp_neg_whittakerM {κ μ : ℂ} (n : ℕ) {z : ℂ}
-    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hz : z ∈ slitPlane) :
+    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hz : z ∈ slitPlane)
+    (hshift : ∀ k : ℕ, 1 + 2 * μ - n ≠ -k) :
     iteratedDeriv n (fun w => exp (-w / 2) * w ^ (μ - 1 / 2) * whittakerM κ μ w) z =
       (-1 : ℂ) ^ n * poch (-2 * μ) n * exp (-z / 2) * z ^ (μ - (n + 1) / 2) *
         whittakerM (κ + n / 2) (μ - n / 2) z := by

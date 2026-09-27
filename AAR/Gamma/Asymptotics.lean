@@ -9,6 +9,7 @@ public import AAR.Gamma.Stirling
 public import AAR.Gamma.Digamma
 public import AAR.Hypergeometric.Basic
 public import Mathlib.NumberTheory.Bernoulli
+public import Mathlib.NumberTheory.BernoulliPolynomials
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 public import Mathlib.Analysis.SpecialFunctions.Pow.Complex
@@ -55,15 +56,14 @@ theorem digamma_stirling (n : ℕ) {x : ℝ} (hx : 1 < x) :
       (fun t : ℝ => (t : ℝ) ^ (-(2 * n : ℝ) - 2)) := by
   sorry
 
-/-- Stirling coefficients `g_k` from 5.11.4–5.11.5. -/
+/-- Stirling coefficients, obtained by exponentiating the Bernoulli expansion
+of the logarithm of the scaled Gamma function. This recurrence specifies every order. -/
 @[dlmf 5.11.E4]
 def stirlingG : ℕ → ℂ
   | 0 => 1
-  | 1 => 1 / 12
-  | 2 => 1 / 288
-  | 3 => -139 / 51840
-  | 4 => -571 / 2488320
-  | n + 5 => 0
+  | n + 1 => (∑ k : Fin (n + 1),
+      (bernoulli (k.val + 2) : ℂ) / (k.val + 2) * stirlingG (n - k.val)) / (n + 1)
+termination_by n => n
 
 @[dlmf 5.11.E7]
 theorem Gamma_linear_argument {a : ℝ} (ha : 0 < a) {b : ℂ} :
@@ -87,13 +87,20 @@ theorem Gamma_ratio_power {a b : ℂ} {x : ℝ} (hx : 0 < x) :
       ((t : ℂ) ^ (a - b))) atTop (𝓝 1) := by
   sorry
 
-/-- Coefficients `G_k(a,b)` in 5.11.13, 5.11.15, 5.11.17. -/
+/-- Gamma-ratio coefficients, obtained by exponentiating the difference of
+Bernoulli-polynomial expansions of `log Γ(z+a)` and `log Γ(z+b)`.
+The recurrence defines all orders, including the higher coefficients needed in remainders. -/
 @[dlmf 5.11.E15]
 def stirlingRatioG (a b : ℂ) : ℕ → ℂ
   | 0 => 1
-  | 1 => (1 / 2) * (a - b) * (a + b - 1)
-  | _ => 0
+  | n + 1 => (∑ k : Fin (n + 1),
+      (-1 : ℂ) ^ k.val *
+        (Polynomial.aeval a (Polynomial.bernoulli (k.val + 2)) -
+          Polynomial.aeval b (Polynomial.bernoulli (k.val + 2))) / (k.val + 2) *
+        stirlingRatioG a b (n - k.val)) / (n + 1)
+termination_by n => n
 
+/-- The all-order positive-ray Gamma-ratio expansion with its order-dependent remainder. -/
 @[dlmf 5.11.E13]
 theorem Gamma_ratio_expansion (a b : ℂ) (n : ℕ) {x : ℝ} (hx : 1 < x) :
     Asymptotics.IsBigO atTop
@@ -102,6 +109,8 @@ theorem Gamma_ratio_expansion (a b : ℂ) (n : ℕ) {x : ℝ} (hx : 1 < x) :
       (fun t : ℝ => (t : ℂ) ^ (a - b - n)) := by
   sorry
 
+/-- The inverse-factorial Gamma-ratio expansion. The remainder retains the
+parameter-dependent leading power `a + b - c`, which cannot be omitted. -/
 @[dlmf 5.11.E19]
 theorem Gamma_ratio_three {a b c : ℂ} {x : ℝ} (hx : 1 < x) (n : ℕ) :
     Asymptotics.IsBigO atTop
@@ -109,7 +118,7 @@ theorem Gamma_ratio_three {a b c : ℂ} {x : ℝ} (hx : 1 < x) (n : ℕ) :
         ∑ k ∈ Finset.range n,
           (-1 : ℂ) ^ k * poch (c - a) k * poch (c - b) k / k.factorial *
             Complex.Gamma (a + b - c + t - k))
-      (fun t : ℝ => Complex.Gamma t * (t : ℂ) ^ (-(n : ℂ))) := by
+      (fun t : ℝ => Complex.Gamma t * (t : ℂ) ^ (a + b - c - n)) := by
   sorry
 
 end AAR.Gamma

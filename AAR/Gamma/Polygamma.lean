@@ -172,8 +172,10 @@ theorem polygamma_reflection (n : ℕ) {z : ℂ} (hz : ∀ k : ℤ, z ≠ k) :
   linear_combination (-(-1 : ℂ) ^ n) * hcomp - (iteratedDeriv n Complex.digamma (1 - z)) * hsq +
     (iteratedDeriv n Complex.digamma z) * hz1
 
+/-- Multiplication formula for positive-order polygamma functions. The order-zero
+digamma formula has an additional logarithmic term. -/
 @[dlmf 5.15.E7]
-theorem polygamma_multiplication (n m : ℕ) (hm : 0 < m) {z : ℂ}
+theorem polygamma_multiplication (n m : ℕ) (hn : 0 < n) (hm : 0 < m) {z : ℂ}
     (hz : ∀ k : ℕ, m * z ≠ -k) :
     polygamma n (m * z) =
       (m : ℂ) ^ (-(n + 1 : ℕ) : ℂ) *

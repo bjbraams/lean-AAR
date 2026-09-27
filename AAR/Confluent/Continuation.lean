@@ -178,6 +178,21 @@ lemma regularizedHGFunCoeff_singleton_succ (a b : ℂ) (n : ℕ) :
   have hn : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
   field_simp
 
+/-- At a denominator pole, the normalized ordinary Kummer function converges
+along the punctured parameter neighborhood to the entire regularized function.
+The puncture is essential: the totalized quotient has value zero at the pole. -/
+@[dlmf 13.2.E5]
+theorem tendsto_confluentM_div_Gamma_at_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
+    Tendsto (fun b : ℂ => confluentM a b z / Gamma b) (𝓝[≠] (-(n : ℂ)))
+      (𝓝 (regularizedHGFun {a} {(-(n : ℂ))} z)) := by
+  have ht : Tendsto (fun b => regularizedHGFun {a} {b} z) (𝓝[≠] (-(n : ℂ)))
+      (𝓝 (regularizedHGFun {a} {(-(n : ℂ))} z)) :=
+    ((analyticOnNhd_regularizedConfluent_b a z) (-(n : ℂ))
+      (Set.mem_univ _)).continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+  apply ht.congr'
+  filter_upwards [eventually_nhdsWithin_ne_neg_nat n] with b hb
+  exact regularizedConfluent_eq_div_Gamma hb z
+
 /-- 13.3.15 for the regularized function: `𝐌'(a,b,z) = a 𝐌(a+1,b+1,z)`, with no hypothesis
 on the parameters. -/
 theorem deriv_regularizedConfluent (a b z : ℂ) :

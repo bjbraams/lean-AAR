@@ -80,12 +80,10 @@ theorem siegel_inequality_two {x : Fin 2 → ℝ} {μ : ℝ}
   field_simp [hμ]
   nlinarith [hroot]
 
-/-- Dyson's constant-term identity (AAR §8.8): the constant term of
-`∏_{i≠j} (1 - x_i/x_j)^{a_i}` equals `(∑ a_i)! / ∏ a_i!`.
-
-The current statement only identifies this factorial ratio with a multinomial coefficient;
-it does not yet formalize the constant-term identity. -/
-theorem dyson_constant_term {n : ℕ} (a : Fin n → ℕ) :
+/-- The complex factorial quotient equals the corresponding multinomial coefficient.
+This is an algebraic ingredient for Dyson's identity; it does not compute a Laurent
+polynomial constant term. -/
+theorem factorial_sum_div_prod_factorial {n : ℕ} (a : Fin n → ℕ) :
     ((∑ i, a i).factorial : ℂ) / ∏ i, (a i).factorial = Nat.multinomial Finset.univ a := by
   -- Already known in Mathlib as `Nat.multinomial_spec`.
   have hden : (∏ i, ((a i).factorial : ℂ)) ≠ 0 :=

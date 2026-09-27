@@ -12,9 +12,10 @@ public import Mathlib.Analysis.Asymptotics.Lemmas
 /-!
 # Asymptotic expansions (DLMF §§13.7, 13.8, 13.19)
 
-Poincaré expansions are stated along the positive real axis, with the source's
-larger argument sectors recorded in the hypotheses where they reduce to that
-ray. Remainder-region machinery 13.7.5–13.7.9 and 13.7.11–13.7.13, uniform
+Poincaré expansions are stated along the positive real axis and, for regularized M,
+on closed upper-half-plane sectors as the norm tends to infinity. Tricomi remainder
+statements include an error bound or an asymptotic order, rather than an arbitrary
+additive error. Remainder-region machinery 13.7.5–13.7.9 and 13.7.11–13.7.13, uniform
 parabolic-cylinder/Bessel approximations 13.8.4–13.8.16, and the uniform
 turning-point expansions of §§13.20–13.21 (Airy/Bessel with `envAi`/`envJ`)
 are deferred.
@@ -39,13 +40,24 @@ theorem regularizedHGFun_poincare_real (a b : ℂ) (n : ℕ) (ha : ∀ k : ℕ, 
       (fun x : ℝ => exp x * (x : ℂ) ^ (a - b - n)) := by
   sorry
 
+/-- Two-term-family Poincaré expansion in closed upper-half-plane sectors.
+The filter sends the norm to infinity; the bound contains both the exponential
+and algebraic remainder scales. It is not a local boundedness assertion. -/
 @[dlmf 13.7.E2]
-theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {z : ℂ}
-    (harg : π / 2 ≤ |z.arg|) (harg' : |z.arg| ≤ 3 * π / 2 - 1 / 10)
-    (hz : z ∈ slitPlane) (ha : ∀ k : ℕ, a ≠ -k) (hba : ∀ k : ℕ, b - a ≠ -k) :
-    ∃ C : ℂ,
-      Asymptotics.IsBigO (𝓝 z)
-        (fun w => regularizedHGFun {a} {b} w - C) (fun _ => (1 : ℂ)) := by
+theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {δ : ℝ}
+    (hδ : 0 < δ) (hδπ : δ < π / 2)
+    (ha : ∀ k : ℕ, a ≠ -k) (hba : ∀ k : ℕ, b - a ≠ -k) :
+    Asymptotics.IsBigO
+      (Filter.comap (fun z : ℂ => ‖z‖) atTop ⊓
+        Filter.principal {z : ℂ | δ ≤ z.arg ∧ z.arg ≤ π - δ})
+      (fun z => regularizedHGFun {a} {b} z -
+        (exp z * z ^ (a - b) / Gamma a *
+          ∑ s ∈ Finset.range n, poch (1 - a) s * poch (b - a) s / s.factorial *
+            z ^ (-(s : ℂ)) +
+         exp (π * I * a) * z ^ (-a) / Gamma (b - a) *
+          ∑ s ∈ Finset.range n, poch a s * poch (a - b + 1) s / s.factorial *
+            (-z) ^ (-(s : ℂ))))
+      (fun z => ‖exp z * z ^ (a - b - n)‖ + ‖z ^ (-a - n)‖) := by
   sorry
 
 @[dlmf 13.7.E3]
@@ -57,20 +69,29 @@ theorem confluentU_poincare (a b : ℂ) (n : ℕ) :
       (fun x : ℝ => (x : ℂ) ^ (-a - n)) := by
   sorry
 
+/-- For positive real `a` and `b ≤ a + 1`, the positive-ray Tricomi
+truncation error is bounded by the magnitude of the first omitted term. -/
 @[dlmf 13.7.E4]
-theorem confluentU_poincare_finite (a b : ℂ) (n : ℕ) {x : ℝ} (hx : 0 < x) :
-    ∃ ε : ℂ,
-      confluentU a b x =
-        (x : ℂ) ^ (-a) * ∑ s ∈ Finset.range n,
-          poch a s * poch (a - b + 1) s / s.factorial * (-(x : ℂ)) ^ (-(s : ℂ)) + ε := by
+theorem confluentU_poincare_finite {a b x : ℝ} (ha : 0 < a) (hb : b ≤ a + 1)
+    (hx : 0 < x) (n : ℕ) :
+    ‖confluentU a b x -
+      (x : ℂ) ^ (-(a : ℂ)) * ∑ s ∈ Finset.range n,
+        poch (a : ℂ) s * poch ((a : ℂ) - b + 1) s / s.factorial *
+          (-(x : ℂ)) ^ (-(s : ℂ))‖ ≤
+      ‖(x : ℂ) ^ (-(a : ℂ) - n) *
+        poch (a : ℂ) n * poch ((a : ℂ) - b + 1) n / n.factorial‖ := by
   sorry
 
-@[dlmf 13.7.E10]
-theorem confluentU_poincare_remainder (a b : ℂ) (n : ℕ) {x : ℝ} (hx : 0 < x) :
-    ∃ R : ℂ,
-      confluentU a b x =
+/-- A positive-ray remainder function with the stated order of decay.
+This gives an actual asymptotic bound, not just an arbitrary additive error.
+It does not yet assert the exponentially improved expansion of DLMF 13.7.10. -/
+@[dlmf 13.7.E4]
+theorem confluentU_poincare_remainder (a b : ℂ) (n : ℕ) :
+    ∃ R : ℝ → ℂ,
+      (∀ x : ℝ, 0 < x → confluentU a b x =
         (x : ℂ) ^ (-a) * ∑ s ∈ Finset.range n,
-          poch a s * poch (a - b + 1) s / s.factorial * (-(x : ℂ)) ^ (-(s : ℂ)) + R := by
+          poch a s * poch (a - b + 1) s / s.factorial * (-(x : ℂ)) ^ (-(s : ℂ)) + R x) ∧
+      Asymptotics.IsBigO atTop R (fun x : ℝ => (x : ℂ) ^ (-a - n)) := by
   sorry
 
 @[dlmf 13.8.E1]

@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Complex.TaylorSeries
 public import AAR.Gamma.Digamma
 public import AAR.Gamma.SpecialValues
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
@@ -17,7 +18,9 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
 The Weierstrass/digamma series 5.7.6 is already `digamma_eq_tsum` in `Digamma.lean`.
 The Taylor coefficients of `1/Γ` and the ζ-expansions of `log Γ` and `ψ` are
-acquired on a disk around the origin, away from the poles of `ψ`.
+described here. The reciprocal Gamma Taylor series converges on all of `ℂ`;
+the logarithmic and digamma expansions retain their disk and pole restrictions.
+The alternating half-argument digamma series is grouped into absolutely summable pairs.
 -/
 
 @[expose] public section
@@ -34,10 +37,20 @@ namespace AAR.Gamma
 def invGammaCoeff (k : ℕ) : ℂ :=
   iteratedDeriv k (fun z : ℂ => (Complex.Gamma z)⁻¹) 0 / k.factorial
 
+/-- The reciprocal Gamma Taylor series at zero converges at every complex argument. -/
+@[dlmf 5.7.E1]
+theorem hasSum_invGammaCoeff (z : ℂ) :
+    HasSum (fun k : ℕ => invGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ := by
+  simpa [invGammaCoeff, div_eq_mul_inv, smul_eq_mul,
+    mul_comm, mul_left_comm, mul_assoc] using
+    Complex.hasSum_taylorSeries_of_entire Complex.differentiable_one_div_Gamma 0 z
+
+/-- The reciprocal Gamma Taylor expansion on the unit disk.
+The global version is `hasSum_invGammaCoeff`; this statement retains the original API. -/
 @[dlmf 5.7.E1]
 theorem inv_Gamma_hasSum (z : ℂ) (hz : ‖z‖ < 1) :
-    HasSum (fun k : ℕ => invGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ := by
-  sorry
+    HasSum (fun k : ℕ => invGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ :=
+  hasSum_invGammaCoeff z
 
 @[dlmf 5.7.E2]
 theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
@@ -70,10 +83,12 @@ theorem digamma_one_add_odd_zeta {z : ℂ} (hz : ‖z‖ < 1) (hz0 : z ≠ 0) (h
         ∑' k : ℕ, (riemannZeta (2 * k + 3) - 1) * z ^ (2 * k + 2) := by
   sorry
 
+/-- The half-argument digamma difference as an absolutely convergent series.
+Adjacent terms of the classical alternating series are paired before taking `tsum`. -/
 @[dlmf 5.7.E7]
 theorem digamma_half_diff (z : ℂ) (hz : ∀ k : ℕ, z ≠ -k) :
     Complex.digamma ((z + 1) / 2) - Complex.digamma (z / 2) =
-      2 * ∑' k : ℕ, (-1 : ℂ) ^ k / (k + z) := by
+      2 * ∑' k : ℕ, (1 / (2 * k + z) - 1 / (2 * k + 1 + z)) := by
   sorry
 
 @[dlmf 5.7.E8]

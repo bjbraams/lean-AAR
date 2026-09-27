@@ -16,8 +16,9 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
 Olver's regularized function `𝐌(a,b,z)` is Mathlib's `regularizedHGFun {a} {b}`.
 The series `confluentM` is entire in `z` at regular denominator parameters; `confluentU`
-is the connection formula 13.2.42, so integer `b` is excluded unless a limit is
-stated. Complex powers use the principal branch on the slit plane. Numerically
+uses the connection formula 13.2.42 and parameter limits at integer `b`.
+The proved Kummer transformation currently retains a noninteger hypothesis;
+extending it to the limit branch remains a separate task. Complex powers use the principal branch on the slit plane. Numerically
 satisfactory pairs (13.2.24–13.2.26) are recorded as Wronskian identities on
 the indicated argument sectors.
 -/
@@ -94,26 +95,16 @@ theorem regularizedHGFun_of_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
   rw [hΓ]
   ring
 
--- NOTE (2026-09-17): false as stated. At `b = -n` Mathlib's `Γ(-n) = 0`, so the function
--- takes the value `M(a,-n,z)/0 = 0` there, while `𝐌(a,-n,z) ≠ 0` in general (`a = 1`, `n = 0`,
--- `z = 1` gives `𝐌 = e`); a limit along `𝓝 (-n)` therefore cannot equal `𝐌(a,-n,z)`. The
--- statement holds along `𝓝[≠] (-n)`, as in `tendsto_regularized_at_neg_nat` for `₂F₁`.
-@[dlmf 13.2.E5]
-theorem tendsto_confluentM_div_Gamma_at_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
-    Tendsto (fun b : ℂ => confluentM a b z / Gamma b) (𝓝 (-(n : ℂ)))
-      (𝓝 (regularizedHGFun {a} {(-(n : ℂ))} z)) := by
-  sorry
+/- The punctured parameter-limit theorem is proved in `AAR.Confluent.Continuation`. -/
 
 @[dlmf 13.2.E6]
 theorem tendsto_confluentU_mul_cpow_atTop (a b : ℂ) :
     Tendsto (fun x : ℝ => confluentU a b x * (x : ℂ) ^ a) atTop (𝓝 1) := by
   sorry
 
--- NOTE (2026-09-17): false as stated for positive-integer `b`: with `m = 1`, `b = 1` the
--- project's `U` is `Γ(0)/Γ(-1) · M + Γ(0)/Γ(-1) · M' = 0` (Mathlib's `Γ` vanishes at the poles),
--- while the right-hand side is `-(1 - z)`. It holds when `1 - b - m` is not a pole of `Γ`.
+/-- Polynomial specialization of Tricomi U, expressed using ordinary Kummer M. -/
 @[dlmf 13.2.E7]
-theorem confluentU_neg_nat (m : ℕ) (b z : ℂ) :
+theorem confluentU_neg_nat (m : ℕ) (b z : ℂ) (hb : ∀ k : ℕ, b ≠ -k) :
     confluentU (-(m : ℂ)) b z =
       (-1 : ℂ) ^ m * poch b m * confluentM (-(m : ℂ)) b z := by
   sorry
@@ -125,8 +116,10 @@ theorem confluentU_neg_nat_sum (m : ℕ) (b z : ℂ) :
         (m.choose s : ℂ) * poch (b + s) (m - s) * (-z) ^ s := by
   sorry
 
+/-- A shifted Tricomi identity with a regular denominator in ordinary Kummer M. -/
 @[dlmf 13.2.E8]
-theorem confluentU_shift_nat (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem confluentU_shift_nat (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
+    (ha : ∀ k : ℕ, 1 - a - n ≠ -k) :
     confluentU a (a + n + 1) z =
       (-1 : ℂ) ^ n * poch (1 - a - n) n / z ^ (a + n) *
         confluentM (-(n : ℂ)) (1 - a - n) z := by
@@ -151,8 +144,7 @@ theorem confluentU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane
             ((n - k).factorial : ℂ) * z ^ (-(k : ℂ)) := by
   sorry
 
--- NOTE (2026-09-17): false as stated: with `m = n = 1` the project's `U(-1, 2, z)` is
--- `Γ(-1)/Γ(-2) · M + Γ(1)/Γ(-1) · z⁻¹ · M' = 0`, while the right-hand side is `z - 2`.
+/-- Polynomial specialization at positive integer second parameter, using the continued U. -/
 @[dlmf 13.2.E10]
 theorem confluentU_neg_nat_nat_denom (m n : ℕ) (z : ℂ) :
     confluentU (-(m : ℂ)) (n + 1) z =
@@ -164,11 +156,12 @@ theorem confluentU_neg_nat_shift (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitP
     confluentU a (-(n : ℂ)) z = z ^ (n + 1 : ℂ) * confluentU (a + n + 1) (n + 2) z := by
   sorry
 
+/-- Monodromy on the logarithmic argument plane for noninteger second parameter. -/
 @[dlmf 13.2.E12]
 theorem confluentU_analytic_continuation (a b z : ℂ) (m : ℤ) {w : ℂ}
-    (hw : w = z * exp (2 * π * I * m)) (hz : z ∈ slitPlane)
+    (hw : w = log z + 2 * π * I * m) (hz : z ∈ slitPlane)
     (hb : ∀ n : ℤ, b ≠ n) :
-    confluentU a b w =
+    confluentUOnLog a b w =
       (2 * π * I * exp (-π * I * b * m) * sin (π * b * m)) /
           (Gamma (1 + a - b) * sin (π * b)) * regularizedHGFun {a} {b} z +
         exp (-2 * π * I * b * m) * confluentU a b z := by
@@ -355,10 +348,20 @@ theorem wronskian_confluentU_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane
       exp ((if sign then 1 else -1) * (a - b) * π * I) * z ^ (-b) * exp z := by
   sorry
 
+/-- Kummer transformation for U at noninteger second parameter.
+Extension to integer parameters requires the parameter-limit API. -/
 @[dlmf 13.2.E40]
-theorem confluentU_kummer_transform (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem confluentU_kummer_transform (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (hb : ∀ k : ℤ, b ≠ k) :
     confluentU a b z = z ^ (1 - b) * confluentU (a - b + 1) (2 - b) z := by
-  unfold confluentU
+  have hb' : ∀ k : ℤ, (2 : ℂ) - b ≠ k := by
+    intro k hk
+    apply hb (2 - k)
+    push_cast
+    linear_combination -hk
+  rw [confluentU_eq_connection a b z hb,
+    confluentU_eq_connection (a - b + 1) (2 - b) z hb']
+  unfold confluentUConnection
   have hz0 := slitPlane_ne_zero hz
   have h1 : (1 : ℂ) - (2 - b) = b - 1 := by ring
   have h2 : (a - b + 1 : ℂ) - (2 - b) + 1 = a := by ring

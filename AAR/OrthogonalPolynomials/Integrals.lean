@@ -8,11 +8,15 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Explicit
+public import AAR.OrthogonalPolynomials.Differential
 public import AAR.Bessel.Basic
 /-!
 # Classical orthogonality, Rodrigues formulas, and integral identities
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Integral identities from NIST DLMF Chapter 18. The Hermite and weighted Jacobi antiderivatives
+are proved by the fundamental theorem of calculus. The Laguerre squared norm
+is obtained from the already proved monomial moments;
+other declarations below still include admitted results.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -36,11 +40,43 @@ theorem jacobi_norm {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
       ((2 * n + α + β + 3) * (n + 1).factorial * Gamma (n + (α : ℂ) + β + 2)) := by
   sorry
 
+/-- The squared Laguerre norm for the weight `x^α exp (-x)` on the positive ray. -/
 @[dlmf 18.3.T1]
 theorem laguerre_norm {α : ℝ} (hα : -1 < α) (n : ℕ) :
     ∫ x : ℝ in Set.Ioi 0, laguerre α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (n + (α : ℂ) + 1) / n.factorial := by
-  sorry
+  have heq : (fun x : ℝ => laguerre α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ)) =
+      fun x : ℝ => ∑ k ∈ Finset.range (n + 1),
+        (poch ((α : ℂ) + 1) n / n.factorial * confluentHGCoeff (-(n : ℂ)) (α + 1) k) *
+          (laguerre α n x * (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) := by
+    funext x
+    rw [pow_two]
+    conv_lhs => arg 1; arg 1; arg 1; rw [laguerre_eq_sum_coeff (α : ℂ) n]
+    simp only [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro k _
+    ring
+  rw [heq, integral_finsetSum _ (fun k _ =>
+    (integrable_laguerre_mul_monomial hα n k).const_mul _)]
+  simp_rw [MeasureTheory.integral_const_mul, integral_laguerre_mul_monomial hα]
+  rw [Finset.sum_eq_single n]
+  · have hc : ∀ j : ℕ, (α : ℂ) + 1 ≠ -j := not_neg_nat_of_re_pos (by
+      simp only [add_re, ofReal_re, one_re]; linarith)
+    have hn : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    have hp := poch_ne_zero_of_not_neg_nat hc n
+    change (poch ((α : ℂ) + 1) n / n.factorial *
+      (poch (-(n : ℂ)) n / (poch ((α : ℂ) + 1) n * n.factorial))) *
+      (Gamma ((α : ℂ) + n + 1) * poch (-(n : ℂ)) n / n.factorial) = _
+    rw [poch_neg_coe_nat, Nat.descFactorial_self]
+    have hs : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+    rw [show (α : ℂ) + n + 1 = n + (α : ℂ) + 1 by ring]
+    field_simp [hn, hp]
+    linear_combination (Gamma (n + (α : ℂ) + 1)) * hs
+  · intro k hk hkn
+    have hlt : k < n := by have := Finset.mem_range.mp hk; omega
+    rw [poch_neg_nat_eq_zero hlt]
+    simp
+  · simp
 
 @[dlmf 18.3.T1]
 theorem hermitePhys_orthogonality (m n : ℕ) :
@@ -113,17 +149,44 @@ theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
       ∫ t : ℝ, Real.exp (-(t ^ 2)) * (t : ℂ) ^ n * exp (2 * I * x * t) := by
   sorry
 
+/-- An interval antiderivative of the physicists’ Hermite polynomial. -/
 @[dlmf 18.17.E3]
 theorem hermitePhys_integral (n : ℕ) (x : ℝ) :
     ∫ y : ℝ in (0 : ℝ)..x, (aeval y (hermitePhys n) : ℝ) =
       (aeval x (hermitePhys (n + 1)) - aeval (0 : ℝ) (hermitePhys (n + 1))) / (2 * (n + 1)) := by
-  sorry
+  have hd (t : ℝ) : HasDerivAt (fun y : ℝ => aeval y (hermitePhys (n + 1)))
+      (2 * (n + 1) * aeval t (hermitePhys n)) t := by
+    have h := (hermitePhys (n + 1)).hasDerivAt_aeval t
+    rw [hermitePhys_derivative] at h
+    simpa only [map_mul, aeval_C, map_ofNat, map_add, map_natCast, map_one] using h
+  have hi : IntervalIntegrable (fun t : ℝ => 2 * (n + 1) * aeval t (hermitePhys n))
+      volume 0 x := (by fun_prop : Continuous _).intervalIntegrable _ _
+  have h := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hd t) hi
+  rw [intervalIntegral.integral_const_mul] at h
+  apply (eq_div_iff (by positivity : (2 * (n + 1) : ℝ) ≠ 0)).mpr
+  nlinarith [h]
 
+/-- An interval antiderivative of a Gaussian-weighted physicists’ Hermite polynomial. -/
 @[dlmf 18.17.E4]
 theorem hermitePhys_weighted_integral (n : ℕ) (x : ℝ) :
     ∫ y : ℝ in (0 : ℝ)..x, Real.exp (-(y ^ 2)) * (aeval y (hermitePhys (n + 1)) : ℝ) =
       aeval (0 : ℝ) (hermitePhys n) - Real.exp (-(x ^ 2)) * aeval x (hermitePhys n) := by
-  sorry
+  let g : ℝ → ℝ := fun t => Real.exp (-(t ^ 2)) * aeval t (hermitePhys n)
+  have hd (t : ℝ) : HasDerivAt (fun y => -g y)
+      (Real.exp (-(t ^ 2)) * aeval t (hermitePhys (n + 1))) t := by
+    have hg : DifferentiableAt ℝ g t :=
+      (by fun_prop : DifferentiableAt ℝ (fun t : ℝ => Real.exp (-(t ^ 2))) t).mul
+        ((hermitePhys n).hasDerivAt_aeval t).differentiableAt
+    have ht := hg.hasDerivAt.neg
+    change HasDerivAt (fun y => -g y) (-deriv g t) t at ht
+    simpa only [g, AAR.OrthogonalPolynomials.hermitePhys_weighted_derivative, neg_mul, neg_neg]
+      using ht
+  have hi : IntervalIntegrable
+      (fun y : ℝ => Real.exp (-(y ^ 2)) * (aeval y (hermitePhys (n + 1)) : ℝ)) volume 0 x :=
+    (by fun_prop : Continuous _).intervalIntegrable _ _
+  have h := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hd t) hi
+  simpa only [g, zero_pow (by decide : 2 ≠ 0), neg_zero, Real.exp_zero, one_mul,
+    neg_sub_neg] using h
 
 @[dlmf 18.17.E6]
 theorem legendre_product_integral (n : ℕ) (θ ψ : ℝ) :
@@ -219,13 +282,51 @@ theorem hermitePhys_triple_integral (a b c : ℕ) :
   sorry
 
 
+/-- The weighted Jacobi antiderivative on an interval contained in `(-1,1)`. -/
 @[dlmf 18.17.E1]
 theorem jacobi_weighted_integral {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
     2 * (n + 1 : ℂ) * (∫ y : ℝ in (0 : ℝ)..x, (1 - (y : ℂ)) ^ (α : ℂ) *
       (1 + (y : ℂ)) ^ (β : ℂ) * jacobiP α β (n + 1) y) =
       jacobiP (α + 1) (β + 1) n 0 - (1 - (x : ℂ)) ^ (α + 1 : ℂ) *
         (1 + (x : ℂ)) ^ (β + 1 : ℂ) * jacobiP (α + 1) (β + 1) n x := by
-  sorry
+  have hreg (a b : ℝ) (m : ℕ) (t : ℝ) (ht : t ∈ Set.Ioo (-1) 1) :
+      DifferentiableAt ℝ (fun y : ℝ => (1 - (y : ℂ)) ^ (a : ℂ) *
+        (1 + (y : ℂ)) ^ (b : ℂ) * jacobiP a b m y) t := by
+    have h1 : (1 - (t : ℂ)) ∈ slitPlane := by
+      rw [show (1 - (t : ℂ)) = ((1 - t : ℝ) : ℂ) by push_cast; ring]
+      exact Complex.ofReal_mem_slitPlane.mpr (by linarith [ht.2])
+    have h2 : (1 + (t : ℂ)) ∈ slitPlane := by
+      rw [show (1 + (t : ℂ)) = ((1 + t : ℝ) : ℂ) by push_cast; ring]
+      exact Complex.ofReal_mem_slitPlane.mpr (by linarith [ht.1])
+    exact (((((hasDerivAt_id' (t : ℂ)).const_sub 1).cpow_const h1).comp_ofReal).mul
+      ((((hasDerivAt_id' (t : ℂ)).const_add 1).cpow_const h2).comp_ofReal)).differentiableAt.mul
+      (((analyticOnNhd_jacobiP a b m) t (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal).differentiableAt
+  have hmem (t : ℝ) (ht : t ∈ Set.uIcc 0 x) : t ∈ Set.Ioo (-1) 1 := by
+    rcases Set.mem_uIcc.mp ht with ht | ht <;> constructor <;>
+      linarith [ht.1, ht.2, hx.1, hx.2]
+  let g : ℝ → ℂ := fun y => (1 - (y : ℂ)) ^ (α + 1 : ℂ) *
+    (1 + (y : ℂ)) ^ (β + 1 : ℂ) * jacobiP (α + 1) (β + 1) n y
+  have hd (t : ℝ) (ht : t ∈ Set.uIcc 0 x) : HasDerivAt (fun y => -g y)
+      (2 * (n + 1 : ℂ) * ((1 - (t : ℂ)) ^ (α : ℂ) *
+        (1 + (t : ℂ)) ^ (β : ℂ) * jacobiP α β (n + 1) t)) t := by
+    have hg : DifferentiableAt ℝ g t := by
+      simpa only [g, ofReal_add, ofReal_one] using hreg (α + 1) (β + 1) n t (hmem t ht)
+    have hh := hg.hasDerivAt.neg
+    have he := jacobi_weighted_derivative (α := α + 1) (β := β + 1)
+      (by linarith) (by linarith) n (hmem t ht)
+    simp only [ofReal_add, ofReal_one, add_sub_cancel_right] at he
+    change deriv g t = _ at he
+    rw [he] at hh
+    convert hh using 1; ring
+  have hi : IntervalIntegrable (fun y : ℝ => 2 * (n + 1 : ℂ) *
+      ((1 - (y : ℂ)) ^ (α : ℂ) * (1 + (y : ℂ)) ^ (β : ℂ) *
+        jacobiP α β (n + 1) y)) volume 0 x := by
+    apply ContinuousOn.intervalIntegrable
+    intro t ht
+    exact (continuousAt_const.mul (hreg α β (n + 1) t (hmem t ht)).continuousAt).continuousWithinAt
+  have hh := intervalIntegral.integral_eq_sub_of_hasDerivAt hd hi
+  rw [intervalIntegral.integral_const_mul] at hh
+  simpa [g, sub_eq_add_neg, add_comm] using hh
 
 @[dlmf 18.17.E2]
 theorem laguerre_unweighted_convolution (m n : ℕ) (x : ℝ) :

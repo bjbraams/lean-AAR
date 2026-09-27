@@ -88,14 +88,10 @@ theorem poissonKernelBall_reproduces {n : ℕ} (hn : 2 ≤ n)
 /-- Special unitary group `SU(2)`. -/
 abbrev SU2 := specialUnitaryGroup (Fin 2) ℂ
 
-/-- Jacobi polynomials as matrix coefficients of irreducible representations of `SU(2)`
-(AAR §9.14).
-
-TODO: The current statement is reflexivity; it contains no representation or matrix
-coefficient and therefore does not yet express the advertised result. -/
-theorem jacobiP_matrix_coefficient {α β : ℕ} {n : ℕ} (g : SU2) :
-    jacobiP α β n ((g.1 0 0).re) = jacobiP α β n ((g.1 0 0).re) := by
-  rfl
+/-! The Jacobi-polynomial interpretation as matrix coefficients of irreducible
+`SU(2)` representations (AAR §9.14) remains to be formulated using a representation
+and a specified basis. The former reflexive placeholder has been removed: it
+provided no representation-theoretic content. -/
 
 /-- The double cover `SU(2) → SO(3)` (AAR §9.16). -/
 theorem su2_covers_so3 :
