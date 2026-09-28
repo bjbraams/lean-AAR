@@ -96,14 +96,105 @@ theorem associated_zero (A B C : ℝ → ℂ) (c : ℝ) (x : ℂ) : associated A
 theorem associatedPollaczek_limit_laguerre (lam : ℂ) {c : ℝ} (hc : 0 ≤ c) (n : ℕ) (x : ℂ) :
     Tendsto (fun phi : ℝ => associatedMeixnerPollaczek ((lam + 1) / 2) phi c n (-x / (2 * sin (phi : ℂ))))
       (𝓝[>] 0) (𝓝 (associatedLaguerre lam c n x)) := by
-  sorry
+  have hcos : Tendsto (fun phi : ℝ => cos (phi : ℂ)) (𝓝[>] 0) (𝓝 1) := by
+    have h : Tendsto (fun phi : ℝ => cos (phi : ℂ)) (𝓝 0) (𝓝 (cos ((0 : ℝ) : ℂ))) :=
+      Continuous.tendsto (by fun_prop) 0
+    simpa using h.mono_left nhdsWithin_le_nhds
+  have hsin : ∀ᶠ phi : ℝ in 𝓝[>] 0, sin (phi : ℂ) ≠ 0 := by
+    filter_upwards [Ioo_mem_nhdsGT (show (0 : ℝ) < Real.pi by positivity)] with phi hphi
+    rw [← ofReal_sin]
+    exact ofReal_ne_zero.mpr (Real.sin_pos_of_pos_of_lt_pi hphi.1 hphi.2).ne'
+  have ht : ∀ n : ℕ, ((n : ℝ) + 1 + c : ℂ) + 1 ≠ 0 := fun n => by
+    have : (0 : ℝ) < n + 1 + c + 1 := by positivity
+    exact_mod_cast this.ne'
+  refine tendsto_of_three_term
+    (f := fun n (phi : ℝ) => associatedMeixnerPollaczek ((lam + 1) / 2) phi c n
+      (-x / (2 * sin (phi : ℂ))))
+    (g := fun n => associatedLaguerre lam c n x)
+    (A := fun n (phi : ℝ) => -x / (((n + 1 + c : ℝ) : ℂ) + 1) +
+      2 * (((n + 1 + c : ℝ) : ℂ) + (lam + 1) / 2) * cos (phi : ℂ) / (((n + 1 + c : ℝ) : ℂ) + 1))
+    (B := fun n (_ : ℝ) => -((((n + 1 + c : ℝ) : ℂ) + 2 * ((lam + 1) / 2) - 1) /
+      (((n + 1 + c : ℝ) : ℂ) + 1)))
+    (A' := fun n => -x / (((n + 1 + c : ℝ) : ℂ) + 1) +
+      2 * (((n + 1 + c : ℝ) : ℂ) + (lam + 1) / 2) * 1 / (((n + 1 + c : ℝ) : ℂ) + 1))
+    (B' := fun n => -((((n + 1 + c : ℝ) : ℂ) + 2 * ((lam + 1) / 2) - 1) /
+      (((n + 1 + c : ℝ) : ℂ) + 1))) ?_ ?_ ?_ ?_ ?_ ?_ n
+  · simp [associatedMeixnerPollaczek, associatedLaguerre, associated]
+  · have hc1 : (c : ℂ) + 1 ≠ 0 := by
+      have : (0 : ℝ) < c + 1 := by positivity
+      exact_mod_cast this.ne'
+    have h := (tendsto_const_nhds (x := -x / ((c : ℂ) + 1))).add
+      ((hcos.const_mul (2 * ((c : ℂ) + (lam + 1) / 2))).div_const ((c : ℂ) + 1))
+    have hv : -x / ((c : ℂ) + 1) + 2 * ((c : ℂ) + (lam + 1) / 2) * 1 / ((c : ℂ) + 1) =
+        associatedLaguerre lam c 1 x := by
+      simp only [associatedLaguerre, associated]
+      field_simp
+      ring
+    rw [hv] at h
+    refine h.congr' ?_
+    filter_upwards [hsin] with phi hphi
+    simp only [associatedMeixnerPollaczek, associated]
+    field_simp
+  · intro n
+    exact tendsto_const_nhds.add (((hcos.const_mul _).div_const _))
+  · intro n; exact tendsto_const_nhds
+  · intro n
+    filter_upwards [hsin] with phi hphi
+    simp only [associatedMeixnerPollaczek, associated]
+    push_cast
+    field_simp
+    ring
+  · intro n
+    simp only [associatedLaguerre, associated]
+    push_cast
+    field_simp
+    ring
 
 @[dlmf 18.30.E20]
 theorem associatedPollaczek_limit_hermite {c : ℝ} (hc : 0 ≤ c) (n : ℕ) (x : ℂ) :
     Tendsto (fun lam : ℝ => poch (c + 1) n * (Real.sqrt lam : ℂ)⁻¹ ^ n *
       associatedMeixnerPollaczek lam (Real.pi / 2) c n (x * Real.sqrt lam)) atTop
       (𝓝 (associatedHermite c n x)) := by
-  sorry
+  have hsc : sin ((Real.pi : ℂ) / 2) = 1 := Complex.sin_pi_div_two
+  have hcc : cos ((Real.pi : ℂ) / 2) = 0 := Complex.cos_pi_div_two
+  refine tendsto_of_three_term (f := fun n (lam : ℝ) => poch (c + 1) n * (Real.sqrt lam : ℂ)⁻¹ ^ n *
+      associatedMeixnerPollaczek lam (Real.pi / 2) c n (x * Real.sqrt lam))
+    (g := fun n => associatedHermite c n x)
+    (A := fun _ _ => 2 * x)
+    (B := fun n (lam : ℝ) => -(((n : ℂ) + c + 1) * (2 + (n + c) / (lam : ℂ))))
+    (A' := fun _ => 2 * x) (B' := fun n => -(((n : ℂ) + c + 1) * 2)) ?_ ?_ ?_ ?_ ?_ ?_ n
+  · simp [associatedMeixnerPollaczek, associatedHermite, associated, poch_zero]
+  · refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with lam hl
+    have hs : (Real.sqrt lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hl).ne'
+    have hc1 : (c : ℂ) + 1 ≠ 0 := by
+      have : (0 : ℝ) < c + 1 := by positivity
+      exact_mod_cast this.ne'
+    simp only [associatedMeixnerPollaczek, associatedHermite, associated, hsc, hcc, poch_one]
+    field_simp
+    ring
+  · intro n; exact tendsto_const_nhds
+  · intro n
+    simpa only [add_zero] using
+      (((tendsto_const_div_ofReal_atTop ((n : ℂ) + c)).const_add 2).const_mul
+        ((n : ℂ) + c + 1)).neg
+  · intro n
+    filter_upwards [eventually_gt_atTop 0] with lam hl
+    have hs : (Real.sqrt lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hl).ne'
+    have hs2 : (lam : ℂ) = (Real.sqrt lam : ℂ) ^ 2 := by
+      rw [← ofReal_pow, Real.sq_sqrt hl.le]
+    have ht : ((n + 1 + c : ℝ) : ℂ) + 1 ≠ 0 := by
+      have : (0 : ℝ) < n + 1 + c + 1 := by positivity
+      exact_mod_cast this.ne'
+    simp only [associatedMeixnerPollaczek, associated, hsc, hcc, poch_succ, inv_pow]
+    rw [hs2]
+    push_cast at ht ⊢
+    field_simp
+    ring
+  · intro n
+    simp only [associatedHermite, associated]
+    push_cast
+    ring
 
 /-- `(a+1)_b = (a+b)!/a!` for natural `a`, in factorial form. -/
 lemma poch_nat_succ_mul_factorial (a b : ℕ) :
@@ -173,7 +264,59 @@ theorem besselPolynomial_recurrence (a : ℂ) (n : ℕ) (x : ℂ) :
 theorem besselPolynomial_differential_equation (a : ℂ) (n : ℕ) (x : ℂ) :
     x ^ 2 * deriv (deriv (besselPolynomial a n)) x + (a * x + 2) * deriv (besselPolynomial a n) x -
       n * (n + a - 1) * besselPolynomial a n x = 0 := by
-  sorry
+  set c : ℕ → ℂ := fun k =>
+    poch (-(n : ℂ)) k * poch (n + a - 1) k * (-1 / 2) ^ k / (k.factorial : ℂ)
+  set p : ℂ[X] := ∑ k ∈ Finset.range (n + 1), C (c k) * X ^ k
+  have hp : besselPolynomial a n = fun x => p.eval x := by
+    funext x
+    unfold besselPolynomial terminatingHG
+    simp only [p, eval_finsetSum, eval_mul, eval_C, eval_pow, eval_X, c, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [show -x / 2 = (-1 / 2) * x by ring, mul_pow]; ring
+  have hcoeff : ∀ j, p.coeff j = c j := by
+    intro j
+    simp only [p, finsetSum_coeff, coeff_C_mul_X_pow]
+    rw [Finset.sum_ite_eq]
+    split_ifs with h
+    · rfl
+    · simp only [Finset.mem_range, not_lt] at h
+      simp [c, poch_neg_nat_eq_zero (by omega : n < j)]
+  have hc : ∀ k, 2 * (k + 1) * c (k + 1) = -((k - n) * (k + n + a - 1)) * c k := by
+    intro k
+    simp only [c, poch_succ, pow_succ, Nat.factorial_succ]
+    have : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    push_cast
+    field_simp
+    ring
+  have hQ : X ^ 2 * derivative (derivative p) + (C a * X + 2) * derivative p -
+      C ((n : ℂ) * (n + a - 1)) * p = 0 := by
+    ext k
+    have e2 : (2 : ℂ[X]) = C 2 := rfl
+    rw [coeff_zero, e2, show (C a * X + C 2) * derivative p =
+      C a * (X ^ 1 * derivative p) + C 2 * derivative p by ring]
+    simp only [coeff_sub, coeff_add, coeff_C_mul, coeff_X_pow_mul', coeff_derivative,
+      hcoeff]
+    rcases k with _ | _ | k
+    · have := hc 0
+      simp only [zero_add, Nat.reduceLeDiff, ↓reduceIte]
+      push_cast at this ⊢
+      linear_combination this
+    · have := hc 1
+      simp only [zero_add, Nat.reduceLeDiff, ↓reduceIte, Nat.sub_self]
+      push_cast at this ⊢
+      linear_combination this
+    · have := hc (k + 2)
+      simp only [show 2 ≤ k + 1 + 1 by omega, show 1 ≤ k + 1 + 1 by omega, ↓reduceIte,
+        show k + 1 + 1 - 2 = k by omega, show k + 1 + 1 - 1 = k + 1 by omega]
+      push_cast at this ⊢
+      linear_combination this
+  have hd : deriv (besselPolynomial a n) = fun x => (derivative p).eval x := by
+    rw [hp]; funext x; exact Polynomial.deriv p
+  rw [hd, hp]
+  simp only [Polynomial.deriv]
+  have := congrArg (eval x) hQ
+  simpa [eval_add, eval_sub, eval_mul] using this
 
 @[dlmf 18.34.E5_5]
 theorem besselPolynomial_finite_orthogonality {a : ℝ} (m n : ℕ) (ha : a < 1 - 2 * max m n) :
@@ -187,7 +330,37 @@ theorem besselPolynomial_finite_orthogonality {a : ℝ} (m n : ℕ) (ha : a < 1 
 theorem jacobi_limit_besselPolynomial (a : ℂ) (n : ℕ) (x : ℂ) :
     Tendsto (fun α : ℝ => jacobiP α (a - α - 2) n (1 + α * x) / jacobiP α (a - α - 2) n 1) atTop
       (𝓝 (besselPolynomial a n x)) := by
-  sorry
+  unfold besselPolynomial terminatingHG
+  have hlim : Tendsto (fun α : ℝ => ∑ k ∈ Finset.range (n + 1),
+      poch (-(n : ℂ)) k * poch (n + a - 1) k * (-x / 2) ^ k / k ! *
+        (poch (1 + (α : ℂ)) k / (α : ℂ) ^ k)⁻¹) atTop
+      (𝓝 (∑ k ∈ Finset.range (n + 1),
+        poch (-(n : ℂ)) k * poch (n + a - 1) k * (-x / 2) ^ k / k ! * 1⁻¹)) := by
+    apply tendsto_finsetSum
+    intro k _
+    exact ((tendsto_poch_add_div_pow 1 k).inv₀ one_ne_zero).const_mul _
+  simp only [inv_one, mul_one] at hlim
+  refine (hlim.congr' ?_).trans ?_
+  · filter_upwards [eventually_gt_atTop 0] with α hα
+    have hα' : (α : ℂ) ≠ 0 := ofReal_ne_zero.mpr hα.ne'
+    have hc : ∀ k : ℕ, (α : ℂ) + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
+    have hp : poch ((α : ℂ) + 1) n / n ! ≠ 0 :=
+      div_ne_zero (poch_ne_zero_of_not_neg_nat hc n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
+    have h0 : ₂F₁ (-(n : ℂ)) (n + α + (a - α - 2) + 1) (α + 1) (0 : ℂ) = 1 := by
+      rw [ordinaryHypergeometric_eq_sum_neg_nat, Finset.sum_range_succ']
+      simp [gaussHGCoeff, poch_zero]
+    unfold jacobiP
+    rw [show ((1 : ℂ) - 1) / 2 = 0 by ring, h0, mul_one, mul_div_cancel_left₀ _ hp,
+      ordinaryHypergeometric_eq_sum_neg_nat]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hpk : poch ((α : ℂ) + 1) k ≠ 0 := poch_ne_zero_of_not_neg_nat hc k
+    unfold gaussHGCoeff
+    rw [show (n : ℂ) + α + (a - α - 2) + 1 = n + a - 1 by ring,
+      show (1 - (1 + (α : ℂ) * x)) / 2 = α * (-x / 2) by ring, mul_pow, add_comm (1 : ℂ)]
+    field_simp
+  · simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+    rfl
 
 @[dlmf 18.35.E2_5]
 theorem pollaczek_reflection (lam a b : ℂ) (c : ℝ) (n : ℕ) (x : ℂ) :

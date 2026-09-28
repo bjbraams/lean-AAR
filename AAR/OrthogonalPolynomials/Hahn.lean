@@ -539,22 +539,167 @@ theorem meixnerPollaczek_central_difference {lam : ℂ} (hlam : 0 < lam.re) (phi
       2 * sin phi * meixnerPollaczek (lam + 1 / 2) phi n x := by
   sorry
 
+/-- `∑ₙ C(N,n) (-n)ₖ zⁿ w^{N-n} = (-N)ₖ zᵏ (z+w)^{N-k}` for `k ≤ N`: factorial moments of a
+binomial distribution. -/
+lemma sum_choose_mul_poch_neg_nat_mul_pow {N k : ℕ} (hk : k ≤ N) (z w : ℂ) :
+    ∑ n ∈ Finset.range (N + 1), (N.choose n : ℂ) * poch (-(n : ℂ)) k * z ^ n * w ^ (N - n) =
+      poch (-(N : ℂ)) k * z ^ k * (z + w) ^ (N - k) := by
+  rw [show N + 1 = k + (N - k + 1) by omega, Finset.sum_range_add]
+  rw [Finset.sum_eq_zero fun n hn => by
+    rw [poch_neg_nat_eq_zero (by simpa using hn)]; simp, zero_add]
+  rw [add_pow, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun m hm => ?_
+  have hm' : m ≤ N - k := by simp at hm; omega
+  rw [poch_neg_coe_nat, poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose,
+    Nat.descFactorial_eq_factorial_mul_choose, pow_add, show N - (k + m) = N - k - m by omega]
+  have hc := Nat.choose_mul (n := N) (k := k + m) (s := k) (by omega)
+  rw [show k + m - k = m by omega] at hc
+  have hc' : (N.choose (k + m) : ℂ) * ((k + m).choose k) = N.choose k * (N - k).choose m := by
+    exact_mod_cast hc
+  push_cast
+  linear_combination (-1 : ℂ) ^ k * k ! * z ^ k * z ^ m * w ^ (N - k - m) * hc'
+
+/-- `∑ₙ C(N,n) (-n)ₖ zⁿ = (-N)ₖ zᵏ (1+z)^{N-k}` for `k ≤ N`. -/
+lemma sum_choose_mul_poch_neg_nat {N k : ℕ} (hk : k ≤ N) (z : ℂ) :
+    ∑ n ∈ Finset.range (N + 1), (N.choose n : ℂ) * poch (-(n : ℂ)) k * z ^ n =
+      poch (-(N : ℂ)) k * z ^ k * (1 + z) ^ (N - k) := by
+  simpa [add_comm z] using sum_choose_mul_poch_neg_nat_mul_pow hk z 1
+
 @[dlmf 18.23.E3]
 theorem krawtchouk_generating_function {p : ℂ} (hp : p ≠ 0) {N x : ℕ} (hx : x ≤ N) (z : ℂ) :
     ∑ n ∈ Finset.range (N + 1), (N.choose n : ℂ) * krawtchouk p N n x * z ^ n =
       (1 - (1 - p) / p * z) ^ x * (1 + z) ^ (N - x) := by
-  sorry
+  unfold krawtchouk
+  simp_rw [terminatingHG_two_neg_nat_swap _ x, terminatingHG, Finset.mul_sum, Finset.sum_mul]
+  rw [Finset.sum_comm]
+  have hterm : ∀ k ∈ Finset.range (x + 1), ∑ n ∈ Finset.range (N + 1),
+      (N.choose n : ℂ) * ((([-(x : ℂ), -(n : ℂ)].map fun t => poch t k).prod /
+        ([-(N : ℂ)].map fun t => poch t k).prod * p⁻¹ ^ k / k !)) * z ^ n =
+      (1 + z) ^ (N - x) * ((x.choose k : ℂ) * (-(z / p)) ^ k * (1 + z) ^ (x - k)) := by
+    intro k hk
+    have hkx : k ≤ x := by simp at hk; omega
+    have hN : poch (-(N : ℂ)) k ≠ 0 := by
+      rw [poch_neg_coe_nat]
+      exact mul_ne_zero (pow_ne_zero _ (by norm_num))
+        (Nat.cast_ne_zero.mpr (Nat.descFactorial_pos.mpr (by omega)).ne')
+    simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+    have hs := sum_choose_mul_poch_neg_nat (show k ≤ N by omega) z
+    rw [Finset.sum_congr rfl (g := fun n : ℕ => (poch (-(x : ℂ)) k / poch (-(N : ℂ)) k *
+      p⁻¹ ^ k / k !) * ((N.choose n : ℂ) * poch (-(n : ℂ)) k * z ^ n)) (fun n _ => by ring),
+      ← Finset.mul_sum, hs, poch_neg_coe_nat x, Nat.descFactorial_eq_factorial_mul_choose,
+      show N - k = (N - x) + (x - k) by omega, pow_add]
+    have hk' : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    push_cast
+    field_simp
+    ring
+  rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum, mul_comm]
+  congr 1
+  rw [show 1 - (1 - p) / p * z = -(z / p) + (1 + z) by field_simp; ring, add_pow]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  ring
+
+/-- `∑ₙ (β)ₙ (-n)ₖ zⁿ / n! = (β)ₖ (-z)ᵏ (1 - z)^{-β-k}`. -/
+lemma hasSum_poch_mul_poch_neg_nat {β z : ℂ} (hz : ‖z‖ < 1) (k : ℕ) :
+    HasSum (fun n : ℕ => poch β n / n ! * poch (-(n : ℂ)) k * z ^ n)
+      (poch β k * (-z) ^ k * (1 - z) ^ (-(β + k))) := by
+  have hb := (hasSum_poch_div_factorial (β := β + k) hz).mul_left (poch β k * (-z) ^ k)
+  have h0 : ∑ i ∈ Finset.range k, poch β i / i ! * poch (-(i : ℂ)) k * z ^ i = 0 :=
+    Finset.sum_eq_zero fun i hi => by
+      rw [poch_neg_nat_eq_zero (by simpa using hi)]; simp
+  have key := (hasSum_nat_add_iff (f := fun n : ℕ => poch β n / n ! * poch (-(n : ℂ)) k * z ^ n)
+    k (g := poch β k * (-z) ^ k * (1 - z) ^ (-(β + k)))).mp ?_
+  · rwa [h0, add_zero] at key
+  refine hb.congr_fun fun n => ?_
+  have hn' : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hnk : ((n + k) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hd : ((n + k).descFactorial k : ℂ) * n ! = (n + k) ! := by
+    have := Nat.factorial_mul_descFactorial (show k ≤ n + k by omega)
+    rw [show n + k - k = n by omega] at this
+    exact_mod_cast (mul_comm _ _).trans this
+  rw [poch_neg_coe_nat, add_comm n k, poch_add, neg_pow, pow_add, add_comm k n]
+  field_simp
+  linear_combination (-1) ^ k * poch β k * poch (β + k) n * z ^ n * z ^ k * hd
 
 @[dlmf 18.23.E4]
 theorem meixner_generating_function {β c : ℂ} (hβ : 0 < β.re) (hc : c ≠ 0) (x : ℕ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => poch β n / n.factorial * meixner β c n x * z ^ n)
       ((1 - z / c) ^ x * (1 - z) ^ (-(x : ℂ) - β)) := by
-  sorry
+  have hβk : ∀ k, poch β k ≠ 0 := poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos hβ)
+  have h1z : (1 : ℂ) - z ≠ 0 := by
+    intro h
+    have : z = 1 := by linear_combination -h
+    rw [this, norm_one] at hz
+    exact lt_irrefl _ hz
+  set u : ℂ := 1 - c⁻¹
+  unfold meixner
+  simp_rw [terminatingHG_two_neg_nat_swap _ x, terminatingHG, Finset.mul_sum, Finset.sum_mul]
+  have h := hasSum_sum (s := Finset.range (x + 1)) (fun k _ =>
+    (hasSum_poch_mul_poch_neg_nat (β := β) hz k).mul_left
+      (poch (-(x : ℂ)) k / poch β k * u ^ k / k !))
+  convert h using 1
+  · funext n
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+    ring
+  · have hsplit : ∀ k : ℕ, (1 - z) ^ (-(β + k)) = (1 - z) ^ (-β) * ((1 - z) ^ k)⁻¹ := by
+      intro k
+      rw [neg_add, cpow_add _ _ h1z, cpow_neg _ (k : ℂ), cpow_natCast]
+    have hx : (1 - z) ^ (-(x : ℂ) - β) = (1 - z) ^ (-β) * ((1 - z) ^ x)⁻¹ := by
+      rw [show -(x : ℂ) - β = -β + -(x : ℂ) by ring, cpow_add _ _ h1z, cpow_neg _ (x : ℂ),
+        cpow_natCast]
+    have hbin := sum_poch_neg_nat_div_factorial_mul_pow x (-(u * z) / (1 - z))
+    rw [show (1 : ℂ) - -(u * z) / (1 - z) = (1 - z / c) / (1 - z) by
+      simp only [u]; field_simp; ring, div_pow] at hbin
+    have hterm : ∀ k ∈ Finset.range (x + 1), poch (-(x : ℂ)) k / poch β k * u ^ k / k ! *
+        (poch β k * (-z) ^ k * (1 - z) ^ (-(β + k))) =
+        (1 - z) ^ (-β) * (poch (-(x : ℂ)) k / k ! * (-(u * z) / (1 - z)) ^ k) := by
+      intro k _
+      rw [hsplit, div_pow]
+      have := hβk k
+      field_simp
+      rw [show -(z * u) = u * -z by ring, mul_pow]
+      ring
+    rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum, hbin, hx]
+    field_simp
+
+/-- `∑ₙ (-n)ₖ wⁿ / n! = (-w)ᵏ eʷ`. -/
+lemma hasSum_poch_neg_nat_div_factorial (k : ℕ) (w : ℂ) :
+    HasSum (fun n : ℕ => poch (-(n : ℂ)) k / n ! * w ^ n) ((-w) ^ k * exp w) := by
+  have he : HasSum (fun n : ℕ => w ^ n / n !) (exp w) := by
+    simpa only [Complex.exp_eq_exp_ℂ] using NormedSpace.expSeries_div_hasSum_exp w
+  have h0 : ∑ i ∈ Finset.range k, poch (-(i : ℂ)) k / i ! * w ^ i = 0 :=
+    Finset.sum_eq_zero fun i hi => by
+      rw [poch_neg_nat_eq_zero (by simpa using hi)]; simp
+  have key := (hasSum_nat_add_iff (f := fun n : ℕ => poch (-(n : ℂ)) k / n ! * w ^ n) k
+    (g := (-w) ^ k * exp w)).mp ?_
+  · rwa [h0, add_zero] at key
+  refine (he.mul_left ((-w) ^ k)).congr_fun fun n => ?_
+  have hn : ((n + k) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hn' : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hd : ((n + k).descFactorial k : ℂ) * n ! = (n + k) ! := by
+    have := Nat.factorial_mul_descFactorial (show k ≤ n + k by omega)
+    rw [show n + k - k = n by omega] at this
+    exact_mod_cast (mul_comm _ _).trans this
+  rw [poch_neg_coe_nat, neg_pow, pow_add]
+  field_simp
+  linear_combination (-1) ^ k * w ^ n * w ^ k * hd
 
 @[dlmf 18.23.E5]
-theorem charlier_generating_function {a : ℂ} (ha : a ≠ 0) (x : ℕ) (z : ℂ) :
+theorem charlier_generating_function (a : ℂ) (x : ℕ) (z : ℂ) :
     HasSum (fun n : ℕ => charlier a n x / n.factorial * z ^ n) (exp z * (1 - z / a) ^ x) := by
-  sorry
+  unfold charlier
+  simp_rw [terminatingHG_two_neg_nat_swap _ x, terminatingHG, Finset.sum_div, Finset.sum_mul]
+  have h := hasSum_sum (s := Finset.range (x + 1)) (fun k _ =>
+    (hasSum_poch_neg_nat_div_factorial k z).mul_left (poch (-(x : ℂ)) k * (-a⁻¹) ^ k / k !))
+  convert h using 1
+  · funext n
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+    ring
+  · rw [← sum_poch_neg_nat_div_factorial_mul_pow, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [show z / a = (-a⁻¹) * (-z) by ring, mul_pow]
+    ring
 
 @[dlmf 18.23.E7]
 theorem meixnerPollaczek_generating_function {lam : ℂ} (hlam : 0 < lam.re) (phi x : ℝ) {z : ℂ} (hz : ‖z‖ < 1) :

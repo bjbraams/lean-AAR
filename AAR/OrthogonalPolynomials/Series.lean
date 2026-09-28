@@ -250,7 +250,31 @@ theorem hermitePhys_addition (a b x y : ℝ) (hab : a ^ 2 + b ^ 2 = 1) (n : ℕ)
 theorem laguerre_multiplication {α : ℂ} (hα : -1 < α.re) (lam x : ℂ) (n : ℕ) :
     laguerre α n (lam * x) / laguerre α n 0 = ∑ k ∈ Finset.range (n + 1),
       (n.choose k : ℂ) * lam ^ k * (1 - lam) ^ (n - k) * laguerre α k x / laguerre α k 0 := by
-  sorry
+  have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by simp; linarith)
+  have hpk : ∀ k, poch (α + 1) k ≠ 0 := poch_ne_zero_of_not_neg_nat hc
+  have hL : ∀ m ≤ n, ∀ y, laguerre α m y / laguerre α m 0 =
+      ∑ j ∈ Finset.range (n + 1), poch (-(m : ℂ)) j / (poch (α + 1) j * j !) * y ^ j := by
+    intro m hm y
+    have hp : poch (α + 1) m / m ! ≠ 0 :=
+      div_ne_zero (hpk m) (Nat.cast_ne_zero.mpr m.factorial_ne_zero)
+    unfold laguerre
+    rw [confluentM_zero, mul_one, mul_div_cancel_left₀ _ hp, confluentM_eq_sum_neg_nat]
+    refine Finset.sum_subset (Finset.range_subset_range.mpr (by omega)) fun j _ hj => ?_
+    rw [poch_neg_nat_eq_zero (by simpa using hj)]; simp
+  rw [hL n le_rfl]
+  simp_rw [mul_div_assoc _ (laguerre α _ x)]
+  conv_rhs => rw [Finset.sum_congr rfl fun k hk => by
+    rw [hL k (by simpa [Nat.lt_succ_iff] using hk) x]]
+  simp_rw [Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have hjn : j ≤ n := by simp at hj; omega
+  have hb := sum_choose_mul_poch_neg_nat_mul_pow hjn lam (1 - lam)
+  rw [add_sub_cancel, one_pow, mul_one] at hb
+  rw [Finset.sum_congr rfl (g := fun k => (n.choose k : ℂ) * poch (-(k : ℂ)) j * lam ^ k *
+    (1 - lam) ^ (n - k) * (x ^ j / (poch (α + 1) j * j !))) (fun k _ => by ring),
+    ← Finset.sum_mul, hb, mul_pow]
+  ring
 
 @[dlmf 18.18.E13]
 theorem hermitePhys_multiplication (lam x : ℂ) (n : ℕ) :

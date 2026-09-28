@@ -520,14 +520,4 @@ theorem chebyshevT_finite_sum {n : ℕ} (hn : 0 < n) (x : ℂ) :
   field_simp at h ⊢
   linear_combination h
 
-/-- Binomial theorem in Pochhammer form: `∑ₖ (-n)ₖ yᵏ / k! = (1 - y)ⁿ`. -/
-lemma sum_poch_neg_nat_div_factorial_mul_pow (n : ℕ) (y : ℂ) :
-    ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k / k ! * y ^ k = (1 - y) ^ n := by
-  rw [sub_eq_add_neg, add_comm (1 : ℂ), add_pow]
-  refine Finset.sum_congr rfl fun k _ => ?_
-  have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
-  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose, one_pow, neg_pow y]
-  push_cast
-  field_simp
-
 end AAR.OrthogonalPolynomials
