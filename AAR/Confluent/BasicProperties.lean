@@ -218,8 +218,10 @@ theorem isBigO_confluentU_neg_nat_shift (n : ℕ) (b : ℂ) :
       (fun z => z ^ (2 - b)) := by
   sorry
 
+/-- Behaviour of `U` at zero for `Re b ≥ 2`, `b ≠ 2`; at `b = 2` a `log z` term appears
+(see `isBigO_confluentU_at_zero_b_two`). -/
 @[dlmf 13.2.E16]
-theorem isBigO_confluentU_at_zero_re_ge_two (a b : ℂ) (hb : 2 ≤ b.re) :
+theorem isBigO_confluentU_at_zero_re_ge_two (a b : ℂ) (hb : 2 ≤ b.re) (hb2 : b ≠ 2) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => confluentU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b))
       (fun z => z ^ (2 - b.re : ℂ)) := by
@@ -232,9 +234,11 @@ theorem isBigO_confluentU_at_zero_b_two (a : ℂ) :
       (fun z => log z) := by
   sorry
 
+/-- Behaviour of `U` at zero for `1 ≤ Re b < 2`, `b ≠ 1`; at `b = 1` a `log z` term
+appears (see `isBigO_confluentU_at_zero_b_one`). -/
 @[dlmf 13.2.E18]
 theorem isBigO_confluentU_at_zero_re_one_to_two (a b : ℂ)
-    (hb0 : 1 ≤ b.re) (hb1 : b.re < 2) :
+    (hb0 : 1 ≤ b.re) (hb1 : b.re < 2) (hb2 : b ≠ 1) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => confluentU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b) -
         Gamma (1 - b) / Gamma (a - b + 1))
@@ -264,8 +268,10 @@ theorem isBigO_confluentU_at_zero_b_zero (a : ℂ) :
       (fun z => z * log z) := by
   sorry
 
+/-- Behaviour of `U` at zero for `Re b ≤ 0`, `b ≠ 0`; at `b = 0` a `z log z` term
+appears (see `isBigO_confluentU_at_zero_b_zero`). -/
 @[dlmf 13.2.E22]
-theorem isBigO_confluentU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) :
+theorem isBigO_confluentU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) (hb0 : b ≠ 0) :
     Asymptotics.IsBigO (𝓝 (0 : ℂ))
       (fun z => confluentU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
   sorry
@@ -276,20 +282,22 @@ theorem tendsto_regularizedHGFun_mul_exp_neg_atTop (a b : ℂ) (ha : ∀ k : ℕ
       (exp x * (x : ℂ) ^ (a - b))) atTop (𝓝 1) := by
   sorry
 
-/-- Numerically satisfactory pair on `-π/2 ≤ ph z ≤ 3π/2`. -/
+/-- Numerically satisfactory pair on `-π/2 ≤ ph z ≤ 3π/2`. The second function is taken on
+the principal branch, so `-z` must avoid the cut for it to be differentiable at `z`. -/
 @[dlmf 13.2.E24]
 theorem wronskian_confluentU_kummer_neg (a b : ℂ) {z : ℂ}
-    (hz : z ∈ slitPlane) (harg : -(π / 2) ≤ z.arg) (harg' : z.arg ≤ 3 * π / 2)
-    (hb : ∀ n : ℤ, b ≠ n) :
+    (hz : z ∈ slitPlane) (hz' : -z ∈ slitPlane) (harg : -(π / 2) ≤ z.arg)
+    (harg' : z.arg ≤ 3 * π / 2) (hb : ∀ n : ℤ, b ≠ n) :
     wronskian (confluentU a b)
       (fun w => exp w * confluentU (b - a) b (exp (-π * I) * w)) z ≠ 0 := by
   sorry
 
-/-- Numerically satisfactory pair on `-3π/2 ≤ ph z ≤ π/2`. -/
+/-- Numerically satisfactory pair on `-3π/2 ≤ ph z ≤ π/2`. The second function is taken on
+the principal branch, so `-z` must avoid the cut for it to be differentiable at `z`. -/
 @[dlmf 13.2.E25]
 theorem wronskian_confluentU_kummer_pos (a b : ℂ) {z : ℂ}
-    (hz : z ∈ slitPlane) (harg : -(3 * π / 2) ≤ z.arg) (harg' : z.arg ≤ π / 2)
-    (hb : ∀ n : ℤ, b ≠ n) :
+    (hz : z ∈ slitPlane) (hz' : -z ∈ slitPlane) (harg : -(3 * π / 2) ≤ z.arg)
+    (harg' : z.arg ≤ π / 2) (hb : ∀ n : ℤ, b ≠ n) :
     wronskian (confluentU a b)
       (fun w => exp w * confluentU (b - a) b (exp (π * I) * w)) z ≠ 0 := by
   sorry
@@ -316,9 +324,12 @@ theorem wronskian_regularizedHGFun_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ 
       -(z ^ (-b) * exp z) / Gamma a := by
   sorry
 
+/-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
+`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
 @[dlmf 13.2.E35]
 theorem wronskian_regularizedHGFun_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) (hba : ∀ k : ℕ, b - a ≠ -k) :
+    (sign : Bool) (hsign : if sign then z.arg < 0 else 0 < z.arg)
+    (hba : ∀ k : ℕ, b - a ≠ -k) :
     wronskian (regularizedHGFun {a} {b})
       (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
       exp (-(if sign then 1 else -1) * b * π * I) * z ^ (-b) * exp z / Gamma (b - a) := by
@@ -332,17 +343,21 @@ theorem wronskian_shifted_regularized_confluentU (a b : ℂ) {z : ℂ} (hz : z �
       -(z ^ (-b) * exp z) / Gamma (a - b + 1) := by
   sorry
 
+/-- The value does not depend on the branch; `-z` must avoid the cut so that the second
+function is differentiable at `z`. -/
 @[dlmf 13.2.E37]
 theorem wronskian_shifted_regularized_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) (ha : ∀ k : ℕ, 1 - a ≠ -k) :
+    (hz' : -z ∈ slitPlane) (sign : Bool) (ha : ∀ k : ℕ, 1 - a ≠ -k) :
     wronskian (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w)
       (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
       -(z ^ (-b) * exp z) / Gamma (1 - a) := by
   sorry
 
+/-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
+`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
 @[dlmf 13.2.E38]
 theorem wronskian_confluentU_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) :
+    (sign : Bool) (hsign : if sign then z.arg < 0 else 0 < z.arg) :
     wronskian (confluentU a b)
       (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
       exp ((if sign then 1 else -1) * (a - b) * π * I) * z ^ (-b) * exp z := by
@@ -384,29 +399,35 @@ theorem confluentU_kummer_transform (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
   rw [hswap]
   ring
 
+/-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
+`e^{+πi}` continuation for `ph z ≤ 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
 @[dlmf 13.2.E41]
 theorem confluentM_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) (hb : ∀ k : ℕ, b ≠ -k) :
+    (sign : Bool) (hsign : if sign then z.arg ≤ 0 else 0 < z.arg) (hb : ∀ k : ℕ, b ≠ -k) :
     confluentM a b z / Gamma b =
       exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * confluentU a b z +
         exp ((if sign then 1 else -1) * (b - a) * π * I) / Gamma a *
           exp z * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
   sorry
 
+/-- The jump of `U` across the negative axis, with both continuations `z e^{±πi}` taken on
+the logarithmic argument plane. `confluentUOnLog` represents `U` there for noninteger `b`. -/
 @[dlmf 13.2.E43]
 theorem confluentM_eq_confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (hb : ∀ k : ℕ, b ≠ -k) (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
+    (hbi : ∀ k : ℤ, b ≠ k) (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
     2 * π * I * exp (-z) / (Gamma b * Gamma (a - b + 1)) * confluentM (b - a) b z =
-      exp (b * π * I) * confluentU a b (exp (π * I) * z) -
-        exp (-b * π * I) * confluentU a b (exp (-π * I) * z) := by
+      exp (b * π * I) * confluentUOnLog a b (log z + π * I) -
+        exp (-b * π * I) * confluentUOnLog a b (log z - π * I) := by
   sorry
 
+/-- The jump of `U` across the negative axis, with both continuations `z e^{±πi}` taken on
+the logarithmic argument plane. `confluentUOnLog` represents `U` there for noninteger `b`. -/
 @[dlmf 13.2.E44]
-theorem confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k : ℤ, b ≠ k)
     (ha : ∀ k : ℕ, a ≠ -k) (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
     2 * π * I * exp (-z) / (Gamma a * Gamma (a - b + 1)) * confluentU (b - a) b z =
-      exp (a * π * I) * confluentU a b (exp (π * I) * z) -
-        exp (-a * π * I) * confluentU a b (exp (-π * I) * z) := by
+      exp (a * π * I) * confluentUOnLog a b (log z + π * I) -
+        exp (-a * π * I) * confluentUOnLog a b (log z - π * I) := by
   sorry
 
 end AAR.Confluent

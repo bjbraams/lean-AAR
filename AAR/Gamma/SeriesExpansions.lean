@@ -45,13 +45,6 @@ theorem hasSum_invGammaCoeff (z : ℂ) :
     mul_comm, mul_left_comm, mul_assoc] using
     Complex.hasSum_taylorSeries_of_entire Complex.differentiable_one_div_Gamma 0 z
 
-/-- The reciprocal Gamma Taylor expansion on the unit disk.
-The global version is `hasSum_invGammaCoeff`; this statement retains the original API. -/
-@[dlmf 5.7.E1]
-theorem inv_Gamma_hasSum (z : ℂ) (hz : ‖z‖ < 1) :
-    HasSum (fun k : ℕ => invGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ :=
-  hasSum_invGammaCoeff z
-
 @[dlmf 5.7.E2]
 theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
     (k - 1 : ℂ) * invGammaCoeff k =

@@ -149,7 +149,7 @@ theorem confluentM_large_a_b (ν : ℂ) (z : ℂ) (hν : 0 < ν.re) (hν1 : ν.r
 
 @[dlmf 13.8.E18]
 theorem confluentU_large_a_b (ν : ℂ) (z : ℂ) (hν : 0 < ν.re) (hν1 : ν.re < 1)
-    {w : ℂ} (hw : w ∈ slitPlane) :
+    (hz : z ∈ slitPlane) :
     Asymptotics.IsBigO atTop
       (fun a : ℝ => confluentU a (a / ν + 1) z -
         z ^ (-(a / ν)) * exp ((1 - ν) * z) * Gamma (a / ν : ℂ) / Gamma (a : ℂ) *

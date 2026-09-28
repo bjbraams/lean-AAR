@@ -38,9 +38,10 @@ theorem confluentM_addition {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
       ∑' n : ℕ, poch a n * y ^ n / (poch b n * n.factorial) * confluentM (a + n) (b + n) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E2]
 theorem confluentM_addition_shift_b {a b x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) (hb : ∀ k : ℕ, b ≠ -k) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hb : ∀ k : ℕ, b ≠ -k) :
     confluentM a b (x + y) =
       ((x + y) / x) ^ (1 - b) *
         ∑' n : ℕ, poch (1 - b) n * (-y / x) ^ n / n.factorial * confluentM a (b - n) x := by
@@ -70,24 +71,28 @@ theorem confluentM_addition_exp_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
           confluentM (a - n) b x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E6]
 theorem confluentM_addition_exp_shift_both {a b x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) (hb : ∀ k : ℕ, b ≠ -k) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hb : ∀ k : ℕ, b ≠ -k) :
     confluentM a b (x + y) =
       exp y * ((x + y) / x) ^ (1 - b) *
         ∑' n : ℕ, poch (1 - b) n * (-y) ^ n / (n.factorial * x ^ n) *
           confluentM (a - n) (b - n) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E7]
-theorem confluentU_addition (a b x y : ℂ) :
+theorem confluentU_addition (a b : ℂ) {x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + y ∈ slitPlane)
+    (hyx : ‖y‖ < ‖x‖) :
     confluentU a b (x + y) =
       ∑' n : ℕ, poch a n * (-y) ^ n / n.factorial * confluentU (a + n) (b + n) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E8]
 theorem confluentU_addition_shift_b {a b x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
     confluentU a b (x + y) =
       ((x + y) / x) ^ (1 - b) *
         ∑' n : ℕ, poch (1 + a - b) n * (-y / x) ^ n / n.factorial * confluentU a (b - n) x := by
@@ -102,8 +107,10 @@ theorem confluentU_addition_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
           confluentU (a + n) b x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E10]
-theorem confluentU_addition_exp (a b x y : ℂ) :
+theorem confluentU_addition_exp (a b : ℂ) {x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + y ∈ slitPlane)
+    (hyx : ‖y‖ < ‖x‖) :
     confluentU a b (x + y) =
       exp y * ∑' n : ℕ, (-y) ^ n / n.factorial * confluentU a (b + n) x := by
   sorry
@@ -116,24 +123,29 @@ theorem confluentU_addition_exp_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
         ∑' n : ℕ, (-y) ^ n / (n.factorial * (x + y) ^ n) * confluentU (a - n) b x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E12]
 theorem confluentU_addition_exp_shift_both {a b x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
     confluentU a b (x + y) =
       exp y * ((x + y) / x) ^ (1 - b) *
         ∑' n : ℕ, (-y) ^ n / (n.factorial * x ^ n) * confluentU (a - n) (b - n) x := by
   sorry
 
+/-- Whittaker product formula for `2μ` not an integer, where all four `M` factors are regular. -/
 @[dlmf 13.25.E1]
 theorem whittakerM_product {κ μ z : ℂ} (hμ : ∀ k : ℕ, 2 * μ ≠ -k)
-    (hμ1 : μ ≠ 0) (hμ2 : μ ≠ -1) (hμ3 : 1 + 2 * μ ≠ 0) (hz : z ∈ slitPlane) :
+    (hμ1 : μ ≠ 0) (hμ2 : μ ≠ -1) (hμ3 : 1 + 2 * μ ≠ 0) (hμpos : ∀ k : ℕ, 2 * μ ≠ k + 1)
+    (hz : z ∈ slitPlane) :
     whittakerM κ μ z * whittakerM κ (-μ - 1) z +
       (1 / 2 + μ + κ) * (1 / 2 + μ - κ) / (4 * μ * (1 + μ) * (1 + 2 * μ) ^ 2) *
         whittakerM κ (μ + 1) z * whittakerM κ (-μ) z = 1 := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E1]
 theorem whittakerM_addition {κ μ x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + y ∈ slitPlane)
+    (hyx : ‖y‖ < ‖x‖)
     (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
     whittakerM κ μ (x + y) =
       exp (-y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
@@ -141,9 +153,10 @@ theorem whittakerM_addition {κ μ x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + 
           whittakerM (κ - n / 2) (μ - n / 2) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E2]
 theorem whittakerM_addition_shift_mu {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
     whittakerM κ μ (x + y) =
       exp (-y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n / (poch (1 + 2 * μ) n * n.factorial) *
@@ -160,18 +173,20 @@ theorem whittakerM_addition_shift_kappa {κ μ x y : ℂ} (hx : x ∈ slitPlane)
           whittakerM (κ - n) μ x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E4]
 theorem whittakerM_addition_exp {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
     whittakerM κ μ (x + y) =
       exp (y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, poch (-2 * μ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerM (κ + n / 2) (μ - n / 2) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E5]
 theorem whittakerM_addition_exp_shift_mu {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
     whittakerM κ μ (x + y) =
       exp (y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ + κ) n / (poch (1 + 2 * μ) n * n.factorial) *
@@ -188,17 +203,20 @@ theorem whittakerM_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : x ∈ slitPl
           whittakerM (κ + n) μ x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E7]
-theorem whittakerW_addition {κ μ x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + y ∈ slitPlane) :
+theorem whittakerW_addition {κ μ x y : ℂ} (hx : x ∈ slitPlane) (hxy : x + y ∈ slitPlane)
+    (hyx : ‖y‖ < ‖x‖) :
     whittakerW κ μ (x + y) =
       exp (-y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 - μ - κ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ - n / 2) (μ - n / 2) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E8]
 theorem whittakerW_addition_shift_mu {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
     whittakerW κ μ (x + y) =
       exp (-y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
@@ -214,18 +232,20 @@ theorem whittakerW_addition_shift_kappa {κ μ x y : ℂ} (hx : x ∈ slitPlane)
           (y / (x + y)) ^ n * whittakerW (κ - n) μ x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E10]
 theorem whittakerW_addition_exp {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
     whittakerW κ μ (x + y) =
       exp (y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, (1 / n.factorial) * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ + n / 2) (μ - n / 2) x := by
   sorry
 
+/-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E11]
 theorem whittakerW_addition_exp_shift_mu {κ μ x y : ℂ} (hx : x ∈ slitPlane)
-    (hxy : x + y ∈ slitPlane) :
+    (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
     whittakerW κ μ (x + y) =
       exp (y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, (1 / n.factorial) * (-y / x ^ (1 / 2 : ℂ)) ^ n *

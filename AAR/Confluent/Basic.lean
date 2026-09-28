@@ -324,6 +324,45 @@ lemma tendsto_poch_div_pow (n : ℕ) :
     filter_upwards [Filter.eventually_ne_atTop 0] with b hb
     exact (poch_div_pow_succ (Nat.cast_ne_zero.mpr hb) n).symm
 
+/-- `(c + t)_k / t^k → 1` as the real variable `t → ∞`. -/
+lemma tendsto_poch_add_div_pow (c : ℂ) (k : ℕ) :
+    Tendsto (fun t : ℝ => poch (c + t) k / (t : ℂ) ^ k) atTop (𝓝 1) := by
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih =>
+    have h0 : Tendsto (fun t : ℝ => (c + k) / (t : ℂ)) atTop (𝓝 0) := by
+      rw [tendsto_zero_iff_norm_tendsto_zero]
+      have : Tendsto (fun t : ℝ => ‖c + k‖ / t) atTop (𝓝 0) :=
+        tendsto_const_nhds.div_atTop tendsto_id
+      refine this.congr' ?_
+      filter_upwards [eventually_gt_atTop 0] with t ht
+      rw [norm_div, norm_real, Real.norm_of_nonneg ht.le]
+    have ht := ih.mul (h0.const_add 1)
+    simp only [add_zero, mul_one] at ht
+    refine ht.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with t ht
+    have htc : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    rw [poch_succ, pow_succ]
+    field_simp
+    ring
+
+/-- `(-N)_k / (-N)^k → 1` as the natural number `N → ∞`. -/
+lemma tendsto_poch_neg_div_pow (k : ℕ) :
+    Tendsto (fun N : ℕ => poch (-(N : ℂ)) k / (-(N : ℂ)) ^ k) atTop (𝓝 1) := by
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih =>
+    have h0 : Tendsto (fun N : ℕ => -((k : ℂ) / N)) atTop (𝓝 0) := by
+      simpa using (tendsto_const_div_atTop_nhds_zero_nat (k : ℂ)).neg
+    have ht := ih.mul (h0.const_add 1)
+    simp only [add_zero, mul_one] at ht
+    refine ht.congr' ?_
+    filter_upwards [eventually_ne_atTop 0] with N hN
+    have hN' : (N : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hN
+    rw [poch_succ, pow_succ]
+    field_simp
+    ring
+
 /-- Normalized positive Pochhammer symbols decrease as the parameter increases. -/
 lemma norm_poch_div_pow_le {x y : ℝ} (hx : 0 < x) (hxy : x ≤ y) (n : ℕ) :
     ‖poch (y : ℂ) n / (y : ℂ) ^ n‖ ≤ ‖poch (x : ℂ) n / (x : ℂ) ^ n‖ := by

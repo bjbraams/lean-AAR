@@ -12,7 +12,7 @@ public import Mathlib.Tactic.CrossRefAttribute
 /-!
 # The Hahn class: definitions, orthogonality, differences, and generating functions
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -122,6 +122,15 @@ theorem meixnerPollaczek_orthogonality {lam phi : ℝ} (hlam : 0 < lam) (hphi : 
       if m = n then 2 * Real.pi * Gamma (n + 2 * (lam : ℂ)) /
         ((2 * sin (phi : ℂ)) ^ (2 * (lam : ℂ)) * n.factorial) else 0 := by
   sorry
+
+/-- A two-numerator terminating sum is a terminating Gauss series. -/
+lemma terminatingHG_eq_ordinaryHypergeometric (n : ℕ) (b c z : ℂ) :
+    terminatingHG n [-(n : ℂ), b] [c] z = ₂F₁ (-(n : ℂ)) b c z := by
+  rw [ordinaryHypergeometric_eq_sum_neg_nat]
+  unfold terminatingHG gaussHGCoeff
+  refine Finset.sum_congr rfl fun k _ => ?_
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  ring
 
 /-- A second terminating upper parameter permits extending the cutoff to the larger index. -/
 lemma terminatingHG_two_neg_nat (n m : ℕ) (b : List ℂ) (z : ℂ) :
@@ -468,7 +477,61 @@ theorem meixnerPollaczek_recurrence {lam : ℂ} (hlam : 0 < lam.re) (phi : ℂ) 
     (n + 2 : ℂ) * meixnerPollaczek lam phi (n + 2) x =
       2 * (x * sin phi + (n + lam + 1) * cos phi) * meixnerPollaczek lam phi (n + 1) x -
       (n + 2 * lam) * meixnerPollaczek lam phi n x := by
-  sorry
+  have hc : ∀ k : ℕ, 2 * lam ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
+  have hcont :=
+    Hypergeometric.contiguous_a_neg_nat hc n (b := lam + I * x) (1 - cexp (-2 * I * phi))
+  unfold meixnerPollaczek
+  rw [terminatingHG_eq_ordinaryHypergeometric, terminatingHG_eq_ordinaryHypergeometric,
+    terminatingHG_eq_ordinaryHypergeometric]
+  push_cast at hcont ⊢
+  set F2 := ₂F₁ (-((n : ℂ) + 2)) (lam + I * x) (2 * lam) (1 - cexp (-2 * I * phi))
+  set F1 := ₂F₁ (-((n : ℂ) + 1)) (lam + I * x) (2 * lam) (1 - cexp (-2 * I * phi))
+  set F0 := ₂F₁ (-(n : ℂ)) (lam + I * x) (2 * lam) (1 - cexp (-2 * I * phi))
+  set u := cexp (I * phi) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  have e2 : cexp (-2 * I * phi) = (u ^ 2)⁻¹ := by
+    rw [hu, ← Complex.exp_nat_mul, ← Complex.exp_neg]; congr 1; push_cast; ring
+  have en2 : cexp (I * (n + 2) * phi) = cexp (I * n * phi) * u ^ 2 := by
+    rw [hu, ← Complex.exp_nat_mul, ← Complex.exp_add]; congr 1; push_cast; ring
+  have en1 : cexp (I * (n + 1) * phi) = cexp (I * n * phi) * u := by
+    rw [hu, ← Complex.exp_add]; congr 1; ring
+  have hcos : cos phi = (u + u⁻¹) / 2 := by
+    rw [Complex.cos, hu, ← Complex.exp_neg]; congr 2 <;> ring_nf
+  have hsin : sin phi = (u⁻¹ - u) * I / 2 := by
+    rw [Complex.sin, hu, ← Complex.exp_neg]; congr 3 <;> ring_nf
+  have hp2 : poch (2 * lam) (n + 2) = poch (2 * lam) n * (2 * lam + n) * (2 * lam + (n + 1)) := by
+    rw [poch_succ, poch_succ]; push_cast; ring
+  have hp1 : poch (2 * lam) (n + 1) = poch (2 * lam) n * (2 * lam + n) := by
+    rw [poch_succ]
+  have hf2 : ((n + 2) ! : ℂ) = (n + 2) * (n + 1) * n ! := by
+    rw [Nat.factorial_succ, Nat.factorial_succ]; push_cast; ring
+  have hf1 : ((n + 1) ! : ℂ) = (n + 1) * n ! := by
+    rw [Nat.factorial_succ]; push_cast; ring
+  have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 ≠ 0)
+  have hn2 : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
+  rw [e2] at hcont
+  rw [en2, en1, hcos, hsin, hp2, hp1, hf2, hf1]
+  set E := cexp (I * n * phi)
+  field_simp at hcont ⊢
+  linear_combination (poch (2 * lam) n * (2 * lam + n) * E) * hcont
+
+/-- The Meixner–Pollaczek polynomial of degree one. -/
+lemma meixnerPollaczek_one {lam : ℂ} (hlam : lam ≠ 0) (phi x : ℂ) :
+    meixnerPollaczek lam phi 1 x = 2 * (x * sin phi + lam * cos phi) := by
+  unfold meixnerPollaczek terminatingHG
+  set u := cexp (I * phi) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  have e2 : cexp (-2 * I * phi) = (u ^ 2)⁻¹ := by
+    rw [hu, ← Complex.exp_nat_mul, ← Complex.exp_neg]; congr 1; push_cast; ring
+  have hcos : cos phi = (u + u⁻¹) / 2 := by
+    rw [Complex.cos, hu, ← Complex.exp_neg]; congr 2 <;> ring_nf
+  have hsin : sin phi = (u⁻¹ - u) * I / 2 := by
+    rw [Complex.sin, hu, ← Complex.exp_neg]; congr 3 <;> ring_nf
+  rw [e2]
+  simp [Finset.sum_range_succ, poch_zero, poch_one, hcos, hsin, ← hu]
+  field_simp
+  ring_nf
 
 @[dlmf 18.22.E29]
 theorem meixnerPollaczek_central_difference {lam : ℂ} (hlam : 0 < lam.re) (phi : ℂ) (n : ℕ) (x : ℂ) :
@@ -499,10 +562,57 @@ theorem meixnerPollaczek_generating_function {lam : ℂ} (hlam : 0 < lam.re) (ph
       ((1 - exp (I * phi) * z) ^ (-lam + I * x) * (1 - exp (-I * phi) * z) ^ (-lam - I * x)) := by
   sorry
 
+/-- Limits propagate through a three-term recurrence whose coefficients converge. -/
+lemma tendsto_of_three_term {ι : Type*} {l : Filter ι} {f : ℕ → ι → ℂ} {g : ℕ → ℂ}
+    {A B : ℕ → ι → ℂ} {A' B' : ℕ → ℂ}
+    (h0 : Tendsto (f 0) l (𝓝 (g 0))) (h1 : Tendsto (f 1) l (𝓝 (g 1)))
+    (hA : ∀ n, Tendsto (A n) l (𝓝 (A' n))) (hB : ∀ n, Tendsto (B n) l (𝓝 (B' n)))
+    (hf : ∀ n, ∀ᶠ t in l, f (n + 2) t = A n t * f (n + 1) t + B n t * f n t)
+    (hg : ∀ n, g (n + 2) = A' n * g (n + 1) + B' n * g n) (n : ℕ) :
+    Tendsto (f n) l (𝓝 (g n)) := by
+  induction n using Nat.twoStepInduction with
+  | zero => exact h0
+  | one => exact h1
+  | more n ih0 ih1 =>
+    rw [hg n]
+    exact (((hA n).mul ih1).add ((hB n).mul ih0)).congr' (by
+      filter_upwards [hf n] with t ht
+      exact ht.symm)
+
+/-- `c / a → 0` for complex `c` as the real `a → ∞`. -/
+lemma tendsto_const_div_ofReal_atTop (c : ℂ) :
+    Tendsto (fun a : ℝ => c / (a : ℂ)) atTop (𝓝 0) := by
+  have := (continuous_ofReal.tendsto 0).comp tendsto_inv_atTop_zero
+  rw [ofReal_zero] at this
+  simpa [div_eq_mul_inv] using this.const_mul c
+
 @[dlmf 18.21.E3]
-theorem hahn_limit_krawtchouk {p : ℝ} (hp : 0 < p) (hp1 : p < 1) {N n : ℕ} (hn : n ≤ N) (x : ℂ) :
+theorem hahn_limit_krawtchouk {p : ℝ} (hp : 0 < p) (N n : ℕ) (x : ℂ) :
     Tendsto (fun t : ℝ => hahn (p * t) ((1 - p) * t) N n x) atTop (𝓝 (krawtchouk p N n x)) := by
-  sorry
+  unfold hahn krawtchouk terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  have hpt : Tendsto (fun t : ℝ => p * t) atTop atTop := tendsto_id.const_mul_atTop hp
+  have h1 := tendsto_poch_add_div_pow ((n : ℂ) + 1) k
+  have h2 := ((tendsto_poch_add_div_pow 1 k).comp hpt).inv₀ one_ne_zero
+  rw [inv_one] at h2
+  have := (h1.mul h2).const_mul
+    (poch (-(n : ℂ)) k * poch (-x) k / poch (-(N : ℂ)) k / k.factorial * ((p : ℂ)⁻¹) ^ k)
+  rw [mul_one, mul_one] at this
+  rw [show poch (-(n : ℂ)) k * poch (-x) k / poch (-(N : ℂ)) k * (p : ℂ)⁻¹ ^ k /
+      (k.factorial : ℂ) = poch (-(n : ℂ)) k * poch (-x) k / poch (-(N : ℂ)) k /
+      k.factorial * ((p : ℂ)⁻¹) ^ k by ring]
+  refine this.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  have ht' : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+  have hp' : (p : ℂ) ≠ 0 := ofReal_ne_zero.mpr hp.ne'
+  simp only [Function.comp_apply, ofReal_mul]
+  have e1 : (n : ℂ) + (p * t) + ((1 - p) * t) + 1 = (n + 1) + t := by ring
+  have e2 : (p : ℂ) * t + 1 = 1 + p * t := by ring
+  rw [e1, e2, mul_pow, inv_pow]
+  field_simp
+  ring
 
 @[dlmf 18.21.E5]
 theorem hahn_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (x : ℂ) :
@@ -512,12 +622,46 @@ theorem hahn_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ
 @[dlmf 18.21.E6]
 theorem krawtchouk_limit_charlier {a : ℂ} (ha : a ≠ 0) (n : ℕ) (x : ℂ) :
     Tendsto (fun N : ℕ => krawtchouk (a / N) N n x) atTop (𝓝 (charlier a n x)) := by
-  sorry
+  unfold krawtchouk charlier terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  have hlim := (tendsto_poch_neg_div_pow k).inv₀ one_ne_zero
+  rw [inv_one] at hlim
+  have := hlim.const_mul (poch (-(n : ℂ)) k * poch (-x) k / k.factorial * (-a⁻¹) ^ k)
+  rw [mul_one] at this
+  rw [show poch (-(n : ℂ)) k * poch (-x) k / 1 * (-a⁻¹) ^ k / (k.factorial : ℂ) =
+      poch (-(n : ℂ)) k * poch (-x) k / k.factorial * (-a⁻¹) ^ k by ring]
+  refine this.congr' ?_
+  filter_upwards [eventually_ne_atTop 0] with N hN
+  have hN' : (N : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hN
+  simp only [inv_div] at hlim ⊢
+  have e : (-a⁻¹) ^ k * (-(N : ℂ)) ^ k = ((N : ℂ) / a) ^ k := by
+    rw [← mul_pow]; congr 1; field_simp
+  linear_combination (poch (-(n : ℂ)) k * poch (-x) k / k.factorial / poch (-(N : ℂ)) k) * e
 
 @[dlmf 18.21.E7]
 theorem meixner_limit_charlier {a : ℝ} (ha : 0 < a) (n : ℕ) (x : ℂ) :
     Tendsto (fun b : ℝ => meixner b (a / (a + b)) n x) atTop (𝓝 (charlier a n x)) := by
-  sorry
+  unfold meixner charlier terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  have hlim := (tendsto_poch_add_div_pow 0 k).inv₀ one_ne_zero
+  rw [inv_one] at hlim
+  simp only [inv_div, zero_add] at hlim
+  have := hlim.const_mul (poch (-(n : ℂ)) k * poch (-x) k / k.factorial * (-(a : ℂ)⁻¹) ^ k)
+  rw [mul_one] at this
+  rw [show poch (-(n : ℂ)) k * poch (-x) k / 1 * (-(a : ℂ)⁻¹) ^ k / (k.factorial : ℂ) =
+      poch (-(n : ℂ)) k * poch (-x) k / k.factorial * (-(a : ℂ)⁻¹) ^ k by ring]
+  refine this.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with b hb
+  have hb' : (b : ℂ) ≠ 0 := ofReal_ne_zero.mpr hb.ne'
+  have ha' : (a : ℂ) ≠ 0 := ofReal_ne_zero.mpr ha.ne'
+  have hab : (a : ℂ) + b ≠ 0 := by exact_mod_cast (add_pos ha hb).ne'
+  have e : (-(a : ℂ)⁻¹) ^ k * (b : ℂ) ^ k = (1 - ((a : ℂ) / (a + b))⁻¹) ^ k := by
+    rw [← mul_pow]; congr 1; field_simp; ring
+  linear_combination (poch (-(n : ℂ)) k * poch (-x) k / k.factorial / poch (b : ℂ) k) * e
 
 @[dlmf 18.21.E9]
 theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
@@ -526,27 +670,179 @@ theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
 
 
 @[dlmf 18.21.E4]
-theorem hahn_limit_meixner {β c : ℝ} (hβ : 0 < β) (hc : 0 < c) (hc1 : c < 1) (n : ℕ) (x : ℂ) :
+theorem hahn_limit_meixner {β c : ℝ} (hc : 0 < c) (hc1 : c < 1) (n : ℕ) (x : ℂ) :
     Tendsto (fun N : ℕ => hahn (β - 1) (N * (c⁻¹ - 1)) N n x) atTop (𝓝 (meixner β c n x)) := by
-  sorry
+  unfold hahn meixner terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  set d : ℝ := c⁻¹ - 1 with hd
+  have hd0 : 0 < d := by rw [hd, sub_pos]; exact one_lt_inv₀ hc |>.mpr hc1
+  have hNd : Tendsto (fun N : ℕ => (N : ℝ) * d) atTop atTop :=
+    tendsto_natCast_atTop_atTop.atTop_mul_const hd0
+  have h1 := (tendsto_poch_add_div_pow ((n : ℂ) + β) k).comp hNd
+  have h2 := (tendsto_poch_neg_div_pow k).inv₀ one_ne_zero
+  rw [inv_one] at h2
+  simp only [inv_div] at h2
+  have := (h1.mul h2).const_mul
+    (poch (-(n : ℂ)) k * poch (-x) k / poch (β : ℂ) k / k.factorial * (-(d : ℂ)) ^ k)
+  rw [mul_one, mul_one] at this
+  have hz : (1 : ℂ) - ((c : ℂ))⁻¹ = -(d : ℂ) := by rw [hd]; push_cast; ring
+  rw [hz, show poch (-(n : ℂ)) k * poch (-x) k / poch (β : ℂ) k * (-(d : ℂ)) ^ k /
+      (k.factorial : ℂ) = poch (-(n : ℂ)) k * poch (-x) k / poch (β : ℂ) k /
+      k.factorial * (-(d : ℂ)) ^ k by ring]
+  refine this.congr' ?_
+  filter_upwards [eventually_ne_atTop 0] with N hN
+  have hN' : (N : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hN
+  have hd' : (d : ℂ) ≠ 0 := ofReal_ne_zero.mpr hd0.ne'
+  simp only [Function.comp_apply, ofReal_mul, ofReal_natCast]
+  have e1 : (n : ℂ) + (β - 1) + N * (((c⁻¹ : ℝ) : ℂ) - 1) + 1 = (n + β) + N * d := by
+    rw [hd]; push_cast; ring
+  have e : (-(d : ℂ)) ^ k * (-(N : ℂ)) ^ k = (N : ℂ) ^ k * d ^ k := by
+    rw [← mul_pow, ← mul_pow]; ring_nf
+  rw [e1, show (β : ℂ) - 1 + 1 = β by ring, one_pow, mul_pow]
+  field_simp
+  linear_combination (poch (-(n : ℂ)) k * poch (-x) k * poch ((n : ℂ) + β + d * N) k /
+    (poch (β : ℂ) k * k.factorial * poch (-(N : ℂ)) k)) * e
 
 @[dlmf 18.21.E8]
 theorem meixner_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
     Tendsto (fun c : ℝ => meixner (α + 1) c n (x / (1 - c : ℂ))) (𝓝[<] 1)
       (𝓝 (laguerre α n x / laguerre α n 0)) := by
-  sorry
+  have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
+  have hp : poch ((α : ℂ) + 1) n / n.factorial ≠ 0 :=
+    div_ne_zero (poch_ne_zero_of_not_neg_nat hα' n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
+  have hL : laguerre α n x / laguerre α n 0 = confluentM (-n) (α + 1) x := by
+    unfold laguerre
+    rw [confluentM_zero, mul_one, mul_div_cancel_left₀ _ hp]
+  have key : ∀ (c : ℝ), c ≠ 0 → c ≠ 1 → ∀ k : ℕ,
+      poch (-(x / (1 - c : ℂ))) k * (1 - (c : ℂ)⁻¹) ^ k =
+        ∏ i ∈ Finset.range k, ((x - i * (1 - c)) / c) := by
+    intro c h0 h1 k
+    have h0' : (c : ℂ) ≠ 0 := ofReal_ne_zero.mpr h0
+    have h1' : (1 - c : ℂ) ≠ 0 := sub_ne_zero.mpr (by exact_mod_cast h1.symm)
+    induction k with
+    | zero => simp [poch_zero]
+    | succ k ih =>
+      rw [poch_succ, Finset.prod_range_succ, ← ih, pow_succ]
+      field_simp
+      ring
+  rw [hL, confluentM_eq_sum_neg_nat]
+  unfold meixner terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  have hprod : Tendsto (fun c : ℝ => ∏ i ∈ Finset.range k, ((x - i * (1 - c)) / c))
+      (𝓝[<] 1) (𝓝 (x ^ k)) := by
+    have h : Tendsto (fun c : ℝ => ∏ i ∈ Finset.range k, ((x - i * (1 - c)) / c)) (𝓝 1)
+        (𝓝 (∏ i ∈ Finset.range k, ((x - i * (1 - ((1 : ℝ) : ℂ))) / ((1 : ℝ) : ℂ)))) := by
+      apply tendsto_finsetProd
+      intro i _
+      exact (ContinuousAt.div (by fun_prop) (by fun_prop) (by simp)).tendsto
+    simp only [ofReal_one, sub_self, mul_zero, sub_zero, div_one, Finset.prod_const,
+      Finset.card_range] at h
+    exact h.mono_left nhdsWithin_le_nhds
+  have := hprod.const_mul (poch (-(n : ℂ)) k / (poch ((α : ℂ) + 1) k * k.factorial))
+  refine this.congr' ?_
+  filter_upwards [self_mem_nhdsWithin, nhdsWithin_le_nhds (lt_mem_nhds zero_lt_one)]
+    with c hc1 hc0
+  rw [← key c hc0.ne' hc1.ne]
+  ring
 
 @[dlmf 18.21.E12]
-theorem meixnerPollaczek_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
+theorem meixnerPollaczek_limit_laguerre {α : ℝ} (n : ℕ) (x : ℂ) :
     Tendsto (fun phi : ℝ => meixnerPollaczek ((α + 1) / 2) phi n (-x / (2 * (phi : ℂ))))
       (𝓝[>] 0) (𝓝 (laguerre α n x)) := by
-  sorry
+  have hE0 : Tendsto (fun t : ℝ => 1 - cexp (-2 * I * t)) (𝓝[>] 0) (𝓝 0) := by
+    have h : Tendsto (fun t : ℝ => 1 - cexp (-2 * I * t)) (𝓝 0)
+        (𝓝 (1 - cexp (-2 * I * ((0 : ℝ) : ℂ)))) := Continuous.tendsto (by fun_prop) 0
+    simpa using h.mono_left nhdsWithin_le_nhds
+  have hE1 : Tendsto (fun t : ℝ => (1 - cexp (-2 * I * t)) / t) (𝓝[>] 0) (𝓝 (2 * I)) := by
+    have hd := (((hasDerivAt_id (0 : ℝ)).ofReal_comp).const_mul (-2 * I)).cexp
+    have h := (hasDerivAt_iff_tendsto_slope.mp hd).mono_left
+      (nhdsWithin_mono _ fun t (ht : 0 < t) => ht.ne')
+    have h' := h.neg
+    simp only [id, ofReal_one, mul_one, ofReal_zero, mul_zero, Complex.exp_zero, one_mul] at h'
+    rw [show -(-2 * I) = 2 * I by ring] at h'
+    refine h'.congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with t ht
+    simp only [slope, sub_zero, vsub_eq_sub, Complex.real_smul, ofReal_inv, ofReal_zero,
+      mul_zero, Complex.exp_zero]
+    ring
+  have hexp : Tendsto (fun t : ℝ => cexp (I * n * t)) (𝓝[>] 0) (𝓝 1) := by
+    have h : Tendsto (fun t : ℝ => cexp (I * n * t)) (𝓝 0)
+        (𝓝 (cexp (I * n * ((0 : ℝ) : ℂ)))) := Continuous.tendsto (by fun_prop) 0
+    simpa using h.mono_left nhdsWithin_le_nhds
+  unfold meixnerPollaczek laguerre terminatingHG
+  rw [show 2 * (((α : ℂ) + 1) / 2) = α + 1 by ring, confluentM_eq_sum_neg_nat]
+  have hpre : Tendsto (fun t : ℝ => poch ((α : ℂ) + 1) n / n ! * cexp (I * n * t)) (𝓝[>] 0)
+      (𝓝 (poch ((α : ℂ) + 1) n / n !)) := by
+    simpa using (tendsto_const_nhds (x := poch ((α : ℂ) + 1) n / n !)).mul hexp
+  refine hpre.mul (tendsto_finsetSum _ fun k _ => ?_)
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  have hfac : ∀ j : ℕ, Tendsto (fun t : ℝ => (((α : ℂ) + 1) / 2 + j) * (1 - cexp (-2 * I * t)) -
+      I * x / 2 * ((1 - cexp (-2 * I * t)) / t)) (𝓝[>] 0) (𝓝 x) := by
+    intro j
+    have h := (hE0.const_mul (((α : ℂ) + 1) / 2 + j)).sub (hE1.const_mul (I * x / 2))
+    convert h using 2
+    ring_nf
+    rw [I_sq]
+    ring
+  have hprod := (tendsto_finsetProd (Finset.range k) fun j _ => hfac j).const_mul
+    (poch (-(n : ℂ)) k / (poch ((α : ℂ) + 1) k * k !))
+  rw [Finset.prod_const, Finset.card_range] at hprod
+  refine hprod.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with t ht
+  have ht' : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr (ne_of_gt ht)
+  rw [Finset.prod_congr rfl (g := fun j : ℕ => ((((α : ℂ) + 1) / 2 + I * (-x / (2 * t))) + j) *
+    (1 - cexp (-2 * I * t))) (fun j _ => by field_simp; ring), ← poch_mul_pow]
+  ring
 
 @[dlmf 18.21.E13]
 theorem meixnerPollaczek_limit_hermite (n : ℕ) (x : ℂ) :
     Tendsto (fun lam : ℝ => n.factorial * (Real.sqrt lam : ℂ)⁻¹ ^ n *
       meixnerPollaczek lam (Real.pi / 2) n (x * Real.sqrt lam)) atTop (𝓝 (aeval x (hermitePhys n))) := by
-  sorry
+  have hsc : sin ((Real.pi : ℂ) / 2) = 1 := Complex.sin_pi_div_two
+  have hcc : cos ((Real.pi : ℂ) / 2) = 0 := Complex.cos_pi_div_two
+  refine tendsto_of_three_term (f := fun n lam => (n ! : ℂ) * (Real.sqrt lam : ℂ)⁻¹ ^ n *
+      meixnerPollaczek lam (Real.pi / 2) n (x * Real.sqrt lam))
+    (g := fun n => aeval x (hermitePhys n))
+    (A := fun n _ => 2 * x) (B := fun n lam => -((n + 1) * (2 + n / (lam : ℂ))))
+    (A' := fun n => 2 * x) (B' := fun n => -((n + 1) * 2)) ?_ ?_ ?_ ?_ ?_ ?_ n
+  · simp [meixnerPollaczek, terminatingHG, poch_zero]
+  · refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with lam hl
+    have hs : (Real.sqrt lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hl).ne'
+    have hl' : (lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr hl.ne'
+    rw [meixnerPollaczek_one hl', hsc, hcc]
+    simp only [hermitePhys_one, map_mul, aeval_X, map_ofNat, Nat.factorial_one, Nat.cast_one]
+    field_simp
+    ring
+  · intro n; exact tendsto_const_nhds
+  · intro n
+    simpa only [add_zero] using
+      (((tendsto_const_div_ofReal_atTop (n : ℂ)).const_add 2).const_mul ((n : ℂ) + 1)).neg
+  · intro n
+    filter_upwards [eventually_gt_atTop 0] with lam hl
+    have hs : (Real.sqrt lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hl).ne'
+    have hs2 : (lam : ℂ) = (Real.sqrt lam : ℂ) ^ 2 := by
+      rw [← ofReal_pow, Real.sq_sqrt hl.le]
+    have hr := meixnerPollaczek_recurrence (lam := lam) (by simpa using hl)
+      ((Real.pi : ℂ) / 2) n (x * Real.sqrt lam)
+    rw [hsc, hcc, mul_comm x] at hr
+    have hf2 : ((n + 2) ! : ℂ) = (n + 2) * (n + 1) * n ! := by
+      rw [Nat.factorial_succ, Nat.factorial_succ]; push_cast; ring
+    have hf1 : ((n + 1) ! : ℂ) = (n + 1) * n ! := by
+      rw [Nat.factorial_succ]; push_cast; ring
+    simp only [hf2, hf1, inv_pow]
+    rw [hs2] at hr ⊢
+    field_simp
+    linear_combination ((n ! : ℂ) * (Real.sqrt lam : ℂ) ^ (2 * n + 3)) * hr
+  · intro n
+    rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+    simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
+    push_cast
+    ring
 
 @[dlmf 18.22.E14]
 theorem continuousHahn_difference_equation {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) (n : ℕ) (x : ℂ) :

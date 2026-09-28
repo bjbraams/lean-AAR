@@ -12,7 +12,7 @@ public import Mathlib.Tactic.CrossRefAttribute
 /-!
 # Explicit formulas, symmetry, and transformations (DLMF §§18.5–18.7)
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -111,12 +111,86 @@ theorem gegenbauer_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : 
         cos (((n : ℂ) - 2 * k) * θ) := by
   sorry
 
+/-- `(-n)_k (n-k)! = (-1)^k n!` for `k ≤ n`. -/
+lemma poch_neg_nat_mul_factorial {n k : ℕ} (hk : k ≤ n) :
+    poch (-(n : ℂ)) k * ((n - k) ! : ℂ) = (-1) ^ k * (n ! : ℂ) := by
+  rw [poch, ascPochhammer_eval_neg_eq_descPochhammer, descPochhammer_eval_eq_descFactorial]
+  have h := Nat.factorial_mul_descFactorial hk
+  have h' : ((n - k) ! : ℂ) * (n.descFactorial k : ℂ) = n ! := by exact_mod_cast h
+  linear_combination (-1 : ℂ) ^ k * h'
+
+/-- The finite sum for `H_n` at even degree `n = 2m`, via the confluent form 13.6.16. -/
+lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :
+    aeval x (hermitePhys (2 * m)) = ((2 * m) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
+      (-1 : ℂ) ^ k * (2 * x) ^ (2 * m - 2 * k) / ((k ! : ℂ) * (2 * m - 2 * k) !) := by
+  have h := Confluent.hermitePhysEval_even_mul m x
+  rw [Confluent.hermitePhysEval_eq_aeval, confluentM_eq_sum_neg_nat] at h
+  have hm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+  apply mul_right_cancel₀ hm
+  rw [h]
+  conv_rhs => rw [← Finset.sum_range_reflect]
+  rw [Finset.mul_sum, Finset.mul_sum, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have hjm : j ≤ m := by simp at hj; omega
+  obtain ⟨i, rfl⟩ := Nat.exists_eq_add_of_le hjm
+  rw [show j + i + 1 - 1 - j = i by omega, show 2 * (j + i) - 2 * i = 2 * j by omega]
+  have q := poch_neg_nat_mul_factorial (n := j + i) (k := j) (by omega)
+  rw [show j + i - j = i by omega] at q
+  rw [_root_.poch_half j]
+  have hi : (i ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr i.factorial_ne_zero
+  have hj' : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
+  have h2j : ((2 * j) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (2 * j).factorial_ne_zero
+  have hq : poch (-((j + i : ℕ) : ℂ)) j = (-1) ^ j * ((j + i) ! : ℂ) / (i ! : ℂ) := by
+    field_simp; linear_combination q
+  rw [hq]
+  field_simp
+  rw [pow_add, mul_pow, pow_mul, pow_mul]
+  ring_nf
+  simp only [pow_mul', neg_one_sq, one_pow, mul_one]
+
+/-- The finite sum for `H_n` at odd degree `n = 2m + 1`, via the confluent form 13.6.17. -/
+lemma hermitePhys_odd_sum (m : ℕ) (x : ℂ) :
+    aeval x (hermitePhys (2 * m + 1)) = ((2 * m + 1) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
+      (-1 : ℂ) ^ k * (2 * x) ^ (2 * m + 1 - 2 * k) / ((k ! : ℂ) * (2 * m + 1 - 2 * k) !) := by
+  have h := Confluent.hermitePhysEval_odd_mul m x
+  rw [Confluent.hermitePhysEval_eq_aeval, confluentM_eq_sum_neg_nat] at h
+  have hm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+  apply mul_right_cancel₀ hm
+  rw [h]
+  conv_rhs => rw [← Finset.sum_range_reflect]
+  rw [Finset.mul_sum, Finset.mul_sum, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have hjm : j ≤ m := by simp at hj; omega
+  obtain ⟨i, rfl⟩ := Nat.exists_eq_add_of_le hjm
+  rw [show j + i + 1 - 1 - j = i by omega, show 2 * (j + i) + 1 - 2 * i = 2 * j + 1 by omega]
+  have q := poch_neg_nat_mul_factorial (n := j + i) (k := j) (by omega)
+  rw [show j + i - j = i by omega] at q
+  rw [poch_three_halves_eq, _root_.poch_half j]
+  have hi : (i ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr i.factorial_ne_zero
+  have hj' : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
+  have h2j : ((2 * j) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (2 * j).factorial_ne_zero
+  have hq : poch (-((j + i : ℕ) : ℂ)) j = (-1) ^ j * ((j + i) ! : ℂ) / (i ! : ℂ) := by
+    field_simp; linear_combination q
+  have h2j1 : (2 * (j : ℂ) + 1) ≠ 0 := by exact_mod_cast (by omega : 2 * j + 1 ≠ 0)
+  rw [hq, Nat.factorial_succ (2 * j)]
+  push_cast
+  field_simp
+  have e : (-1 : ℂ) ^ j * (-1) ^ j = 1 := by
+    rw [← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow]
+  have e4 : (4 : ℂ) ^ j = 2 ^ (2 * j) := by rw [pow_mul]; norm_num
+  rw [e4]
+  linear_combination (((2 * (j + i) + 1) ! : ℂ) * (-1) ^ i * 2 * x * 2 ^ (2 * j) * x ^ (2 * j)) * e
+
 @[dlmf 18.5.E13]
 theorem hermitePhys_finite_sum (n : ℕ) (x : ℂ) :
     aeval x (hermitePhys n) = (n.factorial : ℂ) * ∑ k ∈ Finset.range (n / 2 + 1),
       (-1 : ℂ) ^ k * (2 * x) ^ (n - 2 * k) /
         ((k.factorial : ℂ) * (n - 2 * k).factorial) := by
-  sorry
+  obtain ⟨m, rfl | rfl⟩ := Nat.even_or_odd' n
+  · rw [show 2 * m / 2 = m by omega]
+    exact hermitePhys_even_sum m x
+  · rw [show (2 * m + 1) / 2 = m by omega]
+    exact hermitePhys_odd_sum m x
 
 @[dlmf 18.6.E1]
 theorem laguerre_at_zero (α : ℂ) (n : ℕ) : laguerre α n 0 = poch (α + 1) n / n.factorial := by
@@ -276,26 +350,184 @@ theorem hermitePhys_odd_eq_laguerre (n : ℕ) (x : ℂ) :
     ((-1 : ℂ) ^ n * 2 * x * confluentM (-(n : ℂ)) (3 / 2) (x ^ 2)) * hp
 
 
+/-- The cosines of `k` times the Chebyshev–Gauss angles sum to zero unless `2M ∣ k`. -/
+lemma sum_cos_chebyshevGauss_eq_zero {M : ℕ} {k : ℤ} (hk : ¬ (2 * M : ℤ) ∣ k) :
+    ∑ i ∈ Finset.range M, Real.cos (k * ((2 * i + 1) * π / (2 * M))) = 0 := by
+  rcases Nat.eq_zero_or_pos M with rfl | hM
+  · simp
+  set a : ℝ := k * π / (2 * M) with ha
+  have hM' : (0 : ℝ) < M := by exact_mod_cast hM
+  have hs : Real.sin a ≠ 0 := by
+    intro h
+    obtain ⟨j, hj⟩ := Real.sin_eq_zero_iff.mp h
+    apply hk
+    refine ⟨j, ?_⟩
+    have : (k : ℝ) = 2 * M * j := by
+      rw [ha] at hj
+      field_simp at hj
+      rw [← hj]
+      ring
+    exact_mod_cast this
+  have key : ∀ i : ℕ, 2 * Real.sin a * Real.cos (k * ((2 * i + 1) * π / (2 * M))) =
+      Real.sin (((i + 1 : ℕ) : ℝ) * (2 * a)) - Real.sin ((i : ℝ) * (2 * a)) := by
+    intro i
+    rw [Real.two_mul_sin_mul_cos]
+    push_cast
+    rw [show a - k * ((2 * i + 1) * π / (2 * M)) = -(i * (2 * a)) by rw [ha]; ring,
+      show a + k * ((2 * i + 1) * π / (2 * M)) = (i + 1) * (2 * a) by rw [ha]; ring,
+      Real.sin_neg]
+    ring
+  have hsum : 2 * Real.sin a * ∑ i ∈ Finset.range M, Real.cos (k * ((2 * i + 1) * π / (2 * M)))
+      = 0 := by
+    rw [Finset.mul_sum, Finset.sum_congr rfl fun i _ => key i,
+      Finset.sum_range_sub (fun i : ℕ => Real.sin ((i : ℝ) * (2 * a)))]
+    rw [show (M : ℝ) * (2 * a) = (k : ℝ) * π by rw [ha]; field_simp]
+    simp [Real.sin_int_mul_pi]
+  exact (mul_eq_zero.mp hsum).resolve_left (mul_ne_zero two_ne_zero hs)
+
 @[dlmf 18.3.E1]
 theorem chebyshevT_discrete_orthogonality {N m n : ℕ} (hm : m ≤ N) (hn : n ≤ N)
     (hmn : m ≠ n) :
     ∑ i : Fin (N + 1),
       (Chebyshev.T ℝ m).eval (Real.cos ((i.val + 1 / 2) * Real.pi / (N + 1))) *
       (Chebyshev.T ℝ n).eval (Real.cos ((i.val + 1 / 2) * Real.pi / (N + 1))) = 0 := by
-  sorry
+  have hnd : ∀ k : ℤ, 0 < |k| → |k| < 2 * (N + 1) → ¬ (2 * ((N + 1 : ℕ) : ℤ) ∣ k) := by
+    intro k hk0 hk1 hdvd
+    have := Int.le_of_dvd hk0 ((dvd_abs _ _).mpr hdvd)
+    push_cast at this
+    omega
+  have h1 := sum_cos_chebyshevGauss_eq_zero (M := N + 1) (k := (m : ℤ) + n)
+    (hnd _ (by rw [abs_pos]; omega) (by rw [abs_lt]; omega))
+  have h2 := sum_cos_chebyshevGauss_eq_zero (M := N + 1) (k := (m : ℤ) - n)
+    (hnd _ (by rw [abs_pos]; omega) (by rw [abs_lt]; omega))
+  rw [Fin.sum_univ_eq_sum_range (fun i => (Chebyshev.T ℝ m).eval
+    (Real.cos ((i + 1 / 2) * Real.pi / (N + 1))) * (Chebyshev.T ℝ n).eval
+    (Real.cos ((i + 1 / 2) * Real.pi / (N + 1))))]
+  have key : ∀ i : ℕ, (Chebyshev.T ℝ m).eval (Real.cos ((i + 1 / 2) * Real.pi / (N + 1))) *
+      (Chebyshev.T ℝ n).eval (Real.cos ((i + 1 / 2) * Real.pi / (N + 1))) =
+      (Real.cos (((m : ℤ) + n : ℤ) * ((2 * i + 1) * π / (2 * ((N + 1 : ℕ) : ℝ)))) +
+        Real.cos (((m : ℤ) - n : ℤ) * ((2 * i + 1) * π / (2 * ((N + 1 : ℕ) : ℝ))))) / 2 := by
+    intro i
+    rw [Chebyshev.T_real_cos, Chebyshev.T_real_cos]
+    push_cast
+    rw [show ((m : ℝ) + n) * ((2 * i + 1) * π / (2 * (N + 1))) =
+        m * ((i + 1 / 2) * π / (N + 1)) + n * ((i + 1 / 2) * π / (N + 1)) by field_simp,
+      show ((m : ℝ) - n) * ((2 * i + 1) * π / (2 * (N + 1))) =
+        m * ((i + 1 / 2) * π / (N + 1)) - n * ((i + 1 / 2) * π / (N + 1)) by field_simp,
+      Real.cos_add, Real.cos_sub]
+    ring
+  rw [Finset.sum_congr rfl fun i _ => key i, ← Finset.sum_div, Finset.sum_add_distrib, h1, h2]
+  simp
 
-@[dlmf 18.5.E11_1]
-theorem chebyshevT_finite_sum {n : ℕ} (hn : 0 < n) (x : ℂ) :
-    (Chebyshev.T ℂ n).eval x = (n : ℂ) / 2 * ∑ k ∈ Finset.range (n / 2 + 1),
-      (-1 : ℂ) ^ k * (n - k - 1).factorial /
-        ((k.factorial : ℂ) * (n - 2 * k).factorial) * (2 * x) ^ (n - 2 * k) := by
-  sorry
+/-- `Uₙ(x) = ∑_{i+j=n} (-1)^j C(i,j) (2x)^{i-j}`, a weighted form of the Fibonacci identity. -/
+lemma chebyshevU_eval_eq_sum_antidiagonal (n : ℕ) (x : ℂ) :
+    (Chebyshev.U ℂ n).eval x = ∑ p ∈ Finset.antidiagonal n,
+      (-1 : ℂ) ^ p.2 * (p.1.choose p.2 : ℂ) * (2 * x) ^ (p.1 - p.2) := by
+  have hshift : ∀ i j : ℕ, (i.choose (j + 1) : ℂ) * ((2 * x) * (2 * x) ^ (i - (j + 1))) =
+      (i.choose (j + 1) : ℂ) * (2 * x) ^ (i - j) := by
+    intro i j
+    rcases lt_or_ge i (j + 1) with h | h
+    · simp [Nat.choose_eq_zero_of_lt h]
+    · rw [← pow_succ', show i - (j + 1) + 1 = i - j by omega]
+  induction n using Nat.twoStepInduction with
+  | zero => simp
+  | one => simp [Finset.Nat.antidiagonal_succ]
+  | more n ih0 ih1 =>
+    have h := Chebyshev.U_add_two ℂ (n : ℤ)
+    rw [show ((n : ℤ) + 1) = ((n + 1 : ℕ) : ℤ) by push_cast; ring] at h
+    rw [show ((n + 2 : ℕ) : ℤ) = (n : ℤ) + 2 by push_cast; ring, h, eval_sub, eval_mul, eval_mul,
+      eval_X, eval_ofNat, ih0, ih1,
+      Finset.Nat.antidiagonal_succ_succ', Finset.Nat.antidiagonal_succ']
+    simp only [Finset.sum_cons, Finset.sum_map, Function.Embedding.coe_prodMap,
+      Function.Embedding.coeFn_mk, Prod.map_fst, Prod.map_snd, Function.Embedding.refl_apply,
+      Nat.succ_eq_add_one, Nat.choose_succ_succ, Nat.cast_add, Nat.choose_zero_succ,
+      Nat.cast_zero, mul_zero, zero_mul, zero_add, Nat.choose_zero_right, Nat.cast_one,
+      pow_zero, mul_one, one_mul, Nat.sub_zero, Nat.add_sub_add_right]
+    rw [mul_add, Finset.mul_sum, ← pow_succ']
+    rw [Finset.sum_congr rfl fun p _ => show 2 * x * ((-1 : ℂ) ^ (p.2 + 1) *
+        (p.1.choose (p.2 + 1) : ℂ) * (2 * x) ^ (p.1 - (p.2 + 1))) =
+        (-1 : ℂ) ^ (p.2 + 1) * (p.1.choose (p.2 + 1) : ℂ) * (2 * x) ^ (p.1 - p.2) by
+      linear_combination (-1 : ℂ) ^ (p.2 + 1) * hshift p.1 p.2]
+    rw [add_sub_assoc, ← Finset.sum_sub_distrib]
+    congr 1
+    refine Finset.sum_congr rfl fun p _ => ?_
+    ring
 
 @[dlmf 18.5.E11_3]
 theorem chebyshevU_finite_sum (n : ℕ) (x : ℂ) :
     (Chebyshev.U ℂ n).eval x = ∑ k ∈ Finset.range (n / 2 + 1),
       (-1 : ℂ) ^ k * (n - k).factorial /
         ((k.factorial : ℂ) * (n - 2 * k).factorial) * (2 * x) ^ (n - 2 * k) := by
-  sorry
+  rw [chebyshevU_eval_eq_sum_antidiagonal, ← Finset.Nat.sum_antidiagonal_swap]
+  simp only [Prod.fst_swap, Prod.snd_swap]
+  rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ
+    (fun i j => (-1 : ℂ) ^ i * (j.choose i : ℂ) * (2 * x) ^ (j - i))]
+  symm
+  rw [← Finset.sum_subset (Finset.range_subset_range.mpr (by omega : n / 2 + 1 ≤ n + 1))]
+  · refine Finset.sum_congr rfl fun k hk => ?_
+    have hk2 : 2 * k ≤ n := by simp at hk; omega
+    rw [Nat.cast_choose ℂ (by omega : k ≤ n - k), show n - k - k = n - 2 * k by omega]
+    ring
+  · intro k _ hk
+    have hk2 : n < 2 * k := by simp at hk; omega
+    rw [Nat.choose_eq_zero_of_lt (by omega : n - k < k)]
+    simp
+
+@[dlmf 18.5.E11_1]
+theorem chebyshevT_finite_sum {n : ℕ} (hn : 0 < n) (x : ℂ) :
+    (Chebyshev.T ℂ n).eval x = (n : ℂ) / 2 * ∑ k ∈ Finset.range (n / 2 + 1),
+      (-1 : ℂ) ^ k * (n - k - 1).factorial /
+        ((k.factorial : ℂ) * (n - 2 * k).factorial) * (2 * x) ^ (n - 2 * k) := by
+  obtain ⟨m, rfl⟩ | ⟨m, rfl⟩ : n = 1 ∨ ∃ m, n = m + 2 := by
+    rcases n with _ | _ | m
+    · omega
+    · left; rfl
+    · right; exact ⟨m, by ring⟩
+  · simp
+  have h := congrArg (eval x) (Chebyshev.two_mul_T_eq_U_sub_U ℂ (m : ℤ))
+  simp only [eval_mul, eval_sub, eval_ofNat] at h
+  rw [show ((m : ℤ) + 2) = ((m + 2 : ℕ) : ℤ) by push_cast; ring, chebyshevU_finite_sum,
+    chebyshevU_finite_sum, show (m + 2) / 2 + 1 = m / 2 + 1 + 1 by omega,
+    Finset.sum_range_succ'] at h
+  rw [show (m + 2) / 2 + 1 = m / 2 + 1 + 1 by omega, Finset.sum_range_succ']
+  have hkey : ∀ k ∈ Finset.range (m / 2 + 1),
+      (-1 : ℂ) ^ (k + 1) * ((m + 2 - (k + 1)).factorial : ℂ) /
+          (((k + 1).factorial : ℂ) * (m + 2 - 2 * (k + 1)).factorial) *
+          (2 * x) ^ (m + 2 - 2 * (k + 1)) -
+        (-1 : ℂ) ^ k * ((m - k).factorial : ℂ) / ((k.factorial : ℂ) * (m - 2 * k).factorial) *
+          (2 * x) ^ (m - 2 * k) =
+      ((m + 2 : ℕ) : ℂ) * ((-1 : ℂ) ^ (k + 1) * ((m + 2 - (k + 1) - 1).factorial : ℂ) /
+        (((k + 1).factorial : ℂ) * (m + 2 - 2 * (k + 1)).factorial) *
+          (2 * x) ^ (m + 2 - 2 * (k + 1))) := by
+    intro k hk
+    have hk2 : 2 * k ≤ m := by simp at hk; omega
+    rw [show m + 2 - (k + 1) - 1 = m - k by omega, show m + 2 - (k + 1) = (m - k) + 1 by omega,
+      show m + 2 - 2 * (k + 1) = m - 2 * k by omega, Nat.factorial_succ, Nat.factorial_succ k]
+    have hk' : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast (by omega : k + 1 ≠ 0)
+    have hmk : ((m - 2 * k).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (m - 2 * k).factorial_ne_zero
+    push_cast [Nat.cast_sub (by omega : k ≤ m)]
+    field_simp
+    ring
+  rw [add_sub_right_comm, ← Finset.sum_sub_distrib, Finset.sum_congr rfl hkey,
+    ← Finset.mul_sum] at h
+  have hf : ((m + 2).factorial : ℂ) = (m + 2) * (m + 1).factorial := by
+    rw [Nat.factorial_succ (m + 1)]; push_cast; ring
+  have hf' : ((m + 1).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (m + 1).factorial_ne_zero
+  have hm : (m : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : m + 2 ≠ 0)
+  simp only [pow_zero, Nat.sub_zero, mul_zero, Nat.factorial_zero, Nat.cast_one, one_mul, hf] at h ⊢
+  push_cast at h ⊢
+  field_simp at h ⊢
+  linear_combination h
+
+/-- Binomial theorem in Pochhammer form: `∑ₖ (-n)ₖ yᵏ / k! = (1 - y)ⁿ`. -/
+lemma sum_poch_neg_nat_div_factorial_mul_pow (n : ℕ) (y : ℂ) :
+    ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k / k ! * y ^ k = (1 - y) ^ n := by
+  rw [sub_eq_add_neg, add_comm (1 : ℂ), add_pow]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose, one_pow, neg_pow y]
+  push_cast
+  field_simp
 
 end AAR.OrthogonalPolynomials

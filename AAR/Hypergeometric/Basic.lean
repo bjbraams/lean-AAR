@@ -71,6 +71,36 @@ lemma poch_add (a : ℂ) (n m : ℕ) : poch a (n + m) = poch a n * poch (a + n) 
     push_cast
     ring
 
+/-- Binomial theorem for rising factorials: `(a + b)_N = ∑ C(N,m) (a)_m (b)_{N-m}`. -/
+lemma poch_add_eq_sum (a b : ℂ) (N : ℕ) :
+    poch (a + b) N = ∑ m ∈ Finset.range (N + 1), (N.choose m : ℂ) * poch a m * poch b (N - m) := by
+  induction N with
+  | zero => simp [poch_zero]
+  | succ N ih =>
+    rw [poch_succ, ih, Finset.sum_mul]
+    rw [Finset.sum_range_succ' _ (N + 1)]
+    simp only [Nat.choose_succ_succ, Nat.cast_add, add_mul, Finset.sum_add_distrib,
+      Nat.choose_zero_right, Nat.cast_one, one_mul, poch_zero, Nat.sub_zero, Nat.succ_eq_add_one]
+    have hB : ∑ m ∈ Finset.range (N + 1), (N.choose (m + 1) : ℂ) * poch a (m + 1) *
+        poch b (N + 1 - (m + 1)) + poch b (N + 1) =
+        ∑ m ∈ Finset.range (N + 1), (N.choose m : ℂ) * poch a m * poch b (N + 1 - m) := by
+      rw [Finset.sum_range_succ' (fun m => (N.choose m : ℂ) * poch a m * poch b (N + 1 - m)),
+        Finset.sum_range_succ]
+      simp [Nat.choose_succ_self, poch_zero]
+    conv_rhs => rw [add_assoc, hB, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun m hm => ?_
+    have hmN : m ≤ N := by simp at hm; omega
+    rw [show N + 1 - (m + 1) = N - m by omega, show N + 1 - m = (N - m) + 1 by omega,
+      poch_succ a m, poch_succ b (N - m), Nat.cast_sub hmN]
+    ring
+
+/-- Distributing a power over the factors of a Pochhammer symbol. -/
+lemma poch_mul_pow (c t : ℂ) (k : ℕ) :
+    poch c k * t ^ k = ∏ j ∈ Finset.range k, ((c + j) * t) := by
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih => rw [poch_succ, Finset.prod_range_succ, ← ih]; ring
+
 /-- Helper lemma for terminating hypergeometric sums: `(-n)_k = (-1)^k n^{\underline{k}}`. -/
 lemma poch_neg_coe_nat (n k : ℕ) :
     poch (-(n : ℂ)) k = (-1 : ℂ) ^ k * n.descFactorial k := by

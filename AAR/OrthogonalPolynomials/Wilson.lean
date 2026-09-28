@@ -11,7 +11,7 @@ public import AAR.OrthogonalPolynomials.Hahn
 /-!
 # Wilson, continuous dual Hahn, Racah, and dual Hahn polynomials
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/

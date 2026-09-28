@@ -30,7 +30,7 @@ in `AAR.Bessel`.
 
 The additional modules collect DLMF Chapter 13 statements from §§13.2–13.26.
 Applications (§§13.27–13.28) and computation (§§13.29–13.32) are excluded, as is
-notation §13.1. See `Confluent/DLMFCoverage.md` for the equation-by-equation
-inventory, Mathlib coverage, domain restrictions, and deferred infrastructure.
-Many newly acquired statements are admitted and remain proof obligations.
+notation §13.1. Each statement taken from the DLMF records its equation number in a
+`@[dlmf]` attribute. Many newly acquired statements are admitted and remain proof
+obligations.
 -/

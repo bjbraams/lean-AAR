@@ -100,8 +100,10 @@ theorem confluentU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : |z.arg| <
             ((t : ℂ) + z) := by
   sorry
 
+/-- A Bessel-K integral for Tricomi U, away from `z = 0` where the totalized values of both
+sides differ. -/
 @[dlmf 13.4.E7]
-theorem confluentU_integral_besselK {a b z : ℂ} (hz : 0 ≤ z.re)
+theorem confluentU_integral_besselK {a b z : ℂ} (hz : 0 ≤ z.re) (hz0 : z ≠ 0)
     (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
     confluentU a b z =
       2 * z ^ ((1 - b) / 2) / (Gamma a * Gamma (a - b + 1)) *
@@ -210,9 +212,11 @@ theorem whittakerW_stieltjes {κ μ z : ℂ} (hz : |z.arg| < π)
             ((t : ℂ) + z) := by
   sorry
 
+/-- A Bessel-K integral for Whittaker W, away from `z = 0` where the totalized values of both
+sides differ. -/
 @[dlmf 13.16.E8]
 theorem whittakerW_integral_besselK {κ μ z : ℂ} (hκ : 0 < (μ - κ).re + 1 / 2)
-    (hz : 0 ≤ z.re) :
+    (hz : 0 ≤ z.re) (hz0 : z ≠ 0) :
     whittakerW κ μ z =
       2 * z ^ (1 / 2 : ℂ) * exp (-z / 2) /
           (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *

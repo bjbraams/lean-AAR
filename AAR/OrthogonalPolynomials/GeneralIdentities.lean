@@ -11,7 +11,7 @@ public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 /-!
 # Kernels, moments, recurrence coefficients, and zeros
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -181,7 +181,46 @@ theorem kernel_difference (μ : Measure ℝ) (p : ℕ → ℝ[X]) (n : ℕ) (x y
 @[dlmf 18.2.E27]
 theorem hankelDeterminant_pos {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p) (n : ℕ) :
     0 < hankelDeterminant μ n := by
-  sorry
+  unfold hankelDeterminant
+  change 0 < (Matrix.of fun i j : Fin n => moment μ (i + j)).det
+  apply Matrix.PosDef.det_pos
+  rw [Matrix.posDef_iff_dotProduct_mulVec]
+  refine ⟨?_, fun v hv => ?_⟩
+  · ext i j
+    simp [Matrix.conjTranspose_apply, add_comm]
+  -- the quadratic form is the integral of the square of `∑ v i X^i`
+  set q : ℝ[X] := ∑ i : Fin n, C (v i) * X ^ (i : ℕ) with hq_def
+  have hint (i j : ℕ) : Integrable (fun x : ℝ => x ^ (i + j)) μ := by
+    simpa [pow_add] using h.integrable_mul (X ^ i) (X ^ j)
+  have hquad : dotProduct (star v) ((Matrix.of fun i j : Fin n => moment μ (i + j)).mulVec v) =
+      ∫ x, q.eval x ^ 2 ∂μ := by
+    have hsq (x : ℝ) : q.eval x ^ 2 = ∑ i : Fin n, ∑ j : Fin n, v i * v j * x ^ ((i : ℕ) + j) := by
+      simp only [hq_def, eval_finsetSum, eval_mul, eval_C, eval_pow, eval_X, sq,
+        Finset.sum_mul, Finset.mul_sum, pow_add]
+      refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
+      ring
+    have hij (i j : Fin n) : Integrable (fun x : ℝ => v i * v j * x ^ ((i : ℕ) + j)) μ :=
+      (hint i j).const_mul _
+    simp_rw [hsq]
+    rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ => hij i j]
+    simp only [dotProduct, Matrix.mulVec, Matrix.of_apply, star_trivial, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [integral_finsetSum _ fun j _ => hij i j]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [integral_const_mul, moment]
+    ring
+  rw [hquad]
+  have hdeg : q.degree < n := degree_sum_fin_lt v
+  have hq0 : q ≠ 0 := by
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp hv
+    intro hq
+    apply hi
+    have := congrArg (fun r : ℝ[X] => r.coeff i) hq
+    simp only [hq_def, finsetSum_coeff, coeff_C_mul, coeff_X_pow, coeff_zero] at this
+    rw [Finset.sum_eq_single i (fun j _ hj => by
+      simp [Fin.val_eq_val, Ne.symm hj]) (by simp)] at this
+    simpa using this
+  exact h.integral_eval_sq_pos hq0 hdeg
 
 @[dlmf 18.2.E11_4]
 theorem monic_squaredNorm_ratio {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
@@ -206,7 +245,52 @@ theorem zeros_interlace {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogona
 theorem symmetric_measure_parity {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
     (hμ : Measure.map (fun x : ℝ => -x) μ = μ) (n : ℕ) (x : ℝ) :
     (p n).eval (-x) = (-1 : ℝ) ^ n * (p n).eval x := by
-  sorry
+  set r : ℝ[X] := (p n).comp (-X) - C ((-1 : ℝ) ^ n) * p n with hr_def
+  have hpn : (p n).natDegree = n := h.1 n
+  -- the leading terms cancel
+  have hdeg : r.degree < n := by
+    rcases eq_or_ne r 0 with hr0 | hr0
+    · rw [hr0, degree_zero]; exact WithBot.bot_lt_coe n
+    have hf : ((p n).comp (-X)).degree = n := by
+      rw [degree_comp_neg_X, degree_eq_natDegree (h.ne_zero n), hpn]
+    have hg : (C ((-1 : ℝ) ^ n) * p n).degree = n := by
+      rw [degree_C_mul (pow_ne_zero _ (by norm_num)), degree_eq_natDegree (h.ne_zero n), hpn]
+    have hlc : ((p n).comp (-X)).leadingCoeff = (C ((-1 : ℝ) ^ n) * p n).leadingCoeff := by
+      rw [comp_neg_X_leadingCoeff_eq, leadingCoeff_C_mul_of_isUnit (by simp), hpn]
+    have := degree_sub_lt_left (hf.trans hg.symm)
+      (by rw [Ne, ← degree_eq_bot, hf]; exact WithBot.coe_ne_bot) hlc
+    rwa [hf] at this
+  -- reflection moves onto the lower-degree polynomial
+  have hrefl (k : ℕ) (hk : k < n) : ∫ t, ((p n).comp (-X)).eval t * (p k).eval t ∂μ = 0 := by
+    have hmap : ∫ t, (p n).eval t * ((p k).comp (-X)).eval t ∂(Measure.map (fun x : ℝ => -x) μ) =
+        ∫ t, (p n).eval (-t) * ((p k).comp (-X)).eval (-t) ∂μ :=
+      integral_map (by fun_prop) (by fun_prop : Continuous _).aestronglyMeasurable
+    rw [hμ] at hmap
+    have hdk : ((p k).comp (-X)).degree < n := by
+      rw [degree_comp_neg_X, degree_eq_natDegree (h.ne_zero k), h.1 k]; exact_mod_cast hk
+    have h0 := h.integral_mul_eq_zero_of_degree_lt hdk
+    simp only [eval_comp, eval_neg, eval_X, neg_neg] at hmap
+    rw [show (∫ t, ((p n).comp (-X)).eval t * (p k).eval t ∂μ) =
+        ∫ t, (p n).eval (-t) * (p k).eval t ∂μ by simp [eval_comp]]
+    rw [← hmap]
+    rw [← h0]
+    congr 1; ext t; simp only [eval_comp, eval_neg, eval_X]; ring
+  have hcoord (k : ℕ) (hk : k < n) : h.basis.repr r k = 0 := by
+    have hint := h.integral_mul r k
+    have hsplit : ∫ t, r.eval t * (p k).eval t ∂μ =
+        ∫ t, ((p n).comp (-X)).eval t * (p k).eval t ∂μ -
+          (-1 : ℝ) ^ n * ∫ t, (p n).eval t * (p k).eval t ∂μ := by
+      rw [← integral_const_mul, ← integral_sub (h.integrable_mul _ _)
+        ((h.integrable_mul _ _).const_mul _)]
+      congr 1; ext t; simp only [hr_def, eval_sub, eval_mul, eval_C]; ring
+    rw [hsplit, hrefl k hk, h.2.2.2 n k (by omega), mul_zero, sub_zero] at hint
+    exact (mul_eq_zero.mp hint.symm).resolve_right (ne_of_gt (h.2.2.1 k))
+  have hr0 : r = 0 := by
+    rw [h.expansion hdeg]
+    exact Finset.sum_eq_zero fun k hk => by rw [hcoord k (Finset.mem_range.mp hk), zero_smul]
+  have := congrArg (fun q : ℝ[X] => q.eval x) hr0
+  simp only [hr_def, eval_sub, eval_comp, eval_neg, eval_X, eval_mul, eval_C, eval_zero] at this
+  linarith
 
 
 @[dlmf 18.2.E6]

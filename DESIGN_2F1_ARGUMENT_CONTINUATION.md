@@ -1,6 +1,9 @@
 # Design note: continuing `₂F₁` in the argument beyond the unit disk
 
-Date: 2026-09-17. Status: implemented the same day as `AAR/Hypergeometric/ArgumentContinuation.lean` (route D below); see the Phase 4 section of `PROOF_PROGRESS_2026-09-17.md`.
+Date: 2026-09-17. Status: implemented the same day as
+`AAR/Hypergeometric/ArgumentContinuation.lean` (route D below). The sections below record the
+design discussion as of that date; statements there about missing work describe the situation
+before the implementation.
 
 ## Where we stand
 

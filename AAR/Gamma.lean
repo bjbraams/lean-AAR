@@ -38,7 +38,6 @@ function. The modules below record AAR Chapter 1 identities and suitable stateme
 from DLMF §§5.2 and 5.4–5.18 that are absent from Mathlib.
 
 Graphics §5.3, applications §§5.19–5.20, and computation §§5.21–5.24 are excluded.
-See `Gamma/DLMFCoverage.md` for the equation-by-equation inventory, Mathlib coverage,
-domain restrictions, and deferred infrastructure. Many newly acquired statements
-are admitted and remain proof obligations.
+Each statement taken from the DLMF records its equation number in a `@[dlmf]`
+attribute. Many newly acquired statements are admitted and remain proof obligations.
 -/

@@ -45,8 +45,13 @@ def IsBaileyPair (a q : ℂ) (α β : ℕ → ℂ) : Prop :=
       ∑ k ∈ Finset.range (n + 1),
         α k / (qPochhammer q q (n - k) * qPochhammer (a * q) q (n + k))
 
-/-- Bailey's lemma (AAR §12.2): a Bailey pair produces a new Bailey pair. -/
-theorem bailey_lemma {a q rho1 rho2 : ℂ} {α β : ℕ → ℂ} (h : IsBaileyPair a q α β) :
+/-- Bailey's lemma (AAR §12.2): a Bailey pair produces a new Bailey pair. The parameters are
+nondegenerate: with `rho1 = 0` or a vanishing denominator, the totalized quotients no longer
+give a Bailey pair. -/
+theorem bailey_lemma {a q rho1 rho2 : ℂ} {α β : ℕ → ℂ} (h : IsBaileyPair a q α β)
+    (hρ1 : rho1 ≠ 0) (hρ2 : rho2 ≠ 0) (hqq : ∀ m, qPochhammer q q m ≠ 0)
+    (haq : ∀ m, qPochhammer (a * q) q m ≠ 0) (h1 : ∀ m, qPochhammer (a * q / rho1) q m ≠ 0)
+    (h2 : ∀ m, qPochhammer (a * q / rho2) q m ≠ 0) :
     IsBaileyPair a q
       (fun n =>
         qPochhammer rho1 q n * qPochhammer rho2 q n *
@@ -61,17 +66,19 @@ theorem bailey_lemma {a q rho1 rho2 : ℂ} {α β : ℕ → ℂ} (h : IsBaileyPa
               qPochhammer (a * q / rho2) q n)) := by
   sorry
 
-/-- Watson's transformation of a very-well-poised `₈φ₇` (AAR §12.3). -/
-theorem watson_transformation {a b c d e f q : ℂ} (hq : ‖q‖ < 1)
-    (hbal : a ^ 2 * q = b * c * d * e * f) :
-    basicHG [a, q * a ^ (1 / 2 : ℂ), -q * a ^ (1 / 2 : ℂ), b, c, d, e, f]
+/-- Watson's transformation of a terminating very-well-poised `₈φ₇` into a balanced `₄φ₃`
+(AAR §12.3), with `f = q⁻ⁿ`. The listed denominator parameters must not produce vanishing
+factors in the finite sums. -/
+theorem watson_transformation {a b c d e q : ℂ} (n : ℕ) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0)
+    (hd : d ≠ 0) (he : e ≠ 0) (hq : q ≠ 0)
+    (hden : ∀ x ∈ [a ^ (1 / 2 : ℂ), -a ^ (1 / 2 : ℂ), a * q / b, a * q / c, a * q / d,
+      a * q / e, a * q * q ^ n, d * e * q⁻¹ ^ n / a, q], ∀ k : ℕ, k ≤ n → x * q ^ k ≠ 1) :
+    basicHG [a, q * a ^ (1 / 2 : ℂ), -q * a ^ (1 / 2 : ℂ), b, c, d, e, q⁻¹ ^ n]
         [a ^ (1 / 2 : ℂ), -a ^ (1 / 2 : ℂ), a * q / b, a * q / c, a * q / d, a * q / e,
-          a * q / f] q
-        (a * q ^ 2 / (b * c * d * e * f)) =
-      qPochhammerInf (a * q) q * qPochhammerInf (a * q / (e * f)) q *
-          qPochhammerInf (a * q / (d * f)) q * qPochhammerInf (a * q / (d * e)) q /
-        (qPochhammerInf (a * q / d) q * qPochhammerInf (a * q / e) q *
-          qPochhammerInf (a * q / f) q * qPochhammerInf (a * q / (d * e * f)) q) *
-        basicHG [a * q / (b * c), d, e, f] [a * q / b, a * q / c, a * q / (d * e * f)] q
-          (a * q / (d * e * f)) := by
+          a * q * q ^ n] q
+        (a ^ 2 * q ^ 2 * q ^ n / (b * c * d * e)) =
+      qPochhammer (a * q) q n * qPochhammer (a * q / (d * e)) q n /
+          (qPochhammer (a * q / d) q n * qPochhammer (a * q / e) q n) *
+        basicHG [q⁻¹ ^ n, d, e, a * q / (b * c)]
+          [a * q / b, a * q / c, d * e * q⁻¹ ^ n / a] q q := by
   sorry

@@ -100,19 +100,21 @@ theorem confluentM_errorFn {z : ℂ} (hz : z ≠ 0) :
   field_simp [hz, hπ]
   try ring
 
+/-- Tricomi U at `a = b = 1/2` and complementary error function. The left side depends only on `z ^
+2`, so the identity needs `0 < Re z`. -/
 @[dlmf 13.6.E8]
-theorem confluentU_erfcFn {z : ℂ} (hz : z ∈ slitPlane) :
+theorem confluentU_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     confluentU (1 / 2) (1 / 2) (z ^ 2) = (Real.sqrt π : ℂ) * exp (z ^ 2) * erfcFn z := by
   sorry
 
 @[dlmf 13.6.E9]
-theorem confluentM_besselI (ν z : ℂ) {w : ℂ} (hw : w ∈ slitPlane) (hν : ∀ k : ℕ, 1 + 2 * ν ≠ -k) :
+theorem confluentM_besselI (ν z : ℂ) (hz : z ∈ slitPlane) (hν : ∀ k : ℕ, 1 + 2 * ν ≠ -k) :
     confluentM (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       Gamma (1 + ν) * exp z * (z / 2) ^ (-ν) * besselI ν z := by
   sorry
 
 @[dlmf 13.6.E10]
-theorem confluentU_besselK (ν z : ℂ) {w : ℂ} (hw : w ∈ slitPlane) :
+theorem confluentU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
     confluentU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
   sorry
@@ -321,8 +323,10 @@ theorem confluentM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
   rw [eq_comm, div_mul_eq_mul_div, div_eq_iff hf]
   linear_combination -this
 
+/-- Tricomi U and Hermite polynomials. The left side depends only on `z ^ 2`, so the identity needs
+`0 < Re z`. -/
 @[dlmf 13.6.E18]
-theorem confluentU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem confluentU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     confluentU (1 / 2 - n / 2) (3 / 2) (z ^ 2) =
       (2 : ℂ) ^ (-(n : ℂ)) * z⁻¹ * hermitePhysEval n z := by
   sorry
@@ -384,9 +388,11 @@ theorem whittakerM_exp_neg (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     whittakerM κ (-κ - 1 / 2) z = exp (z / 2) * z ^ (-κ) := by
   sorry
 
+/-- Whittaker M and the lower incomplete Gamma function. At `μ = 0` the right side is the
+removable limit `2μ γ(2μ,z) → 1`, which the totalized `lowerIncompleteGamma` does not take. -/
 @[dlmf 13.18.E4]
 theorem whittakerM_lowerIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :
+    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hμ0 : μ ≠ 0) :
     whittakerM (μ - 1 / 2) μ z =
       2 * μ * exp (z / 2) * z ^ (1 / 2 - μ) * lowerIncompleteGamma (2 * μ) z := by
   sorry
@@ -397,14 +403,18 @@ theorem whittakerW_upperIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPla
       exp (z / 2) * z ^ (1 / 2 - μ) * GammaInc (2 * μ) z := by
   sorry
 
+/-- Whittaker function and error functions. The left side depends only on `z ^ 2`, so the identity
+needs `0 < Re z`. -/
 @[dlmf 13.18.E6]
-theorem whittakerM_errorFn {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerM_errorFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (-1 / 4) (1 / 4) (z ^ 2) =
       (1 / 2) * exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * errorFn z := by
   sorry
 
+/-- Whittaker function and error functions. The left side depends only on `z ^ 2`, so the identity
+needs `0 < Re z`. -/
 @[dlmf 13.18.E7]
-theorem whittakerW_erfcFn {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerW_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerW (-1 / 4) (1 / 4) (z ^ 2) =
       exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * erfcFn z := by
   sorry
@@ -422,22 +432,28 @@ theorem whittakerW_besselK (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
       ((2 * z) / π) ^ (1 / 2 : ℂ) * besselK ν z := by
   sorry
 
+/-- Whittaker function and Hermite polynomials. The left side depends only on `z ^ 2`, so the
+identity needs `0 < Re z`. -/
 @[dlmf 13.18.E14]
-theorem whittakerM_hermite_even (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerM_hermite_even (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (1 / 4 + n) (-1 / 4) (z ^ 2) =
       (-1 : ℂ) ^ n * n.factorial / (2 * n).factorial * exp (-z ^ 2 / 2) *
         z ^ (1 / 2 : ℂ) * hermitePhysEval (2 * n) z := by
   sorry
 
+/-- Whittaker function and Hermite polynomials. The left side depends only on `z ^ 2`, so the
+identity needs `0 < Re z`. -/
 @[dlmf 13.18.E15]
-theorem whittakerM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (3 / 4 + n) (1 / 4) (z ^ 2) =
       (-1 : ℂ) ^ n * n.factorial / (2 * n + 1).factorial *
         exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) / 2 * hermitePhysEval (2 * n + 1) z := by
   sorry
 
+/-- Whittaker function and Hermite polynomials. The left side depends only on `z ^ 2`, so the
+identity needs `0 < Re z`. -/
 @[dlmf 13.18.E16]
-theorem whittakerW_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerW_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerW (1 / 4 + n / 2) (1 / 4) (z ^ 2) =
       (2 : ℂ) ^ (-(n : ℂ)) * exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) * hermitePhysEval n z := by
   sorry

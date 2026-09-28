@@ -12,7 +12,7 @@ public import AAR.OrthogonalPolynomials.Differential
 /-!
 # Classical continued fractions (DLMF §18.13)
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/

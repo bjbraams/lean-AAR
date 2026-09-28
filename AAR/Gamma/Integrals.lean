@@ -75,9 +75,12 @@ theorem mellin_barnes_selberg {a : Fin 4 → ℂ} (ha : ∀ k, 0 < (a k).re) :
         Complex.Gamma (∑ k : Fin 4, a k) := by
   sorry
 
+/-- The alternating trigamma series. It converges only conditionally, so it is stated with
+ordered partial sums; Lean's unordered `tsum` of the series would be `0`. -/
 @[dlmf 5.16.E1]
 theorem sum_alternating_trigamma :
-    ∑' k : ℕ, (-1 : ℝ) ^ (k + 1) * Real.trigamma (k + 1) = -π ^ 2 / 8 := by
+    Filter.Tendsto (fun N : ℕ => ∑ k ∈ Finset.range N, (-1 : ℝ) ^ (k + 1) * Real.trigamma (k + 1))
+      Filter.atTop (nhds (-π ^ 2 / 8)) := by
   sorry
 
 @[dlmf 5.16.E2]

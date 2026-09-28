@@ -53,8 +53,10 @@ theorem barnesG_one : barnesG 1 = 1 := by
   unfold barnesGSucc
   simp [hterm, cpow_zero, Complex.exp_zero, tprod_one]
 
+/-- The functional equation of Barnes' G-function. At `z = 0` it reads `G(1) = Γ(0) G(0)`, a
+limit `∞ · 0`; the totalized `Γ(0) = 0` gives `0`, so `z = 0` is excluded. -/
 @[dlmf 5.17.E1]
-theorem barnesG_add_one (z : ℂ) :
+theorem barnesG_add_one {z : ℂ} (hz : z ≠ 0) :
     barnesG (z + 1) = Complex.Gamma z * barnesG z := by
   sorry
 

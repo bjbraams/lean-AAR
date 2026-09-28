@@ -18,7 +18,7 @@ must still avoid undefined cancellations. E18 is already `gauss_quadratic` and i
 inverse `kummer_quadratic`. E12 is `regularized_euler` with `c = a+b-m`.
 E29 and E30 are specializations of E21 and of E13/E15, respectively.
 Remaining two-term quadratic and logarithmic formulas are in `ConnectionFormulas`.
-See `DLMFCoverage.md` for formulas requiring global continuation.
+Formulas that require global continuation are not recorded here.
 -/
 
 @[expose] public section

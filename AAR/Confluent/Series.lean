@@ -29,7 +29,7 @@ namespace AAR.Confluent
 
 @[dlmf 13.11.E1]
 theorem confluentM_besselI_series {a b z : ℂ}
-    (ha : ∀ k : ℕ, a + 1 / 2 ≠ -k) (hb : ∀ k : ℕ, b ≠ -k) (hz : z ∈ slitPlane) :
+    (ha : ∀ k : ℕ, a + 1 / 2 ≠ -k) (ha0 : a ≠ 1 / 2) (hb : ∀ k : ℕ, b ≠ -k) (hz : z ∈ slitPlane) :
     confluentM a b z =
       Gamma (a - 1 / 2) * exp (z / 2) * (z / 4) ^ (1 / 2 - a) *
         ∑' s : ℕ, poch (2 * a - 1) s * poch (2 * a - b) s / (poch b s * s.factorial) *
@@ -38,7 +38,8 @@ theorem confluentM_besselI_series {a b z : ℂ}
 
 @[dlmf 13.11.E2]
 theorem confluentM_besselI_series_complement {a b z : ℂ}
-    (hab : ∀ k : ℕ, b - a + 1 / 2 ≠ -k) (hb : ∀ k : ℕ, b ≠ -k) (hz : z ∈ slitPlane) :
+    (hab : ∀ k : ℕ, b - a + 1 / 2 ≠ -k) (hab0 : b - a ≠ 1 / 2) (hb : ∀ k : ℕ, b ≠ -k)
+    (hz : z ∈ slitPlane) :
     confluentM a b z =
       Gamma (b - a - 1 / 2) * exp (z / 2) * (z / 4) ^ (a - b + 1 / 2) *
         ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * b - 2 * a - 1) s * poch (b - 2 * a) s *
@@ -58,7 +59,7 @@ def besselExpansionCoeff (a b : ℂ) : ℕ → ℂ
 
 @[dlmf 13.11.E3]
 theorem regularizedHGFun_besselJ_series {a b z : ℂ} (hz : z ∈ slitPlane)
-    (hba : 0 ≤ (b - 2 * a).re) :
+    (hba : 0 ≤ (b - 2 * a).re) (hba0 : b - 2 * a ≠ 0) :
     regularizedHGFun {a} {b} z =
       exp (z / 2) * ∑' s : ℕ, besselExpansionCoeff a b s *
         (b - 2 * a) ^ ((1 - b - s) / 2) * (z / 2) ^ ((1 - b + s) / 2) *
@@ -67,7 +68,7 @@ theorem regularizedHGFun_besselJ_series {a b z : ℂ} (hz : z ∈ slitPlane)
 
 @[dlmf 13.24.E1]
 theorem whittakerM_besselI_series {κ μ z : ℂ}
-    (hμ : ∀ k : ℕ, 2 * μ ≠ -k - 1) (hκ : ∀ k : ℕ, κ + μ ≠ -k - 1)
+    (hμ : ∀ k : ℕ, 2 * μ ≠ -k - 1) (hκ : ∀ k : ℕ, κ + μ ≠ -k - 1) (hκμ : κ + μ ≠ 0)
     (hz : z ∈ slitPlane) :
     whittakerM κ μ z =
       Gamma (κ + μ) * (2 : ℂ) ^ (2 * κ + 2 * μ) * z ^ (1 / 2 - κ) *

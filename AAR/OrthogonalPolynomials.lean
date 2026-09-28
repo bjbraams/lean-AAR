@@ -34,6 +34,6 @@ modules below record the remaining AAR Chapters 5–7 material: general orthogon
 theory, the classical families (physicists' Hermite, Laguerre, Jacobi, Gegenbauer), and the
 Chapter 7 topics (connection coefficients, Turán, Apéry's theorem).
 
-The additional modules collect DLMF Chapter 18 statements, with an equation-by-equation
-inventory and explicit scope notes in `OrthogonalPolynomials/DLMFCoverage.md`.
+The additional modules collect DLMF Chapter 18 statements, each recording its equation
+number in a `@[dlmf]` attribute.
 -/

@@ -32,7 +32,6 @@ Mathlib already supplies the Gaussian series `₂F₁` (`ordinaryHypergeometric`
 convergence, the regularized generalized series, and the binomial series
 `(1+x)^a`. The imported modules record AAR Chapter 2–3 identities and suitable statements
 from DLMF §§15.2, 15.4–15.8, and 15.10–15.12 that are absent from Mathlib.
-See `Hypergeometric/DLMFCoverage.md` for the equation-by-equation inventory,
-Mathlib coverage, domain restrictions, and deferred infrastructure. Many newly
-acquired statements are admitted and remain proof obligations.
+Each statement taken from the DLMF records its equation number in a `@[dlmf]`
+attribute. Many newly acquired statements are admitted and remain proof obligations.
 -/

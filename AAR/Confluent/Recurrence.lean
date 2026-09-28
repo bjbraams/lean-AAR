@@ -631,15 +631,19 @@ theorem iteratedDeriv_mul_cpow_exp_neg_confluentM {a b : ℂ} (n : ℕ) {z : ℂ
       show b - ((n + 1 : ℕ) : ℂ) + (n : ℂ) = b - 1 by push_cast; ring]
     ring
 
+/-- Derivative of Tricomi U. `U` is not complex-differentiable on the cut, so `z` is restricted to
+the slit plane. -/
 @[dlmf 13.3.E22]
-theorem deriv_confluentU (a b z : ℂ) :
+theorem deriv_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     deriv (confluentU a b) z = -a * confluentU (a + 1) (b + 1) z := by
   sorry
 
+/-- Iterated derivatives of Tricomi U. `U` is not complex-differentiable on the cut, so `z` is
+restricted to the slit plane. -/
 @[dlmf 13.3.E23]
-theorem iteratedDeriv_confluentU (a b : ℂ) (n : ℕ) :
-    iteratedDeriv n (confluentU a b) =
-      fun z => (-1 : ℂ) ^ n * poch a n * confluentU (a + n) (b + n) z := by
+theorem iteratedDeriv_confluentU (a b : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    iteratedDeriv n (confluentU a b) z =
+      (-1 : ℂ) ^ n * poch a n * confluentU (a + n) (b + n) z := by
   sorry
 
 @[dlmf 13.3.E24]
@@ -661,10 +665,12 @@ theorem iterate_mulDerivMul_exp_neg_confluentU (a b : ℂ) (n : ℕ) {z : ℂ}
       (-1 : ℂ) ^ n * z ^ (b - a + n - 1) * exp (-z) * confluentU (a - n) b z := by
   sorry
 
+/-- Iterated derivatives of `exp (-z) * U(a,b,z)`. `U` is not complex-differentiable on the cut, so
+`z` is restricted to the slit plane. -/
 @[dlmf 13.3.E27]
-theorem iteratedDeriv_exp_neg_confluentU (a b : ℂ) (n : ℕ) :
-    iteratedDeriv n (fun w => exp (-w) * confluentU a b w) =
-      fun z => (-1 : ℂ) ^ n * exp (-z) * confluentU a (b + n) z := by
+theorem iteratedDeriv_exp_neg_confluentU (a b : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    iteratedDeriv n (fun w => exp (-w) * confluentU a b w) z =
+      (-1 : ℂ) ^ n * exp (-z) * confluentU a (b + n) z := by
   sorry
 
 @[dlmf 13.3.E28]

@@ -9,10 +9,11 @@ public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Hahn
 public import AAR.OrthogonalPolynomials.Explicit
+public import AAR.OrthogonalPolynomials.Differential
 /-!
 # Associated, Bessel, Pollaczek, Freud, and exceptional polynomials
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -104,10 +105,46 @@ theorem associatedPollaczek_limit_hermite {c : ℝ} (hc : 0 ≤ c) (n : ℕ) (x 
       (𝓝 (associatedHermite c n x)) := by
   sorry
 
+/-- `(a+1)_b = (a+b)!/a!` for natural `a`, in factorial form. -/
+lemma poch_nat_succ_mul_factorial (a b : ℕ) :
+    (a ! : ℂ) * poch ((a : ℂ) + 1) b = ((a + b) ! : ℂ) := by
+  rw [poch_nat_succ_eq_choose_mul_factorial]
+  have h := Nat.choose_mul_factorial_mul_factorial (Nat.le_add_right a b)
+  rw [Nat.add_sub_cancel_left] at h
+  have h' : ((a + b).choose a : ℂ) * a ! * b ! = (a + b)! := by exact_mod_cast h
+  linear_combination h'
+
+/-- Reflection of a Pochhammer symbol: `(1 - r - k)_k = (-1)^k (r)_k`. -/
+lemma poch_reflect (r : ℂ) (k : ℕ) : poch (1 - r - k) k = (-1) ^ k * poch r k := by
+  rw [poch, show (1 - r - k : ℂ) = -(r + k - 1) by ring, ascPochhammer_eval_neg_eq_descPochhammer,
+    descPochhammer_eval_eq_ascPochhammer]
+  congr 2
+  ring
+
 @[dlmf 18.34.E1]
 theorem besselPolynomial_eq_laguerre (a : ℂ) (n : ℕ) {x : ℂ} (hx : x ≠ 0) :
     besselPolynomial a n x = (n.factorial : ℂ) * (-x / 2) ^ n * laguerreExtended (1 - a - 2 * n) n (2 / x) := by
-  sorry
+  unfold besselPolynomial terminatingHG laguerreExtended
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+  rw [Finset.mul_sum]
+  conv_rhs => rw [← Finset.sum_range_reflect]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  rw [show n + 1 - 1 - k = n - k by omega, Nat.sub_sub_self hkn]
+  have e : (1 - a - 2 * n + ((n - k : ℕ) : ℂ) + 1) = 1 - (n + a - 1) - k := by
+    push_cast [Nat.cast_sub hkn]; ring
+  rw [e, poch_reflect]
+  have p1 := poch_neg_nat_mul_factorial hkn
+  have f1 : ((n - k) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have f2 : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hpow : (-x / 2) ^ n * (-(2 / x)) ^ (n - k) = (-x / 2) ^ k := by
+    rw [show n = k + (n - k) by omega, pow_add, show k + (n - k) - k = n - k by omega, mul_assoc,
+      ← mul_pow]
+    rw [show -x / 2 * -(2 / x) = 1 by field_simp, one_pow, mul_one]
+  have q1 : poch (-(n : ℂ)) k = (-1) ^ k * (n ! : ℂ) / (n - k) ! := by
+    field_simp; linear_combination p1
+  rw [q1]
+  linear_combination (-(n ! : ℂ) * ((-1) ^ k * poch (n + a - 1) k / ((k ! : ℂ) * (n - k) !))) * hpow
 
 @[dlmf 18.34.E2]
 theorem reverseBesselPolynomial_eq (n : ℕ) {x : ℂ} (hx : x ≠ 0) :
@@ -184,12 +221,40 @@ theorem pollaczek_generating_function (lam a b : ℂ) (θ : ℝ) (hθ : Real.sin
 @[dlmf 18.35.E8]
 theorem pollaczek_eq_gegenbauer {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
     pollaczek lam 0 0 0 n x = gegenbauer lam n x := by
-  sorry
+  induction n using Nat.twoStepInduction with
+  | zero => simp [pollaczek, associated]
+  | one => simp [pollaczek, associated, gegenbauer_one_eq hlam]
+  | more n ih0 ih1 =>
+    have hr := gegenbauer_recurrence hlam n x
+    have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
+    simp only [pollaczek, associated] at ih0 ih1 ⊢
+    rw [ih0, ih1]
+    push_cast
+    simp only [add_zero, mul_zero, zero_div]
+    rw [show (n : ℂ) + 1 + 1 = n + 2 by ring]
+    field_simp
+    linear_combination -hr
+
 
 @[dlmf 18.35.E9]
 theorem pollaczek_eq_meixnerPollaczek {lam : ℂ} (hlam : 0 < lam.re) (phi x : ℂ) (n : ℕ) :
     pollaczek lam 0 (x * sin phi) 0 n (cos phi) = meixnerPollaczek lam phi n x := by
-  sorry
+  have hl : lam ≠ 0 := fun h => by simp [h] at hlam
+  induction n using Nat.twoStepInduction with
+  | zero => simp [pollaczek, associated, meixnerPollaczek, terminatingHG, poch_zero]
+  | one =>
+    simp [pollaczek, associated, meixnerPollaczek_one hl]
+    ring
+  | more n ih0 ih1 =>
+    have hr := meixnerPollaczek_recurrence hlam phi n x
+    have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
+    simp only [pollaczek, associated] at ih0 ih1 ⊢
+    rw [ih0, ih1]
+    push_cast
+    simp only [add_zero]
+    rw [show (n : ℂ) + 1 + 1 = n + 2 by ring]
+    field_simp
+    linear_combination -hr
 
 @[dlmf 18.35.E10]
 theorem pollaczek_eq_associatedMeixnerPollaczek (lam phi x : ℂ) (c : ℝ) (n : ℕ) :
@@ -208,7 +273,45 @@ theorem pollaczek_eq_associatedMeixnerPollaczek (lam phi x : ℂ) (c : ℝ) (n :
 @[dlmf 18.36.E2]
 theorem laguerre_negative_integer_parameter {n k : ℕ} (hk : k ≤ n) (x : ℂ) :
     laguerreExtended (-(k : ℂ)) n x = (-1 : ℂ) ^ k * (n - k).factorial / n.factorial * x ^ k * laguerre k (n - k) x := by
-  sorry
+  have hα : ∀ j : ℕ, (k : ℂ) + 1 ≠ -(j : ℂ) := by
+    intro j h
+    have : ((k + 1 + j : ℕ) : ℂ) = 0 := by push_cast; linear_combination h
+    exact absurd (by exact_mod_cast this : k + 1 + j = 0) (by omega)
+  rw [laguerre_eq_sum hα]
+  unfold laguerreExtended
+  obtain ⟨N, rfl⟩ : ∃ N, n = k + N := ⟨n - k, by omega⟩
+  rw [show k + N + 1 = k + (N + 1) by ring, Finset.sum_range_add, Nat.add_sub_cancel_left]
+  have hzero : ∑ j ∈ Finset.range k, poch (-(k : ℂ) + j + 1) (k + N - j) /
+      ((j.factorial : ℂ) * (k + N - j).factorial) * (-x) ^ j = 0 := by
+    refine Finset.sum_eq_zero fun j hj => ?_
+    have hjk := Finset.mem_range.mp hj
+    have : poch (-(k : ℂ) + j + 1) (k + N - j) = 0 := by
+      rw [poch, ascPochhammer_eval_eq_zero_iff]
+      refine ⟨k - 1 - j, by omega, ?_⟩
+      push_cast [show 1 + j ≤ k by omega, Nat.sub_sub]
+      ring
+    simp [this]
+  rw [hzero, zero_add, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun m hm => ?_
+  have hmN : m ≤ N := Nat.lt_succ_iff.mp (Finset.mem_range.mp hm)
+  have e1 : k + N - (k + m) = N - m := by omega
+  have e2 : -(k : ℂ) + ((k + m : ℕ) : ℂ) + 1 = (m : ℂ) + 1 := by push_cast; ring
+  have e3 : (k : ℂ) + 1 + (m : ℂ) = ((k + m : ℕ) : ℂ) + 1 := by push_cast; ring
+  rw [e1, e2, e3]
+  have p1 := poch_nat_succ_mul_factorial m (N - m)
+  have p2 := poch_nat_succ_mul_factorial (k + m) (N - m)
+  rw [show m + (N - m) = N by omega] at p1
+  rw [show k + m + (N - m) = k + N by omega] at p2
+  have f1 : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have f2 : ((k + m) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have f3 : ((N - m) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have f4 : ((k + N) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have q1 : poch ((m : ℂ) + 1) (N - m) = (N ! : ℂ) / m ! := by
+    field_simp; linear_combination p1
+  have q2 : poch (((k + m : ℕ) : ℂ) + 1) (N - m) = ((k + N) ! : ℂ) / (k + m) ! := by
+    field_simp; linear_combination p2
+  rw [q1, q2, pow_add, show (-x) ^ k = (-1) ^ k * x ^ k by ring]
+  field_simp
 
 @[dlmf 18.36.E6]
 theorem exceptionalLaguerre_orthogonality {k : ℝ} (hk : 0 < k) (m n : ℕ) :

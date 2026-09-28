@@ -29,8 +29,11 @@ noncomputable section
 
 namespace AAR.Gamma
 
+/-- A Laplace-type integral for Gamma. The exponent `μ` must be real, as in DLMF: for
+non-real `μ` the factor `exp (-z t ^ μ)` grows along a sequence `t → ∞` and the integral
+diverges. -/
 @[dlmf 5.9.E1]
-theorem Gamma_laplace_power {μ ν z : ℂ} (hμ : 0 < μ.re) (hν : 0 < ν.re)
+theorem Gamma_laplace_power {μ ν z : ℂ} (hμ : 0 < μ.re) (hμi : μ.im = 0) (hν : 0 < ν.re)
     (hz : 0 < z.re) :
     (1 / μ) * Complex.Gamma (ν / μ) * z ^ (-(ν / μ)) =
       ∫ t : ℝ in Set.Ioi 0, Complex.exp (-z * (t : ℂ) ^ μ) * (t : ℂ) ^ (ν - 1) := by
@@ -71,28 +74,38 @@ theorem Gamma_truncated_exp {z : ℂ} {n : ℕ}
             ∑ k ∈ Finset.range (n + 1), (-1 : ℂ) ^ k * (t : ℂ) ^ k / k.factorial) := by
   sorry
 
+/-- A cosine integral for Gamma. The integral converges only conditionally at infinity, so it is
+stated as the limit of integrals over `(0, R)`; Lean's integral over `(0, ∞)` would be `0`. -/
 @[dlmf 5.9.E6]
 theorem Gamma_cos {x : ℝ} (hx0 : 0 < x) (hx1 : x < 1) :
-    Real.Gamma x * Real.cos (π * x / 2) =
-      ∫ t : ℝ in Set.Ioi 0, t ^ (x - 1) * Real.cos t := by
+    Tendsto (fun R : ℝ => ∫ t : ℝ in (0 : ℝ)..R, t ^ (x - 1) * Real.cos t) atTop
+      (𝓝 (Real.Gamma x * Real.cos (π * x / 2))) := by
   sorry
 
+/-- A sine integral for Gamma. The integral converges only conditionally at infinity, so it is
+stated as the limit of integrals over `(0, R)`; Lean's integral over `(0, ∞)` would be `0`. -/
 @[dlmf 5.9.E7]
 theorem Gamma_sin {x : ℝ} (hx0 : -1 < x) (hx1 : x < 1) :
-    Real.Gamma x * Real.sin (π * x / 2) =
-      ∫ t : ℝ in Set.Ioi 0, t ^ (x - 1) * Real.sin t := by
+    Tendsto (fun R : ℝ => ∫ t : ℝ in (0 : ℝ)..R, t ^ (x - 1) * Real.sin t) atTop
+      (𝓝 (Real.Gamma x * Real.sin (π * x / 2))) := by
   sorry
 
+/-- The generalized Fresnel cosine integral. The integral converges only conditionally at infinity,
+so it is stated as the limit of integrals over `(0, R)`; Lean's integral over `(0, ∞)` would be
+`0`. -/
 @[dlmf 5.9.E8]
 theorem Gamma_cos_pow (n : ℕ) (hn : 2 ≤ n) :
-    Real.Gamma (1 + 1 / n) * Real.cos (π / (2 * n)) =
-      ∫ t : ℝ in Set.Ioi 0, Real.cos (t ^ n) := by
+    Tendsto (fun R : ℝ => ∫ t : ℝ in (0 : ℝ)..R, Real.cos (t ^ n)) atTop
+      (𝓝 (Real.Gamma (1 + 1 / n) * Real.cos (π / (2 * n)))) := by
   sorry
 
+/-- The generalized Fresnel sine integral. The integral converges only conditionally at infinity, so
+it is stated as the limit of integrals over `(0, R)`; Lean's integral over `(0, ∞)` would be
+`0`. -/
 @[dlmf 5.9.E9]
 theorem Gamma_sin_pow (n : ℕ) (hn : 2 ≤ n) :
-    Real.Gamma (1 + 1 / n) * Real.sin (π / (2 * n)) =
-      ∫ t : ℝ in Set.Ioi 0, Real.sin (t ^ n) := by
+    Tendsto (fun R : ℝ => ∫ t : ℝ in (0 : ℝ)..R, Real.sin (t ^ n)) atTop
+      (𝓝 (Real.Gamma (1 + 1 / n) * Real.sin (π / (2 * n)))) := by
   sorry
 
 @[dlmf 5.9.E10]

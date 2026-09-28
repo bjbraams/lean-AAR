@@ -13,7 +13,7 @@ public import Mathlib.Algebra.ContinuedFractions.Basic
 
 The Stieltjes-type continued fraction for Binet's function. The source lists
 explicit partial numerators `a_0,…,a_6`; those values are recorded below. The
-limit is acquired on `(1,∞)`.
+general coefficients are not given in closed form, so no convergence statement is made.
 -/
 
 @[expose] public section
@@ -47,9 +47,9 @@ def logGammaContinuedFraction (z : ℂ) : GenContFract ℂ where
 def logGammaBinet (x : ℝ) : ℝ :=
   Real.log (Real.Gamma x) + x - (x - 1 / 2) * Real.log x - (1 / 2) * Real.log (2 * π)
 
-@[dlmf 5.10.E1]
-theorem logGamma_continued_fraction_limit {x : ℝ} (hx : 1 < x) :
-    Tendsto (logGammaContinuedFraction x).convs atTop (𝓝 (logGammaBinet x : ℂ)) := by
-  sorry
+/- The convergence statement of DLMF 5.10.1 was removed: `logGammaContFractCoeff` records only
+the seven tabulated partial numerators and sets the rest to zero, so the convergents stabilize
+at a truncation that differs from `logGammaBinet` (by about `1.5e-7` at `x = 3/2`). Stating
+the limit requires the full coefficient sequence. See `STATEMENT_AUDIT_2026-09-27.md`. -/
 
 end AAR.Gamma

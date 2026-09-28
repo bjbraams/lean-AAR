@@ -14,7 +14,7 @@ The source uses Olver's regularized function. Euler's E1 is already recorded,
 with the equivalent ordinary-function normalization, in `EulerIntegral`.
 The substitutions and vertical Barnes integrals below need no continued contour
 branches. E2–E5 (excluding E2_5) require lifted logarithms along loop/Pochhammer
-contours; they are documented in `DLMFCoverage.md` pending that infrastructure.
+contours; they are not recorded here, pending that infrastructure.
 -/
 
 @[expose] public section

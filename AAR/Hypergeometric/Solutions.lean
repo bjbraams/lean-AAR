@@ -18,7 +18,7 @@ the second solution at infinity. Wronskians plus the ODE give fundamental pairs
 when the Wronskians are nonzero. The integral-parameter logarithmic pairs are
 stated with explicit nonvanishing Wronskians, including empty finite sums.
 The four zero/one connection formulas hold on the overlap of their series disks.
-See `Kummer` and `DLMFCoverage.md` for the other Kummer representations.
+See `Kummer` for the other Kummer representations.
 -/
 
 @[expose] public section

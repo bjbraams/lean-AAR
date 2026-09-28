@@ -841,4 +841,38 @@ lemma analyticOnNhd_gauss_neg_nat_param (n : ℕ) (b z : ℂ) :
     (g := fun c : ℂ => poch c k * k.factorial) (x := c) analyticAt_const hpoch hden).mul
     analyticAt_const
 
+/-- Gauss's contiguous relation in `a` for a terminating series, valid for every argument. -/
+lemma contiguous_a_neg_nat {b c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) (n : ℕ) (z : ℂ) :
+    (c + (n + 1)) * ₂F₁ (-((n + 2 : ℕ) : ℂ)) b c z +
+      (-(2 * (n + 1)) - c + (b + (n + 1)) * z) * ₂F₁ (-((n + 1 : ℕ) : ℂ)) b c z -
+      (n + 1) * (z - 1) * ₂F₁ (-(n : ℂ)) b c z = 0 := by
+  set F : ℂ → ℂ := fun z : ℂ => (c + (n + 1)) * ₂F₁ (-((n + 2 : ℕ) : ℂ)) b c z +
+      (-(2 * (n + 1)) - c + (b + (n + 1)) * z) * ₂F₁ (-((n + 1 : ℕ) : ℂ)) b c z -
+      (n + 1) * (z - 1) * ₂F₁ (-(n : ℂ)) b c z with hF
+  have hpoly : ∀ m : ℕ, Differentiable ℂ (fun z : ℂ => ₂F₁ (-(m : ℂ)) b c z) := by
+    intro m
+    have : (fun z : ℂ => ₂F₁ (-(m : ℂ)) b c z) =
+        fun z : ℂ => ∑ k ∈ Finset.range (m + 1), gaussHGCoeff (-(m : ℂ)) b c k * z ^ k := by
+      funext z; exact ordinaryHypergeometric_eq_sum_neg_nat m b c z
+    rw [this]
+    fun_prop
+  have hdiff : Differentiable ℂ F := by
+    have h2 := hpoly (n + 2); have h1 := hpoly (n + 1); have h0 := hpoly n
+    fun_prop
+  have hball : ∀ z ∈ Metric.ball (0 : ℂ) 1, F z = 0 := by
+    intro z hz
+    rw [mem_ball_zero_iff] at hz
+    have h := contiguous_a (a := -((n + 1 : ℕ) : ℂ)) (b := b) hc hz
+    rw [show -((n + 1 : ℕ) : ℂ) - 1 = -((n + 2 : ℕ) : ℂ) by push_cast; ring,
+      show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring] at h
+    simp only [hF]
+    push_cast at h ⊢
+    linear_combination h
+  have han : AnalyticOnNhd ℂ F Set.univ :=
+    Complex.analyticOnNhd_univ_iff_differentiable.mpr hdiff
+  have hzero := han.eqOn_zero_of_preconnected_of_eventuallyEq_zero
+    isPreconnected_univ (Set.mem_univ 0)
+    (Filter.eventually_of_mem (Metric.ball_mem_nhds 0 one_pos) hball)
+  simpa [hF] using hzero (Set.mem_univ z)
+
 end AAR.Hypergeometric

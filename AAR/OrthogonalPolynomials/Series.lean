@@ -10,10 +10,11 @@ public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.Bessel.Basic
 public import AAR.OrthogonalPolynomials.Differential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
 /-!
 # Generating functions, connection formulas, and linearization
 
-Statements from NIST DLMF Chapter 18. See `DLMFCoverage.md` for the source inventory.
+Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -51,10 +52,93 @@ theorem gegenbauer_weighted_generating_function {lam : ℂ} (hlam : -1 / 2 < lam
       ((1 - x * z) / (1 - 2 * x * z + z ^ 2) ^ (lam + 1)) := by
   sorry
 
+/-- Generating function of a sequence with constant-coefficient three-term recurrence. -/
+lemma hasSum_of_three_term {a : ℕ → ℂ} {p q z : ℂ}
+    (hrec : ∀ n, a (n + 2) = p * a (n + 1) + q * a n) (hs : Summable fun n => a n * z ^ n)
+    (hD : 1 - p * z - q * z ^ 2 ≠ 0) :
+    HasSum (fun n => a n * z ^ n) ((a 0 + (a 1 - p * a 0) * z) / (1 - p * z - q * z ^ 2)) := by
+  set S := ∑' n, a n * z ^ n
+  have h0 := hs.hasSum
+  have h1 := (hasSum_nat_add_iff' 1).mpr h0
+  have h2 := (hasSum_nat_add_iff' 2).mpr h0
+  have h2' : HasSum (fun n => a (n + 2) * z ^ (n + 2))
+      (p * z * (S - ∑ i ∈ Finset.range 1, a i * z ^ i) + q * z ^ 2 * S) := by
+    have := (h1.mul_left (p * z)).add (h0.mul_left (q * z ^ 2))
+    refine this.congr_fun fun n => ?_
+    simp only [hrec]
+    ring
+  have heq := h2.unique h2'
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, pow_zero, mul_one,
+    pow_one] at heq
+  convert h0 using 1
+  rw [div_eq_iff hD]
+  linear_combination -heq
+
+/-- `1 - 2xz + z²` does not vanish for `|x| ≤ 1` and `‖z‖ < 1`. -/
+lemma one_sub_two_mul_add_sq_ne_zero {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
+    1 - 2 * x * z + z ^ 2 ≠ 0 := by
+  intro h
+  have hre := congrArg Complex.re h
+  have him := congrArg Complex.im h
+  simp [sq] at hre him
+  have hn : z.re ^ 2 + z.im ^ 2 < 1 := by
+    have := Complex.sq_norm z
+    rw [Complex.normSq_apply] at this
+    nlinarith [norm_nonneg z]
+  have hx2 : x ^ 2 ≤ 1 := by nlinarith [abs_nonneg x, sq_abs x]
+  rcases mul_eq_zero.mp (show z.im * (z.re - x) = 0 by linarith) with hb | ha
+  · rw [hb] at hre hn
+    nlinarith [sq_nonneg (z.re - x)]
+  · have : z.re = x := by linarith
+    rw [this] at hre hn
+    nlinarith
+
+/-- Chebyshev polynomials at a real point are real. -/
+lemma chebyshevT_eval_ofReal (n : ℤ) (x : ℝ) :
+    (Chebyshev.T ℂ n).eval (x : ℂ) = ((Chebyshev.T ℝ n).eval x : ℝ) := by
+  rw [← Chebyshev.map_T (algebraMap ℝ ℂ), eval_map]
+  exact eval₂_at_apply (algebraMap ℝ ℂ) x
+
+/-- Chebyshev polynomials of the second kind at a real point are real. -/
+lemma chebyshevU_eval_ofReal (n : ℤ) (x : ℝ) :
+    (Chebyshev.U ℂ n).eval (x : ℂ) = ((Chebyshev.U ℝ n).eval x : ℝ) := by
+  rw [← Chebyshev.map_U (algebraMap ℝ ℂ), eval_map]
+  exact eval₂_at_apply (algebraMap ℝ ℂ) x
+
+/-- `|Uₙ(x)| ≤ n + 1` on `[-1, 1]`. -/
+lemma abs_eval_U_real_le {x : ℝ} (hx : |x| ≤ 1) (n : ℕ) :
+    |(Chebyshev.U ℝ n).eval x| ≤ n + 1 := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    have h := Chebyshev.U_eq_X_mul_U_add_T ℝ (n : ℤ)
+    rw [show ((n : ℤ) + 1) = ((n + 1 : ℕ) : ℤ) by push_cast; ring] at h
+    rw [h, eval_add, eval_mul, eval_X]
+    have hT := Chebyshev.abs_eval_T_real_le_one ((n + 1 : ℕ) : ℤ) hx
+    calc |x * (Chebyshev.U ℝ n).eval x + (Chebyshev.T ℝ ((n + 1 : ℕ) : ℤ)).eval x|
+        ≤ |x| * |(Chebyshev.U ℝ n).eval x| + 1 := by
+          rw [← abs_mul]; exact (abs_add_le _ _).trans (by linarith)
+      _ ≤ 1 * (n + 1) + 1 := by gcongr
+      _ = ((n + 1 : ℕ) : ℝ) + 1 := by push_cast; ring
+
 @[dlmf 18.12.E8]
 theorem chebyshevT_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => (Chebyshev.T ℂ n).eval (x : ℂ) * z ^ n) ((1 - x * z) / (1 - 2 * x * z + z ^ 2)) := by
-  sorry
+  have hs : Summable fun n : ℕ => (Chebyshev.T ℂ n).eval (x : ℂ) * z ^ n := by
+    refine Summable.of_norm_bounded (summable_geometric_of_lt_one (norm_nonneg z) hz) fun n => ?_
+    rw [norm_mul, norm_pow, chebyshevT_eval_ofReal, norm_real, Real.norm_eq_abs]
+    exact mul_le_of_le_one_left (by positivity) (Chebyshev.abs_eval_T_real_le_one _ hx)
+  have h := hasSum_of_three_term (a := fun n : ℕ => (Chebyshev.T ℂ n).eval (x : ℂ))
+    (p := 2 * x) (q := -1) (fun n => by
+      have := Chebyshev.T_add_two ℂ (n : ℤ)
+      rw [show ((n + 2 : ℕ) : ℤ) = (n : ℤ) + 2 by push_cast; ring,
+        show ((n + 1 : ℕ) : ℤ) = (n : ℤ) + 1 by push_cast; ring, this]
+      simp; ring) hs (by
+        have := one_sub_two_mul_add_sq_ne_zero hx hz
+        convert this using 1; ring)
+  convert h using 2
+  · simp; ring
+  · ring
 
 @[dlmf 18.12.E9]
 theorem chebyshevT_log_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -65,7 +149,23 @@ theorem chebyshevT_log_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} 
 @[dlmf 18.12.E10]
 theorem chebyshevU_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => (Chebyshev.U ℂ n).eval (x : ℂ) * z ^ n) ((1 - 2 * x * z + z ^ 2)⁻¹) := by
-  sorry
+  have hs : Summable fun n : ℕ => (Chebyshev.U ℂ n).eval (x : ℂ) * z ^ n := by
+    refine Summable.of_norm_bounded (((summable_pow_mul_geometric_of_norm_lt_one 1
+      (show ‖‖z‖‖ < 1 by simpa using hz)).add
+      (summable_geometric_of_lt_one (norm_nonneg z) hz))) fun n => ?_
+    rw [norm_mul, norm_pow, chebyshevU_eval_ofReal, norm_real, Real.norm_eq_abs, pow_one]
+    have := abs_eval_U_real_le hx n
+    nlinarith [pow_nonneg (norm_nonneg z) n]
+  have h := hasSum_of_three_term (a := fun n : ℕ => (Chebyshev.U ℂ n).eval (x : ℂ))
+    (p := 2 * x) (q := -1) (fun n => by
+      have := Chebyshev.U_add_two ℂ (n : ℤ)
+      rw [show ((n + 2 : ℕ) : ℤ) = (n : ℤ) + 2 by push_cast; ring,
+        show ((n + 1 : ℕ) : ℤ) = (n : ℤ) + 1 by push_cast; ring, this]
+      simp; ring) hs (by
+        have := one_sub_two_mul_add_sq_ne_zero hx hz
+        convert this using 1; ring)
+  convert h using 2
+  simp
 
 @[dlmf 18.12.E11]
 theorem legendre_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -176,13 +276,65 @@ theorem monomial_gegenbauer_expansion {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) 
 theorem laguerre_connection (α β : ℂ) (n : ℕ) (x : ℂ) :
     laguerreExtended β n x = ∑ k ∈ Finset.range (n + 1),
       poch (β - α) (n - k) / (n - k).factorial * laguerreExtended α k x := by
-  sorry
+  unfold laguerreExtended
+  simp_rw [Finset.mul_sum]
+  rw [Finset.sum_comm' (t' := Finset.range (n + 1)) (s' := fun j => Finset.Ico j (n + 1))
+    (by intro k j; simp only [Finset.mem_range, Finset.mem_Ico]; omega)]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have hjn : j ≤ n := by simp at hj; omega
+  rw [Finset.sum_Ico_eq_sum_range, show n + 1 - j = (n - j) + 1 by omega]
+  have hv := poch_add_eq_sum (α + j + 1) (β - α) (n - j)
+  rw [show α + j + 1 + (β - α) = β + j + 1 by ring] at hv
+  rw [hv, Finset.sum_div, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun m hm => ?_
+  have hmN : m ≤ n - j := by simp at hm; omega
+  rw [show n - (j + m) = n - j - m by omega, show j + m - j = m by omega,
+    Nat.cast_choose ℂ hmN]
+  have h1 : ((n - j - m).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have h2 : (m.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have h3 : (j.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have h4 : ((n - j).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  field_simp
 
 @[dlmf 18.18.E19]
 theorem monomial_laguerre_expansion {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
     x ^ n = poch (α + 1) n * ∑ k ∈ Finset.range (n + 1),
       poch (-(n : ℂ)) k / poch (α + 1) k * laguerre α k x := by
-  sorry
+  have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by simp; linarith)
+  have hpk : ∀ k, poch (α + 1) k ≠ 0 := poch_ne_zero_of_not_neg_nat hc
+  simp_rw [laguerre_eq_sum hc, Finset.mul_sum]
+  rw [Finset.sum_comm' (t' := Finset.range (n + 1)) (s' := fun j => Finset.Ico j (n + 1))
+    (by intro k j; simp only [Finset.mem_range, Finset.mem_Ico]; omega)]
+  have hterm : ∀ j ∈ Finset.range (n + 1), ∑ k ∈ Finset.Ico j (n + 1),
+      poch (α + 1) n * (poch (-(n : ℂ)) k / poch (α + 1) k *
+        (poch (α + 1 + j) (k - j) / ((k - j).factorial * j.factorial : ℂ) * (-x) ^ j)) =
+      poch (α + 1) n * (-x) ^ j * poch (-(n : ℂ)) j / (poch (α + 1) j * j.factorial) *
+        0 ^ (n - j) := by
+    intro j hj
+    have hjn : j ≤ n := by simp at hj; omega
+    rw [Finset.sum_Ico_eq_sum_range, show n + 1 - j = (n - j) + 1 by omega]
+    have hs := sum_poch_neg_nat_div_factorial_mul_pow (n - j) 1
+    rw [sub_self] at hs
+    rw [← hs, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun m hm => ?_
+    rw [show j + m - j = m by omega, poch_add (α + 1) j m, poch_add (-(n : ℂ)) j m,
+      show -(n : ℂ) + j = -((n - j : ℕ) : ℂ) by push_cast [Nat.cast_sub hjn]; ring]
+    have h1 := hpk j
+    have h2 : poch (α + 1 + j) m ≠ 0 := by
+      have := hpk (j + m); rw [poch_add] at this; exact right_ne_zero_of_mul this
+    have h3 : (m.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h4 : (j.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    field_simp
+    ring
+  rw [Finset.sum_congr rfl hterm, Finset.sum_eq_single n]
+  · rw [Nat.sub_self, pow_zero, mul_one, poch_neg_coe_nat, Nat.descFactorial_self, neg_pow]
+    have h4 : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    field_simp [hpk n]
+    rw [← pow_mul, mul_comm n 2, pow_mul, neg_one_sq, one_pow, mul_one]
+  · intro j hj hjn
+    have : 0 < n - j := by simp at hj; omega
+    simp [zero_pow this.ne']
+  · simp
 
 @[dlmf 18.18.E20]
 theorem monomial_hermitePhys_expansion (n : ℕ) (x : ℂ) :
