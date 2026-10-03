@@ -147,10 +147,9 @@ lemma iteratedDeriv_cexp_neg_sq (n : ℕ) (x : ℂ) :
     · fun_prop
 
 /-- Generating function `∑ H_n(x) t^n / n! = exp(2xt - t²)` (AAR §6.1). -/
-@[dlmf 18.12.E15]
-theorem hermitePhys_generating_function (x t : ℂ) :
-    ∑' n : ℕ, (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! =
-      exp (2 * x * t - t ^ 2) := by
+theorem hasSum_hermitePhys_generating_function (x t : ℂ) :
+    HasSum (fun n : ℕ => (aeval x (hermitePhys n) : ℂ) * t ^ n / n !)
+      (exp (2 * x * t - t ^ 2)) := by
   have hf : Differentiable ℂ (fun y : ℂ => exp (-(y ^ 2))) := by fun_prop
   have hne : exp (-(x ^ 2)) ≠ 0 := exp_ne_zero _
   have hs := Complex.hasSum_taylorSeries_of_entire (E := ℂ) hf x (x - t)
@@ -178,7 +177,14 @@ theorem hermitePhys_generating_function (x t : ℂ) :
     rw [← div_eq_mul_inv, div_eq_iff hne, ← exp_add]
     congr 1
     ring
-  exact hs'.tsum_eq.trans hval
+  simpa only [hval] using hs'
+
+/-- Exponential generating function of the physicists' Hermite polynomials. -/
+@[dlmf 18.12.E15]
+theorem hermitePhys_generating_function (x t : ℂ) :
+    ∑' n : ℕ, (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! =
+      exp (2 * x * t - t ^ 2) :=
+  (hasSum_hermitePhys_generating_function x t).tsum_eq
 
 /-- Hypergeometric realization of generalized Laguerre polynomials, AAR §6.2,
 for `α + 1` not a nonpositive integer:
@@ -911,3 +917,39 @@ theorem jacobiP_complete {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {f : ℝ 
     (hcoeff : ∀ n : ℕ, ∫ x, f x * jacobiP α β n x ∂jacobiMeasure α β = 0) :
     ∀ᵐ x : ℝ, x ∈ Set.Ioo (-1 : ℝ) 1 → f x = 0 := by
   sorry
+
+/-- Reflection of a Pochhammer symbol: `(1 - y - m)_m = (-1)^m (y)_m`. -/
+lemma poch_one_sub_sub_self (y : ℂ) (m : ℕ) : poch (1 - y - m) m = (-1 : ℂ) ^ m * poch y m := by
+  induction m with
+  | zero => simp [poch_zero]
+  | succ m ih =>
+    rw [poch_succ_left, show 1 - y - ((m + 1 : ℕ) : ℂ) + 1 = 1 - y - m by push_cast; ring, ih,
+      poch_succ]
+    push_cast
+    ring
+
+/-- The binomial theorem for rising factorials (Chu–Vandermonde). -/
+lemma poch_add_binomial (u v : ℂ) (n : ℕ) :
+    ∑ j ∈ Finset.range (n + 1), (n.choose j : ℂ) * poch u j * poch v (n - j) = poch (u + v) n := by
+  have hchu := chu_vandermonde_sum n v (1 - u - n)
+  have href := poch_one_sub_sub_self (u + v) n
+  rw [show 1 - (u + v) - (n : ℂ) = 1 - u - n - v by ring] at href
+  rw [← hchu] at href
+  have hs : ((-1 : ℂ) ^ n) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
+  rw [← Finset.sum_range_reflect]
+  have key : poch (u + v) n = (-1) ^ n * ∑ k ∈ Finset.range (n + 1),
+      (-1) ^ k * (n.choose k : ℂ) * poch v k * poch (1 - u - n + k) (n - k) := by
+    rw [href]; linear_combination (-(poch (u + v) n)) * hs
+  rw [key, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  rw [show n + 1 - 1 - k = n - k by omega, Nat.choose_symm hkn, Nat.sub_sub_self hkn]
+  have hr := poch_one_sub_sub_self u (n - k)
+  rw [show 1 - u - ((n - k : ℕ) : ℂ) = 1 - u - n + k by push_cast [Nat.cast_sub hkn]; ring] at hr
+  rw [hr]
+  obtain ⟨m, rfl⟩ : ∃ m, n = k + m := ⟨n - k, by omega⟩
+  rw [Nat.add_sub_cancel_left, pow_add]
+  have h2 : ((-1 : ℂ) ^ k) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
+  have hm2 : ((-1 : ℂ) ^ m) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
+  linear_combination (-(((k + m).choose k : ℂ) * poch u m * poch v k)) * hm2 +
+    (-(((k + m).choose k : ℂ) * poch u m * poch v k * ((-1 : ℂ) ^ m) ^ 2)) * h2

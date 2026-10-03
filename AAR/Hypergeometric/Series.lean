@@ -142,6 +142,18 @@ theorem hasFPowerSeriesOnBall_ordinaryHypergeometric (a b c : ℂ) :
     funext (ordinaryHypergeometricCoefficient_eq a b c)
   simpa only [ordinaryHypergeometricSeries, heq] using h
 
+/-- Absolute summability of the Gauss series inside the unit disk. -/
+lemma summable_norm_gaussHGCoeff_mul_pow (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
+    Summable fun n : ℕ => ‖gaussHGCoeff a b c n * z ^ n‖ := by
+  have h := hasFPowerSeriesOnBall_ordinaryHypergeometric a b c
+  have hr : (‖z‖₊ : ENNReal) < (ofScalars ℂ (gaussHGCoeff a b c)).radius := by
+    refine lt_of_lt_of_le ?_ h.r_le
+    rw [← ENNReal.coe_one, ENNReal.coe_lt_coe, ← NNReal.coe_lt_coe, coe_nnnorm, NNReal.coe_one]
+    exact hz
+  refine ((ofScalars ℂ (gaussHGCoeff a b c)).summable_norm_mul_pow hr).congr
+    fun n => ?_
+  rw [ofScalars_norm, norm_mul, norm_pow, coe_nnnorm]
+
 /-- Helper lemma for binomial expansions of `(1-z)^{-β}`. -/
 lemma gaussHGCoeff_self_right (β : ℂ) (n : ℕ) :
     gaussHGCoeff β 1 1 n = poch β n / n.factorial := by

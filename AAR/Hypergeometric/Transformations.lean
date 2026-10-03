@@ -220,22 +220,5 @@ theorem pfaff_transformation_symm {a b c z : ℂ}
     rw [ordinaryHypergeometricSeries_symm]
   rw [hsymm a b, pfaff_transformation ha hca hz hzt, hsymm b (c - a)]
 
-/-- Kummer's quadratic transformation, AAR §3.1 (first formula). -/
-@[dlmf 15.8.E18]
-theorem kummer_quadratic {a b z : ℂ}
-    (hc : ∀ k : ℕ, a + b + 1 / 2 ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
-    ₂F₁ a b (a + b + 1 / 2) z =
-      ₂F₁ (2 * a) (2 * b) (a + b + 1 / 2) ((1 - (1 - z) ^ (1 / 2 : ℂ)) / 2) := by
-  sorry
-
-/-- Gauss's quadratic transformation, AAR (3.1.3), on the component containing zero. -/
-@[dlmf 15.8.E18]
-theorem gauss_quadratic {a b z : ℂ}
-    (hc : ∀ k : ℕ, a + b + 1 / 2 ≠ -(k : ℂ))
-    (hz : ‖z‖ < 1) (hzt : ‖4 * z * (1 - z)‖ < 1) (hre : z.re < 1 / 2) :
-    ₂F₁ (2 * a) (2 * b) (a + b + 1 / 2) z =
-      ₂F₁ a b (a + b + 1 / 2) (4 * z * (1 - z)) := by
-  sorry
-
 -- The same family is the four representations of Kummer's first solution.
 attribute [dlmf 15.10.E11] euler_transformation pfaff_transformation pfaff_transformation_symm

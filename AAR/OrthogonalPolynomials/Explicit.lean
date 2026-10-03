@@ -7,6 +7,7 @@ module
 
 public import AAR.OrthogonalPolynomials.Topics
 public import AAR.Confluent.Relations
+public import AAR.Hypergeometric.FurtherTransformations
 public import Mathlib.Tactic.CrossRefAttribute
 
 /-!
@@ -89,13 +90,79 @@ theorem jacobi_finite_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
     show α + k + 1 = α + 1 + k by ring]
   field_simp [hck, hn, hk0, hnk]
 
+/-- `(-n)_k (n-k)! = (-1)^k n!` for `k ≤ n`. -/
+lemma poch_neg_nat_mul_factorial {n k : ℕ} (hk : k ≤ n) :
+    poch (-(n : ℂ)) k * ((n - k) ! : ℂ) = (-1) ^ k * (n ! : ℂ) := by
+  rw [poch, ascPochhammer_eval_neg_eq_descPochhammer, descPochhammer_eval_eq_descFactorial]
+  have h := Nat.factorial_mul_descFactorial hk
+  have h' : ((n - k) ! : ℂ) * (n.descFactorial k : ℂ) = n ! := by exact_mod_cast h
+  linear_combination (-1 : ℂ) ^ k * h'
+
+/-- 18.5.8 away from `x = -1`, via the terminating Pfaff transformation. -/
+lemma jacobi_binomial_sum_aux {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : ℂ} (hx : x ≠ -1) :
+    jacobiP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
+      (poch (α + n - k + 1) k / k.factorial) *
+      (poch (β + k + 1) (n - k) / (n - k).factorial) *
+      (x - 1) ^ (n - k) * (x + 1) ^ k := by
+  have hα' : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
+    simp only [Complex.add_re, Complex.one_re]
+    linarith)
+  have hw : (1 - x) / 2 ≠ 1 := fun h => hx (by linear_combination -2 * h)
+  have hx1 : x + 1 ≠ 0 := fun h => hx (by linear_combination h)
+  unfold jacobiP
+  rw [AAR.Hypergeometric.terminating_pfaff n hα' hw, ordinaryHypergeometric_eq_sum_neg_nat,
+    Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
+  rw [← Finset.sum_range_reflect]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have hjn : j ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+  rw [show n + 1 - 1 - j = n - j by omega]
+  obtain ⟨k, rfl⟩ : ∃ k, n = j + k := ⟨n - j, by omega⟩
+  rw [Nat.add_sub_cancel_left]
+  have h1 : 1 - (1 - x) / 2 = (x + 1) / 2 := by ring
+  have h2 : (1 - x) / 2 / ((1 - x) / 2 - 1) = (x - 1) / (x + 1) := by
+    have hd : (1 - x) / 2 - 1 ≠ 0 := fun h => hx1 (by linear_combination -2 * h)
+    rw [div_eq_div_iff hd hx1]; ring
+  have hpa := poch_add (α + 1) k j
+  rw [show k + j = j + k by ring] at hpa
+  have hpn := poch_neg_nat_mul_factorial (n := j + k) (k := k) (by omega)
+  rw [show j + k - k = j by omega] at hpn
+  have hpb := AAR.Hypergeometric.poch_one_sub_sub (β + j + 1) k
+  rw [show 1 - (β + j + 1) - (k : ℂ) = α + 1 - (((j + k : ℕ) : ℂ) + α + β + 1) by
+    push_cast; ring] at hpb
+  have hαk := poch_ne_zero_of_not_neg_nat hα' k
+  have hfj : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
+  have hfk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  have hfn : ((j + k) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (j + k).factorial_ne_zero
+  rw [h1, h2, gaussHGCoeff, hpb, hpa, show α + ((j + k : ℕ) : ℂ) - j + 1 = α + 1 + k by
+    push_cast; ring]
+  rw [div_pow, div_pow, show (j + k) = k + j by ring, pow_add (x + 1)]
+  have hpn' : poch (-((k + j : ℕ) : ℂ)) k = (-1) ^ k * ((k + j) ! : ℂ) / j ! := by
+    rw [eq_div_iff hfj, show k + j = j + k by ring, hpn]
+  have hx1k : (x + 1) ^ k ≠ 0 := pow_ne_zero _ hx1
+  have hsq : ((-1 : ℂ) ^ k) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
+  have hfn' : ((k + j) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (k + j).factorial_ne_zero
+  rw [hpn']
+  field_simp
+  rw [hsq, mul_one]
+
 @[dlmf 18.5.E8]
 theorem jacobi_binomial_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
     jacobiP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
       (poch (α + n - k + 1) k / k.factorial) *
       (poch (β + k + 1) (n - k) / (n - k).factorial) *
       (x - 1) ^ (n - k) * (x + 1) ^ k := by
-  sorry
+  have hL : Continuous fun x => jacobiP α β n x := by
+    rw [show (fun x => jacobiP α β n x) = fun x => ∑ k ∈ Finset.range (n + 1),
+      poch (n + α + β + 1) k * poch (α + k + 1) (n - k) /
+        ((k.factorial : ℂ) * (n - k).factorial) * ((x - 1) / 2) ^ k from
+      funext (jacobi_finite_sum hα n)]
+    fun_prop
+  have hR : Continuous fun x : ℂ => ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
+      (poch (α + n - k + 1) k / k.factorial) *
+      (poch (β + k + 1) (n - k) / (n - k).factorial) *
+      (x - 1) ^ (n - k) * (x + 1) ^ k := by fun_prop
+  exact congrFun (Continuous.ext_on (dense_compl_singleton (-1 : ℂ)) hL hR
+    fun y hy => jacobi_binomial_sum_aux hα n hy) x
 
 @[dlmf 18.5.E10]
 theorem gegenbauer_finite_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
@@ -110,14 +177,6 @@ theorem gegenbauer_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : 
       poch lam k * poch lam (n - k) / ((k.factorial : ℂ) * (n - k).factorial) *
         cos (((n : ℂ) - 2 * k) * θ) := by
   sorry
-
-/-- `(-n)_k (n-k)! = (-1)^k n!` for `k ≤ n`. -/
-lemma poch_neg_nat_mul_factorial {n k : ℕ} (hk : k ≤ n) :
-    poch (-(n : ℂ)) k * ((n - k) ! : ℂ) = (-1) ^ k * (n ! : ℂ) := by
-  rw [poch, ascPochhammer_eval_neg_eq_descPochhammer, descPochhammer_eval_eq_descFactorial]
-  have h := Nat.factorial_mul_descFactorial hk
-  have h' : ((n - k) ! : ℂ) * (n.descFactorial k : ℂ) = n ! := by exact_mod_cast h
-  linear_combination (-1 : ℂ) ^ k * h'
 
 /-- The finite sum for `H_n` at even degree `n = 2m`, via the confluent form 13.6.16. -/
 lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :

@@ -435,11 +435,3 @@ theorem ordinaryHypergeometric_summable_of_mem_sphere {a b c z : ℂ}
   · push Not at ha
     obtain ⟨k, hk⟩ := ha
     exact hfinite k (Or.inl hk)
-
-/-- AAR Theorem 2.1.3: Gauss's asymptotic as `x → 1⁻`. -/
-@[dlmf 15.4.E23]
-theorem tendsto_ordinaryHypergeometric_nhdsWithin_one {a b c : ℂ}
-    (hc : ∀ k : ℕ, c ≠ -k) (h : (c - a - b).re < 0) :
-    Tendsto (fun x : ℝ => (1 - x : ℂ) ^ (a + b - c) * ₂F₁ a b c (x : ℂ))
-      (𝓝[<] (1 : ℝ)) (𝓝 (Gamma (a + b - c) * Gamma c / (Gamma a * Gamma b))) := by
-  sorry

@@ -36,6 +36,11 @@ def confluentMPosZeros (a b : ℝ) : Set ℝ :=
 def confluentUPosZeros (a b : ℝ) : Set ℝ :=
   {x | 0 < x ∧ confluentU a b x = 0}
 
+/-- The boundary case omitted by the positive-zero formulas: `M(0,b,x) = 1`. -/
+theorem confluentM_posZeros_zero (b : ℝ) : (confluentMPosZeros 0 b).encard = 0 := by
+  simp [confluentMPosZeros, confluentM_of_zero_param]
+
+/- The old 13.9.3–4 statements were false at `a = 0`; 13.9.5 omitted `a,b < 0`. -/
 @[dlmf 13.9.E1]
 theorem confluentM_posZeros_neg_a {a b : ℝ} (ha : a < 0) (hb : 0 < b) :
     (confluentMPosZeros a b).encard = Int.toNat ⌈-a⌉ := by
@@ -47,19 +52,19 @@ theorem confluentM_posZeros_nonneg {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
   sorry
 
 @[dlmf 13.9.E3]
-theorem confluentM_posZeros_one {a b : ℝ} (ha : 0 ≤ a) (hb0 : -1 < b) (hb1 : b < 0) :
+theorem confluentM_posZeros_one {a b : ℝ} (ha : 0 < a) (hb0 : -1 < b) (hb1 : b < 0) :
     (confluentMPosZeros a b).encard = 1 := by
   sorry
 
 @[dlmf 13.9.E4]
-theorem confluentM_posZeros_b_le_neg_one {a b : ℝ} (ha : 0 ≤ a) (hb : b ≤ -1)
+theorem confluentM_posZeros_b_le_neg_one {a b : ℝ} (ha : 0 < a) (hb : b ≤ -1)
     (hbi : ∀ k : ℕ, b ≠ -(k : ℝ)) :
     (confluentMPosZeros a b).encard =
       Int.toNat (⌊-(b / 2)⌋ - ⌊-((b + 1) / 2)⌋) := by
   sorry
 
 @[dlmf 13.9.E5]
-theorem confluentM_posZeros_ceil {a b : ℝ} (h : ⌈-a⌉ ≥ ⌈-b⌉) (hbi : ∀ k : ℕ, b ≠ -(k : ℝ)) :
+theorem confluentM_posZeros_ceil {a b : ℝ} (ha : a < 0) (hb : b < 0) (h : ⌈-a⌉ ≥ ⌈-b⌉) (hbi : ∀ k : ℕ, b ≠ -(k : ℝ)) :
     (confluentMPosZeros a b).encard = Int.toNat (⌈-a⌉ - ⌈-b⌉) := by
   sorry
 

@@ -7,14 +7,19 @@ module
 
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
+public import AAR.Confluent.Recurrence
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Hypergeometric.EulerIntegral
+public import AAR.Hypergeometric.ArgumentContinuation
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 /-!
 # Integrals (DLMF §§13.10, 13.23)
+
+Gauss functions in the transforms use cut-plane continuation. The former series-only
+statements were false when their transformed argument left the unit disk.
 
 Indefinite integrals are stated as derivative identities. Laplace, Mellin, and
 Bessel transforms use real half-lines. Hankel-loop formulas 13.10.8–13.10.9 and
@@ -69,14 +74,14 @@ so `z` is restricted to the slit plane. -/
 @[dlmf 13.10.E2]
 theorem deriv_confluentU_shift {a b z : ℂ} (ha : a ≠ 1) (hz : z ∈ slitPlane) :
     deriv (confluentU (a - 1) (b - 1)) z = -(a - 1) * confluentU a b z := by
-  sorry
+  rw [deriv_confluentU (a - 1) (b - 1) hz, sub_add_cancel, sub_add_cancel]
 
 @[dlmf 13.10.E3]
 theorem laplace_regularizedHGFun {a b c k z : ℂ}
     (hb : 0 < b.re) (hz : z.re > k.re) (hz0 : 0 < z.re) :
     ∫ t : ℝ in Set.Ioi 0,
         exp (-z * t) * (t : ℂ) ^ (b - 1) * regularizedHGFun {a} {c} (k * t) =
-      Gamma b * z ^ (-b) * regularizedGaussHGFun a b c (k / z) := by
+      Gamma b * z ^ (-b) * AAR.Hypergeometric.gaussHGCut a b c (k / z) := by
   sorry
 
 @[dlmf 13.10.E4]
@@ -111,7 +116,7 @@ theorem laplace_confluentU {a b c z : ℂ}
     ∫ t : ℝ in Set.Ioi 0,
         exp (-z * t) * (t : ℂ) ^ (b - 1) * confluentU a c t =
       Gamma b * Gamma (b - c + 1) * z ^ (-b) *
-        regularizedGaussHGFun a b (a + b - c + 1) (1 - z⁻¹) := by
+        AAR.Hypergeometric.gaussHGCut a b (a + b - c + 1) (1 - z⁻¹) := by
   sorry
 
 @[dlmf 13.10.E10]
@@ -213,7 +218,7 @@ theorem laplace_whittakerW {κ μ ν z : ℂ}
     (h : |μ.re| < ν.re + 1 / 2) (hz : -1 / 2 < z.re) :
     ∫ t : ℝ in Set.Ioi 0, exp (-z * t) * (t : ℂ) ^ (ν - 1) * whittakerW κ μ t =
       Gamma (1 / 2 + μ + ν) * Gamma (1 / 2 - μ + ν) *
-        regularizedGaussHGFun (1 / 2 - μ + ν) (1 / 2 + μ + ν) (ν - κ + 1) (1 / 2 - z) := by
+        AAR.Hypergeometric.gaussHGCut (1 / 2 - μ + ν) (1 / 2 + μ + ν) (ν - κ + 1) (1 / 2 - z) := by
   sorry
 
 @[dlmf 13.23.E5]

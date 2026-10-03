@@ -7,6 +7,8 @@ module
 
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.Bessel.Modified
+public import AAR.Bessel.Generating
+public import AAR.Bessel.Sonine
 public import AAR.OrthogonalPolynomials.Classical
 
 /-!
@@ -114,9 +116,11 @@ theorem besselJ_eq_poisson_integral {ν : ℂ} {x : ℝ}
 @[dlmf 10.12.E1]
 theorem besselJ_generating_function (z t : ℂ) (ht : t ≠ 0) :
     exp (z / 2 * (t - t⁻¹)) = ∑' n : ℤ, besselJ n z * t ^ n := by
-  sorry
+  exact (hasSum_besselJ_generating_function z t ht).tsum_eq.symm
 
-/-- Gegenbauer's addition theorem, AAR (4.10.5), for positive radii and nonzero distance. -/
+/-- Gegenbauer's addition theorem, AAR (4.10.5), for positive radii and nonzero distance.
+DLMF's radius-ordering restriction is unnecessary for `J`. -/
+@[dlmf 10.23.E8]
 theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
     (hr : 0 < r) (hrho : 0 < rho)
     (hR : 0 < r ^ 2 + rho ^ 2 - 2 * r * rho * Real.cos phi) :
@@ -125,13 +129,6 @@ theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
       (2 ^ ν * Gamma ν / (r * rho : ℂ) ^ ν) *
         ∑' n : ℕ, (ν + n) * besselJ (ν + n) r * besselJ (ν + n) rho *
           gegenbauer ν n (Real.cos phi) := by
-  sorry
-
-/-- Sonine's integral `∫_0^∞ J_ν(at) e^{-p² t²} t^{ν+1} dt` (AAR §4.11). -/
-theorem sonine_integral {ν : ℂ} {a p : ℝ} (hν : -1 < ν.re) (ha : 0 < a) (hp : 0 < p) :
-    ∫ t : ℝ in Set.Ioi (0 : ℝ),
-        besselJ ν (a * t) * exp (-(p : ℂ) ^ 2 * (t : ℂ) ^ 2) * (t : ℂ) ^ (ν + 1) =
-      (a / (2 * p ^ 2)) ^ ν * exp (-(a : ℂ) ^ 2 / (4 * p ^ 2)) / (2 * p ^ 2) := by
   sorry
 
 /-- For real `ν > -1` and `x > 0`, `J_ν(x)` has infinitely many positive zeros (AAR §4.14). -/

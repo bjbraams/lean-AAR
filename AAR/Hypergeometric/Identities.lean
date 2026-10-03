@@ -8,6 +8,7 @@ module
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.Hypergeometric.EulerIntegral
 public import AAR.Hypergeometric.Transformations
+public import AAR.Hypergeometric.FurtherTransformations
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 
@@ -34,7 +35,118 @@ theorem kummer_theorem {a b : ℂ}
     ₂F₁ a b (1 + a - b) (-1 : ℂ) =
       Gamma (1 + a - b) * Gamma (1 + a / 2) /
         (Gamma (1 + a) * Gamma (1 + a / 2 - b)) := by
-  sorry
+  set C := 1 + a - b with hCdef
+  have hC' : ∀ k : ℕ, a - b + 1 ≠ -(k : ℂ) := by
+    rw [show a - b + 1 = C by rw [hCdef]; ring]; exact h
+  have hre : 0 < (C - a - b).re := by
+    rw [show C - a - b = 1 - 2 * b by rw [hCdef]; ring]; simp; linarith
+  have hre' : 0 < (C - a / 2 - (a / 2 - b + 1 / 2)).re := by
+    rw [show C - a / 2 - (a / 2 - b + 1 / 2) = 1 / 2 by rw [hCdef]; ring]; norm_num
+  -- The series as a power series with coefficients multiplied by `(-1)^n`.
+  have htsum : ∀ x : ℂ, ₂F₁ a b C x = ∑' n, gaussHGCoeff a b C n * x ^ n := by
+    intro x
+    rw [ordinaryHypergeometric_eq_tsum]
+    simp only [smul_eq_mul]
+    congr 1
+    funext n
+    simp [gaussHGCoeff, poch, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
+  have hsum : Summable fun n => gaussHGCoeff a b C n * (-1 : ℂ) ^ n :=
+    ordinaryHypergeometric_summable_of_mem_sphere (z := -1) (by simp) hre
+  have habel := Complex.tendsto_tsum_powerSeries_nhdsWithin_lt
+    (f := fun n => gaussHGCoeff a b C n * (-1 : ℂ) ^ n) hsum.hasSum.tendsto_sum_nat
+  rw [Filter.tendsto_map'_iff] at habel
+  have hneg : Filter.Tendsto (fun x : ℝ => -x) (nhdsWithin (-1) (Set.Ioi (-1)))
+      (nhdsWithin 1 (Set.Iio 1)) := by
+    apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+    · have := (continuous_neg.tendsto (-1 : ℝ)).mono_left
+        (nhdsWithin_le_nhds (s := Set.Ioi (-1 : ℝ)))
+      simpa using this
+    · filter_upwards [self_mem_nhdsWithin] with x hx
+      simp only [Set.mem_Iio, Set.mem_Ioi] at hx ⊢; linarith
+  have hL : Filter.Tendsto (fun x : ℝ => ₂F₁ a b C (x : ℂ)) (nhdsWithin (-1) (Set.Ioi (-1)))
+      (nhds (₂F₁ a b C (-1))) := by
+    rw [htsum (-1)]
+    refine (habel.comp hneg).congr fun x => ?_
+    simp only [Function.comp_apply]
+    rw [htsum]
+    refine tsum_congr fun n => ?_
+    push_cast
+    rw [neg_pow]
+    ring_nf
+    rw [mul_comm n 2, pow_mul, neg_one_sq, one_pow, mul_one]
+  -- The right-hand side of 15.8.16 along `x → -1⁺`.
+  have hv : Filter.Tendsto (fun x : ℝ => -4 * x / (1 - x) ^ 2) (nhdsWithin (-1) (Set.Ioi (-1)))
+      (nhdsWithin 1 (Set.Iio 1)) := by
+    apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+    · have hcont : ContinuousAt (fun x : ℝ => -4 * x / (1 - x) ^ 2) (-1) :=
+        ((continuousAt_const.mul continuousAt_id).div
+          ((continuousAt_const.sub continuousAt_id).pow 2) (by norm_num))
+      have := hcont.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Ioi (-1 : ℝ)))
+      norm_num at this ⊢
+      exact this
+    · filter_upwards [Ioo_mem_nhdsGT (show (-1 : ℝ) < 0 by norm_num)] with x hx
+      simp only [Set.mem_Iio]
+      have h1x : 0 < (1 - x) ^ 2 := by nlinarith [hx.2]
+      rw [div_lt_one h1x]
+      nlinarith [hx.1, hx.2]
+  have hR1 := (AAR.Hypergeometric.tendsto_ordinaryHypergeometric_left_one
+    (a := a / 2) (b := a / 2 - b + 1 / 2) (c := C) hre').comp hv
+  have hR2 : Filter.Tendsto (fun x : ℝ => (1 - (x : ℂ)) ^ (-a)) (nhdsWithin (-1) (Set.Ioi (-1)))
+      (nhds ((2 : ℂ) ^ (-a))) := by
+    have h2 : (2 : ℂ) ∈ slitPlane := by simp
+    have h1 := ((show Continuous (fun x : ℝ => (1 : ℂ) - x) by fun_prop).tendsto (-1 : ℝ)).mono_left
+      (nhdsWithin_le_nhds (s := Set.Ioi (-1 : ℝ)))
+    rw [show (1 : ℂ) - ((-1 : ℝ) : ℂ) = 2 by push_cast; ring] at h1
+    exact (continuousAt_cpow_const (b := -a) h2).tendsto.comp h1
+  have heq : ∀ᶠ x : ℝ in nhdsWithin (-1) (Set.Ioi (-1)), ₂F₁ a b C (x : ℂ) =
+      (1 - (x : ℂ)) ^ (-a) * ₂F₁ (a / 2) (a / 2 - b + 1 / 2) C ((-4 * x / (1 - x) ^ 2 : ℝ) : ℂ) := by
+    filter_upwards [Ioo_mem_nhdsGT (show (-1 : ℝ) < 0 by norm_num)] with x hx
+    have hxn : ‖(x : ℂ)‖ < 1 := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_lt]; constructor <;> linarith [hx.1, hx.2]
+    have hvn : ‖-4 * (x : ℂ) / (1 - x) ^ 2‖ < 1 := by
+      rw [show -4 * (x : ℂ) / (1 - x) ^ 2 = ((-4 * x / (1 - x) ^ 2 : ℝ) : ℂ) by push_cast; ring,
+        Complex.norm_real, Real.norm_eq_abs]
+      have h1x : 0 < (1 - x) ^ 2 := by nlinarith [hx.2]
+      rw [abs_of_pos (div_pos (by nlinarith [hx.2]) h1x), div_lt_one h1x]
+      nlinarith [hx.1, hx.2]
+    have hq := AAR.Hypergeometric.quadratic_well_poised_minus (a := a) (b := b) hC' hxn hvn
+    rw [show a - b + 1 = C by rw [hCdef]; ring] at hq
+    rw [hq]
+    push_cast
+    ring_nf
+  have hlim := tendsto_nhds_unique hL ((hR2.mul hR1).congr' (by
+    filter_upwards [heq] with x hx
+    rw [hx]; rfl))
+  rw [hlim, gauss_summation (a := a / 2) (b := a / 2 - b + 1 / 2) h hre',
+    show C - a / 2 - (a / 2 - b + 1 / 2) = 1 / 2 by rw [hCdef]; ring,
+    show C - a / 2 = 1 + a / 2 - b by rw [hCdef]; ring,
+    show C - (a / 2 - b + 1 / 2) = a / 2 + 1 / 2 by rw [hCdef]; ring, Gamma_one_half_eq]
+  -- Duplication formula at `s = (a+1)/2`.
+  have hdup := Complex.Gamma_mul_Gamma_add_half (a / 2 + 1 / 2)
+  rw [show a / 2 + 1 / 2 + 1 / 2 = 1 + a / 2 by ring, show 1 - 2 * (a / 2 + 1 / 2) = -a by ring,
+    show 2 * (a / 2 + 1 / 2) = 1 + a by ring] at hdup
+  have hsq : ((Real.sqrt Real.pi : ℝ) : ℂ) = (Real.pi : ℂ) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]; push_cast; ring_nf
+  rw [hsq] at hdup
+  have hG2 : Gamma (1 + a / 2) ≠ 0 := Complex.Gamma_ne_zero ha
+  have h2a : (2 : ℂ) ^ (-a) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hπ : (Real.pi : ℂ) ^ (1 / 2 : ℂ) ≠ 0 :=
+    cpow_ne_zero_iff.mpr (Or.inl (ofReal_ne_zero.mpr Real.pi_ne_zero))
+  by_cases hG1 : Gamma (a / 2 + 1 / 2) = 0
+  · have : Gamma (1 + a) = 0 := by
+      rw [hG1, zero_mul] at hdup
+      rcases mul_eq_zero.mp (mul_eq_zero.mp hdup.symm |>.resolve_right hπ) with h' | h'
+      · exact h'
+      · exact absurd h' h2a
+    rw [hG1, this]
+    simp
+  · have hG3 : Gamma (1 + a) ≠ 0 := by
+      intro h0; rw [h0, zero_mul, zero_mul] at hdup
+      exact mul_ne_zero hG1 hG2 hdup
+    by_cases hG4 : Gamma (1 + a / 2 - b) = 0
+    · rw [hG4]; simp
+    · rw [← mul_div_assoc, div_eq_div_iff (mul_ne_zero hG4 hG1) (mul_ne_zero hG3 hG4)]
+      linear_combination (-(Gamma C * Gamma (1 + a / 2 - b))) * hdup
 
 /-- Dixon's well-poised `₃F₂(1)` evaluation (AAR Theorem 3.4.1). -/
 theorem dixon_sum {a b c : ℂ}

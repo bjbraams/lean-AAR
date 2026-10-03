@@ -9,7 +9,9 @@ public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.OrthogonalPolynomials.Series
 public import AAR.Bessel.Basic
+public import AAR.Gamma.IntegralRepresentations
 /-!
 # Classical orthogonality, Rodrigues formulas, and integral identities
 
@@ -31,6 +33,97 @@ noncomputable section
 set_option autoImplicit false
 
 namespace AAR.OrthogonalPolynomials
+
+/-- `x^k e^{-x²}` is integrable. -/
+lemma integrable_pow_mul_exp_neg_sq (k : ℕ) :
+    Integrable fun x : ℝ => x ^ k * Real.exp (-(x ^ 2)) := by
+  have h := integrable_rpow_mul_exp_neg_mul_sq (b := 1) one_pos
+    (s := (k : ℝ)) (by have := (Nat.cast_nonneg k : (0 : ℝ) ≤ k); linarith)
+  refine h.congr (Eventually.of_forall fun x => ?_)
+  simp [Real.rpow_natCast]
+
+/-- A polynomial times the Gaussian is integrable. -/
+lemma integrable_eval_mul_exp_neg_sq (q : ℝ[X]) :
+    Integrable fun x : ℝ => q.eval x * Real.exp (-(x ^ 2)) := by
+  have hq : ∀ x : ℝ, q.eval x * Real.exp (-(x ^ 2)) = ∑ i ∈ Finset.range (q.natDegree + 1),
+      q.coeff i * (x ^ i * Real.exp (-(x ^ 2))) := fun x => by
+    rw [eval_eq_sum_range, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun i _ => by ring
+  simp_rw [hq]
+  exact integrable_finset_sum _ fun i _ => (integrable_pow_mul_exp_neg_sq i).const_mul _
+
+/-- Physicists' Hermite polynomials as real polynomials. -/
+abbrev hermitePhysR (n : ℕ) : ℝ[X] := (hermitePhys n).map (Int.castRingHom ℝ)
+
+lemma aeval_hermitePhys_eq_eval (n : ℕ) (x : ℝ) :
+    (aeval x (hermitePhys n) : ℝ) = (hermitePhysR n).eval x := by
+  rw [aeval_def, hermitePhysR, eval_map]
+  congr 1
+
+lemma hermitePhysR_succ (n : ℕ) :
+    hermitePhysR (n + 1) = 2 * X * hermitePhysR n - derivative (hermitePhysR n) := by
+  simp [hermitePhysR, Polynomial.map_sub, Polynomial.map_mul, derivative_map]
+
+lemma hasDerivAt_hermite_gauss (n : ℕ) (x : ℝ) :
+    HasDerivAt (fun y => (hermitePhysR n).eval y * Real.exp (-(y ^ 2)))
+      (-((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2)))) x := by
+  have hg : HasDerivAt (fun y : ℝ => Real.exp (-(y ^ 2))) (Real.exp (-(x ^ 2)) * (-(2 * x))) x := by
+    have := ((hasDerivAt_pow 2 x).neg).exp
+    simpa using this
+  have h := ((hermitePhysR n).hasDerivAt x).mul hg
+  convert h using 1
+  rw [hermitePhysR_succ, eval_sub, eval_mul, eval_mul, eval_X]
+  simp
+  ring
+
+/-- Repeated integration by parts against the Hermite–Gaussian. -/
+lemma integral_eval_mul_hermite_gauss (n : ℕ) :
+    ∀ q : ℝ[X], ∫ x : ℝ, q.eval x * ((hermitePhysR n).eval x * Real.exp (-(x ^ 2))) =
+      ∫ x : ℝ, (derivative^[n] q).eval x * Real.exp (-(x ^ 2)) := by
+  induction n with
+  | zero => intro q; simp [hermitePhysR]
+  | succ n ih =>
+    intro q
+    have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable
+      (u := fun x => q.eval x) (u' := fun x => (derivative q).eval x)
+      (v := fun x => (hermitePhysR n).eval x * Real.exp (-(x ^ 2)))
+      (v' := fun x => -((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))))
+      (fun x _ => q.hasDerivAt x) (fun x _ => hasDerivAt_hermite_gauss n x)
+      (by
+        have := (integrable_eval_mul_exp_neg_sq (q * hermitePhysR (n + 1))).neg
+        refine this.congr (Eventually.of_forall fun x => ?_)
+        simp only [Pi.mul_apply, eval_mul, Pi.neg_apply]; ring)
+      (by
+        have := integrable_eval_mul_exp_neg_sq (derivative q * hermitePhysR n)
+        refine this.congr (Eventually.of_forall fun x => ?_)
+        simp only [Pi.mul_apply, eval_mul]; ring)
+      (by
+        have := integrable_eval_mul_exp_neg_sq (q * hermitePhysR n)
+        refine this.congr (Eventually.of_forall fun x => ?_)
+        simp only [Pi.mul_apply, eval_mul]; ring)
+    have h1 : ∫ x : ℝ, q.eval x * ((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) =
+        -∫ x : ℝ, q.eval x * -((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) := by
+      rw [← integral_neg]; congr 1; funext x; ring
+    rw [h1, hibp, neg_neg, ih, Function.iterate_succ_apply]
+
+lemma hermitePhysR_natDegree_coeff (n : ℕ) :
+    (hermitePhysR n).natDegree ≤ n ∧ (hermitePhysR n).coeff n = 2 ^ n := by
+  induction n with
+  | zero => simp [hermitePhysR]
+  | succ n ih =>
+    obtain ⟨hd, hc⟩ := ih
+    rw [hermitePhysR_succ]
+    constructor
+    · refine (natDegree_sub_le _ _).trans (max_le ?_ ?_)
+      · refine (natDegree_mul_le).trans ?_
+        have : (2 * X : ℝ[X]).natDegree ≤ 1 := by
+          rw [show (2 * X : ℝ[X]) = C 2 * X by rw [← map_ofNat C 2]]
+          exact (natDegree_C_mul_le 2 X).trans natDegree_X_le
+        omega
+      · exact (natDegree_derivative_le _).trans (by omega)
+    · rw [coeff_sub, show (2 * X : ℝ[X]) = C 2 * X by rw [← map_ofNat C 2], mul_assoc, coeff_C_mul, coeff_X_mul,
+        hc, coeff_derivative, coeff_eq_zero_of_natDegree_lt (by omega)]
+      ring
 
 @[dlmf 18.3.T1]
 theorem jacobi_norm {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
@@ -82,13 +175,67 @@ theorem laguerre_norm {α : ℝ} (hα : -1 < α) (n : ℕ) :
 theorem hermitePhys_orthogonality (m n : ℕ) :
     ∫ x : ℝ, (aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) * Real.exp (-(x ^ 2)) =
       if m = n then Real.sqrt Real.pi * 2 ^ n * n.factorial else 0 := by
-  sorry
+  have key : ∀ a b : ℕ, ∫ x : ℝ, (aeval x (hermitePhys a) : ℝ) * aeval x (hermitePhys b) *
+      Real.exp (-(x ^ 2)) = ∫ x : ℝ, (derivative^[b] (hermitePhysR a)).eval x *
+        Real.exp (-(x ^ 2)) := fun a b => by
+    rw [← integral_eval_mul_hermite_gauss b]
+    congr 1; funext x
+    rw [aeval_hermitePhys_eq_eval, aeval_hermitePhys_eq_eval]; ring
+  have hzero : ∀ a b : ℕ, a < b → ∫ x : ℝ, (aeval x (hermitePhys a) : ℝ) * aeval x (hermitePhys b) *
+      Real.exp (-(x ^ 2)) = 0 := fun a b hab => by
+    rw [key, iterate_derivative_eq_zero ((hermitePhysR_natDegree_coeff a).1.trans_lt hab)]
+    simp
+  split_ifs with hmn
+  · subst hmn
+    rw [key]
+    obtain ⟨hd, hc⟩ := hermitePhysR_natDegree_coeff m
+    have hconst : derivative^[m] (hermitePhysR m) = C ((m ! : ℝ) * 2 ^ m) := by
+      rw [eq_C_of_natDegree_le_zero ((natDegree_iterate_derivative _ _).trans (by omega)),
+        coeff_iterate_derivative, zero_add, Nat.descFactorial_self, hc, nsmul_eq_mul]
+    simp only [hconst, eval_C]
+    rw [integral_const_mul, show (fun x : ℝ => Real.exp (-(x ^ 2))) =
+      fun x => Real.exp (-1 * x ^ 2) by funext x; ring_nf, integral_gaussian, div_one]
+    ring
+  · rcases Nat.lt_or_gt_of_ne hmn with h | h
+    · exact hzero m n h
+    · rw [← hzero n m h]
+      congr 1; funext x; ring
 
 @[dlmf 18.3.T1]
 theorem hermite_orthogonality (m n : ℕ) :
     ∫ x : ℝ, (aeval x (hermite m) : ℝ) * aeval x (hermite n) * Real.exp (-(x ^ 2) / 2) =
       if m = n then Real.sqrt (2 * Real.pi) * n.factorial else 0 := by
-  sorry
+  have hs2 : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr two_pos
+  have hsq : Real.sqrt 2 * Real.sqrt 2 = 2 := Real.mul_self_sqrt (by norm_num)
+  set g : ℝ → ℝ := fun y => (aeval y (hermite m) : ℝ) * aeval y (hermite n) *
+    Real.exp (-(y ^ 2) / 2) with hg
+  have hsub := MeasureTheory.Measure.integral_comp_mul_left g (Real.sqrt 2)
+  have hgx : ∀ x : ℝ, g (Real.sqrt 2 * x) = ((2 : ℝ) ^ (m / 2 : ℝ) * 2 ^ (n / 2 : ℝ))⁻¹ *
+      ((aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) * Real.exp (-(x ^ 2))) := by
+    intro x
+    rw [aeval_hermitePhys_eq_hermite, aeval_hermitePhys_eq_hermite]
+    have h2m : (2 : ℝ) ^ (m / 2 : ℝ) ≠ 0 := by positivity
+    have h2n : (2 : ℝ) ^ (n / 2 : ℝ) ≠ 0 := by positivity
+    simp only [hg]
+    rw [show -(Real.sqrt 2 * x) ^ 2 / 2 = -(x ^ 2) by rw [mul_pow, Real.sq_sqrt (by norm_num)]; ring]
+    field_simp
+  simp_rw [hgx] at hsub
+  rw [integral_const_mul, hermitePhys_orthogonality m n, abs_of_pos (inv_pos.mpr hs2), smul_eq_mul] at hsub
+  have hg_eq : ∫ y, g y = ∫ x : ℝ, (aeval x (hermite m) : ℝ) * aeval x (hermite n) *
+      Real.exp (-(x ^ 2) / 2) := rfl
+  rw [← hg_eq]
+  split_ifs at hsub ⊢ with hmn
+  · subst hmn
+    have h2 : (2 : ℝ) ^ (m / 2 : ℝ) * 2 ^ (m / 2 : ℝ) = 2 ^ m := by
+      rw [← Real.rpow_add two_pos, ← Real.rpow_natCast]; congr 1; ring
+    rw [h2] at hsub
+    have hpos : (0 : ℝ) < 2 ^ m := by positivity
+    rw [Real.sqrt_mul (by norm_num)]
+    field_simp at hsub
+    nlinarith [hsub, hsq]
+  · rw [mul_zero] at hsub
+    have := inv_pos.mpr hs2
+    nlinarith [hsub]
 
 @[dlmf 18.3.T1]
 theorem legendre_orthogonality (m n : ℕ) :
@@ -137,17 +284,360 @@ theorem legendre_laplace_integral (n : ℕ) (θ : ℝ) :
       ∫ phi : ℝ in (0 : ℝ)..Real.pi, (Real.cos θ + I * Real.sin θ * Real.cos phi) ^ n := by
   sorry
 
+/-- `x^k e^{-xz} e^{-x²}` is integrable for every complex `z`. -/
+lemma integrable_pow_mul_cexp_gauss (k : ℕ) (z : ℂ) :
+    Integrable fun x : ℝ => (x : ℂ) ^ k * (cexp (-x * z) * cexp (-(x : ℂ) ^ 2)) := by
+  have hreal : Integrable fun x : ℝ => x ^ k * Real.exp (-(1 / 2) * x ^ 2) := by
+    have h := integrable_rpow_mul_exp_neg_mul_sq (b := 1 / 2) (by norm_num)
+      (s := (k : ℝ)) (by have := (Nat.cast_nonneg k : (0 : ℝ) ≤ k); linarith)
+    refine h.congr (Eventually.of_forall fun x => ?_)
+    beta_reduce
+    rw [Real.rpow_natCast]
+  have hg : Integrable fun x : ℝ => (x : ℂ) ^ k * cexp (-(x : ℂ) ^ 2 / 2) := by
+    refine hreal.norm.mono' (by fun_prop) (Eventually.of_forall fun x => ?_)
+    rw [norm_mul, norm_mul, norm_pow, Complex.norm_real, Complex.norm_exp, norm_pow,
+      Real.norm_of_nonneg (Real.exp_pos _).le]
+    apply le_of_eq
+    congr 2
+    simp [sq]; ring
+  set a := z.re
+  have hbd : ∀ x : ℝ, ‖cexp (-x * z - (x : ℂ) ^ 2 / 2)‖ ≤ Real.exp (a ^ 2 / 2) := by
+    intro x
+    rw [Complex.norm_exp]
+    apply Real.exp_le_exp.mpr
+    have : (-x * z - (x : ℂ) ^ 2 / 2).re = -x * a - x ^ 2 / 2 := by
+      simp [a, sq]
+    rw [this]
+    nlinarith [sq_nonneg (x + a)]
+  have hm : AEStronglyMeasurable (fun x : ℝ => cexp (-x * z - (x : ℂ) ^ 2 / 2)) volume :=
+    (by fun_prop : Continuous fun x : ℝ => cexp (-x * z - (x : ℂ) ^ 2 / 2)).aestronglyMeasurable
+  refine (hg.bdd_mul hm (Eventually.of_forall hbd)).congr (Eventually.of_forall fun x => ?_)
+  beta_reduce
+  have e : cexp (-↑x * z - (x : ℂ) ^ 2 / 2) * cexp (-(x : ℂ) ^ 2 / 2) =
+      cexp (-↑x * z) * cexp (-(x : ℂ) ^ 2) := by
+    rw [← Complex.exp_add, ← Complex.exp_add]; ring_nf
+  linear_combination (x : ℂ) ^ k * e
+
+/-- A polynomial times `e^{-xz} e^{-x²}` is integrable. -/
+lemma integrable_eval_mul_cexp_gauss (q : ℝ[X]) (z : ℂ) :
+    Integrable fun x : ℝ => cexp (-x * z) * ((q.eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
+  have hq : ∀ x : ℝ, cexp (-x * z) * ((q.eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+      ∑ i ∈ Finset.range (q.natDegree + 1),
+        (q.coeff i : ℂ) * ((x : ℂ) ^ i * (cexp (-x * z) * cexp (-(x : ℂ) ^ 2))) := fun x => by
+    rw [eval_eq_sum_range, Finset.sum_mul]
+    push_cast
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => by ring
+  simp_rw [hq]
+  exact integrable_finsetSum _ fun i _ => (integrable_pow_mul_cexp_gauss i z).const_mul _
+
+/-- Repeated integration by parts against `e^{-xz}`. -/
+lemma integral_cexp_mul_hermite_gauss (z : ℂ) (n : ℕ) :
+    ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+      (-z) ^ n * ∫ x : ℝ, cexp (-x * z) * ((Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
+  induction n with
+  | zero => simp [hermitePhysR]
+  | succ n ih =>
+    have hu : ∀ x : ℝ, HasDerivAt (fun y : ℝ => cexp (-y * z)) (cexp (-x * z) * (-z)) x := by
+      intro x
+      have := ((hasDerivAt_id (x : ℂ)).neg.mul_const z).cexp.comp_ofReal (z := x)
+      simpa using this
+    have hv : ∀ x : ℝ, HasDerivAt (fun y : ℝ => (((hermitePhysR n).eval y * Real.exp (-(y ^ 2)) : ℝ) : ℂ))
+        (-((((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ)) x := by
+      intro x
+      have := (hasDerivAt_hermite_gauss n x).ofReal_comp
+      simpa using this
+    have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable
+      (fun x _ => hu x) (fun x _ => hv x)
+      ((integrable_eval_mul_cexp_gauss (hermitePhysR (n + 1)) z).neg.congr
+        (Eventually.of_forall fun x => by simp only [Pi.mul_apply, Pi.neg_apply]; ring))
+      (((integrable_eval_mul_cexp_gauss (hermitePhysR n) z).const_mul (-z)).congr
+        (Eventually.of_forall fun x => by simp only [Pi.mul_apply]; ring))
+      (integrable_eval_mul_cexp_gauss (hermitePhysR n) z)
+    have h1 : ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+        -∫ x : ℝ, cexp (-x * z) * -((((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ) := by
+      rw [← integral_neg]; congr 1; funext x; ring
+    rw [h1, hibp, neg_neg]
+    have h2 : ∫ x : ℝ, cexp (-x * z) * (-z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+        -z * ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
+      rw [← integral_const_mul]; congr 1; funext x; ring
+    rw [h2, ih, pow_succ]
+    ring
+
+/-- `∫ e^{-xz} e^{-x²} dx = √π e^{z²/4}`. -/
+lemma integral_cexp_gauss (z : ℂ) :
+    ∫ x : ℝ, cexp (-x * z) * ((Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+      (Real.sqrt Real.pi : ℂ) * cexp (z ^ 2 / 4) := by
+  have h := integral_cexp_quadratic (b := -1) (by simp) (-z) 0
+  have heq : ∀ x : ℝ, cexp (-x * z) * ((Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+      cexp (-1 * (x : ℂ) ^ 2 + -z * x + 0) := fun x => by
+    rw [ofReal_exp, ← Complex.exp_add]; push_cast; ring_nf
+  simp_rw [heq, h]
+  rw [neg_neg, div_one, show (0 : ℂ) - (-z) ^ 2 / (4 * -1) = z ^ 2 / 4 by ring]
+  congr 1
+  rw [Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]
+  norm_num
+
+/-- The Laplace transform of `Hₙ e^{-x²}`. -/
+lemma hermite_laplace_aux (n : ℕ) (z : ℂ) :
+    ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
+      Real.sqrt Real.pi * (-z) ^ n * exp (z ^ 2 / 4) := by
+  have heq : ∀ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
+      cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := fun x => by
+    have : (aeval (x : ℂ) (hermitePhys n) : ℂ) = (((hermitePhysR n).eval x : ℝ) : ℂ) := by
+      rw [← aeval_hermitePhys_eq_eval]
+      exact aeval_algebraMap_apply ℂ x (hermitePhys n)
+    rw [this, ofReal_mul, ofReal_exp]; push_cast; ring
+  simp_rw [heq]
+  rw [integral_cexp_mul_hermite_gauss, integral_cexp_gauss]
+  ring
+
+/-- `(x+it)^n t^j e^{-t²}` is integrable. -/
+lemma integrable_add_I_pow_mul_pow_gauss (x : ℂ) (n j : ℕ) :
+    Integrable fun t : ℝ => (x + I * t) ^ n * ((t : ℂ) ^ j * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ)) := by
+  have hq : ∀ t : ℝ, (x + I * t) ^ n * ((t : ℂ) ^ j * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ)) =
+      ∑ k ∈ Finset.range (n + 1), ((n.choose k : ℂ) * x ^ (n - k) * I ^ k) *
+        ((t : ℂ) ^ (k + j) * (cexp (-t * 0) * cexp (-(t : ℂ) ^ 2))) := fun t => by
+    rw [add_comm, add_pow, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [ofReal_exp]; push_cast; simp; ring
+  simp_rw [hq]
+  exact integrable_finsetSum _ fun k _ => (integrable_pow_mul_cexp_gauss (k + j) 0).const_mul _
+
+/-- `(x+it)^n e^{-t²}` is integrable. -/
+lemma integrable_add_I_pow_gauss (x : ℂ) (n : ℕ) :
+    Integrable fun t : ℝ => (x + I * t) ^ n * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) := by
+  simpa using integrable_add_I_pow_mul_pow_gauss x n 0
+
+/-- One integration by parts: `∫ t (x+it)^n e^{-t²} = (i n / 2) ∫ (x+it)^{n-1} e^{-t²}`. -/
+lemma integral_t_mul_add_I_pow (x : ℂ) (n : ℕ) :
+    ∫ t : ℝ, (x + I * t) ^ (n + 1) * ((t * Real.exp (-(t ^ 2)) : ℝ) : ℂ) =
+      I * (n + 1) / 2 * ∫ t : ℝ, (x + I * t) ^ n * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) := by
+  have hu : ∀ t : ℝ, HasDerivAt (fun s : ℝ => (x + I * s) ^ (n + 1))
+      ((n + 1 : ℂ) * (x + I * t) ^ n * I) t := by
+    intro t
+    have := (((hasDerivAt_id (t : ℂ)).const_mul I).const_add x).pow (n + 1) |>.comp_ofReal (z := t)
+    simpa using this
+  have hv : ∀ t : ℝ, HasDerivAt (fun s : ℝ => ((-(Real.exp (-(s ^ 2))) / 2 : ℝ) : ℂ))
+      (((t * Real.exp (-(t ^ 2))) : ℝ) : ℂ) t := by
+    intro t
+    have h1 : HasDerivAt (fun s : ℝ => -(Real.exp (-(s ^ 2))) / 2) (t * Real.exp (-(t ^ 2))) t := by
+      have := (((hasDerivAt_pow 2 t).neg).exp.neg).div_const 2
+      convert this using 1; simp; ring
+    exact h1.ofReal_comp
+  have hI := integrable_add_I_pow_gauss x n
+  have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable (fun t _ => hu t) (fun t _ => hv t)
+    ?_ ?_ ?_
+  · rw [hibp]
+    rw [show (fun t : ℝ => (n + 1 : ℂ) * (x + I * t) ^ n * I * ((-(Real.exp (-(t ^ 2))) / 2 : ℝ) : ℂ))
+      = fun t => -(I * (n + 1) / 2) * ((x + I * t) ^ n * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ)) by
+        funext t; push_cast; ring, integral_const_mul]
+    ring
+  · refine (integrable_add_I_pow_mul_pow_gauss x (n + 1) 1).congr
+      (Eventually.of_forall fun t => ?_)
+    simp only [Pi.mul_apply]; push_cast; ring
+  · refine ((integrable_add_I_pow_gauss x n).const_mul (-(I * (n + 1) / 2))).congr
+      (Eventually.of_forall fun t => ?_)
+    simp only [Pi.mul_apply]; push_cast; ring
+  · refine ((integrable_add_I_pow_gauss x (n + 1)).const_mul (-(1 / 2))).congr
+      (Eventually.of_forall fun t => ?_)
+    simp only [Pi.mul_apply]; push_cast; ring
+
+/-- The Hermite recurrence in evaluated form. -/
+lemma aeval_hermitePhys_succ_succ (x : ℂ) (n : ℕ) :
+    (aeval x (hermitePhys (n + 2)) : ℂ) =
+      2 * x * aeval x (hermitePhys (n + 1)) - 2 * (n + 1) * aeval x (hermitePhys n) := by
+  rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+  simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
+  push_cast
+  ring
+
 @[dlmf 18.10.E7]
 theorem hermitePhys_laplace_integral (n : ℕ) (x : ℂ) :
     aeval x (hermitePhys n) = (2 : ℂ) ^ n / Real.sqrt Real.pi *
       ∫ t : ℝ, (x + I * t) ^ n * Real.exp (-(t ^ 2)) := by
-  sorry
+  set F : ℕ → ℂ := fun n => ∫ t : ℝ, (x + I * t) ^ n * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) with hF
+  have hπ : (Real.sqrt Real.pi : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hF0 : F 0 = Real.sqrt Real.pi := by
+    simp only [hF, pow_zero, one_mul]
+    rw [integral_complex_ofReal, show (fun t : ℝ => Real.exp (-(t ^ 2))) =
+      fun t => Real.exp (-1 * t ^ 2) by funext t; ring_nf, integral_gaussian, div_one]
+  have hodd : ∫ t : ℝ, ((t * Real.exp (-(t ^ 2)) : ℝ) : ℂ) = 0 := by
+    have h := integral_neg_eq_self (fun t : ℝ => ((t * Real.exp (-(t ^ 2)) : ℝ) : ℂ)) volume
+    simp only [neg_mul, neg_sq, ofReal_neg, integral_neg] at h
+    linear_combination (-1 / 2 : ℂ) * h
+  have hF1 : F 1 = x * Real.sqrt Real.pi := by
+    have : F 1 = x * F 0 + I * ∫ t : ℝ, ((t * Real.exp (-(t ^ 2)) : ℝ) : ℂ) := by
+      simp only [hF, pow_one, pow_zero, one_mul]
+      rw [← integral_const_mul, ← integral_const_mul, ← integral_add]
+      · congr 1; funext t; push_cast; try ring
+      · exact (integrable_add_I_pow_gauss x 0).const_mul x |>.congr
+          (Eventually.of_forall fun t => by simp)
+      · exact ((integrable_add_I_pow_mul_pow_gauss 0 0 1).const_mul I).congr
+          (Eventually.of_forall fun t => by simp)
+    rw [this, hodd, hF0]; ring
+  have hrec : ∀ n : ℕ, F (n + 2) = x * F (n + 1) - (n + 1) / 2 * F n := by
+    intro n
+    have hsplit : F (n + 2) = x * F (n + 1) +
+        I * ∫ t : ℝ, (x + I * t) ^ (n + 1) * ((t * Real.exp (-(t ^ 2)) : ℝ) : ℂ) := by
+      simp only [hF]
+      rw [← integral_const_mul, ← integral_const_mul, ← integral_add
+        ((integrable_add_I_pow_gauss x (n + 1)).const_mul x)
+        (((integrable_add_I_pow_mul_pow_gauss x (n + 1) 1).const_mul I).congr
+          (Eventually.of_forall fun t => by simp only; push_cast; ring))]
+      congr 1; funext t; push_cast; ring
+    rw [hsplit, integral_t_mul_add_I_pow]
+    simp only [hF]
+    rw [show I * (I * ((n : ℂ) + 1) / 2 * ∫ t : ℝ, (x + I * t) ^ n *
+      ((Real.exp (-(t ^ 2)) : ℝ) : ℂ)) = I ^ 2 * (((n : ℂ) + 1) / 2) * ∫ t : ℝ, (x + I * t) ^ n *
+      ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) by ring, I_sq]
+    ring
+  have key : ∀ n : ℕ, (2 : ℂ) ^ n * F n = Real.sqrt Real.pi * aeval x (hermitePhys n) := by
+    intro n
+    induction n using Nat.twoStepInduction with
+    | zero => simp [hF0]
+    | one => rw [hF1, hermitePhys_one, map_mul, aeval_X, map_ofNat]; ring
+    | more n ih0 ih1 =>
+      rw [hrec, aeval_hermitePhys_succ_succ]
+      linear_combination 2 * x * ih1 - 2 * ((n : ℂ) + 1) * ih0
+  have hn := key n
+  simp only [hF] at hn
+  field_simp
+  linear_combination -hn
+
+/-- `e^{-t²} tⁿ e^{2ixt}` is integrable. -/
+lemma integrable_gauss_pow_cexp (x : ℝ) (n : ℕ) :
+    Integrable fun t : ℝ => ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n * cexp (2 * I * x * t) := by
+  refine (integrable_pow_mul_cexp_gauss n (-2 * I * x)).congr (Eventually.of_forall fun t => ?_)
+  simp only [ofReal_exp]
+  push_cast
+  rw [show -(t : ℂ) * (-2 * I * x) = 2 * I * x * t by ring]
+  ring
+
+/-- The moment recurrence for `∫ e^{-t²} tⁿ e^{2ixt} dt`. -/
+lemma integral_K_succ_succ (x : ℝ) (n : ℕ) :
+    ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 2) * cexp (2 * I * x * t) =
+      I * x * (∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 1) * cexp (2 * I * x * t)) +
+      (n + 1) / 2 * ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n * cexp (2 * I * x * t) := by
+  have hu : ∀ t : ℝ, HasDerivAt (fun s : ℝ => (s : ℂ) ^ (n + 1) * cexp (2 * I * x * s))
+      (((n + 1 : ℂ) * (t : ℂ) ^ n) * cexp (2 * I * x * t) +
+        (t : ℂ) ^ (n + 1) * (cexp (2 * I * x * t) * (2 * I * x))) t := by
+    intro t
+    have h1 := (hasDerivAt_pow (n + 1) (t : ℂ)).comp_ofReal
+    have h2 := ((hasDerivAt_id (t : ℂ)).const_mul (2 * I * x)).cexp.comp_ofReal (z := t)
+    simp only [id, mul_one] at h2
+    refine (h1.mul h2).congr_deriv ?_
+    push_cast; ring
+  have hv : ∀ t : ℝ, HasDerivAt (fun s : ℝ => ((-(Real.exp (-(s ^ 2))) / 2 : ℝ) : ℂ))
+      (((t * Real.exp (-(t ^ 2))) : ℝ) : ℂ) t := by
+    intro t
+    have h1 : HasDerivAt (fun s : ℝ => -(Real.exp (-(s ^ 2))) / 2) (t * Real.exp (-(t ^ 2))) t := by
+      have := (((hasDerivAt_pow 2 t).neg).exp.neg).div_const 2
+      convert this using 1; simp; ring
+    exact h1.ofReal_comp
+  have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable (fun t _ => hu t) (fun t _ => hv t)
+    ((integrable_gauss_pow_cexp x (n + 2)).congr (Eventually.of_forall fun t => by
+      simp only [Pi.mul_apply]; push_cast; ring))
+    ((((integrable_gauss_pow_cexp x n).const_mul (-((n : ℂ) + 1) / 2)).add
+      ((integrable_gauss_pow_cexp x (n + 1)).const_mul (-(I * x)))).congr
+      (Eventually.of_forall fun t => by simp only [Pi.mul_apply, Pi.add_apply]; push_cast; ring))
+    (((integrable_gauss_pow_cexp x (n + 1)).const_mul (-(1 / 2))).congr
+      (Eventually.of_forall fun t => by simp only [Pi.mul_apply]; push_cast; ring))
+  have e1 : ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 2) * cexp (2 * I * x * t) =
+      ∫ t : ℝ, (t : ℂ) ^ (n + 1) * cexp (2 * I * x * t) * (((t * Real.exp (-(t ^ 2))) : ℝ) : ℂ) := by
+    congr 1; funext t; push_cast; ring
+  rw [e1, hibp]
+  rw [show (fun t : ℝ => (((n + 1 : ℂ) * (t : ℂ) ^ n) * cexp (2 * I * x * t) +
+      (t : ℂ) ^ (n + 1) * (cexp (2 * I * x * t) * (2 * I * x))) * ((-(Real.exp (-(t ^ 2))) / 2 : ℝ) : ℂ))
+      = fun t => (-((n : ℂ) + 1) / 2) * (((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n *
+          cexp (2 * I * x * t)) + (-(I * x)) * (((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 1) *
+          cexp (2 * I * x * t)) by funext t; push_cast; ring]
+  rw [integral_add ((integrable_gauss_pow_cexp x n).const_mul _)
+    ((integrable_gauss_pow_cexp x (n + 1)).const_mul _), integral_const_mul, integral_const_mul]
+  ring
+
+/-- The Fourier transform of the Gaussian. -/
+lemma integral_K_zero (x : ℝ) :
+    ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ 0 * cexp (2 * I * x * t) =
+      Real.sqrt Real.pi * cexp (-(x : ℂ) ^ 2) := by
+  have h := integral_cexp_gauss (-2 * I * x)
+  rw [show (-2 * I * (x : ℂ)) ^ 2 / 4 = -(x : ℂ) ^ 2 by ring_nf; rw [I_sq]; ring] at h
+  rw [← h]
+  congr 1; funext t
+  rw [show -(t : ℂ) * (-2 * I * x) = 2 * I * x * t by ring]
+  ring
+
+/-- The first moment of the Gaussian Fourier kernel. -/
+lemma integral_K_one (x : ℝ) :
+    ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ 1 * cexp (2 * I * x * t) =
+      I * x * ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ 0 * cexp (2 * I * x * t) := by
+  have hu : ∀ t : ℝ, HasDerivAt (fun s : ℝ => cexp (2 * I * x * s))
+      (cexp (2 * I * x * t) * (2 * I * x)) t := by
+    intro t
+    have h2 := ((hasDerivAt_id (t : ℂ)).const_mul (2 * I * x)).cexp.comp_ofReal (z := t)
+    simpa using h2
+  have hv : ∀ t : ℝ, HasDerivAt (fun s : ℝ => ((-(Real.exp (-(s ^ 2))) / 2 : ℝ) : ℂ))
+      (((t * Real.exp (-(t ^ 2))) : ℝ) : ℂ) t := by
+    intro t
+    have h1 : HasDerivAt (fun s : ℝ => -(Real.exp (-(s ^ 2))) / 2) (t * Real.exp (-(t ^ 2))) t := by
+      have := (((hasDerivAt_pow 2 t).neg).exp.neg).div_const 2
+      convert this using 1; simp; ring
+    exact h1.ofReal_comp
+  have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable (fun t _ => hu t) (fun t _ => hv t)
+    ((integrable_gauss_pow_cexp x 1).congr (Eventually.of_forall fun t => by
+      simp only [Pi.mul_apply]; push_cast; ring))
+    (((integrable_gauss_pow_cexp x 0).const_mul (-(I * x))).congr
+      (Eventually.of_forall fun t => by simp only [Pi.mul_apply]; push_cast; ring))
+    (((integrable_gauss_pow_cexp x 0).const_mul (-(1 / 2))).congr
+      (Eventually.of_forall fun t => by simp only [Pi.mul_apply]; push_cast; ring))
+  have e1 : ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ 1 * cexp (2 * I * x * t) =
+      ∫ t : ℝ, cexp (2 * I * x * t) * (((t * Real.exp (-(t ^ 2))) : ℝ) : ℂ) := by
+    congr 1; funext t; push_cast; ring
+  rw [e1, hibp, show (fun t : ℝ => cexp (2 * I * x * t) * (2 * I * x) *
+      ((-(Real.exp (-(t ^ 2))) / 2 : ℝ) : ℂ)) = fun t => (-(I * x)) *
+      (((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ 0 * cexp (2 * I * x * t)) by
+      funext t; push_cast; ring, integral_const_mul]
+  ring
 
 @[dlmf 18.10.E10]
 theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
     (aeval (x : ℂ) (hermitePhys n) : ℂ) = (-2 * I) ^ n * exp ((x : ℂ) ^ 2) / Real.sqrt Real.pi *
       ∫ t : ℝ, Real.exp (-(t ^ 2)) * (t : ℂ) ^ n * exp (2 * I * x * t) := by
-  sorry
+  set K : ℕ → ℂ := fun n => ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n *
+    cexp (2 * I * x * t) with hK
+  have hπ : (Real.sqrt Real.pi : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hE : cexp ((x : ℂ) ^ 2) * cexp (-(x : ℂ) ^ 2) = 1 := by rw [← Complex.exp_add]; simp
+  have key : ∀ n : ℕ, (-2 * I) ^ n * cexp ((x : ℂ) ^ 2) / Real.sqrt Real.pi * K n =
+      aeval (x : ℂ) (hermitePhys n) := by
+    intro n
+    induction n using Nat.twoStepInduction with
+    | zero =>
+      simp only [hK]
+      rw [integral_K_zero]
+      field_simp
+      simp [hE]
+    | one =>
+      simp only [hK]
+      rw [integral_K_one, integral_K_zero, hermitePhys_one, map_mul, aeval_X, map_ofNat]
+      generalize (Real.sqrt Real.pi : ℂ) = sp at hπ ⊢
+      field_simp
+      linear_combination (-(x : ℂ) * I ^ 2) * hE + (-(x : ℂ)) * I_sq
+    | more n ih0 ih1 =>
+      simp only [hK] at ih0 ih1 ⊢
+      rw [integral_K_succ_succ, aeval_hermitePhys_succ_succ, ← ih0, ← ih1]
+      generalize (∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 1) *
+        cexp (2 * I * x * t)) = A
+      generalize (∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n *
+        cexp (2 * I * x * t)) = B
+      set P := (-2 * I) ^ n * cexp ((x : ℂ) ^ 2) / Real.sqrt Real.pi
+      rw [show (-2 * I) ^ (n + 2) * cexp ((x : ℂ) ^ 2) / Real.sqrt Real.pi = P * (-2 * I) ^ 2 by
+        simp only [P]; ring,
+        show (-2 * I) ^ (n + 1) * cexp ((x : ℂ) ^ 2) / Real.sqrt Real.pi = P * (-2 * I) by
+        simp only [P]; ring]
+      linear_combination (4 * P * I * x * A + 2 * P * ((n : ℂ) + 1) * B) * I_sq
+  rw [← key n]
 
 /-- An interval antiderivative of the physicists’ Hermite polynomial. -/
 @[dlmf 18.17.E3]
@@ -212,7 +702,17 @@ theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ :
 theorem hermitePhys_fourier_transform (n : ℕ) (y : ℝ) :
     (∫ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y)) /
       Real.sqrt Real.pi = I ^ n * exp (-(y : ℂ) ^ 2 / 4) * (y : ℂ) ^ n := by
-  sorry
+  have h := hermite_laplace_aux n (-I * y)
+  have heq : ∀ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y) =
+      exp (-x * (-I * y)) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) := fun x => by
+    rw [show -(x : ℂ) * (-I * y) = I * x * y by ring]; ring
+  simp_rw [heq]
+  rw [h]
+  have hπ : (Real.sqrt Real.pi : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  rw [show -(-I * (y : ℂ)) = I * y by ring, mul_pow,
+    show (-I * (y : ℂ)) ^ 2 / 4 = -(y : ℂ) ^ 2 / 4 by ring_nf; rw [I_sq]; ring]
+  field_simp
 
 @[dlmf 18.17.E21_3]
 theorem hermitePhys_fourier_eigenfunction (n : ℕ) (y : ℝ) :
@@ -220,17 +720,127 @@ theorem hermitePhys_fourier_eigenfunction (n : ℕ) (y : ℝ) :
       Real.sqrt (2 * Real.pi) = I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n) := by
   sorry
 
+/-- `u^{s-1} e^{-wu}` is integrable on `(0,∞)` for `Re s, Re w > 0`. -/
+lemma integrableOn_cpow_mul_cexp_neg {s w : ℂ} (hs : 0 < s.re) (hw : 0 < w.re) :
+    IntegrableOn (fun u : ℝ => (u : ℂ) ^ (s - 1) * cexp (-(w * u))) (Set.Ioi 0) := by
+  have hb := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) (s := s.re - 1) (b := w.re)
+    (by linarith) one_pos hw
+  refine Integrable.mono' hb (Measurable.aestronglyMeasurable (by fun_prop)) ?_
+  filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+  have hu' : 0 < u := hu
+  rw [norm_mul, norm_cpow_eq_rpow_re_of_pos hu', Complex.norm_exp, Real.rpow_one]
+  simp
+
+/-- Termwise Mellin–Laplace integration of a finite polynomial sum. -/
+lemma integral_finite_sum_mellin_laplace {a : ℝ} (ha : 0 < a) {z : ℂ}
+    (hz : 0 < z.re) (s : Finset ℕ) (c : ℕ → ℂ) (d : ℕ → ℕ) :
+    (∫ x : ℝ in Set.Ioi 0, exp (-a * x) *
+      (∑ k ∈ s, c k * (x : ℂ) ^ d k) * (x : ℂ) ^ (z - 1)) =
+      ∑ k ∈ s, c k * Gamma (z + d k) / (a : ℂ) ^ (z + d k) := by
+  have hs (k : ℕ) : 0 < (z + d k).re := by
+    simp only [add_re, natCast_re]; positivity
+  have hterm (x : ℝ) (hx : 0 < x) :
+      exp (-a * x) * (∑ k ∈ s, c k * (x : ℂ) ^ d k) * (x : ℂ) ^ (z - 1) =
+      ∑ k ∈ s, c k * ((x : ℂ) ^ (z + d k - 1) * exp (-((a : ℂ) * x))) := by
+    rw [Finset.mul_sum, Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro k _
+    rw [show z + (d k : ℂ) - 1 = (z - 1) + d k by ring,
+      cpow_add _ _ (ofReal_ne_zero.mpr hx.ne'), cpow_natCast]
+    rw [neg_mul]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi (fun x hx => hterm x hx),
+    integral_finsetSum _ (fun k _ =>
+      (integrableOn_cpow_mul_cexp_neg (hs k) (by simpa using ha)).const_mul _)]
+  simp_rw [integral_const_mul,
+    AAR.Gamma.integral_cpow_mul_exp_neg_mul_Ioi (z := (a : ℂ)) (hs _) (by simpa using ha), cpow_neg,
+    div_eq_mul_inv, mul_assoc]
+
+/-- `Γ(a + m) = (a)_m Γ(a)` for `Re a > 0`. -/
+lemma Gamma_add_nat_eq_poch_mul {a : ℂ} (ha : 0 < a.re) (m : ℕ) :
+    Gamma (a + m) = poch a m * Gamma a := by
+  induction m with
+  | zero => simp [poch_zero]
+  | succ m ih =>
+    have hne : a + m ≠ 0 := fun h => by
+      have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
+    rw [show a + ((m + 1 : ℕ) : ℂ) = (a + m) + 1 by push_cast; ring, Gamma_add_one _ hne, ih,
+      poch_succ]
+    ring
+
+/-- The Laplace transform of `e^{-x} x^α L_n^{(α)}(x)`. -/
+lemma laguerre_laplace_aux {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
+    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+      Gamma (α + n + 1 : ℂ) * z ^ n / (n.factorial * (z + 1) ^ (α + n + 1 : ℂ)) := by
+  have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hw : 0 < (z + 1).re := by simp; linarith
+  have hw0 : z + 1 ≠ 0 := fun h => by rw [h] at hw; simp at hw
+  have hs : ∀ k : ℕ, 0 < ((α : ℂ) + k + 1).re := fun k => by
+    simp; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  -- termwise form of the integrand
+  have hterm : ∀ x : ℝ, 0 < x → exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+      ∑ k ∈ Finset.range (n + 1), poch (α + 1 + k) (n - k) / ((n - k).factorial * k.factorial : ℂ) *
+        (-1) ^ k * ((x : ℂ) ^ (((α : ℂ) + k + 1) - 1) * cexp (-((z + 1) * x))) := by
+    intro x hx
+    have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+    rw [laguerre_eq_sum hα', Finset.mul_sum, Finset.sum_mul, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    have hc : (x : ℂ) ^ (((α : ℂ) + k + 1) - 1) = (x : ℂ) ^ (α : ℂ) * (x : ℂ) ^ k := by
+      rw [show ((α : ℂ) + k + 1) - 1 = (α : ℂ) + k by ring, cpow_add _ _ hx0, cpow_natCast]
+    have he : cexp (-((z + 1) * x)) = cexp (-x * z) * cexp (-x) := by
+      rw [← Complex.exp_add]; ring_nf
+    rw [hc, he, neg_pow]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi (fun x hx => hterm x hx)]
+  rw [integral_finsetSum _ fun k _ =>
+    ((integrableOn_cpow_mul_cexp_neg (hs k) hw).const_mul _)]
+  simp_rw [integral_const_mul]
+  rw [Finset.sum_congr rfl fun k _ => by rw [AAR.Gamma.integral_cpow_mul_exp_neg_mul_Ioi (hs k) hw]]
+  -- resum with the binomial theorem
+  have hz1 : z = (z + 1) - 1 := by ring
+  have hpowz : z ^ n = ∑ k ∈ Finset.range (n + 1), (n.choose k : ℂ) * (-1) ^ k * (z + 1) ^ (n - k) := by
+    conv_lhs => rw [hz1]
+    rw [sub_eq_add_neg, add_comm, add_pow]
+    refine Finset.sum_congr rfl fun k _ => by ring
+  have hS : ∀ k ∈ Finset.range (n + 1), poch (α + 1 + k) (n - k) / ((n - k).factorial * k.factorial : ℂ) *
+      (-1) ^ k * (Gamma ((α : ℂ) + k + 1) * (z + 1) ^ (-((α : ℂ) + k + 1))) =
+      Gamma ((α : ℂ) + n + 1) / (n ! * (z + 1) ^ ((α : ℂ) + n + 1)) *
+        ((n.choose k : ℂ) * (-1) ^ k * (z + 1) ^ (n - k)) := by
+    intro k hk
+    have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+    have hG := Gamma_add_nat_eq_poch_mul (hs k) (n - k)
+    rw [show (α : ℂ) + k + 1 + ((n - k : ℕ) : ℂ) = α + n + 1 by push_cast [Nat.cast_sub hkn]; ring,
+      show (α : ℂ) + k + 1 = α + 1 + k by ring] at hG
+    rw [show (α : ℂ) + k + 1 = α + 1 + k by ring, hG,
+      show (α : ℂ) + n + 1 = α + 1 + k + (n - k : ℕ) by push_cast [Nat.cast_sub hkn]; ring,
+      cpow_add _ _ hw0, cpow_neg, cpow_natCast, Nat.cast_choose ℂ hkn]
+    have hf1 : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hf2 : ((n - k)! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (n - k).factorial_ne_zero
+    have hp1 : (z + 1) ^ ((α : ℂ) + 1 + k) ≠ 0 := by
+      rw [cpow_def_of_ne_zero hw0]; exact exp_ne_zero _
+    have hp2 : (z + 1) ^ (n - k) ≠ 0 := pow_ne_zero _ hw0
+    have hfn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    field_simp
+  rw [Finset.sum_congr rfl hS, ← Finset.mul_sum, ← hpowz]
+  ring
+
 @[dlmf 18.17.E28_5]
 theorem laguerre_fourier_transform {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℝ) :
     ∫ x : ℝ in Set.Ioi 0, exp (-x) * (x : ℂ) ^ (α : ℂ) * laguerre α n x * exp (I * x * y) =
       Gamma (α + n + 1 : ℂ) * (-I * y) ^ n / (n.factorial * (1 - I * y) ^ (α + n + 1 : ℂ)) := by
-  sorry
+  have h := laguerre_laplace_aux hα n (z := -I * y) (by simp)
+  rw [show -I * (y : ℂ) + 1 = 1 - I * y by ring] at h
+  rw [← h]
+  congr 1; funext x
+  rw [show -(x : ℂ) * (-I * y) = I * x * y by ring]
+  ring
 
 @[dlmf 18.17.E35]
 theorem hermitePhys_laplace_transform (n : ℕ) (z : ℂ) :
     ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
       Real.sqrt Real.pi * (-z) ^ n * exp (z ^ 2 / 4) := by
-  sorry
+  exact hermite_laplace_aux n z
 
 @[dlmf 18.17.E36]
 theorem jacobi_mellin_transform {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
@@ -279,7 +889,50 @@ theorem hermitePhys_triple_integral (a b c : ℕ) :
       aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2)) =
       2 ^ (a + b + c) * (a + b).factorial * (b + c).factorial * (c + a).factorial *
       Real.sqrt Real.pi / ((a.factorial : ℝ) * b.factorial * c.factorial) := by
-  sorry
+  have hl (m n : ℕ) (x : ℝ) :
+      (aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) =
+        ∑ k ∈ Finset.range (min m n + 1), (m.choose k : ℝ) * n.choose k * 2 ^ k * k.factorial *
+          aeval x (hermitePhys (m + n - 2 * k)) := by
+    have h := hermitePhys_linearization m n (x : ℂ)
+    have castH (j : ℕ) : (aeval (x : ℂ) (hermitePhys j) : ℂ) =
+        ((aeval x (hermitePhys j) : ℝ) : ℂ) :=
+      aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x (hermitePhys j)
+    simp_rw [castH] at h
+    exact_mod_cast h
+  have hi (k : ℕ) : Integrable (fun x : ℝ =>
+      (aeval x (hermitePhys (a + b + (b + c) - 2 * k)) : ℝ) *
+        aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) := by
+    simp_rw [aeval_hermitePhys_eq_eval, ← eval_mul]
+    exact integrable_eval_mul_exp_neg_sq _
+  have heq : (fun x : ℝ => (aeval x (hermitePhys (a + b)) : ℝ) *
+      aeval x (hermitePhys (b + c)) * aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) =
+      fun x => ∑ k ∈ Finset.range (min (a + b) (b + c) + 1),
+        ((a + b).choose k : ℝ) * (b + c).choose k * 2 ^ k * k.factorial *
+          ((aeval x (hermitePhys (a + b + (b + c) - 2 * k)) : ℝ) *
+            aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) := by
+    funext x
+    rw [hl, Finset.sum_mul, Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro k _; ring
+  rw [heq, integral_finsetSum _ (fun k _ => (hi k).const_mul _)]
+  simp_rw [integral_const_mul, hermitePhys_orthogonality]
+  rw [Finset.sum_eq_single b]
+  · rw [if_pos (by omega : a + b + (b + c) - 2 * b = c + a),
+      Nat.cast_choose ℝ (by omega : b ≤ a + b), Nat.cast_choose ℝ (by omega : b ≤ b + c)]
+    rw [show a + b - b = a by omega, show b + c - b = c by omega]
+    have hp : (2 : ℝ) ^ b * 2 ^ (c + a) = 2 ^ (a + b + c) := by
+      rw [← pow_add]; congr 1; omega
+    field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero a),
+      Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero b),
+      Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero c)]
+    linear_combination ((a + b).factorial : ℝ) * (b + c).factorial * (c + a).factorial *
+      Real.sqrt Real.pi * hp
+  · intro k hk hkb
+    have hneq : a + b + (b + c) - 2 * k ≠ c + a := by
+      have := Finset.mem_range.mp hk; omega
+    simp [hneq]
+  · simp only [Finset.mem_range]
+    omega
 
 
 /-- The weighted Jacobi antiderivative on an interval contained in `(-1,1)`. -/
@@ -429,7 +1082,8 @@ theorem hermite_mellin_laplace_transform {a : ℝ} (ha : 0 < a) {z : ℂ} (hz : 
       ∑ k ∈ Finset.range (n / 2 + 1), (-1 : ℂ) ^ k * n.factorial /
         (2 ^ k * (k.factorial : ℂ) * (n - 2 * k).factorial) *
         Gamma (z + (n - 2 * k : ℕ)) / (a : ℂ) ^ (z + (n - 2 * k : ℕ)) := by
-  sorry
+  simp_rw [hermite_finite_sum]
+  exact integral_finite_sum_mellin_laplace ha hz _ _ (fun k => n - 2 * k)
 
 
 
@@ -506,7 +1160,7 @@ theorem legendre_fourier_transform (n : ℕ) {y : ℝ} (hy : 0 < y) :
 theorem laguerre_laplace_transform {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
     ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (α + n + 1 : ℂ) * z ^ n / (n.factorial * (z + 1) ^ (α + n + 1 : ℂ)) := by
-  sorry
+  exact laguerre_laplace_aux hα n hz
 
 @[dlmf 18.17.E37]
 theorem gegenbauer_mellin_transform {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
@@ -525,6 +1179,19 @@ theorem laguerre_mellin_laplace_transform {a : ℝ} (ha : 0 < a) {α : ℂ} (hα
     ∫ x : ℝ in Set.Ioi 0, exp (-a * x) * laguerre α n (b * x) * (x : ℂ) ^ (z - 1) =
       ∑ k ∈ Finset.range (n + 1), poch (α + k + 1) (n - k) * (-b) ^ k /
         ((n - k).factorial * (k.factorial : ℂ)) * Gamma (z + k) / (a : ℂ) ^ (z + k) := by
-  sorry
+  have hα' : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) :=
+    not_neg_nat_of_re_pos (by simp only [add_re, one_re]; linarith)
+  have heq (x : ℝ) : laguerre α n (b * x) =
+      ∑ k ∈ Finset.range (n + 1),
+        (poch (α + k + 1) (n - k) * (-b) ^ k / ((n - k).factorial * (k.factorial : ℂ))) *
+          (x : ℂ) ^ k := by
+    rw [laguerre_eq_sum hα']
+    apply Finset.sum_congr rfl
+    intro k _
+    rw [show -(b * (x : ℂ)) = -b * x by ring, mul_pow]
+    rw [show α + 1 + (k : ℂ) = α + k + 1 by ring]
+    ring
+  simp_rw [heq]
+  exact integral_finite_sum_mellin_laplace ha hz _ _ id
 
 end AAR.OrthogonalPolynomials

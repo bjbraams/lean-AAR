@@ -486,6 +486,27 @@ theorem laguerre_negative_integer_parameter {n k : ℕ} (hk : k ≤ n) (x : ℂ)
   rw [q1, q2, pow_add, show (-x) ^ k = (-1) ^ k * x ^ k by ring]
   field_simp
 
+lemma analyticAt_laguerre {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    AnalyticAt ℂ (laguerre α n) x := by
+  have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
+    simp only [Complex.add_re, Complex.one_re]; linarith)
+  have he : laguerre α n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
+      confluentM (-(n : ℂ)) (α + 1) z := rfl
+  rw [he]
+  exact analyticAt_const.mul ((hasFPowerSeriesOnBall_confluentM (a := -(n : ℂ)) hc).analyticAt_of_mem
+    (by simp))
+
+/-- `L'_{m+1} - L'_m + L_m = 0`. -/
+lemma laguerre_deriv_succ_sub {α : ℂ} (hα : -1 < α.re) (m : ℕ) (x : ℂ) :
+    deriv (laguerre α (m + 1)) x - deriv (laguerre α m) x + laguerre α m x = 0 := by
+  rcases m with _ | j
+  · have h0 : laguerre α 0 = fun _ => 1 := funext fun x => laguerre_zero α x
+    rw [laguerre_derivative hα 0, h0, deriv_const, laguerre_zero]
+    simp [laguerre_zero]
+  · have hα1 : -1 < (α + 1).re := by simp; linarith
+    rw [laguerre_derivative hα (j + 1), laguerre_derivative hα j, laguerre_raise_parameter hα j]
+    ring
+
 @[dlmf 18.36.E6]
 theorem exceptionalLaguerre_orthogonality {k : ℝ} (hk : 0 < k) (m n : ℕ) :
     ∫ x : ℝ in Set.Ioi 0, exceptionalLaguerre k m x * exceptionalLaguerre k n x * exceptionalLaguerreWeight k x =
@@ -497,7 +518,58 @@ theorem exceptionalLaguerre_differential_equation {k : ℝ} (hk : 0 < k) (n : �
     -x * deriv (deriv (exceptionalLaguerre k n)) x + (x - k) / (x + k) *
       ((x + k + 1) * deriv (exceptionalLaguerre k n) x - exceptionalLaguerre k n x) =
       n * exceptionalLaguerre k n x := by
-  sorry
+  have hα : -1 < (k : ℂ).re := by simp; linarith
+  have hL : ∀ j y, HasDerivAt (laguerre (k : ℂ) j) (deriv (laguerre (k : ℂ) j) y) y := fun j y =>
+    (analyticAt_laguerre hα j y).differentiableAt.hasDerivAt
+  have hL' : ∀ j y, HasDerivAt (deriv (laguerre (k : ℂ) j)) (deriv (deriv (laguerre (k : ℂ) j)) y) y :=
+    fun j y => (analyticAt_laguerre hα j y).deriv.differentiableAt.hasDerivAt
+  rcases n with _ | m
+  · have he : exceptionalLaguerre k 0 = fun y : ℂ => -(y + (k : ℂ) + 1) := by
+      funext y; simp [exceptionalLaguerre, laguerre_zero]
+    have hd : deriv (exceptionalLaguerre k 0) = fun _ => -1 := by
+      rw [he]; funext y
+      have := ((hasDerivAt_id y).add_const ((k : ℂ) + 1)).neg
+      simpa [add_assoc] using this.deriv
+    rw [hd, he, deriv_const]
+    push_cast; ring
+  · have he : exceptionalLaguerre k (m + 1) = fun y => -(y + k + 1) * laguerre (k : ℂ) (m + 1) y +
+        laguerre (k : ℂ) m y := by
+      funext y; simp [exceptionalLaguerre]
+    have hd1 : ∀ y, HasDerivAt (exceptionalLaguerre k (m + 1))
+        (-laguerre (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y +
+          deriv (laguerre (k : ℂ) m) y) y := by
+      intro y
+      rw [he]
+      have := ((((hasDerivAt_id y).add_const ((k : ℂ) + 1)).neg).mul (hL (m + 1) y)).add (hL m y)
+      convert this using 1
+      · funext z; simp only [Pi.add_apply, Pi.mul_apply, Pi.neg_apply, id]; ring
+      · simp; ring
+    have hd : deriv (exceptionalLaguerre k (m + 1)) = fun y =>
+        -laguerre (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y +
+          deriv (laguerre (k : ℂ) m) y := funext fun y => (hd1 y).deriv
+    have hd2 : deriv (deriv (exceptionalLaguerre k (m + 1))) x =
+        -2 * deriv (laguerre (k : ℂ) (m + 1)) x -
+          (x + k + 1) * deriv (deriv (laguerre (k : ℂ) (m + 1))) x +
+          deriv (deriv (laguerre (k : ℂ) m)) x := by
+      rw [hd]
+      have h2 : HasDerivAt (fun y => -laguerre (k : ℂ) (m + 1) y -
+          (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y + deriv (laguerre (k : ℂ) m) y)
+          (-2 * deriv (laguerre (k : ℂ) (m + 1)) x -
+          (x + k + 1) * deriv (deriv (laguerre (k : ℂ) (m + 1))) x +
+          deriv (deriv (laguerre (k : ℂ) m)) x) x := by
+        have := (((hL (m + 1) x).neg.sub (((hasDerivAt_id x).add_const ((k : ℂ) + 1)).mul
+          (hL' (m + 1) x))).add (hL' m x))
+        convert this using 1
+        · funext y; simp only [Pi.add_apply, Pi.sub_apply, Pi.mul_apply, Pi.neg_apply, id]; ring
+        · simp; ring
+      exact h2.deriv
+    rw [hd2, (hd1 x).deriv, he]
+    have E1 := laguerre_differential_equation hα (m + 1) x
+    have E2 := laguerre_differential_equation hα m x
+    have R2 := laguerre_deriv_succ_sub hα m x
+    field_simp
+    push_cast at E1 E2 ⊢
+    linear_combination (x + k) * (x + k + 1) * E1 - (x + k) * E2 - 2 * x * R2
 
 @[dlmf 18.36.E10]
 theorem exceptionalHermite_orthonormal (m n : Option ℕ) :

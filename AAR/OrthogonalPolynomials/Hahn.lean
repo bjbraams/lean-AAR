@@ -46,6 +46,66 @@ lemma terminatingHG_hasSum_neg_nat (n : ℕ) (a b : List ℂ) (z : ℂ) :
   have hnk : n < k := by simpa using hk
   simp [poch_neg_nat_eq_zero hnk]
 
+/-- Pochhammer symbols at points of positive real part do not vanish. -/
+lemma poch_ne_zero_of_re_pos {z : ℂ} (hz : 0 < z.re) (k : ℕ) : poch z k ≠ 0 :=
+  poch_ne_zero_of_not_neg_nat (fun j h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg j : (0 : ℝ) ≤ j)]) k
+
+/-- The forward difference of a Pochhammer symbol in a shifted argument. -/
+lemma poch_half_sub (w : ℂ) (k : ℕ) :
+    poch (w - 1 / 2) (k + 1) - poch (w + 1 / 2) (k + 1) = -(k + 1) * poch (w + 1 / 2) k := by
+  rw [poch_succ_left (w - 1 / 2), poch_succ (w + 1 / 2), show w - 1 / 2 + 1 = w + 1 / 2 by ring]
+  ring
+
+lemma exp_mul_one_sub_exp (phi : ℂ) :
+    exp (I * phi) * (1 - exp (-2 * I * phi)) = 2 * I * sin phi := by
+  have h1 : exp (I * phi) * exp (-2 * I * phi) = exp (-phi * I) := by
+    rw [← exp_add]; ring_nf
+  rw [Complex.sin, mul_sub, mul_one, h1, show I * phi = phi * I by ring]
+  linear_combination (exp (phi * I) - exp (-phi * I)) * I_sq
+
+/-- The Meixner–Pollaczek difference operator on the basis `(w)_{k+1}`, `w = λ + i x`. -/
+lemma mp_basis_succ (lam phi w : ℂ) (n k : ℕ) :
+    exp (I * phi) * (-I * (w - 2 * lam)) * (poch (w - 1) (k + 1) - poch w (k + 1)) +
+      exp (-I * phi) * (-I * w) * (poch (w + 1) (k + 1) - poch w (k + 1)) +
+      2 * n * sin phi * poch w (k + 1) =
+      2 * (n - (k + 1)) * sin phi * poch w (k + 1) -
+        I * (k + 1) * exp (I * phi) * (k + 2 * lam) * poch w k := by
+  have hS := exp_mul_one_sub_exp phi
+  have h1 : exp (I * phi) * exp (-2 * I * phi) = exp (-I * phi) := by rw [← exp_add]; ring_nf
+  have hsin : 2 * I * sin phi = exp (I * phi) - exp (-I * phi) := by
+    rw [← hS, mul_sub, mul_one, h1]
+  have hrel : poch w k * (w + k) = w * poch (w + 1) k := by
+    rw [← poch_succ, poch_succ_left]
+  rw [poch_succ_left (w - 1), show w - 1 + 1 = w by ring, poch_succ w k, poch_succ (w + 1) k]
+  linear_combination (-(I) * poch w k * ((k : ℂ) + 1) * (k + w)) * hsin +
+    (I * exp (-I * phi) * (k + w + 1)) * hrel +
+    (2 * sin phi * poch w k * ((k : ℂ) + 1) * (w + k)) * I_sq
+
+/-- The continuous Hahn difference operator on the basis `(w)_{k+1}`, `w = a + i x`. -/
+lemma ch_basis_succ (a b c d w : ℂ) (n k : ℕ) :
+    -((w - a - c) * (w - a - d)) * (poch (w - 1) (k + 1) - poch w (k + 1)) -
+      w * (w - a + b) * (poch (w + 1) (k + 1) - poch w (k + 1)) +
+      n * (n + a + b + c + d - 1) * poch w (k + 1) =
+      (n - (k + 1)) * (n + (k + 1) + a + b + c + d - 1) * poch w (k + 1) +
+        (k + 1) * (a + c + k) * (a + d + k) * poch w k := by
+  have hrel : poch w k * (w + k) = w * poch (w + 1) k := by
+    rw [← poch_succ, poch_succ_left]
+  rw [poch_succ_left (w - 1), show w - 1 + 1 = w by ring, poch_succ w k, poch_succ (w + 1) k]
+  linear_combination (w - a + b) * (k + w + 1) * hrel
+
+/-- The Hahn difference operator on the basis `(u)_{k+1}`, `u = -x`. -/
+lemma hahn_basis_succ (α β N u : ℂ) (n k : ℕ) :
+    (u - α - 1) * (u + N) * (poch (u - 1) (k + 1) - poch u (k + 1)) +
+      u * (u + β + N + 1) * (poch (u + 1) (k + 1) - poch u (k + 1)) -
+      n * (n + α + β + 1) * poch u (k + 1) =
+      (k + 1 - n) * (k + 1 + n + α + β + 1) * poch u (k + 1) +
+        (k + 1) * (N - k) * (α + k + 1) * poch u k := by
+  have hrel : poch u k * (u + k) = u * poch (u + 1) k := by
+    rw [← poch_succ, poch_succ_left]
+  rw [poch_succ_left (u - 1), show u - 1 + 1 = u by ring, poch_succ u k, poch_succ (u + 1) k]
+  linear_combination (-((k + u + 1) * (N + β + u + 1))) * hrel
+
 @[dlmf 18.20.E5]
 def hahn (α β : ℂ) (N n : ℕ) (x : ℂ) : ℂ :=
   terminatingHG n [-(n : ℂ), n + α + β + 1, -x] [α + 1, -(N : ℂ)] 1
@@ -172,7 +232,73 @@ theorem hahn_difference_equation {α β : ℂ} (hα : -1 < α.re) {N n : ℕ} (h
     (x + α + 1) * (x - N) * (hahn α β N n (x + 1) - hahn α β N n x) +
       x * (x - β - N - 1) * (hahn α β N n (x - 1) - hahn α β N n x) =
       n * (n + α + β + 1) * hahn α β N n x := by
-  sorry
+  have hpA : ∀ k : ℕ, poch (α + 1) k ≠ 0 := fun k =>
+    poch_ne_zero_of_re_pos (by simp; linarith) k
+  have hAk : ∀ k : ℕ, α + 1 + k ≠ 0 := fun k h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hpN : ∀ k : ℕ, k ≤ N → poch (-(N : ℂ)) k ≠ 0 := fun k hk => by
+    rw [poch_neg_coe_nat]
+    exact mul_ne_zero (pow_ne_zero _ (by norm_num))
+      (Nat.cast_ne_zero.mpr (Nat.descFactorial_pos.mpr hk).ne')
+  set s : ℂ := (n : ℂ) + α + β + 1 with hs
+  set u : ℂ := -x with hu
+  set cf : ℕ → ℂ := fun k => poch (-(n : ℂ)) k * poch s k / (poch (α + 1) k * poch (-(N : ℂ)) k) /
+    k ! with hcf
+  set G : ℕ → ℂ := fun k => cf k * ((k - n) * (k + n + α + β + 1) * poch u k) with hG
+  set B : ℕ → ℂ := fun k => (u - α - 1) * (u + N) * (poch (u - 1) k - poch u k) +
+      u * (u + β + N + 1) * (poch (u + 1) k - poch u k) - n * (n + α + β + 1) * poch u k with hB
+  have hrec : ∀ k : ℕ, k < n → cf (k + 1) * ((k + 1) * (N - k) * (α + k + 1)) =
+      -(cf k * ((k - n) * (s + k))) := by
+    intro k hk
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast k.succ_ne_zero
+    have hNk : -(N : ℂ) + k ≠ 0 := fun h => by
+      have : (k : ℂ) = N := by linear_combination h
+      exact absurd (by exact_mod_cast this : k = N) (by omega)
+    have := hpA k; have := hAk k; have := hpN k (by omega)
+    simp only [hcf]
+    rw [poch_succ, poch_succ s, poch_succ (α + 1), poch_succ (-(N : ℂ)), Nat.factorial_succ]
+    push_cast
+    field_simp
+    ring
+  have htel : ∀ k : ℕ, k < n → cf (k + 1) * B (k + 1) = G (k + 1) - G k := by
+    intro k hk
+    simp only [hB, hG]
+    rw [hahn_basis_succ α β N u n k]
+    have hr := hrec k hk
+    push_cast
+    linear_combination (poch u k) * hr
+  have hkey : ∑ k ∈ Finset.range (n + 1), cf k * B k = 0 := by
+    rw [Finset.sum_range_succ']
+    rw [Finset.sum_congr rfl fun k hk => htel k (Finset.mem_range.mp hk)]
+    rw [Finset.sum_range_sub]
+    simp only [hB, hG, hcf, poch_zero, sub_self]
+    push_cast
+    ring
+  unfold hahn terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, one_pow]
+  rw [show -(x + 1) = u - 1 by rw [hu]; ring, show -(x - 1) = u + 1 by rw [hu]; ring,
+    show x + α + 1 = -(u - α - 1) by rw [hu]; ring, show (x : ℂ) - N = -(u + N) by rw [hu]; ring,
+    show x - β - N - 1 = -(u + β + N + 1) by rw [hu]; ring, show x = -u by rw [hu]; ring]
+  simp only [neg_neg]
+  have hfin : ∀ v : ℂ, ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k *
+      (poch ((n : ℂ) + α + β + 1) k * poch v k) / (poch (α + 1) k * poch (-(N : ℂ)) k) /
+        (k ! : ℂ) = ∑ k ∈ Finset.range (n + 1), cf k * poch v k := fun v =>
+    Finset.sum_congr rfl fun k _ => by simp only [hcf, hs]; ring
+  rw [hfin, hfin, hfin]
+  clear_value B G cf u s
+  have hexp : ∑ k ∈ Finset.range (n + 1), cf k * B k =
+      (u - α - 1) * (u + N) * (∑ k ∈ Finset.range (n + 1), cf k * poch (u - 1) k -
+        ∑ k ∈ Finset.range (n + 1), cf k * poch u k) +
+      u * (u + β + N + 1) * (∑ k ∈ Finset.range (n + 1), cf k * poch (u + 1) k -
+        ∑ k ∈ Finset.range (n + 1), cf k * poch u k) -
+      n * (n + α + β + 1) * ∑ k ∈ Finset.range (n + 1), cf k * poch u k := by
+    simp only [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [hB]
+    ring
+  rw [hkey] at hexp
+  linear_combination -hexp - (n * ∑ k ∈ Finset.range (n + 1), cf k * poch u k) * hs
 
 /-- 15.5.11 in `b` for the terminating function `₂F₁(-n, b; c; z)`, valid for every `z`
 (both sides are polynomials in `z`). -/
@@ -537,7 +663,38 @@ lemma meixnerPollaczek_one {lam : ℂ} (hlam : lam ≠ 0) (phi x : ℂ) :
 theorem meixnerPollaczek_central_difference {lam : ℂ} (hlam : 0 < lam.re) (phi : ℂ) (n : ℕ) (x : ℂ) :
     (meixnerPollaczek lam phi (n + 1) (x + I / 2) - meixnerPollaczek lam phi (n + 1) (x - I / 2)) / I =
       2 * sin phi * meixnerPollaczek (lam + 1 / 2) phi n x := by
-  sorry
+  have h2 : 0 < (2 * lam).re := by simp; linarith
+  have h2l : 2 * lam ≠ 0 := fun h => by rw [h] at h2; simp at h2
+  have hl0 : lam ≠ 0 := fun h => by rw [h] at hlam; simp at hlam
+  have hp : ∀ k : ℕ, poch (2 * lam + 1) k ≠ 0 := fun k =>
+    poch_ne_zero_of_re_pos (by simp; linarith) k
+  unfold meixnerPollaczek terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  rw [← mul_sub, ← Finset.sum_sub_distrib, Finset.sum_range_succ']
+  simp only [poch_zero, mul_one, Nat.factorial_zero, Nat.cast_one, div_one, sub_self, add_zero,
+    pow_zero]
+  rw [show lam + I * (x + I / 2) = (lam + I * x) - 1 / 2 by linear_combination (1 / 2 : ℂ) * I_sq,
+    show lam + I * (x - I / 2) = (lam + I * x) + 1 / 2 by linear_combination (-1 / 2 : ℂ) * I_sq]
+  rw [mul_div_assoc, Finset.sum_div, Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  have key := poch_half_sub (lam + I * x) k
+  rw [← sub_div, ← sub_mul, ← sub_div, ← mul_sub, key]
+  have hS := exp_mul_one_sub_exp phi
+  rw [poch_succ_left (2 * lam), poch_succ_left (2 * lam) k, poch_succ_left (-((n + 1 : ℕ) : ℂ)),
+    Nat.factorial_succ, Nat.factorial_succ, show 2 * (lam + 1 / 2) = 2 * lam + 1 by ring,
+    show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring,
+    show lam + I * x + 1 / 2 = lam + 1 / 2 + I * x by ring, pow_succ,
+    show I * ((n + 1 : ℕ) : ℂ) * phi = I * n * phi + I * phi by push_cast; ring, exp_add]
+  have hS' : sin phi = exp (I * phi) * (1 - exp (-2 * I * phi)) / (2 * I) := by
+    rw [hS]; field_simp
+  rw [hS']
+  have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast k.succ_ne_zero
+  have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
+  have := hp k; have := hp n
+  push_cast
+  field_simp
 
 /-- `∑ₙ C(N,n) (-n)ₖ zⁿ w^{N-n} = (-N)ₖ zᵏ (z+w)^{N-k}` for `k ≤ N`: factorial moments of a
 binomial distribution. -/
@@ -731,6 +888,21 @@ lemma tendsto_const_div_ofReal_atTop (c : ℂ) :
   rw [ofReal_zero] at this
   simpa [div_eq_mul_inv] using this.const_mul c
 
+/-- `(c + s t)_k / t^k → s^k` as the real `t → ∞`. -/
+lemma tendsto_poch_add_mul_div_pow (c s : ℂ) (k : ℕ) :
+    Tendsto (fun t : ℝ => poch (c + s * t) k / (t : ℂ) ^ k) atTop (𝓝 (s ^ k)) := by
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih =>
+    have h1 : Tendsto (fun t : ℝ => (c + k) / (t : ℂ) + s) atTop (𝓝 s) := by
+      simpa using (tendsto_const_div_ofReal_atTop (c + k)).add_const s
+    refine ((ih.mul h1).congr' ?_).trans (by rw [pow_succ])
+    filter_upwards [eventually_gt_atTop 0] with t ht
+    have ht' : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    rw [poch_succ, pow_succ]
+    field_simp
+    ring
+
 @[dlmf 18.21.E3]
 theorem hahn_limit_krawtchouk {p : ℝ} (hp : 0 < p) (N n : ℕ) (x : ℂ) :
     Tendsto (fun t : ℝ => hahn (p * t) ((1 - p) * t) N n x) atTop (𝓝 (krawtchouk p N n x)) := by
@@ -762,7 +934,37 @@ theorem hahn_limit_krawtchouk {p : ℝ} (hp : 0 < p) (N n : ℕ) (x : ℂ) :
 @[dlmf 18.21.E5]
 theorem hahn_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (x : ℂ) :
     Tendsto (fun N : ℕ => hahn α β N n (N * x)) atTop (𝓝 (jacobiP α β n (1 - 2 * x) / jacobiP α β n 1)) := by
-  sorry
+  have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hP1 : poch ((α : ℂ) + 1) n / (n ! : ℂ) ≠ 0 :=
+    div_ne_zero (poch_ne_zero_of_not_neg_nat hα' n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
+  have hJ : jacobiP α β n (1 - 2 * x) / jacobiP α β n 1 =
+      ∑ k ∈ Finset.range (n + 1), gaussHGCoeff (-(n : ℂ)) (n + α + β + 1) (α + 1) k * x ^ k := by
+    unfold jacobiP
+    rw [show (1 - (1 - 2 * x)) / 2 = x by ring, sub_self, zero_div,
+      ordinaryHypergeometric_zero, mul_one, mul_div_cancel_left₀ _ hP1,
+      ordinaryHypergeometric_eq_sum_neg_nat]
+  rw [hJ]
+  unfold hahn terminatingHG
+  apply tendsto_finsetSum
+  intro k _
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, one_pow]
+  have hnat := tendsto_natCast_atTop_atTop (R := ℝ)
+  have h1 := (tendsto_poch_add_mul_div_pow 0 (-x) k).comp hnat
+  have h2 := (tendsto_poch_add_mul_div_pow 0 (-1) k).comp hnat
+  have hneg : ((-1 : ℂ)) ^ k ≠ 0 := pow_ne_zero _ (by norm_num)
+  have h3 := (h1.div h2 hneg).const_mul (gaussHGCoeff (-(n : ℂ)) (n + α + β + 1) (α + 1) k)
+  rw [show (-x) ^ k / (-1 : ℂ) ^ k = x ^ k by rw [neg_pow x, mul_div_cancel_left₀ _ hneg]] at h3
+  refine h3.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with N hN
+  have hN' : ((N : ℝ) : ℂ) ≠ 0 := by exact_mod_cast hN.ne'
+  simp only [Pi.div_apply, Function.comp_apply, zero_add, ofReal_natCast]
+  rw [show -1 * (N : ℂ) = -(N : ℂ) by ring, show -x * (N : ℂ) = -(N * x) by ring]
+  have hNk : ((N : ℂ)) ^ k ≠ 0 := pow_ne_zero _ (by exact_mod_cast hN.ne')
+  unfold gaussHGCoeff
+  by_cases hp : poch (-(N : ℂ)) k = 0
+  · simp [hp]
+  · field_simp
 
 @[dlmf 18.21.E6]
 theorem krawtchouk_limit_charlier {a : ℂ} (ha : a ≠ 0) (n : ℕ) (x : ℂ) :
@@ -996,20 +1198,185 @@ theorem continuousHahn_difference_equation {a b : ℂ} (ha : 0 < a.re) (hb : 0 <
     (x - I * a) * (x - I * b) *
       (continuousHahn a b (star a) (star b) n (x - I) - continuousHahn a b (star a) (star b) n x) +
     n * (n + a + b + star a + star b - 1) * continuousHahn a b (star a) (star b) n x = 0 := by
-  sorry
+  set c : ℂ := star a with hcdef
+  set d : ℂ := star b with hddef
+  have hAre : 0 < (a + c).re := by simp [hcdef]; linarith
+  have hDre : 0 < (a + d).re := by simp [hddef]; linarith
+  have hpA : ∀ k : ℕ, poch (a + c) k ≠ 0 := fun k => poch_ne_zero_of_re_pos hAre k
+  have hpD : ∀ k : ℕ, poch (a + d) k ≠ 0 := fun k => poch_ne_zero_of_re_pos hDre k
+  have hAk : ∀ k : ℕ, a + c + k ≠ 0 := fun k h => by
+    have := congrArg re h; simp only [add_re, natCast_re, zero_re] at this hAre
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hDk : ∀ k : ℕ, a + d + k ≠ 0 := fun k h => by
+    have := congrArg re h; simp only [add_re, natCast_re, zero_re] at this hDre
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  clear_value c d
+  set s : ℂ := (n : ℂ) + a + b + c + d - 1 with hs
+  set w : ℂ := a + I * x with hw
+  set cf : ℕ → ℂ := fun k => poch (-(n : ℂ)) k * poch s k / (poch (a + c) k * poch (a + d) k) /
+    k ! with hcf
+  set G : ℕ → ℂ := fun k => cf k * ((n - k) * (n + k + a + b + c + d - 1) * poch w k) with hG
+  set B : ℕ → ℂ := fun k => -((w - a - c) * (w - a - d)) * (poch (w - 1) k - poch w k) -
+      w * (w - a + b) * (poch (w + 1) k - poch w k) +
+      n * (n + a + b + c + d - 1) * poch w k with hB
+  have hrec : ∀ k : ℕ, cf (k + 1) * ((k + 1) * (a + c + k) * (a + d + k)) =
+      cf k * ((k - n) * (s + k)) := by
+    intro k
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast k.succ_ne_zero
+    have := hpA k; have := hpD k; have := hAk k; have := hDk k
+    simp only [hcf]
+    rw [poch_succ, poch_succ s, poch_succ (a + c), poch_succ (a + d), Nat.factorial_succ]
+    push_cast
+    field_simp
+    ring
+  have htel : ∀ k : ℕ, cf (k + 1) * B (k + 1) = G (k + 1) - G k := by
+    intro k
+    simp only [hB, hG]
+    rw [ch_basis_succ a b c d w n k]
+    have hr := hrec k
+    push_cast
+    linear_combination (poch w k) * hr
+  have hkey : ∑ k ∈ Finset.range (n + 1), cf k * B k = 0 := by
+    rw [Finset.sum_range_succ']
+    simp_rw [htel]
+    rw [Finset.sum_range_sub]
+    simp only [hB, hG, hcf, poch_zero, sub_self]
+    push_cast
+    ring
+  unfold continuousHahn terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, one_pow]
+  rw [show a + I * (x + I) = w - 1 by rw [hw]; linear_combination I_sq,
+    show a + I * (x - I) = w + 1 by rw [hw]; linear_combination -I_sq,
+    show (x + I * c) * (x + I * d) = -((w - a - c) * (w - a - d)) by
+      rw [hw]; linear_combination (x ^ 2 + c * d) * I_sq,
+    show (x - I * a) * (x - I * b) = -(w * (w - a + b)) by
+      rw [hw]; linear_combination (x ^ 2 + a * b) * I_sq]
+  have hfin : ∀ v : ℂ, ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k *
+      (poch ((n : ℂ) + a + b + c + d - 1) k * poch v k) / (poch (a + c) k * poch (a + d) k) /
+        (k ! : ℂ) = ∑ k ∈ Finset.range (n + 1), cf k * poch v k := fun v =>
+    Finset.sum_congr rfl fun k _ => by simp only [hcf, hs]; ring
+  rw [hfin, hfin, hfin, ← hw]
+  clear_value B G cf w s
+  have hexp : ∑ k ∈ Finset.range (n + 1), cf k * B k =
+      -((w - a - c) * (w - a - d)) * (∑ k ∈ Finset.range (n + 1), cf k * poch (w - 1) k -
+        ∑ k ∈ Finset.range (n + 1), cf k * poch w k) -
+      w * (w - a + b) * (∑ k ∈ Finset.range (n + 1), cf k * poch (w + 1) k -
+        ∑ k ∈ Finset.range (n + 1), cf k * poch w k) +
+      n * (n + a + b + c + d - 1) * ∑ k ∈ Finset.range (n + 1), cf k * poch w k := by
+    simp only [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [hB]
+    ring
+  rw [hkey] at hexp
+  linear_combination (-(I ^ n * poch (a + c) n * poch (a + d) n / n !)) * hexp +
+    (I ^ n * poch (a + c) n * poch (a + d) n / n ! * n *
+      ∑ k ∈ Finset.range (n + 1), cf k * poch w k) * hs
 
 @[dlmf 18.22.E17]
 theorem meixnerPollaczek_difference_equation {lam : ℂ} (hlam : 0 < lam.re) (phi : ℂ) (n : ℕ) (x : ℂ) :
     exp (I * phi) * (x + I * lam) * (meixnerPollaczek lam phi n (x + I) - meixnerPollaczek lam phi n x) +
     exp (-I * phi) * (x - I * lam) * (meixnerPollaczek lam phi n (x - I) - meixnerPollaczek lam phi n x) +
     2 * n * sin phi * meixnerPollaczek lam phi n x = 0 := by
-  sorry
+  have hp : ∀ k : ℕ, poch (2 * lam) k ≠ 0 := fun k => poch_ne_zero_of_re_pos (by simp; linarith) k
+  have h2k : ∀ k : ℕ, 2 * lam + k ≠ 0 := fun k h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  set z : ℂ := 1 - exp (-2 * I * phi) with hz
+  set w : ℂ := lam + I * x with hw
+  set c : ℕ → ℂ := fun k => poch (-(n : ℂ)) k / poch (2 * lam) k * z ^ k / k ! with hc
+  set G : ℕ → ℂ := fun k => c k * (2 * (n - k) * sin phi * poch w k) with hG
+  have hS := exp_mul_one_sub_exp phi
+  -- the coefficient recurrence
+  have hrec : ∀ k : ℕ, c (k + 1) * ((k + 1) * (k + 2 * lam)) = c k * ((k - n) * z) := by
+    intro k
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast k.succ_ne_zero
+    have := hp k; have := h2k k
+    simp only [hc]
+    rw [poch_succ, poch_succ, Nat.factorial_succ, pow_succ]
+    push_cast
+    field_simp
+    ring
+  -- the basis action, telescoped
+  set B : ℕ → ℂ := fun k => exp (I * phi) * (-I * (w - 2 * lam)) * (poch (w - 1) k - poch w k) +
+      exp (-I * phi) * (-I * w) * (poch (w + 1) k - poch w k) + 2 * n * sin phi * poch w k with hB
+  have htel : ∀ k : ℕ, c (k + 1) * B (k + 1) = G (k + 1) - G k := by
+    intro k
+    simp only [hB, hG]
+    rw [mp_basis_succ lam phi w n k]
+    have hr := hrec k
+    have hz' : I * (exp (I * phi) * z) = -2 * sin phi := by
+      rw [hz, hS]; linear_combination (2 * sin phi) * I_sq
+    push_cast
+    linear_combination (-(I * exp (I * phi) * poch w k)) * hr +
+      (c k * (n - k) * poch w k) * hz'
+  have hkey : ∑ k ∈ Finset.range (n + 1), c k * B k = 0 := by
+    rw [Finset.sum_range_succ']
+    simp_rw [htel]
+    rw [Finset.sum_range_sub]
+    simp only [hB, hG, hc, poch_zero, sub_self]
+    push_cast
+    ring
+  unfold meixnerPollaczek terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  rw [show lam + I * (x + I) = w - 1 by rw [hw]; linear_combination I_sq,
+    show lam + I * (x - I) = w + 1 by rw [hw]; linear_combination -I_sq,
+    show x + I * lam = -I * (w - 2 * lam) by rw [hw]; linear_combination x * I_sq,
+    show x - I * lam = -I * w by rw [hw]; linear_combination x * I_sq]
+  have hfin : ∀ v : ℂ, ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k * poch v k / poch (2 * lam) k *
+      z ^ k / (k ! : ℂ) = ∑ k ∈ Finset.range (n + 1), c k * poch v k := fun v =>
+    Finset.sum_congr rfl fun k _ => by simp only [hc]; ring
+  rw [hfin, hfin, hfin, ← hw]
+  clear_value B G c w z
+  have hexp : ∑ k ∈ Finset.range (n + 1), c k * B k =
+      exp (I * phi) * (-I * (w - 2 * lam)) * (∑ k ∈ Finset.range (n + 1), c k * poch (w - 1) k -
+        ∑ k ∈ Finset.range (n + 1), c k * poch w k) +
+      exp (-I * phi) * (-I * w) * (∑ k ∈ Finset.range (n + 1), c k * poch (w + 1) k -
+        ∑ k ∈ Finset.range (n + 1), c k * poch w k) +
+      2 * n * sin phi * ∑ k ∈ Finset.range (n + 1), c k * poch w k := by
+    simp only [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [hB]
+    ring
+  rw [hkey] at hexp
+  linear_combination (-(poch (2 * lam) n / n ! * exp (I * n * phi))) * hexp
 
 @[dlmf 18.22.E27]
 theorem continuousHahn_central_difference {a b c d : ℂ} (hac : 0 < (a + c).re) (had : 0 < (a + d).re) (n : ℕ) (x : ℂ) :
     (continuousHahn a b c d (n + 1) (x + I / 2) - continuousHahn a b c d (n + 1) (x - I / 2)) / I =
       (n + a + b + c + d) * continuousHahn (a + 1 / 2) (b + 1 / 2) (c + 1 / 2) (d + 1 / 2) n x := by
-  sorry
+  have h0 : ∀ z : ℂ, 0 < z.re → z ≠ 0 := fun z hz h => by rw [h] at hz; simp at hz
+  have hp : ∀ (z : ℂ) (k : ℕ), 0 < z.re → poch (z + 1) k ≠ 0 := fun z k hz =>
+    poch_ne_zero_of_re_pos (by simp; linarith) k
+  unfold continuousHahn terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, one_pow]
+  rw [← mul_sub, ← Finset.sum_sub_distrib, Finset.sum_range_succ']
+  simp only [poch_zero, mul_one, Nat.factorial_zero, Nat.cast_one, div_one, sub_self, add_zero]
+  rw [show a + I * (x + I / 2) = (a + I * x) - 1 / 2 by linear_combination (1 / 2 : ℂ) * I_sq,
+    show a + I * (x - I / 2) = (a + I * x) + 1 / 2 by linear_combination (-1 / 2 : ℂ) * I_sq]
+  rw [mul_div_assoc, Finset.sum_div, Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  have key := poch_half_sub (a + I * x) k
+  rw [← sub_div, ← sub_div, ← mul_sub, ← mul_sub, key]
+  rw [poch_succ_left (a + c), poch_succ_left (a + d),
+    poch_succ_left (a + c) k, poch_succ_left (a + d) k,
+    poch_succ_left (-((n + 1 : ℕ) : ℂ)), poch_succ_left (((n + 1 : ℕ) : ℂ) + a + b + c + d - 1),
+    Nat.factorial_succ, Nat.factorial_succ,
+    show a + 1 / 2 + (c + 1 / 2) = a + c + 1 by ring, show a + 1 / 2 + (d + 1 / 2) = a + d + 1 by ring,
+    show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring,
+    show ((n + 1 : ℕ) : ℂ) + a + b + c + d - 1 + 1 = (n : ℂ) + (a + 1 / 2) + (b + 1 / 2) +
+      (c + 1 / 2) + (d + 1 / 2) - 1 by push_cast; ring,
+    show a + I * x + 1 / 2 = a + 1 / 2 + I * x by ring, pow_succ]
+  have := h0 _ hac; have := h0 _ had
+  have := hp _ k hac; have := hp _ k had
+  have := hp _ n hac; have := hp _ n had
+  have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hk1 : (k : ℂ) + 1 ≠ 0 := by exact_mod_cast k.succ_ne_zero
+  have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
+  push_cast
+  field_simp
+  ring
 
 @[dlmf 18.23.E6]
 theorem continuousHahn_generating_function {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) (x z : ℂ) :

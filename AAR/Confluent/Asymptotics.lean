@@ -7,6 +7,8 @@ module
 
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
+public import AAR.Hypergeometric.Asymptotics
+public import AAR.Gamma.Asymptotics
 public import Mathlib.Analysis.Asymptotics.Lemmas
 
 /-!
@@ -102,22 +104,28 @@ theorem confluentM_large_b (a z : ℂ) (n : ℕ) :
       (fun b : ℝ => ((b : ℂ)⁻¹) ^ n) := by
   sorry
 
-/-- Generating function for the large-`b` coefficients in 13.8.2. -/
+/-- Analytic normalization of the generating function in 13.8.3.
+The former product of singular powers assigned zero at the removable point. -/
 @[dlmf 13.8.E3]
 def largeBGenerating (a z t : ℂ) : ℂ :=
-  (exp t - 1) ^ (a - 1) * exp (t + z * (1 - exp (-t)))
+  AAR.Hypergeometric.expSubOneDiv t ^ (a - 1) * exp (t + z * (1 - exp (-t)))
 
 @[dlmf 13.8.E3]
 def largeBCoeff (a z : ℂ) (s : ℕ) : ℂ :=
-  iteratedDeriv s (fun t => largeBGenerating a z t * t ^ (1 - a)) 0 / s.factorial
+  iteratedDeriv s (largeBGenerating a z) 0 / s.factorial
 
+@[simp]
+theorem largeBCoeff_zero (a z : ℂ) : largeBCoeff a z 0 = 1 := by
+  simp [largeBCoeff, largeBGenerating, AAR.Hypergeometric.expSubOneDiv]
+
+/- The Gamma ratio grows like b^a, so the absolute remainder is O(b^(-n)). -/
 @[dlmf 13.8.E2]
-theorem confluentM_large_b_poincare (a z : ℂ) (n : ℕ) (hba : ∀ k : ℕ, a ≠ k + 1) :
+theorem confluentM_large_b_poincare (a z : ℂ) (n : ℕ) :
     Asymptotics.IsBigO atTop
       (fun b : ℝ => confluentM a b z -
         Gamma (b : ℂ) / Gamma ((b : ℂ) - a) *
           ∑ s ∈ Finset.range n, poch a s * largeBCoeff a z s * (b : ℂ) ^ (-(s : ℂ) - a))
-      (fun b : ℝ => (b : ℂ) ^ (-(n : ℂ) - a)) := by
+      (fun b : ℝ => (b : ℂ) ^ (-(n : ℂ))) := by
   sorry
 
 @[dlmf 13.8.E6]
@@ -138,23 +146,26 @@ theorem confluentU_transition (a : ℂ) :
       (fun b : ℝ => (b : ℂ) ^ (-(a / 2) - 1)) := by
   sorry
 
+/- DLMF uses scaled Gamma in M, ordinary Gamma in U, and a relative error in U.
+The parameter ray is real and positive, as in the source statement. -/
 @[dlmf 13.8.E17]
-theorem confluentM_large_a_b (ν : ℂ) (z : ℂ) (hν : 0 < ν.re) (hν1 : ν.re < 1) :
+theorem confluentM_large_a_b (ν : ℝ) (z : ℂ) (hν : 0 < ν) (hν1 : ν < 1) :
     Asymptotics.IsBigO atTop
       (fun a : ℝ => confluentM a (a / ν) z -
-        exp (ν * z) * Gamma ((a / ν : ℂ)) / Gamma (a : ℂ) *
+        exp (ν * z) * AAR.Gamma.scaledGamma (a / ν : ℂ) / AAR.Gamma.scaledGamma (a : ℂ) *
           (1 + (1 - ν) * (1 + 6 * ν ^ 2 * z ^ 2) / (12 * a)))
       (fun a : ℝ => (a : ℂ)⁻¹ ^ 2) := by
   sorry
 
 @[dlmf 13.8.E18]
-theorem confluentU_large_a_b (ν : ℂ) (z : ℂ) (hν : 0 < ν.re) (hν1 : ν.re < 1)
-    (hz : z ∈ slitPlane) :
+theorem confluentU_large_a_b (ν : ℝ) (z : ℂ) (hν : 0 < ν) (hν1 : ν < 1)
+    (hz : 0 < z.re) :
     Asymptotics.IsBigO atTop
       (fun a : ℝ => confluentU a (a / ν + 1) z -
-        z ^ (-(a / ν)) * exp ((1 - ν) * z) * Gamma (a / ν : ℂ) / Gamma (a : ℂ) *
+        z ^ (-(a / ν : ℂ)) * exp ((1 - ν) * z) * Gamma (a / ν : ℂ) / Gamma (a : ℂ) *
           (1 + ν * z * (1 - ν) * (2 - ν * z) / (2 * a)))
-      (fun a : ℝ => (a : ℂ)⁻¹ ^ 2) := by
+      (fun a : ℝ => z ^ (-(a / ν : ℂ)) * exp ((1 - ν) * z) *
+        Gamma (a / ν : ℂ) / Gamma (a : ℂ) * (a : ℂ)⁻¹ ^ 2) := by
   sorry
 
 @[dlmf 13.19.E1]

@@ -14,6 +14,7 @@ public import Mathlib.Analysis.Analytic.Uniqueness
 public import Mathlib.Analysis.SpecialFunctions.RegularizedHypergeometric
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Complex.AbelLimit
 
 /-!
 # Analytic continuation in the parameters (DLMF §15.2(ii))
@@ -187,6 +188,24 @@ lemma ascPochhammer_eval_add (x : ℂ) (m k : ℕ) :
       (ascPochhammer ℂ m).eval x * (ascPochhammer ℂ k).eval (x + m) := by
   rw [← ascPochhammer_mul, Polynomial.eval_mul, Polynomial.eval_comp]
   simp
+
+/-- `1/Γ(y) = (y)_{p+1}/Γ(y+p+1)` for every `y`. -/
+lemma inv_Gamma_eq_poch_mul (p : ℕ) (y : ℂ) :
+    (Gamma y)⁻¹ = poch y (p + 1) * (Gamma (y + (p + 1 : ℕ)))⁻¹ := by
+  by_cases hy : ∀ m : ℕ, y ≠ -(m : ℂ)
+  · have h := Gamma_add_nat_div_Gamma_eq (n := p + 1) y hy
+    have h0 := Gamma_ne_zero hy
+    have h1 : Gamma (y + (p + 1 : ℕ)) ≠ 0 := Gamma_ne_zero (not_neg_nat_add_nat hy _)
+    rw [poch, ← h]
+    field_simp
+  · simp only [not_forall, not_not] at hy
+    obtain ⟨j, rfl⟩ := hy
+    rw [Gamma_neg_nat_eq_zero, inv_zero]
+    rcases Nat.lt_or_ge p j with hpj | hpj
+    · have : -(j : ℂ) + ((p + 1 : ℕ) : ℂ) = -((j - p - 1 : ℕ) : ℂ) := by
+        rw [Nat.cast_sub (by omega), Nat.cast_sub (by omega)]; push_cast; ring
+      rw [this, Gamma_neg_nat_eq_zero, inv_zero, mul_zero]
+    · rw [poch_neg_nat_eq_zero (by omega), zero_mul]
 
 /-! ### The regularized Gauss function -/
 
@@ -797,6 +816,40 @@ theorem euler_transformation_of_ne_neg_nat {a b c : ℂ} (hc : ∀ k : ℕ, c �
   rw [div_eq_iff hΓ] at h
   rw [h]
   field_simp
+
+/-- AAR Theorem 2.1.3: Gauss's asymptotic as `x → 1⁻`. By Euler's transformation,
+`(1-x)^(a+b-c) F(a,b;c;x) = F(c-a,c-b;c;x)`, which tends to `F(c-a,c-b;c;1)` by Abel's
+theorem; Gauss's summation theorem evaluates the limit. -/
+@[dlmf 15.4.E23]
+theorem _root_.tendsto_ordinaryHypergeometric_nhdsWithin_one {a b c : ℂ}
+    (hc : ∀ k : ℕ, c ≠ -k) (h : (c - a - b).re < 0) :
+    Tendsto (fun x : ℝ => (1 - x : ℂ) ^ (a + b - c) * ₂F₁ a b c (x : ℂ))
+      (𝓝[<] (1 : ℝ)) (𝓝 (Gamma (a + b - c) * Gamma c / (Gamma a * Gamma b))) := by
+  have h' : 0 < (c - (c - a) - (c - b)).re := by
+    simp only [sub_re] at h ⊢
+    linarith
+  have hG := gauss_summation (a := c - a) (b := c - b) hc h'
+  rw [show c - (c - a) - (c - b) = a + b - c by ring, sub_sub_cancel, sub_sub_cancel,
+    ordinaryHypergeometric_one_eq_tsum] at hG
+  have hs : Summable (gaussHGCoeff (c - a) (c - b) c) := by
+    simpa using ordinaryHypergeometric_summable_of_mem_sphere (z := 1) (by simp) h'
+  have habel := Complex.tendsto_tsum_powerSeries_nhdsWithin_lt hs.hasSum.tendsto_sum_nat
+  rw [tendsto_map'_iff, hG] at habel
+  rw [show Gamma (a + b - c) * Gamma c = Gamma c * Gamma (a + b - c) by ring]
+  apply habel.congr'
+  filter_upwards [Ioo_mem_nhdsLT (show (-1 : ℝ) < 1 by norm_num)] with x hx
+  have hx1 : ‖(x : ℂ)‖ < 1 := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_lt]
+    exact ⟨hx.1, hx.2⟩
+  have hx0 : (1 : ℂ) - x ≠ 0 := by
+    rw [← ofReal_one, ← ofReal_sub, ofReal_ne_zero]
+    linarith [hx.2]
+  rw [euler_transformation_of_ne_neg_nat hc hx1, ← mul_assoc, ← cpow_add _ _ hx0,
+    show a + b - c + (c - a - b) = 0 by ring, cpow_zero, one_mul, ordinaryHypergeometric_eq_tsum]
+  simp only [Function.comp_apply, smul_eq_mul]
+  congr 1
+  funext n
+  simp [gaussHGCoeff, poch, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
 
 /-- Pfaff's transformation 15.8.1 for `₂F₁`, with no hypothesis on `a`, `b`. -/
 theorem pfaff_transformation_of_ne_neg_nat {a b c : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) {z : ℂ}

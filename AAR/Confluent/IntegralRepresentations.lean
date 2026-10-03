@@ -10,11 +10,15 @@ public import AAR.Confluent.Whittaker
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Hypergeometric.EulerIntegral
+public import AAR.Hypergeometric.ArgumentContinuation
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 /-!
 # Integral representations (DLMF §§13.4, 13.16)
+
+Gauss kernels use cut-plane continuation, since their arguments range over the
+negative ray. Argument bounds explicitly exclude zero where needed.
 
 Euler, Laplace, Bessel, and vertical Barnes integrals are acquired on real
 intervals or vertical lines. Hankel-loop and Pochhammer-double-loop formulas
@@ -73,7 +77,7 @@ theorem regularized_bessel_integral {a b z : ℂ} (ha : 0 < a.re) (hz : 0 < z.re
   sorry
 
 @[dlmf 13.4.E4]
-theorem confluentU_laplace {a b z : ℂ} (ha : 0 < a.re) (hz : |z.arg| < π / 2) :
+theorem confluentU_laplace {a b z : ℂ} (ha : 0 < a.re) (hz : 0 < z.re) :
     confluentU a b z =
       1 / Gamma a *
         ∫ t : ℝ in Set.Ioi 0,
@@ -81,7 +85,7 @@ theorem confluentU_laplace {a b z : ℂ} (ha : 0 < a.re) (hz : |z.arg| < π / 2)
   sorry
 
 @[dlmf 13.4.E5]
-theorem confluentU_stieltjes {a b z : ℂ} (hz : |z.arg| < π)
+theorem confluentU_stieltjes {a b z : ℂ} (hz : z ∈ slitPlane)
     (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
     confluentU a b z =
       z ^ (1 - a) / (Gamma a * Gamma (1 + a - b)) *
@@ -91,7 +95,7 @@ theorem confluentU_stieltjes {a b z : ℂ} (hz : |z.arg| < π)
   sorry
 
 @[dlmf 13.4.E6]
-theorem confluentU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : |z.arg| < π)
+theorem confluentU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : z ∈ slitPlane)
     (hn0 : -b.re < n) (hn1 : (n : ℝ) < 1 + (a - b).re) :
     confluentU a b z =
       (-1 : ℂ) ^ n * z ^ (1 - b - n) / Gamma (1 + a - b) *
@@ -113,12 +117,12 @@ theorem confluentU_integral_besselK {a b z : ℂ} (hz : 0 ≤ z.re) (hz0 : z ≠
   sorry
 
 @[dlmf 13.4.E8]
-theorem confluentU_gauss {a b c z : ℂ} (ha : 0 < c.re) (hz : |z.arg| < π / 2) :
+theorem confluentU_gauss {a b c z : ℂ} (ha : 0 < c.re) (hz : 0 < z.re) :
     confluentU a b z =
       z ^ (c - a) *
         ∫ t : ℝ in Set.Ioi 0,
           exp (-z * t) * (t : ℂ) ^ (c - 1) *
-            regularizedGaussHGFun a (a - b + 1) c (-(t : ℂ)) := by
+            AAR.Hypergeometric.gaussHGCut a (a - b + 1) c (-(t : ℂ)) := by
   sorry
 
 /-- Vertical Mellin–Barnes line; the factor `i` from `dt` is included. -/
@@ -193,7 +197,7 @@ theorem whittakerM_integral_besselI {κ μ z : ℂ} (hκ : (κ - μ).re - 1 / 2 
 
 @[dlmf 13.16.E5]
 theorem whittakerW_laplace {κ μ z : ℂ} (hμ : κ.re < μ.re + 1 / 2)
-    (hz : |z.arg| < π / 2) :
+    (hz : 0 < z.re) :
     whittakerW κ μ z =
       z ^ (μ + 1 / 2) * (2 : ℂ) ^ (-(2 * μ)) / Gamma (1 / 2 + μ - κ) *
         ∫ t : ℝ in Set.Ioi 1,
@@ -202,7 +206,7 @@ theorem whittakerW_laplace {κ μ z : ℂ} (hμ : κ.re < μ.re + 1 / 2)
   sorry
 
 @[dlmf 13.16.E6]
-theorem whittakerW_stieltjes {κ μ z : ℂ} (hz : |z.arg| < π)
+theorem whittakerW_stieltjes {κ μ z : ℂ} (hz : z ∈ slitPlane)
     (hκ : (2 * μ.re) < (1 / 2 + μ - κ).re) (hκ0 : 0 < (1 / 2 + μ - κ).re) :
     whittakerW κ μ z =
       exp (-z / 2) * z ^ (κ + 1) /
@@ -226,12 +230,12 @@ theorem whittakerW_integral_besselK {κ μ z : ℂ} (hκ : 0 < (μ - κ).re + 1 
   sorry
 
 @[dlmf 13.16.E9]
-theorem whittakerW_gauss {κ μ c z : ℂ} (hc : 0 < c.re) (hz : |z.arg| < π / 2) :
+theorem whittakerW_gauss {κ μ c z : ℂ} (hc : 0 < c.re) (hz : 0 < z.re) :
     whittakerW κ μ z =
       exp (-z / 2) * z ^ (κ + c) *
         ∫ t : ℝ in Set.Ioi 0,
           exp (-z * t) * (t : ℂ) ^ (c - 1) *
-            regularizedGaussHGFun (1 / 2 + μ - κ) (1 / 2 - μ - κ) c (-(t : ℂ)) := by
+            AAR.Hypergeometric.gaussHGCut (1 / 2 + μ - κ) (1 / 2 - μ - κ) c (-(t : ℂ)) := by
   sorry
 
 @[dlmf 13.16.E11]

@@ -124,7 +124,7 @@ theorems and the supporting function definitions, as distinguished in the source
 | [15.4.E20](https://dlmf.nist.gov/15.4.E20) | Existing: [`gauss_summation`](EulerIntegral.lean) |
 | [15.4.E21](https://dlmf.nist.gov/15.4.E21) | New: [`zero_balanced_limit`](AnalyticProperties.lean) |
 | [15.4.E22](https://dlmf.nist.gov/15.4.E22) | New: [`imaginary_excess_limit`](AnalyticProperties.lean) |
-| [15.4.E23](https://dlmf.nist.gov/15.4.E23) | Existing: [`tendsto_ordinaryHypergeometric_nhdsWithin_one`](Basic.lean) |
+| [15.4.E23](https://dlmf.nist.gov/15.4.E23) | Existing: [`tendsto_ordinaryHypergeometric_nhdsWithin_one`](Continuation.lean) |
 | [15.4.E24](https://dlmf.nist.gov/15.4.E24) | Existing: [`chu_vandermonde`](EulerIntegral.lean) |
 | [15.4.E25](https://dlmf.nist.gov/15.4.E25) | Existing: [`dougall_bilateral`](Identities.lean) |
 | [15.4.E26](https://dlmf.nist.gov/15.4.E26) | Existing: [`kummer_theorem`](Identities.lean) |
@@ -211,7 +211,7 @@ theorems and the supporting function definitions, as distinguished in the source
 | [15.8.E15](https://dlmf.nist.gov/15.8.E15) | New: [`quadratic_well_poised_plus`](FurtherTransformations.lean) |
 | [15.8.E16](https://dlmf.nist.gov/15.8.E16) | New: [`quadratic_well_poised_minus`](FurtherTransformations.lean) |
 | [15.8.E17](https://dlmf.nist.gov/15.8.E17) | New: [`quadratic_half_sum`](FurtherTransformations.lean) |
-| [15.8.E18](https://dlmf.nist.gov/15.8.E18) | Existing: [`kummer_quadratic`](Transformations.lean); Existing: [`gauss_quadratic`](Transformations.lean) |
+| [15.8.E18](https://dlmf.nist.gov/15.8.E18) | Existing: [`kummer_quadratic`](FurtherTransformations.lean); Existing: [`gauss_quadratic`](FurtherTransformations.lean) |
 | [15.8.E19](https://dlmf.nist.gov/15.8.E19) | New: [`quadratic_complementary`](FurtherTransformations.lean) |
 | [15.8.E20](https://dlmf.nist.gov/15.8.E20) | New: [`quadratic_complementary_four_mul`](FurtherTransformations.lean) |
 | [15.8.E21](https://dlmf.nist.gov/15.8.E21) | New: [`quadratic_sqrt`](FurtherTransformations.lean) |

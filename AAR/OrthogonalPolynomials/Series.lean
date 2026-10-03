@@ -30,6 +30,106 @@ set_option autoImplicit false
 
 namespace AAR.OrthogonalPolynomials
 
+/-- Recover a scalar power series from its sums on the unit disk. -/
+lemma scalarSeries_unique {c d : ℕ → ℂ} {f : ℂ → ℂ}
+    (hc : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => c n * z ^ n) (f z))
+    (hd : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => d n * z ^ n) (f z)) : c = d := by
+  have series {e : ℕ → ℂ}
+      (he : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => e n * z ^ n) (f z)) :
+      HasFPowerSeriesOnBall f (FormalMultilinearSeries.ofScalars ℂ e) 0
+        ((1 / 2 : NNReal) : ENNReal) := by
+    refine ⟨?_, by norm_num, ?_⟩
+    · apply FormalMultilinearSeries.le_radius_of_summable_norm
+      simpa [FormalMultilinearSeries.ofScalars_norm, norm_mul, norm_pow] using
+        (he (1 / 2) (by norm_num)).summable.norm
+    · intro z hz
+      have hzNN : ‖z‖₊ < (1 / 2 : NNReal) := by
+        simpa only [Metric.mem_eball, edist_zero_right, enorm_lt_coe] using hz
+      have hz' : ‖z‖ < (1 / 2 : ℝ) := by exact_mod_cast hzNN
+      simpa [FormalMultilinearSeries.ofScalars_apply_eq, smul_eq_mul, mul_comm] using
+        he z (by linarith)
+  exact FormalMultilinearSeries.ofScalars_series_injective ℂ ℂ
+    ((series hc).hasFPowerSeriesAt.eq_formalMultilinearSeries (series hd).hasFPowerSeriesAt)
+
+/-- Cauchy product of scalar series, written as a coefficient convolution. -/
+lemma hasSum_scalar_convolution {c d : ℕ → ℂ} {z u v : ℂ}
+    (hc : HasSum (fun n => c n * z ^ n) u)
+    (hd : HasSum (fun n => d n * z ^ n) v) :
+    HasSum (fun n => (∑ k ∈ Finset.range (n + 1), c k * d (n - k)) * z ^ n) (u * v) := by
+  have h := hasSum_sum_range_mul_of_summable_norm hc.summable.norm hd.summable.norm
+  rw [hc.tsum_eq, hd.tsum_eq] at h
+  refine h.congr_fun fun n => ?_
+  rw [Finset.sum_mul]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hk' : k ≤ n := by simpa using Finset.mem_range.mp hk
+  have hp : z ^ n = z ^ k * z ^ (n - k) := by
+    rw [← pow_add, Nat.add_sub_cancel' hk']
+  rw [hp]
+  ring
+
+
+/-- Insert zero odd coefficients into the exponential series. -/
+lemma hasSum_exp_quadratic (q z : ℂ) :
+    HasSum (fun n : ℕ => (if n % 2 = 0 then q ^ (n / 2) / (n / 2)! else 0) * z ^ n)
+      (exp (q * z ^ 2)) := by
+  have hinj : Function.Injective (fun k : ℕ => 2 * k) := by intro i j h; dsimp at h; omega
+  apply (hinj.hasSum_iff (fun n hn => ?_)).mp
+  · convert NormedSpace.expSeries_div_hasSum_exp (q * z ^ 2) using 1
+    · funext k
+      simp only [Function.comp_apply, Nat.mul_mod_right, ↓reduceIte, Nat.mul_div_cancel_left,
+        Nat.ofNat_pos, mul_pow, pow_mul]
+      ring
+    · simp only [Complex.exp_eq_exp_ℂ]
+  · have hodd : n % 2 ≠ 0 := by
+      intro he
+      exact hn ⟨n / 2, by dsimp; omega⟩
+    simp [hodd]
+
+/-- Sum the even-indexed terms of a finite interval. -/
+lemma sum_even_range (f : ℕ → ℂ) (n : ℕ) :
+    (∑ k ∈ Finset.range (n + 1), if k % 2 = 0 then f k else 0) =
+      ∑ k ∈ Finset.range (n / 2 + 1), f (2 * k) := by
+  rw [← Finset.sum_filter]
+  symm
+  apply Finset.sum_bij (fun k _ => 2 * k)
+  · intro k hk
+    simp only [Finset.mem_range, Finset.mem_filter] at hk ⊢
+    omega
+  · intro i hi j hj he
+    omega
+  · intro k hk
+    simp only [Finset.mem_filter, Finset.mem_range] at hk
+    refine ⟨k / 2, Finset.mem_range.mpr (by omega), by omega⟩
+  · intro k hk
+    rfl
+
+/-- A quadratic exponential times the Hermite generating function. -/
+lemma hasSum_exp_quadratic_mul_hermite (q lam x z : ℂ) :
+    HasSum (fun n : ℕ => (∑ k ∈ Finset.range (n / 2 + 1),
+      q ^ k / k ! * ((aeval x (hermitePhys (n - 2 * k)) : ℂ) / (n - 2 * k)! *
+        lam ^ (n - 2 * k))) * z ^ n)
+      (exp (q * z ^ 2 + (2 * x * (lam * z) - (lam * z) ^ 2))) := by
+  have hh : HasSum (fun n => ((aeval x (hermitePhys n) : ℂ) / n ! * lam ^ n) * z ^ n)
+      (exp (2 * x * (lam * z) - (lam * z) ^ 2)) := by
+    convert hasSum_hermitePhys_generating_function x (lam * z) using 1
+    funext n; rw [mul_pow]; ring
+  have h := hasSum_scalar_convolution (hasSum_exp_quadratic q z) hh
+  rw [← exp_add] at h
+  convert h using 1
+  funext n
+  congr 1
+  simp_rw [ite_mul, zero_mul]
+  rw [sum_even_range]
+  simp
+
+/-- The factorial ratio in the even-indexed Hermite formulas. -/
+lemma poch_neg_nat_even_mul_factorial {n k : ℕ} (hk : 2 * k ≤ n) :
+    poch (-(n : ℂ)) (2 * k) * ((n - 2 * k)! : ℂ) = n ! := by
+  have h := poch_neg_nat_mul_factorial hk
+  simpa [pow_mul] using h
+
+
 @[dlmf 18.12.E1]
 theorem jacobi_generating_function {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re)
     {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -140,11 +240,53 @@ theorem chebyshevT_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz 
   · simp; ring
   · ring
 
+/-- `1 - z e^{iθ}` lies in the right half-plane for `‖z‖ < 1`. -/
+lemma one_sub_mul_exp_re_pos {z : ℂ} (hz : ‖z‖ < 1) (θ : ℝ) :
+    0 < (1 - z * exp (θ * I)).re := by
+  have h : ‖z * exp (θ * I)‖ < 1 := by rw [norm_mul, norm_exp_ofReal_mul_I, mul_one]; exact hz
+  have := Complex.re_le_norm (z * exp (θ * I))
+  simp only [sub_re, one_re]
+  linarith
+
 @[dlmf 18.12.E9]
 theorem chebyshevT_log_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => 2 * (Chebyshev.T ℂ (n + 1)).eval (x : ℂ) / (n + 1) * z ^ (n + 1))
       (-log (1 - 2 * x * z + z ^ 2)) := by
-  sorry
+  set θ := Real.arccos x with hθ
+  have hcos : Real.cos θ = x := Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2
+  set u := z * exp (θ * I) with hu
+  set v := z * exp (-θ * I) with hv
+  have hun : ‖u‖ < 1 := by rw [hu, norm_mul, norm_exp_ofReal_mul_I, mul_one]; exact hz
+  have hvn : ‖v‖ < 1 := by
+    rw [hv, norm_mul, show -(θ : ℂ) * I = ((-θ : ℝ) : ℂ) * I by push_cast; ring,
+      norm_exp_ofReal_mul_I, mul_one]; exact hz
+  have h := (Complex.hasSum_taylorSeries_neg_log' hun).add (Complex.hasSum_taylorSeries_neg_log' hvn)
+  have hprod : (1 - u) * (1 - v) = 1 - 2 * x * z + z ^ 2 := by
+    rw [← hcos, ofReal_cos, Complex.cos, hu, hv]
+    have : exp (θ * I) * exp (-θ * I) = 1 := by rw [← exp_add]; ring_nf; simp
+    linear_combination z ^ 2 * this
+  have hre1 : 0 < (1 - u).re := one_sub_mul_exp_re_pos hz θ
+  have hre2 : 0 < (1 - v).re := by
+    have := one_sub_mul_exp_re_pos hz (-θ); push_cast at this; exact this
+  have harg1 := Complex.abs_arg_lt_pi_div_two_iff.mpr (Or.inl hre1)
+  have harg2 := Complex.abs_arg_lt_pi_div_two_iff.mpr (Or.inl hre2)
+  have hne1 : 1 - u ≠ 0 := fun h => by rw [h] at hre1; simp at hre1
+  have hne2 : 1 - v ≠ 0 := fun h => by rw [h] at hre2; simp at hre2
+  have hlog : log ((1 - u) * (1 - v)) = log (1 - u) + log (1 - v) := by
+    apply Complex.log_mul hne1 hne2
+    constructor <;> linarith [abs_lt.mp harg1, abs_lt.mp harg2, Real.pi_pos]
+  rw [← hprod, hlog, neg_add]
+  refine h.congr_fun fun n => ?_
+  have hT : (Chebyshev.T ℂ ((n + 1 : ℕ) : ℤ)).eval (x : ℂ) = cos ((n + 1 : ℕ) * (θ : ℂ)) := by
+    rw [← hcos, ofReal_cos, Chebyshev.T_complex_cos]; push_cast; ring_nf
+  push_cast at hT ⊢
+  have e1 : exp (θ * I) ^ (n + 1) = exp (((n : ℂ) + 1) * θ * I) := by
+    rw [← exp_nat_mul]; push_cast; ring_nf
+  have e2 : exp (-θ * I) ^ (n + 1) = exp (-(((n : ℂ) + 1) * θ * I)) := by
+    rw [← exp_nat_mul]; push_cast; ring_nf
+  have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
+  rw [hT, Complex.cos, hu, hv, mul_pow, mul_pow, e1, e2]
+  field_simp
 
 @[dlmf 18.12.E10]
 theorem chebyshevU_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -233,6 +375,139 @@ theorem hermite_generating_function (x z : ℂ) :
   funext n
   ring
 
+/-- The exponential generating function with an arbitrary starting degree. -/
+lemma hasSum_hermitePhys_shifted (m : ℕ) (x t : ℂ) :
+    HasSum (fun n : ℕ => (aeval x (hermitePhys (m + n)) : ℂ) * t ^ n / n !)
+      ((aeval (x - t) (hermitePhys m) : ℂ) * exp (2 * x * t - t ^ 2)) := by
+  have hderiv (n : ℕ) (y : ℂ) :
+      iteratedDeriv n (fun v : ℂ => (aeval v (hermitePhys m) : ℂ) * exp (-(v ^ 2))) y =
+        (-1 : ℂ) ^ n * (aeval y (hermitePhys (m + n)) : ℂ) * exp (-(y ^ 2)) := by
+    rw [iteratedDeriv_eq_iterate, mul_assoc]
+    induction n generalizing y with
+    | zero => simp
+    | succ n ih =>
+      replace ih := funext ih
+      have hg : deriv (fun v : ℂ => exp (-(v ^ 2))) y = -(2 * y) * exp (-(y ^ 2)) := by
+        rw [deriv_cexp (by fun_prop)]
+        simp [pow_two]; ring
+      rw [Function.iterate_succ_apply', ih, deriv_const_mul_field, deriv_fun_mul,
+        pow_succ, hg, show m + (n + 1) = (m + n) + 1 by omega, hermitePhys_succ,
+        map_sub, map_mul, map_mul, map_ofNat, aeval_X, Polynomial.deriv_aeval]
+      · ring
+      · apply Polynomial.differentiable_aeval
+      · fun_prop
+  have hf : Differentiable ℂ (fun y : ℂ => (aeval y (hermitePhys m) : ℂ) * exp (-(y ^ 2))) := by
+    apply Differentiable.mul
+    · apply Polynomial.differentiable_aeval
+    · fun_prop
+  have hne : exp (-(x ^ 2)) ≠ 0 := exp_ne_zero _
+  have hs := Complex.hasSum_taylorSeries_of_entire (E := ℂ) hf x (x - t)
+  have hterm : (fun n : ℕ =>
+      (n ! : ℂ)⁻¹ • ((x - t) - x) ^ n •
+        iteratedDeriv n (fun y : ℂ => (aeval y (hermitePhys m) : ℂ) * exp (-(y ^ 2))) x) =
+      fun n => (aeval x (hermitePhys (m + n)) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) := by
+    funext n
+    simp only [sub_sub_cancel_left, smul_eq_mul]
+    rw [hderiv, neg_pow]
+    ring_nf
+    rw [mul_comm n 2, pow_mul, neg_one_sq, one_pow]
+    ring
+  rw [hterm] at hs
+  have hs' := hs.mul_right (exp (-(x ^ 2)))⁻¹
+  have hsimp : (fun n : ℕ =>
+      (aeval x (hermitePhys (m + n)) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) *
+        (exp (-(x ^ 2)))⁻¹) =
+      fun n => (aeval x (hermitePhys (m + n)) : ℂ) * t ^ n / n ! := by
+    funext n
+    field [hne]
+  rw [hsimp] at hs'
+  have hval : exp (-((x - t) ^ 2)) * (exp (-(x ^ 2)))⁻¹ =
+      exp (2 * x * t - t ^ 2) := by
+    rw [← div_eq_mul_inv, div_eq_iff hne, ← exp_add]
+    congr 1
+    ring
+  simpa only [mul_assoc, hval] using hs'
+
+
+/-- Translation of a Hermite polynomial by an arbitrary complex number. -/
+lemma hermitePhys_translation (m : ℕ) (x y : ℂ) :
+    (aeval (x + y) (hermitePhys m) : ℂ) =
+      ∑ k ∈ Finset.range (m + 1), (m.choose k : ℂ) * (2 * y) ^ k *
+        aeval x (hermitePhys (m - k)) := by
+  have hc := scalarSeries_unique
+    (c := fun n => (aeval (x + y) (hermitePhys n) : ℂ) / n !)
+    (d := fun n => ∑ k ∈ Finset.range (n + 1),
+      ((2 * y) ^ k / k !) * ((aeval x (hermitePhys (n - k)) : ℂ) / (n - k)!))
+    (f := fun z => exp (2 * (x + y) * z - z ^ 2))
+    (fun z _ => (hasSum_hermitePhys_generating_function _ z).congr_fun (by intro n; ring))
+    (fun z _ => by
+      have he : HasSum (fun k : ℕ => ((2 * y) ^ k / k !) * z ^ k) (exp (2 * y * z)) := by
+        convert NormedSpace.expSeries_div_hasSum_exp (2 * y * z) using 1
+        · funext k; rw [mul_pow]; ring
+        · simp only [Complex.exp_eq_exp_ℂ]
+      have hh : HasSum (fun k => ((aeval x (hermitePhys k) : ℂ) / k !) * z ^ k)
+          (exp (2 * x * z - z ^ 2)) :=
+        (hasSum_hermitePhys_generating_function x z).congr_fun (by intro k; ring)
+      convert hasSum_scalar_convolution he hh using 1
+      rw [← exp_add]; congr 1; ring)
+  have h := congrArg (fun c : ℕ → ℂ => c m * m !) hc
+  rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr m.factorial_ne_zero), Finset.sum_mul] at h
+  rw [h]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have he : (m.choose k : ℂ) * k ! * (m - k)! = m ! := by
+    exact_mod_cast Nat.choose_mul_factorial_mul_factorial (by simpa using Finset.mem_range.mp hk)
+  rw [← he]
+  field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero k),
+    Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (m - k))]
+
+/-- Multiplication of a power series by a monomial inserts a zero prefix. -/
+lemma hasSum_scalar_shift {c : ℕ → ℂ} {z u : ℂ}
+    (hc : HasSum (fun n => c n * z ^ n) u) (k : ℕ) :
+    HasSum (fun n => (if k ≤ n then c (n - k) else 0) * z ^ n) (z ^ k * u) := by
+  apply (hasSum_nat_add_iff' k).mp
+  have hzero : ∑ n ∈ Finset.range k, (if k ≤ n then c (n - k) else 0) * z ^ n = 0 := by
+    apply Finset.sum_eq_zero
+    intro n hn
+    simp [show ¬k ≤ n by have := Finset.mem_range.mp hn; omega]
+  rw [hzero, sub_zero]
+  convert hc.mul_left (z ^ k) using 1
+  funext n
+  simp only [Nat.le_add_left, ↓reduceIte, Nat.add_sub_cancel, pow_add]
+  ring
+
+/-- The probabilists' Hermite polynomial as a finite monomial sum. -/
+lemma hermite_finite_sum (n : ℕ) (x : ℂ) :
+    (aeval x (hermite n) : ℂ) = ∑ k ∈ Finset.range (n / 2 + 1),
+      (-1 : ℂ) ^ k * n.factorial /
+        (2 ^ k * (k.factorial : ℂ) * (n - 2 * k).factorial) * x ^ (n - 2 * k) := by
+  have hc := scalarSeries_unique
+    (c := fun j => (aeval x (hermite j) : ℂ) / j !)
+    (d := fun j => ∑ k ∈ Finset.range (j / 2 + 1),
+      (-1 / 2 : ℂ) ^ k / k ! * (x ^ (j - 2 * k) / (j - 2 * k)!))
+    (f := fun z => exp (x * z - z ^ 2 / 2))
+    (fun z _ => hermite_generating_function x z)
+    (fun z _ => by
+      have he : HasSum (fun j : ℕ => (x ^ j / j !) * z ^ j) (exp (x * z)) := by
+        convert NormedSpace.expSeries_div_hasSum_exp (x * z) using 1
+        · funext j; rw [mul_pow]; ring
+        · simp only [Complex.exp_eq_exp_ℂ]
+      have h := hasSum_scalar_convolution (hasSum_exp_quadratic (-1 / 2) z) he
+      rw [← exp_add, show (-1 / 2 : ℂ) * z ^ 2 + x * z = x * z - z ^ 2 / 2 by ring] at h
+      convert h using 1
+      funext j
+      congr 1
+      simp_rw [ite_mul, zero_mul]
+      rw [sum_even_range]
+      simp)
+  have h := congrArg (fun c : ℕ → ℂ => c n * n !) hc
+  rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr n.factorial_ne_zero), Finset.sum_mul] at h
+  rw [h]
+  apply Finset.sum_congr rfl
+  intro k _
+  rw [div_pow]
+  ring
+
 @[dlmf 18.18.E10, dlmf 18.18.E38]
 theorem laguerre_addition (α β x y : ℂ) (n : ℕ) :
     laguerreExtended (α + β + 1) n (x + y) =
@@ -244,7 +519,46 @@ theorem hermitePhys_addition (a b x y : ℝ) (hab : a ^ 2 + b ^ 2 = 1) (n : ℕ)
     (aeval (a * x + b * y) (hermitePhys n) : ℝ) =
       ∑ k ∈ Finset.range (n + 1), (n.choose k : ℝ) * a ^ k * b ^ (n - k) *
         aeval x (hermitePhys k) * aeval y (hermitePhys (n - k)) := by
-  sorry
+  have hab' : (a : ℂ) ^ 2 + (b : ℂ) ^ 2 = 1 := by exact_mod_cast hab
+  have hcoeff := scalarSeries_unique
+    (c := fun n => (aeval ((a : ℂ) * x + b * y) (hermitePhys n) : ℂ) / n !)
+    (d := fun n => ∑ k ∈ Finset.range (n + 1),
+      ((aeval (x : ℂ) (hermitePhys k) : ℂ) / k ! * (a : ℂ) ^ k) *
+      ((aeval (y : ℂ) (hermitePhys (n - k)) : ℂ) / (n - k) ! * (b : ℂ) ^ (n - k)))
+    (f := fun z => exp (2 * ((a : ℂ) * x + b * y) * z - z ^ 2))
+    (fun z _ => (hasSum_hermitePhys_generating_function _ z).congr_fun (by intro k; ring))
+    (fun z _ => ?_)
+  · have h := congrArg (fun c : ℕ → ℂ => c n * n !) hcoeff
+    rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr n.factorial_ne_zero), Finset.sum_mul] at h
+    have ht (k : ℕ) (hk : k ∈ Finset.range (n + 1)) :
+        ((aeval (x : ℂ) (hermitePhys k) : ℂ) / k ! * (a : ℂ) ^ k *
+          ((aeval (y : ℂ) (hermitePhys (n - k)) : ℂ) / (n - k) ! * (b : ℂ) ^ (n - k))) * n ! =
+        (n.choose k : ℂ) * a ^ k * b ^ (n - k) *
+          aeval (x : ℂ) (hermitePhys k) * aeval (y : ℂ) (hermitePhys (n - k)) := by
+      have he : (n.choose k : ℂ) * k ! * (n - k) ! = n ! := by
+        exact_mod_cast Nat.choose_mul_factorial_mul_factorial (by simpa using Finset.mem_range.mp hk)
+      rw [← he]
+      field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero k),
+        Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (n - k))]
+    rw [Finset.sum_congr rfl ht] at h
+    have castH (t : ℝ) (j : ℕ) :
+        (aeval (t : ℂ) (hermitePhys j) : ℂ) = ((aeval t (hermitePhys j) : ℝ) : ℂ) :=
+      aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) t (hermitePhys j)
+    rw [show (a : ℂ) * x + b * y = ((a * x + b * y : ℝ) : ℂ) by push_cast; rfl] at h
+    simp_rw [castH] at h
+    exact_mod_cast h
+  · have h1 : HasSum (fun k => ((aeval (x : ℂ) (hermitePhys k) : ℂ) / k ! *
+        (a : ℂ) ^ k) * z ^ k) (exp (2 * x * (a * z) - (a * z) ^ 2)) := by
+      convert hasSum_hermitePhys_generating_function (x : ℂ) (a * z) using 1
+      funext k; rw [mul_pow]; ring
+    have h2 : HasSum (fun k => ((aeval (y : ℂ) (hermitePhys k) : ℂ) / k ! *
+        (b : ℂ) ^ k) * z ^ k) (exp (2 * y * (b * z) - (b * z) ^ 2)) := by
+      convert hasSum_hermitePhys_generating_function (y : ℂ) (b * z) using 1
+      funext k; rw [mul_pow]; ring
+    convert hasSum_scalar_convolution h1 h2 using 1
+    rw [← exp_add]
+    congr 1
+    linear_combination z ^ 2 * hab'
 
 @[dlmf 18.18.E12]
 theorem laguerre_multiplication {α : ℂ} (hα : -1 < α.re) (lam x : ℂ) (n : ℕ) :
@@ -281,7 +595,25 @@ theorem hermitePhys_multiplication (lam x : ℂ) (n : ℕ) :
     aeval (lam * x) (hermitePhys n) = ∑ k ∈ Finset.range (n / 2 + 1),
       poch (-(n : ℂ)) (2 * k) / k.factorial * lam ^ (n - 2 * k) * (lam ^ 2 - 1) ^ k *
         aeval x (hermitePhys (n - 2 * k)) := by
-  sorry
+  have hc := scalarSeries_unique
+    (c := fun j => (aeval (lam * x) (hermitePhys j) : ℂ) / j !)
+    (d := fun j => ∑ k ∈ Finset.range (j / 2 + 1),
+      (lam ^ 2 - 1) ^ k / k ! *
+        ((aeval x (hermitePhys (j - 2 * k)) : ℂ) / (j - 2 * k)! * lam ^ (j - 2 * k)))
+    (f := fun z => exp (2 * (lam * x) * z - z ^ 2))
+    (fun z _ => (hasSum_hermitePhys_generating_function _ z).congr_fun (by intro j; ring))
+    (fun z _ => by
+      convert hasSum_exp_quadratic_mul_hermite (lam ^ 2 - 1) lam x z using 1
+      congr 1; ring)
+  have h := congrArg (fun c : ℕ → ℂ => c n * n !) hc
+  rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr n.factorial_ne_zero), Finset.sum_mul] at h
+  rw [h]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hk' : 2 * k ≤ n := by have := Finset.mem_range.mp hk; omega
+  rw [← poch_neg_nat_even_mul_factorial hk']
+  field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero k),
+    Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (n - 2 * k))]
 
 @[dlmf 18.18.E16]
 theorem gegenbauer_connection {lam μ : ℂ} (hlam : 0 < lam.re) (hμ : -1 / 2 < μ.re) (n : ℕ) (x : ℂ) :
@@ -364,14 +696,79 @@ theorem monomial_laguerre_expansion {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x :
 theorem monomial_hermitePhys_expansion (n : ℕ) (x : ℂ) :
     (2 * x) ^ n = ∑ k ∈ Finset.range (n / 2 + 1),
       poch (-(n : ℂ)) (2 * k) / k.factorial * aeval x (hermitePhys (n - 2 * k)) := by
-  sorry
+  have hc := scalarSeries_unique
+    (c := fun j => (2 * x) ^ j / j !)
+    (d := fun j => ∑ k ∈ Finset.range (j / 2 + 1),
+      (1 : ℂ) ^ k / k ! * ((aeval x (hermitePhys (j - 2 * k)) : ℂ) / (j - 2 * k)! *
+        (1 : ℂ) ^ (j - 2 * k)))
+    (f := fun z => exp (2 * x * z))
+    (fun z _ => by
+      convert NormedSpace.expSeries_div_hasSum_exp (2 * x * z) using 1
+      · funext j; rw [mul_pow]; ring
+      · simp only [Complex.exp_eq_exp_ℂ])
+    (fun z _ => by
+      convert hasSum_exp_quadratic_mul_hermite 1 1 x z using 1
+      congr 1; ring)
+  have h := congrArg (fun c : ℕ → ℂ => c n * n !) hc
+  rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr n.factorial_ne_zero), Finset.sum_mul] at h
+  rw [h]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hk' : 2 * k ≤ n := by have := Finset.mem_range.mp hk; omega
+  rw [← poch_neg_nat_even_mul_factorial hk']
+  simp only [one_pow, mul_one, one_div]
+  field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero k),
+    Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (n - 2 * k))]
 
 @[dlmf 18.18.E23]
 theorem hermitePhys_linearization (m n : ℕ) (x : ℂ) :
     (aeval x (hermitePhys m) : ℂ) * aeval x (hermitePhys n) =
       ∑ k ∈ Finset.range (min m n + 1), (m.choose k : ℂ) * n.choose k * 2 ^ k * k.factorial *
         aeval x (hermitePhys (m + n - 2 * k)) := by
-  sorry
+  have hc := scalarSeries_unique
+    (c := fun j => (aeval x (hermitePhys m) : ℂ) * aeval x (hermitePhys j) / j !)
+    (d := fun j => ∑ k ∈ Finset.range (m + 1),
+      (m.choose k : ℂ) * 2 ^ k *
+        (if k ≤ j then (aeval x (hermitePhys (m - k + (j - k))) : ℂ) / (j - k)! else 0))
+    (f := fun z => (aeval x (hermitePhys m) : ℂ) * exp (2 * x * z - z ^ 2))
+    (fun z _ => ((hasSum_hermitePhys_generating_function x z).mul_left
+      (aeval x (hermitePhys m) : ℂ)).congr_fun (by intro j; ring))
+    (fun z _ => by
+      have hs (k : ℕ) := (hasSum_scalar_shift
+        (c := fun j => (aeval x (hermitePhys (m - k + j)) : ℂ) / j !) (z := z)
+        ((hasSum_hermitePhys_shifted (m - k) x z).congr_fun (by intro j; ring)) k).mul_left
+          ((m.choose k : ℂ) * 2 ^ k)
+      have h := hasSum_sum (s := Finset.range (m + 1)) (fun k _ => hs k)
+      have hv : (∑ k ∈ Finset.range (m + 1), (m.choose k : ℂ) * 2 ^ k *
+          (z ^ k * ((aeval (x - z) (hermitePhys (m - k)) : ℂ) * exp (2 * x * z - z ^ 2)))) =
+          (aeval x (hermitePhys m) : ℂ) * exp (2 * x * z - z ^ 2) := by
+        rw [show (∑ k ∈ Finset.range (m + 1), (m.choose k : ℂ) * 2 ^ k *
+            (z ^ k * ((aeval (x - z) (hermitePhys (m - k)) : ℂ) * exp (2 * x * z - z ^ 2)))) =
+            (∑ k ∈ Finset.range (m + 1), (m.choose k : ℂ) * (2 * z) ^ k *
+              aeval (x - z) (hermitePhys (m - k))) * exp (2 * x * z - z ^ 2) by
+          rw [Finset.sum_mul]; apply Finset.sum_congr rfl; intro k _; rw [mul_pow]; ring]
+        rw [← hermitePhys_translation, sub_add_cancel]
+      rw [hv] at h
+      simpa only [Finset.sum_mul, mul_assoc] using h)
+  have h := congrArg (fun c : ℕ → ℂ => c n * n !) hc
+  rw [div_mul_cancel₀ _ (Nat.cast_ne_zero.mpr n.factorial_ne_zero), Finset.sum_mul] at h
+  rw [h]
+  have hsub : Finset.range (min m n + 1) ⊆ Finset.range (m + 1) :=
+    Finset.range_subset_range.mpr (by omega)
+  rw [← Finset.sum_subset hsub (by
+    intro k hk hkn
+    have hnk : ¬ k ≤ n := by
+      simp only [Finset.mem_range] at hk hkn; omega
+    simp [hnk])]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hkm : k ≤ m := by have := Finset.mem_range.mp hk; omega
+  have hkn : k ≤ n := by have := Finset.mem_range.mp hk; omega
+  rw [if_pos hkn, show m - k + (n - k) = m + n - 2 * k by omega]
+  have he : (n.choose k : ℂ) * k ! * (n - k)! = n ! := by
+    exact_mod_cast Nat.choose_mul_factorial_mul_factorial hkn
+  rw [← he]
+  field_simp [Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (n - k))]
 
 @[dlmf 18.18.E28]
 theorem mehler_formula (x y : ℝ) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -613,7 +1010,14 @@ theorem chebyshevT_poisson_generating_function {x : ℝ} (hx : |x| ≤ 1)
     {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => 2 * (Chebyshev.T ℂ (n + 1)).eval (x : ℂ) * z ^ (n + 1))
       ((1 - z ^ 2) / (1 - 2 * x * z + z ^ 2) - 1) := by
-  sorry
+  have hD := one_sub_two_mul_add_sq_ne_zero hx hz
+  have h := ((hasSum_nat_add_iff' 1).mpr (chebyshevT_generating_function hx hz)).mul_left 2
+  convert h using 1
+  · funext n; push_cast; ring
+  · simp only [Finset.sum_range_one, pow_zero, mul_one, Nat.cast_zero, Chebyshev.T_zero, eval_one]
+    rw [div_sub_one hD, div_sub_one hD, ← mul_div_assoc]
+    congr 1
+    ring
 
 @[dlmf 18.12.E14]
 theorem laguerre_bessel_generating_function {α : ℝ} (hα : -1 < α)

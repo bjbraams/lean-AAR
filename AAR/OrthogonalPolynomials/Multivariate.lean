@@ -50,7 +50,41 @@ theorem diskPolynomial_polar {α : ℝ} (hα : -1 < α) (m n : ℕ) (r θ : ℝ)
 
 @[dlmf 18.37.E5]
 theorem diskPolynomial_at_one {α : ℂ} (hα : -1 < α.re) (m n : ℕ) : diskPolynomial α m n 1 = 1 := by
-  sorry
+  have hnp : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := fun k h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hm := poch_ne_zero_of_not_neg_nat hnp m
+  have hn := poch_ne_zero_of_not_neg_nat hnp n
+  unfold diskPolynomial
+  simp only [one_pow, mul_one, star_one]
+  have hsub : ∑ j ∈ Finset.range (min m n + 1), (-1 : ℂ) ^ j * poch (α + 1) (m + n - j) *
+      poch (-(m : ℂ)) j * poch (-(n : ℂ)) j / (poch (α + 1) m * poch (α + 1) n * j.factorial) =
+      ∑ j ∈ Finset.range (n + 1), (-1 : ℂ) ^ j * poch (α + 1) (m + n - j) *
+      poch (-(m : ℂ)) j * poch (-(n : ℂ)) j / (poch (α + 1) m * poch (α + 1) n * j.factorial) := by
+    apply Finset.sum_subset
+    · intro j hj; simp at hj ⊢; omega
+    · intro j hj hj'
+      simp at hj hj'
+      have : m < j := by omega
+      rw [poch_neg_nat_eq_zero this]; simp
+  rw [hsub]
+  have key : ∑ j ∈ Finset.range (n + 1), (-1 : ℂ) ^ j * poch (α + 1) (m + n - j) *
+      poch (-(m : ℂ)) j * poch (-(n : ℂ)) j / (poch (α + 1) m * poch (α + 1) n * j.factorial) =
+      (∑ j ∈ Finset.range (n + 1), (n.choose j : ℂ) * poch (-(m : ℂ)) j * poch (α + 1 + m) (n - j)) /
+        poch (α + 1) n := by
+    rw [Finset.sum_div]
+    refine Finset.sum_congr rfl fun j hj => ?_
+    have hjn : j ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+    have hsplit : poch (α + 1) (m + n - j) = poch (α + 1) m * poch (α + 1 + m) (n - j) := by
+      rw [show m + n - j = m + (n - j) by omega, poch_add]
+    have hpn : poch (-(n : ℂ)) j = (-1) ^ j * (j.factorial * n.choose j : ℕ) := by
+      rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose]
+    have hf : (j.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
+    have hs : ((-1 : ℂ) ^ j) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
+    rw [hsplit, hpn]
+    push_cast
+    field_simp
+    linear_combination (poch (α + 1 + m) (n - j) * poch (-(m : ℂ)) j * (n.choose j : ℂ)) * hs
+  rw [key, poch_add_binomial, show -(m : ℂ) + (α + 1 + m) = α + 1 by ring, div_self hn]
 
 @[dlmf 18.37.E2]
 theorem diskPolynomial_orthogonal {α : ℝ} (hα : -1 < α) (m n j k : ℕ) (hne : (m, n) ≠ (j, k)) :

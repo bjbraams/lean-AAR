@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Confluent.Basic
+public import AAR.Confluent.Regularized
 public import AAR.Confluent.BasicProperties
 public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
