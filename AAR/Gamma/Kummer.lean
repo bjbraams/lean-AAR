@@ -6,7 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Gamma.Digamma
-public import Mathlib.Analysis.SpecialFunctions.Integrals.LogTrigonometric
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Log
 
 /-!
 # Kummer's Fourier expansion of `log Γ` (AAR §1.7)

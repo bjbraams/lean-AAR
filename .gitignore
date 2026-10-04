@@ -4,3 +4,7 @@ References/
 AGENTS.md
 */AGENTS.md
 README.md
+
+# Keep the dependency/reuse policy and project entry point reviewable.
+!/AGENTS.md
+!/README.md

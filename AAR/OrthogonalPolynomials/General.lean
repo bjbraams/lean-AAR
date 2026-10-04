@@ -17,6 +17,7 @@ public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Function.L2Space
+public import TauCeti.Analysis.InnerProductSpace.PolynomialCompleteness
 
 /-!
 # General orthogonal polynomials (AAR Chapter 5)
@@ -24,13 +25,15 @@ public import Mathlib.MeasureTheory.Function.L2Space
 Chebyshev `T` orthogonality and Chebyshev–Gauss quadrature are in Mathlib
 (`Polynomial.Chebyshev.measureT`, `integral_eq_sumZeroes`). This file records the general
 three-term recurrence, Favard's theorem, Gauss quadrature, zeros, the Christoffel–Darboux
-kernel, and the missing orthogonality of Chebyshev `U`.
+kernel, and the missing orthogonality of Chebyshev `U`. Compact-support Parseval
+uses the Tau Ceti contributors’ polynomial completeness and weighted Hilbert-basis
+construction, followed by Mathlib’s Hilbert-basis Parseval identity.
 -/
 
 @[expose] public section
 
 open Polynomial MeasureTheory intervalIntegral
-open scoped Real
+open scoped Real ENNReal
 
 noncomputable section
 
@@ -715,7 +718,56 @@ theorem orthogonal_polynomials_parseval {μ : Measure ℝ} {p : ℕ → ℝ[X]}
     ∫ t, f t ^ 2 ∂μ =
       ∑' n : ℕ,
         (∫ t, f t * (p n).eval t ∂μ) ^ 2 / (∫ t, (p n).eval t ^ 2 ∂μ) := by
-  sorry
+  classical
+  have hfinite : IsFiniteMeasure μ := by
+    have hi := h.integrable_mul (1 : ℝ[X]) 1
+    exact (integrable_const_iff_isFiniteMeasure (one_ne_zero : (1 : ℝ) ≠ 0)).mp
+      (by simpa using hi)
+  let := hfinite
+  have hexp : ∃ r : ℝ, 0 < r ∧ Integrable (fun x : ℝ => Real.exp (r * |x|)) μ := by
+    refine ⟨1, one_pos, ?_⟩
+    have hi := (show Continuous (fun x : ℝ => Real.exp (1 * |x|)) by fun_prop).continuousOn.integrableOn_compact
+      (μ := μ) (isCompact_Icc (a := a) (b := b))
+    simpa only [IntegrableOn, Measure.restrict_eq_self_of_ae_mem (ae_iff.mpr hsupport)] using hi
+  let c : ℕ → ℝ := fun n => ∫ x, (p n).eval x ^ 2 ∂μ
+  have hc : ∀ n, 0 < c n := h.2.2.1
+  have hmem : ∀ n, MemLp (fun x => (algebraMap ℝ ℝ) ((p n).eval x / Real.sqrt (c n))) 2
+      (μ.withDensity (fun _ => ENNReal.ofReal (1 : ℝ))) := by
+    intro n
+    simpa [div_eq_mul_inv] using (h.memLp_eval (p n)).mul_const (Real.sqrt (c n))⁻¹
+  have hcomplete := TauCeti.orthogonal_span_range_bareNormalizedLp_eq_bot (𝕜 := ℝ)
+    p (fun _ => 1) c (fun n => (degree_eq_natDegree (h.ne_zero n)).trans (by rw [h.1 n]))
+    hc (by simpa using hexp) hmem
+  have horth : ∀ m n, (∫ x, (p m).eval x * (p n).eval x * 1 ∂μ) =
+      if m = n then c n else 0 := by
+    intro m n
+    by_cases hmn : m = n
+    · subst m; simp [c, pow_two]
+    · simpa [hmn] using h.2.2.2 m n hmn
+  let B := TauCeti.hilbertBasisOfOrthogonalSystem (𝕜 := ℝ) (fun n x => (p n).eval x)
+    (fun _ => 1) c (Filter.Eventually.of_forall fun _ => one_pos)
+    aemeasurable_const hc horth hmem hcomplete
+  have hB (n : ℕ) : ⇑(B n) =ᵐ[μ] fun x => (p n).eval x / Real.sqrt (c n) := by
+    simpa [B] using TauCeti.coeFn_hilbertBasisOfOrthogonalSystem (𝕜 := ℝ)
+      (fun n x => (p n).eval x) (fun _ => 1) c
+      (Filter.Eventually.of_forall fun _ => one_pos) aemeasurable_const hc horth hmem hcomplete n
+  have hinner (n : ℕ) : inner ℝ (hf.toLp f) (B n) =
+      (∫ x, f x * (p n).eval x ∂μ) / Real.sqrt (c n) := by
+    rw [L2.inner_def, ← MeasureTheory.integral_div]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [hf.coeFn_toLp, hB n] with x hx hb
+    simp [hx, hb, mul_div_assoc, mul_comm]
+  have hnorm : inner ℝ (hf.toLp f) (hf.toLp f) = ∫ x, f x ^ 2 ∂μ := by
+    rw [L2.inner_def]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [hf.coeFn_toLp] with x hx
+    simp [hx, pow_two]
+  rw [← hnorm, ← B.tsum_inner_mul_inner (hf.toLp f) (hf.toLp f)]
+  apply tsum_congr
+  intro n
+  rw [show inner ℝ (B n) (hf.toLp f) = inner ℝ (hf.toLp f) (B n) from real_inner_comm _ _, hinner]
+  dsimp [c]
+  rw [← pow_two, div_pow, Real.sq_sqrt (hc n).le]
 
 /-- Helper lemma for Chebyshev `U` orthogonality: the substitution `x = cos θ`. -/
 lemma integral_mul_sqrt_one_sub_sq (g : ℝ → ℝ) :

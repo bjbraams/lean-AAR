@@ -12,6 +12,9 @@ public import AAR.OrthogonalPolynomials.Differential
 public import AAR.OrthogonalPolynomials.Series
 public import AAR.Bessel.Basic
 public import AAR.Gamma.IntegralRepresentations
+public import TauCeti.Analysis.SpecialFunctions.Hermite.Orthogonality
+public import TauCeti.Analysis.SpecialFunctions.Hermite.Function.Fourier.Basic
+public import TauCeti.Probability.Distributions.Gaussian.PolynomialMemLp
 /-!
 # Classical orthogonality, Rodrigues formulas, and integral identities
 
@@ -19,6 +22,10 @@ Integral identities from NIST DLMF Chapter 18. The Hermite and weighted Jacobi a
 are proved by the fundamental theorem of calculus. The Laguerre squared norm
 is obtained from the already proved monomial moments;
 other declarations below still include admitted results.
+Probabilists’ Hermite orthogonality and polynomial Gaussian integrability use
+the corresponding results of the Tau Ceti contributors. The two Hermite Fourier
+eigenfunction identities adapt their normalized Hermite Fourier theorem to the
+positive phase and scales used in DLMF.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -45,12 +52,7 @@ lemma integrable_pow_mul_exp_neg_sq (k : ℕ) :
 /-- A polynomial times the Gaussian is integrable. -/
 lemma integrable_eval_mul_exp_neg_sq (q : ℝ[X]) :
     Integrable fun x : ℝ => q.eval x * Real.exp (-(x ^ 2)) := by
-  have hq : ∀ x : ℝ, q.eval x * Real.exp (-(x ^ 2)) = ∑ i ∈ Finset.range (q.natDegree + 1),
-      q.coeff i * (x ^ i * Real.exp (-(x ^ 2))) := fun x => by
-    rw [eval_eq_sum_range, Finset.sum_mul]
-    refine Finset.sum_congr rfl fun i _ => by ring
-  simp_rw [hq]
-  exact integrable_finset_sum _ fun i _ => (integrable_pow_mul_exp_neg_sq i).const_mul _
+  exact TauCeti.integrable_eval_mul_exp_neg_sq q
 
 /-- Physicists' Hermite polynomials as real polynomials. -/
 abbrev hermitePhysR (n : ℕ) : ℝ[X] := (hermitePhys n).map (Int.castRingHom ℝ)
@@ -205,37 +207,8 @@ theorem hermitePhys_orthogonality (m n : ℕ) :
 theorem hermite_orthogonality (m n : ℕ) :
     ∫ x : ℝ, (aeval x (hermite m) : ℝ) * aeval x (hermite n) * Real.exp (-(x ^ 2) / 2) =
       if m = n then Real.sqrt (2 * Real.pi) * n.factorial else 0 := by
-  have hs2 : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr two_pos
-  have hsq : Real.sqrt 2 * Real.sqrt 2 = 2 := Real.mul_self_sqrt (by norm_num)
-  set g : ℝ → ℝ := fun y => (aeval y (hermite m) : ℝ) * aeval y (hermite n) *
-    Real.exp (-(y ^ 2) / 2) with hg
-  have hsub := MeasureTheory.Measure.integral_comp_mul_left g (Real.sqrt 2)
-  have hgx : ∀ x : ℝ, g (Real.sqrt 2 * x) = ((2 : ℝ) ^ (m / 2 : ℝ) * 2 ^ (n / 2 : ℝ))⁻¹ *
-      ((aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) * Real.exp (-(x ^ 2))) := by
-    intro x
-    rw [aeval_hermitePhys_eq_hermite, aeval_hermitePhys_eq_hermite]
-    have h2m : (2 : ℝ) ^ (m / 2 : ℝ) ≠ 0 := by positivity
-    have h2n : (2 : ℝ) ^ (n / 2 : ℝ) ≠ 0 := by positivity
-    simp only [hg]
-    rw [show -(Real.sqrt 2 * x) ^ 2 / 2 = -(x ^ 2) by rw [mul_pow, Real.sq_sqrt (by norm_num)]; ring]
-    field_simp
-  simp_rw [hgx] at hsub
-  rw [integral_const_mul, hermitePhys_orthogonality m n, abs_of_pos (inv_pos.mpr hs2), smul_eq_mul] at hsub
-  have hg_eq : ∫ y, g y = ∫ x : ℝ, (aeval x (hermite m) : ℝ) * aeval x (hermite n) *
-      Real.exp (-(x ^ 2) / 2) := rfl
-  rw [← hg_eq]
-  split_ifs at hsub ⊢ with hmn
-  · subst hmn
-    have h2 : (2 : ℝ) ^ (m / 2 : ℝ) * 2 ^ (m / 2 : ℝ) = 2 ^ m := by
-      rw [← Real.rpow_add two_pos, ← Real.rpow_natCast]; congr 1; ring
-    rw [h2] at hsub
-    have hpos : (0 : ℝ) < 2 ^ m := by positivity
-    rw [Real.sqrt_mul (by norm_num)]
-    field_simp at hsub
-    nlinarith [hsub, hsq]
-  · rw [mul_zero] at hsub
-    have := inv_pos.mpr hs2
-    nlinarith [hsub]
+  simpa only [neg_div, mul_comm] using
+    TauCeti.integral_hermite_mul_hermite_mul_gaussian m n
 
 @[dlmf 18.3.T1]
 theorem legendre_orthogonality (m n : ℕ) :
@@ -714,11 +687,100 @@ theorem hermitePhys_fourier_transform (n : ℕ) (y : ℝ) :
     show (-I * (y : ℂ)) ^ 2 / 4 = -(y : ℂ) ^ 2 / 4 by ring_nf; rw [I_sq]; ring]
   field_simp
 
+/-- TauCeti's Hermite functions with the positive, unit-frequency Fourier convention. -/
+lemma hermiteFunction_integral (n : ℕ) (y : ℝ) :
+    (∫ x : ℝ, Complex.exp (I * x * y) * (TauCeti.hermiteFunction n x : ℂ)) =
+      (Real.sqrt (2 * Real.pi) : ℂ) * I ^ n * (TauCeti.hermiteFunction n y : ℂ) := by
+  let s := Real.sqrt (2 * Real.pi)
+  have hs : 0 < s := Real.sqrt_pos.mpr (mul_pos two_pos Real.pi_pos)
+  have hs0 : s ≠ 0 := hs.ne'
+  have hs2 : s ^ 2 = 2 * Real.pi := Real.sq_sqrt (by positivity)
+  have ha : (Real.sqrt s : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hs).ne'
+  have he := congrFun (TauCeti.fourier_twoPiHermiteFunction n) (-y / s)
+  rw [Real.fourier_real_eq_integral_exp_smul] at he
+  have hphase (x : ℝ) : (↑(-2 * Real.pi * x * (-y / s)) : ℂ) * I = I * (s * x) * y := by
+    rw [show -2 * Real.pi * x * (-y / s) = s * x * y by
+      calc
+        _ = (2 * Real.pi) * x * y / s := by ring
+        _ = _ := by rw [← hs2]; field_simp]
+    push_cast
+    ring
+  simp_rw [hphase, smul_eq_mul, TauCeti.twoPiHermiteFunction_def, ofReal_mul] at he
+  have harg : s * (-y / s) = -y := by field_simp
+  change (∫ x : ℝ, exp (I * (s * x) * y) * ((Real.sqrt s : ℂ) * ↑(TauCeti.hermiteFunction n (s * x)))) =
+    (-I) ^ n * ((Real.sqrt s : ℂ) * ↑(TauCeti.hermiteFunction n (s * (-y / s)))) at he
+  rw [harg, TauCeti.hermiteFunction_neg, ofReal_mul, ofReal_pow, ofReal_neg, ofReal_one] at he
+  have hmul : (-I) ^ n * ((Real.sqrt s : ℂ) * ((-1) ^ n * ↑(TauCeti.hermiteFunction n y))) =
+      (Real.sqrt s : ℂ) * (I ^ n * ↑(TauCeti.hermiteFunction n y)) := by
+    rw [show (-I) ^ n = (-1 : ℂ) ^ n * I ^ n by rw [← mul_pow]; congr 1; ring]
+    have hn : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+    calc
+      _ = (Real.sqrt s : ℂ) * (I ^ n * ↑(TauCeti.hermiteFunction n y)) * ((-1) ^ n * (-1) ^ n) := by ring
+      _ = _ := by rw [hn, mul_one]
+  rw [hmul] at he
+  have hleft : (∫ x : ℝ, exp (I * (s * x) * y) * ((Real.sqrt s : ℂ) * ↑(TauCeti.hermiteFunction n (s * x)))) =
+      (Real.sqrt s : ℂ) * (s : ℂ)⁻¹ * ∫ x : ℝ, exp (I * x * y) * ↑(TauCeti.hermiteFunction n x) := by
+    simp_rw [mul_left_comm (exp _)]
+    simp_rw [← ofReal_mul s]
+    rw [integral_const_mul, Measure.integral_comp_mul_left
+      (fun x : ℝ => exp (I * x * y) * ↑(TauCeti.hermiteFunction n x)) s]
+    simp [abs_of_pos (inv_pos.mpr hs), Complex.real_smul, mul_assoc]
+  rw [hleft] at he
+  have hsc0 : (s : ℂ) ≠ 0 := ofReal_ne_zero.mpr hs0
+  field_simp [hsc0] at he
+  exact he
+/-- Evaluation of integer polynomials commutes with the real-to-complex inclusion. -/
+private lemma ofReal_aeval_int (p : ℤ[X]) (x : ℝ) :
+    ((aeval x p : ℝ) : ℂ) = aeval (x : ℂ) p := by
+  exact (aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x p).symm
+
+/-- The physicists' Hermite envelope differs from TauCeti's function by a constant. -/
+lemma hermitePhys_envelope (n : ℕ) (x : ℝ) :
+    exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) =
+      ((2 : ℝ) ^ (n / 2 : ℝ) * Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi) : ℝ) *
+        (TauCeti.hermiteFunction n x : ℂ) := by
+  rw [← ofReal_aeval_int, aeval_hermitePhys_eq_hermite, TauCeti.hermiteFunction_def]
+  have hc : Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi) ≠ 0 :=
+    TauCeti.sqrt_factorial_mul_sqrt_pi_ne_zero n
+  have he : exp (-(x : ℂ) ^ 2 / 2) = (Real.exp (-(x ^ 2 / 2)) : ℂ) := by
+    rw [ofReal_exp]; congr 1; push_cast; ring
+  rw [he]
+  push_cast
+  rw [mul_comm x (Real.sqrt 2)]
+  field_simp [ofReal_ne_zero.mpr hc]
+  rw [mul_div_cancel_right₀ _ (ofReal_ne_zero.mpr hc)]
+
+/-- The probabilists' Hermite envelope is a dilation of TauCeti's Hermite function. -/
+lemma hermite_envelope (n : ℕ) (x : ℝ) :
+    exp (-(x : ℂ) ^ 2 / 4) * (aeval (x : ℂ) (hermite n) : ℂ) =
+      (Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi) : ℂ) *
+        (TauCeti.hermiteFunction n (x / Real.sqrt 2) : ℂ) := by
+  rw [← ofReal_aeval_int, TauCeti.hermiteFunction_def]
+  have hc := TauCeti.sqrt_factorial_mul_sqrt_pi_ne_zero n
+  have hr : Real.sqrt 2 ≠ 0 := by positivity
+  rw [div_mul_cancel₀ x hr]
+  rw [show -((x / Real.sqrt 2) ^ 2 / 2) = -(x ^ 2 / 4) by
+    rw [div_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]; ring]
+  have he : exp (-(x : ℂ) ^ 2 / 4) = (Real.exp (-(x ^ 2 / 4)) : ℂ) := by
+    rw [ofReal_exp]; congr 1; push_cast; ring
+  rw [he]
+  push_cast
+  field_simp [ofReal_ne_zero.mpr hc]
+  rw [mul_div_cancel_right₀ _ (ofReal_ne_zero.mpr hc)]
+
 @[dlmf 18.17.E21_3]
 theorem hermitePhys_fourier_eigenfunction (n : ℕ) (y : ℝ) :
     (∫ x : ℝ, exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y)) /
       Real.sqrt (2 * Real.pi) = I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n) := by
-  sorry
+  have hs : (Real.sqrt (2 * Real.pi) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+  rw [show I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n) =
+    I ^ n * (exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n)) by ring]
+  simp_rw [hermitePhys_envelope]
+  simp_rw [mul_assoc, mul_comm (↑(TauCeti.hermiteFunction n _) : ℂ) (exp _)]
+  rw [integral_const_mul]
+  simp_rw [← mul_assoc I]
+  rw [hermiteFunction_integral]
+  field_simp
 
 /-- `u^{s-1} e^{-wu}` is integrable on `(0,∞)` for `Re s, Re w > 0`. -/
 lemma integrableOn_cpow_mul_cexp_neg {s w : ℂ} (hs : 0 < s.re) (hw : 0 < w.re) :
@@ -1023,7 +1085,46 @@ theorem legendre_bessel_square_integral (n : ℕ) (y : ℝ) :
 theorem hermite_fourier_eigenfunction (n : ℕ) (y : ℝ) :
     (∫ x : ℝ, exp (-(x : ℂ) ^ 2 / 4) * (aeval (x : ℂ) (hermite n) : ℂ) * exp (I * x * y / 2)) /
       (2 * Real.sqrt Real.pi) = I ^ n * exp (-(y : ℂ) ^ 2 / 4) * aeval (y : ℂ) (hermite n) := by
-  sorry
+  let r := Real.sqrt 2
+  have hr : 0 < r := Real.sqrt_pos.mpr two_pos
+  have hr0 : r ≠ 0 := hr.ne'
+  have hr2 : r ^ 2 = 2 := Real.sq_sqrt (by norm_num)
+  let c := Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi)
+  let F : ℝ → ℂ := fun x => exp (-(x : ℂ) ^ 2 / 4) * aeval (x : ℂ) (hermite n) * exp (I * x * y / 2)
+  have hscale := Measure.integral_comp_mul_left F r
+  have hx (x : ℝ) : F (r * x) = (c : ℂ) *
+      (exp (I * x * ↑(y / r)) * (TauCeti.hermiteFunction n x : ℂ)) := by
+    dsimp [F]
+    rw [hermite_envelope]
+    change (c : ℂ) * (TauCeti.hermiteFunction n (r * x / r) : ℂ) * exp (I * ↑(r * x) * y / 2) = _
+    rw [mul_div_cancel_left₀ x hr0]
+    have he : I * ↑(r * x) * y / 2 = I * x * ↑(y / r) := by
+      push_cast
+      have hrc : (r : ℂ) ^ 2 = 2 := by exact_mod_cast hr2
+      have hr0c : (r : ℂ) ≠ 0 := ofReal_ne_zero.mpr hr0
+      field_simp
+      linear_combination (x : ℂ) * y * hrc
+    rw [he]
+    ring
+  simp_rw [hx] at hscale
+  rw [integral_const_mul, hermiteFunction_integral, abs_of_pos (inv_pos.mpr hr), Complex.real_smul] at hscale
+  have hrs : (r : ℂ) * (Real.sqrt (2 * Real.pi) : ℂ) = 2 * (Real.sqrt Real.pi : ℂ) := by
+    norm_cast
+    rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+    change r * (r * Real.sqrt Real.pi) = _
+    rw [← mul_assoc, ← pow_two, hr2]
+  rw [show I ^ n * exp (-(y : ℂ) ^ 2 / 4) * aeval (y : ℂ) (hermite n) =
+    I ^ n * (exp (-(y : ℂ) ^ 2 / 4) * aeval (y : ℂ) (hermite n)) by ring, hermite_envelope]
+  change (∫ x, F x) / (2 * ↑(Real.sqrt Real.pi)) = I ^ n * ((c : ℂ) * ↑(TauCeti.hermiteFunction n (y / r)))
+  have hr0c : (r : ℂ) ≠ 0 := ofReal_ne_zero.mpr hr0
+  have hp0 : (Real.sqrt Real.pi : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+  rw [ofReal_inv] at hscale
+  field_simp [hr0c] at hscale
+  apply (div_eq_iff (mul_ne_zero two_ne_zero hp0)).mpr
+  calc
+    _ = (c : ℂ) * (r * ↑(Real.sqrt (2 * Real.pi))) * I ^ n * ↑(TauCeti.hermiteFunction n (y / r)) := by
+      linear_combination -hscale
+    _ = _ := by rw [hrs]; ring
 
 @[dlmf 18.17.E23]
 theorem hermite_even_cosine_transform (n : ℕ) (y : ℝ) :

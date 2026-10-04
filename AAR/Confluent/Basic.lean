@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import TauCeti.Analysis.SpecialFunctions.Erf
 public import Mathlib.Analysis.Complex.IntegerCompl
 public import Mathlib.Topology.Algebra.Module.Cardinality
 public import Mathlib.Tactic.CrossRefAttribute
@@ -30,6 +31,8 @@ The series is entire in `z` (AAR: the confluent limit of `₂F₁`). Mathlib's
 Tricomi's `U` uses the connection formula off the integers and parameter limits
 at integers; `confluentU_zero` verifies the continuation at zero first parameter.
 `confluentUOnLog` retains the logarithmic argument needed for monodromy.
+The real restrictions of `errorFn` and `erfcFn` are identified with the Tau Ceti
+contributors’ real error functions, so their real-variable API can be reused.
 -/
 
 @[expose] public section
@@ -639,6 +642,20 @@ theorem errorFn_eq_integral (z : ℝ) :
     (show IntervalIntegrable (fun t : ℝ => exp (-(t : ℂ) ^ 2)) MeasureTheory.volume 0 z from
       Continuous.intervalIntegrable (by fun_prop) _ _)
   simpa [errorFn, mul_assoc] using congrArg (fun w : ℂ => (2 : ℂ) / Real.sqrt π * w) hi.symm
+
+/-- The complex error function on real inputs agrees with TauCeti's real error function. -/
+theorem errorFn_ofReal (x : ℝ) : errorFn x = (TauCeti.Real.erf x : ℂ) := by
+  rw [errorFn_eq_integral, TauCeti.Real.erf_def]
+  push_cast
+  congr 1
+  rw [← intervalIntegral.integral_ofReal]
+  congr 1
+  funext t
+  simp
+
+/-- The complex complementary error function restricts to TauCeti's real complement. -/
+theorem erfcFn_ofReal (x : ℝ) : erfcFn x = (TauCeti.Real.erfc x : ℂ) := by
+  simp [erfcFn, errorFn_ofReal, TauCeti.Real.erfc_def]
 
 /-- Lower incomplete gamma via `₁F₁`, AAR §4.4:
 `γ(s,z) = z^s / s · M(s, s+1, -z)`. -/

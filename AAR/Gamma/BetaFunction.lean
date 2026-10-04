@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Gamma.Basic
+public import TauCeti.Analysis.SpecialFunctions.Beta
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Complex
@@ -18,7 +19,8 @@ public import Mathlib.MeasureTheory.Function.JacobianOneDim
 The Euler integral and the identity `B(a,b) = Γ(a)Γ(b)/Γ(a+b)` are Mathlib
 `betaIntegral` and `Gamma_mul_Gamma_eq_betaIntegral`, and are also
 `selberg_integral_one` in `AAR.Selberg.Basic`. Contour formulae 5.12.9–5.12.12
-are deferred.
+are deferred. The real Euler integral uses the Tau Ceti contributors’
+`TauCeti.integral_rpow_mul_one_sub_rpow`, built on Mathlib’s beta theory.
 -/
 
 @[expose] public section
@@ -35,20 +37,8 @@ This is the real form of Mathlib's `Complex.Gamma_mul_Gamma_eq_betaIntegral`. -/
 lemma real_betaIntegral {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
     ∫ u : ℝ in (0 : ℝ)..1, u ^ (a - 1) * (1 - u) ^ (b - 1) =
       Real.Gamma a * Real.Gamma b / Real.Gamma (a + b) := by
-  apply Complex.ofReal_injective
-  have hG := Complex.Gamma_mul_Gamma_eq_betaIntegral (s := (a : ℂ)) (t := (b : ℂ))
-    (by simpa using ha) (by simpa using hb)
-  have hne : Complex.Gamma ((a : ℂ) + b) ≠ 0 :=
-    Complex.Gamma_ne_zero_of_re_pos (by simp; linarith)
-  push_cast
-  rw [← Complex.Gamma_ofReal, ← Complex.Gamma_ofReal, ← Complex.Gamma_ofReal, Complex.ofReal_add,
-    eq_div_iff hne, hG, ← intervalIntegral.integral_ofReal, mul_comm, Complex.betaIntegral]
-  congr 1
-  refine intervalIntegral.integral_congr fun u hu => ?_
-  rw [Set.uIcc_of_le zero_le_one] at hu
-  rw [Complex.ofReal_mul, Complex.ofReal_cpow hu.1, Complex.ofReal_cpow (by linarith [hu.2])]
-  push_cast
-  rfl
+  simpa only [ProbabilityTheory.beta] using
+    TauCeti.integral_rpow_mul_one_sub_rpow ha hb
 
 @[dlmf 5.12.E2]
 theorem beta_sin_cos {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
