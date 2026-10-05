@@ -13,6 +13,7 @@ public import AAR.OrthogonalPolynomials.Series
 public import AAR.Bessel.Basic
 public import AAR.Gamma.IntegralRepresentations
 public import TauCeti.Analysis.SpecialFunctions.Hermite.Orthogonality
+public import TauCeti.RingTheory.Polynomial.Hermite.Derivative
 public import TauCeti.Analysis.SpecialFunctions.Hermite.Function.Fourier.Basic
 public import TauCeti.Probability.Distributions.Gaussian.PolynomialMemLp
 /-!
@@ -26,6 +27,9 @@ Probabilists’ Hermite orthogonality and polynomial Gaussian integrability use
 the corresponding results of the Tau Ceti contributors. The two Hermite Fourier
 eigenfunction identities adapt their normalized Hermite Fourier theorem to the
 positive phase and scales used in DLMF.
+The Hermite cosine and sine transforms 18.17.23 and 18.17.27 integrate by parts
+against `He_n(x) e^{-x²/2}`; they use the Tau Ceti contributors' Gaussian
+integrability `integrable_aeval_mul_gaussian` and Hermite parity `hermite_aeval_neg`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
 -/
@@ -415,15 +419,6 @@ lemma integral_t_mul_add_I_pow (x : ℂ) (n : ℕ) :
   · refine ((integrable_add_I_pow_gauss x (n + 1)).const_mul (-(1 / 2))).congr
       (Eventually.of_forall fun t => ?_)
     simp only [Pi.mul_apply]; push_cast; ring
-
-/-- The Hermite recurrence in evaluated form. -/
-lemma aeval_hermitePhys_succ_succ (x : ℂ) (n : ℕ) :
-    (aeval x (hermitePhys (n + 2)) : ℂ) =
-      2 * x * aeval x (hermitePhys (n + 1)) - 2 * (n + 1) * aeval x (hermitePhys n) := by
-  rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
-  simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
-  push_cast
-  ring
 
 @[dlmf 18.10.E7]
 theorem hermitePhys_laplace_integral (n : ℕ) (x : ℂ) :
@@ -1126,17 +1121,175 @@ theorem hermite_fourier_eigenfunction (n : ℕ) (y : ℝ) :
       linear_combination -hscale
     _ = _ := by rw [hrs]; ring
 
+/-! ### Fourier transforms of `He_n(x) e^{-x²/2}` -/
+
+/-- The Hermite–Gaussian function `He_n(x) e^{-x²/2}`. -/
+def hermiteGauss (n : ℕ) (x : ℝ) : ℝ := aeval x (hermite n) * Real.exp (-(x ^ 2 / 2))
+
+/-- `He_n(x) e^{-x²/2} = (-1)^n dⁿ/dxⁿ e^{-x²/2}`. -/
+lemma hermiteGauss_eq_iterate (n : ℕ) (x : ℝ) :
+    hermiteGauss n x = (-1) ^ n * deriv^[n] (fun y => Real.exp (-(y ^ 2 / 2))) x := by
+  rw [deriv_gaussian_eq_hermite_mul_gaussian, hermiteGauss, ← mul_assoc, ← mul_assoc,
+    ← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow, one_mul]
+
+/-- `(He_n e^{-x²/2})' = -He_{n+1} e^{-x²/2}`. -/
+lemma hasDerivAt_hermiteGauss (n : ℕ) (x : ℝ) :
+    HasDerivAt (hermiteGauss n) (-hermiteGauss (n + 1) x) x := by
+  have hg : ContDiff ℝ ⊤ fun y : ℝ => Real.exp (-(y ^ 2 / 2)) := by fun_prop
+  have hd : Differentiable ℝ (deriv^[n] fun y : ℝ => Real.exp (-(y ^ 2 / 2))) := by
+    rw [← iteratedDeriv_eq_iterate]
+    exact hg.differentiable_iteratedDeriv n (by exact_mod_cast WithTop.coe_lt_top _)
+  have hfun : hermiteGauss n = fun x =>
+      (-1) ^ n * deriv^[n] (fun y => Real.exp (-(y ^ 2 / 2))) x :=
+    funext (hermiteGauss_eq_iterate n)
+  rw [hfun, hermiteGauss_eq_iterate, Function.iterate_succ_apply', pow_succ]
+  convert ((hd x).hasDerivAt.const_mul ((-1 : ℝ) ^ n)) using 1
+  ring
+
+/-- `He_n(x) e^{-x²/2}` is integrable (Tau Ceti `integrable_aeval_mul_gaussian`). -/
+lemma integrable_hermiteGauss (n : ℕ) : Integrable (hermiteGauss n) :=
+  TauCeti.integrable_aeval_mul_gaussian (hermite n)
+
+/-- The positive-phase Fourier transform of `He_n(x) e^{-x²/2}`. -/
+lemma integral_exp_mul_hermiteGauss (n : ℕ) (y : ℝ) :
+    ∫ x : ℝ, cexp (I * y * x) * (hermiteGauss n x : ℂ) =
+      (I * y) ^ n * (Real.sqrt (2 * π) * Real.exp (-(y ^ 2 / 2)) : ℝ) := by
+  induction n with
+  | zero =>
+    have h := fourierIntegral_gaussian (b := 1 / 2) (by norm_num) (y : ℂ)
+    simp only [hermiteGauss, hermite_zero, map_one, one_mul, pow_zero]
+    convert h using 1
+    · congr 1; funext x; congr 1; push_cast; congr 1; ring
+    · rw [show (π : ℂ) / (1 / 2) = 2 * π by ring, Complex.ofReal_mul, Real.sqrt_eq_rpow,
+        Complex.ofReal_cpow (by positivity), Complex.ofReal_exp]
+      push_cast
+      congr 2
+      ring
+  | succ n ih =>
+    have hu : ∀ x : ℝ, HasDerivAt (fun x : ℝ => cexp (I * y * x)) (I * y * cexp (I * y * x)) x :=
+      fun x => by
+        have := ((hasDerivAt_id (x : ℂ)).const_mul (I * y)).cexp.comp_ofReal
+        simpa [mul_comm] using this
+    have hv : ∀ x : ℝ, HasDerivAt (fun x : ℝ => (hermiteGauss n x : ℂ))
+        ((-hermiteGauss (n + 1) x : ℝ) : ℂ) x :=
+      fun x => (hasDerivAt_hermiteGauss n x).ofReal_comp
+    have hint : ∀ m, Integrable fun x : ℝ => cexp (I * y * x) * (hermiteGauss m x : ℂ) := by
+      intro m
+      refine (integrable_hermiteGauss m).ofReal.bdd_mul (c := 1) ?_ ?_
+      · exact (by fun_prop : Continuous fun x : ℝ => cexp (I * y * x)).aestronglyMeasurable
+      · refine Eventually.of_forall fun x => le_of_eq ?_
+        rw [Complex.norm_exp]
+        simp
+    have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable (fun x _ => hu x)
+      (fun x _ => hv x)
+      ((hint (n + 1)).neg.congr (Eventually.of_forall fun x => by simp))
+      (((hint n).const_mul (I * y)).congr (Eventually.of_forall fun x => by simp; ring))
+      (hint n)
+    simp only [ofReal_neg, mul_neg, integral_neg, neg_inj] at hibp
+    rw [hibp, show (fun x : ℝ => I * y * cexp (I * y * x) * (hermiteGauss n x : ℂ)) =
+      fun x : ℝ => I * y * (cexp (I * y * x) * (hermiteGauss n x : ℂ)) by funext x; ring,
+      integral_const_mul, ih, pow_succ]
+    ring
+
+
+/-- `e^{iyx} He_n(x) e^{-x²/2}` is integrable. -/
+lemma integrable_exp_mul_hermiteGauss (n : ℕ) (y : ℝ) :
+    Integrable fun x : ℝ => cexp (I * y * x) * (hermiteGauss n x : ℂ) := by
+  refine (integrable_hermiteGauss n).ofReal.bdd_mul (c := 1) ?_ ?_
+  · exact (by fun_prop : Continuous fun x : ℝ => cexp (I * y * x)).aestronglyMeasurable
+  · refine Eventually.of_forall fun x => le_of_eq ?_
+    rw [Complex.norm_exp]
+    simp
+
+/-- Rewriting `e^{iyx}` as `e^{(yx) i}`. -/
+lemma exp_I_mul_eq (y x : ℝ) : cexp (I * y * x) = cexp (((y * x : ℝ) : ℂ) * I) := by
+  push_cast; ring_nf
+
+/-- The cosine transform of `He_n(x) e^{-x²/2}` over `ℝ`. -/
+lemma integral_cos_mul_hermiteGauss (n : ℕ) (y : ℝ) :
+    ∫ x : ℝ, Real.cos (y * x) * hermiteGauss n x =
+      ((I * y) ^ n).re * (Real.sqrt (2 * π) * Real.exp (-(y ^ 2 / 2))) := by
+  have h := congrArg Complex.re (integral_exp_mul_hermiteGauss n y)
+  have hr := integral_re (integrable_exp_mul_hermiteGauss n y)
+  simp only [RCLike.re_to_complex] at hr
+  rw [← hr, Complex.re_mul_ofReal] at h
+  rw [← h]
+  congr 1; funext x
+  rw [exp_I_mul_eq, Complex.re_mul_ofReal, Complex.exp_ofReal_mul_I_re]
+
+/-- The sine transform of `He_n(x) e^{-x²/2}` over `ℝ`. -/
+lemma integral_sin_mul_hermiteGauss (n : ℕ) (y : ℝ) :
+    ∫ x : ℝ, Real.sin (y * x) * hermiteGauss n x =
+      ((I * y) ^ n).im * (Real.sqrt (2 * π) * Real.exp (-(y ^ 2 / 2))) := by
+  have h := congrArg Complex.im (integral_exp_mul_hermiteGauss n y)
+  have hi := integral_im (integrable_exp_mul_hermiteGauss n y)
+  simp only [RCLike.im_to_complex] at hi
+  rw [← hi, Complex.im_mul_ofReal] at h
+  rw [← h]
+  congr 1; funext x
+  rw [exp_I_mul_eq, Complex.im_mul_ofReal, Complex.exp_ofReal_mul_I_im]
+
+/-- `√(2π)/2 = √(π/2)`. -/
+lemma sqrt_two_pi_div_two : Real.sqrt (2 * π) / 2 = Real.sqrt (π / 2) := by
+  rw [show π / 2 = (2 * π) / 2 ^ 2 by ring, Real.sqrt_div' _ (by positivity),
+    Real.sqrt_sq (by norm_num)]
+
 @[dlmf 18.17.E23]
 theorem hermite_even_cosine_transform (n : ℕ) (y : ℝ) :
     ∫ x : ℝ in Set.Ioi 0, Real.exp (-(x ^ 2) / 2) * (aeval x (hermite (2 * n)) : ℝ) * Real.cos (x * y) =
       (-1 : ℝ) ^ n * Real.sqrt (Real.pi / 2) * y ^ (2 * n) * Real.exp (-(y ^ 2) / 2) := by
-  sorry
+  set f : ℝ → ℝ := fun x => Real.exp (-(x ^ 2) / 2) * (aeval x (hermite (2 * n)) : ℝ) *
+    Real.cos (x * y) with hf
+  have heven : ∀ x, f |x| = f x := by
+    intro x
+    rcases abs_cases x with ⟨h, _⟩ | ⟨h, _⟩
+    · rw [h]
+    · rw [h, hf]
+      simp only [hermite_aeval_neg, pow_mul, one_pow, one_mul, neg_mul, Real.cos_neg,
+        even_two, Even.neg_pow]
+  have habs := integral_comp_abs (f := f)
+  simp_rw [heven] at habs
+  have hfull : ∫ x, f x = ∫ x : ℝ, Real.cos (y * x) * hermiteGauss (2 * n) x := by
+    congr 1; funext x
+    simp only [hf, hermiteGauss, neg_div, mul_comm x y]
+    ring
+  rw [hfull, integral_cos_mul_hermiteGauss, mul_pow, pow_mul, I_sq] at habs
+  have hre : (((-1 : ℂ) ^ n) * (y : ℂ) ^ (2 * n)).re = (-1 : ℝ) ^ n * y ^ (2 * n) := by
+    rw [← Complex.ofReal_pow, Complex.re_mul_ofReal]
+    norm_cast
+  rw [hre] at habs
+  rw [← sqrt_two_pi_div_two, neg_div]
+  linarith
 
 @[dlmf 18.17.E27]
 theorem hermite_odd_sine_transform (n : ℕ) (y : ℝ) :
     ∫ x : ℝ in Set.Ioi 0, Real.exp (-(x ^ 2) / 2) * (aeval x (hermite (2 * n + 1)) : ℝ) * Real.sin (x * y) =
       (-1 : ℝ) ^ n * Real.sqrt (Real.pi / 2) * y ^ (2 * n + 1) * Real.exp (-(y ^ 2) / 2) := by
-  sorry
+  set f : ℝ → ℝ := fun x => Real.exp (-(x ^ 2) / 2) * (aeval x (hermite (2 * n + 1)) : ℝ) *
+    Real.sin (x * y) with hf
+  have heven : ∀ x, f |x| = f x := by
+    intro x
+    rcases abs_cases x with ⟨h, _⟩ | ⟨h, _⟩
+    · rw [h]
+    · rw [h, hf]
+      simp only [hermite_aeval_neg, neg_mul, Real.sin_neg, neg_sq]
+      rw [pow_succ (-1 : ℝ), pow_mul (-1 : ℝ), neg_one_sq, one_pow]
+      ring
+  have habs := integral_comp_abs (f := f)
+  simp_rw [heven] at habs
+  have hfull : ∫ x, f x = ∫ x : ℝ, Real.sin (y * x) * hermiteGauss (2 * n + 1) x := by
+    congr 1; funext x
+    simp only [hf, hermiteGauss, neg_div, mul_comm x y]
+    ring
+  rw [hfull, integral_sin_mul_hermiteGauss, mul_pow, pow_succ, pow_mul, I_sq] at habs
+  have him : ((-1 : ℂ) ^ n * I * (y : ℂ) ^ (2 * n + 1)).im =
+      (-1 : ℝ) ^ n * y ^ (2 * n + 1) := by
+    rw [show (-1 : ℂ) ^ n * I * (y : ℂ) ^ (2 * n + 1) =
+      (((-1 : ℝ) ^ n * y ^ (2 * n + 1) : ℝ) : ℂ) * I by push_cast; ring, Complex.mul_I_im,
+      Complex.ofReal_re]
+  rw [him] at habs
+  rw [← sqrt_two_pi_div_two, neg_div]
+  linarith
 
 @[dlmf 18.17.E25]
 theorem hermite_product_cosine_transform (m n : ℕ) (y : ℝ) :

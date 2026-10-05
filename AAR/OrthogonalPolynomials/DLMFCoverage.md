@@ -194,8 +194,8 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.5.E7](https://dlmf.nist.gov/18.5.E7) | [jacobiP](../OrthogonalPolynomials/Classical.lean) (line 446; local); [jacobi_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 66; local); [Polynomial.coeff_shiftedLegendre](../OrthogonalPolynomials/MathlibCoverage.lean) (line 322; Mathlib comment) |
 | [18.5.E8](https://dlmf.nist.gov/18.5.E8) | [jacobi_binomial_sum](../OrthogonalPolynomials/Explicit.lean) (line 100; local) |
 | [18.5.E9](https://dlmf.nist.gov/18.5.E9) | [gegenbauer](../OrthogonalPolynomials/Classical.lean) (line 663; local) |
-| [18.5.E10](https://dlmf.nist.gov/18.5.E10) | [gegenbauer_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 108; local) |
-| [18.5.E11](https://dlmf.nist.gov/18.5.E11) | [gegenbauer_cos_sum](../OrthogonalPolynomials/Explicit.lean) (line 115; local) |
+| [18.5.E10](https://dlmf.nist.gov/18.5.E10) | [gegenbauer_finite_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.5.E11](https://dlmf.nist.gov/18.5.E11) | [gegenbauer_cos_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
 | [18.5.E11_1](https://dlmf.nist.gov/18.5.E11_1) | [chebyshevT_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 277; local) |
 | [18.5.E11_2](https://dlmf.nist.gov/18.5.E11_2) | [chebyshevT_hypergeometric](../OrthogonalPolynomials/Explicit.lean) (line 122; local) |
 | [18.5.E11_3](https://dlmf.nist.gov/18.5.E11_3) | [chebyshevU_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 284; local) |
@@ -238,10 +238,10 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.7.E10](https://dlmf.nist.gov/18.7.E10) | [aeval_shiftedLegendre_eq_legendreP](../OrthogonalPolynomials/Classical.lean) (line 482; local) |
 | [18.7.E11](https://dlmf.nist.gov/18.7.E11) | [aeval_hermitePhys_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
 | [18.7.E12](https://dlmf.nist.gov/18.7.E12) | [aeval_hermitePhys_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
-| [18.7.E13](https://dlmf.nist.gov/18.7.E13) | [jacobi_quadratic_even](../OrthogonalPolynomials/Explicit.lean) (line 227; local) |
-| [18.7.E14](https://dlmf.nist.gov/18.7.E14) | [jacobi_quadratic_odd](../OrthogonalPolynomials/Explicit.lean) (line 233; local) |
-| [18.7.E15](https://dlmf.nist.gov/18.7.E15) | [gegenbauer_quadratic_even](../OrthogonalPolynomials/Explicit.lean) (line 239; local) |
-| [18.7.E16](https://dlmf.nist.gov/18.7.E16) | [gegenbauer_quadratic_odd](../OrthogonalPolynomials/Explicit.lean) (line 244; local) |
+| [18.7.E13](https://dlmf.nist.gov/18.7.E13) | [jacobi_quadratic_even](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.7.E14](https://dlmf.nist.gov/18.7.E14) | [jacobi_quadratic_odd](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.7.E15](https://dlmf.nist.gov/18.7.E15) | [gegenbauer_quadratic_even](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.7.E16](https://dlmf.nist.gov/18.7.E16) | [gegenbauer_quadratic_odd](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
 | [18.7.E17](https://dlmf.nist.gov/18.7.E17) | [chebyshevU_quadratic](../OrthogonalPolynomials/Explicit.lean) (line 250; local) |
 | [18.7.E18](https://dlmf.nist.gov/18.7.E18) | [chebyshevT_quadratic](../OrthogonalPolynomials/Explicit.lean) (line 254; local) |
 | [18.7.E19](https://dlmf.nist.gov/18.7.E19) | [hermitePhys_even_eq_laguerre](../OrthogonalPolynomials/Explicit.lean) (line 258; local) |
@@ -1000,13 +1000,13 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Associated.lean](Associated.lean) | `associatedPollaczek_limit_hermite` | `sorry` |
 | [Associated.lean](Associated.lean) | `besselPolynomial_eq_laguerre` | `sorry` |
 | [Associated.lean](Associated.lean) | `reverseBesselPolynomial_eq` | proved |
-| [Associated.lean](Associated.lean) | `besselPolynomial_recurrence` | `sorry` |
+| [Associated.lean](Associated.lean) | `besselPolynomial_recurrence` | proved |
 | [Associated.lean](Associated.lean) | `besselPolynomial_differential_equation` | `sorry` |
 | [Associated.lean](Associated.lean) | `besselPolynomial_finite_orthogonality` | `sorry` |
 | [Associated.lean](Associated.lean) | `jacobi_limit_besselPolynomial` | `sorry` |
 | [Associated.lean](Associated.lean) | `pollaczek_reflection` | proved |
-| [Associated.lean](Associated.lean) | `pollaczek_finite_sum` | `sorry` |
-| [Associated.lean](Associated.lean) | `pollaczek_generating_function` | `sorry` |
+| [Associated.lean](Associated.lean) | `pollaczek_finite_sum` | proved |
+| [Associated.lean](Associated.lean) | `pollaczek_generating_function` | proved |
 | [Associated.lean](Associated.lean) | `pollaczek_eq_gegenbauer` | `sorry` |
 | [Associated.lean](Associated.lean) | `pollaczek_eq_meixnerPollaczek` | `sorry` |
 | [Associated.lean](Associated.lean) | `pollaczek_eq_associatedMeixnerPollaczek` | proved |
@@ -1023,7 +1023,7 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bound_at_one` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bound_at_neg_one` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bernstein_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_bound_at_one` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_bound_at_one` | proved |
 | [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_even_bound` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_odd_bound` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_bernstein_bound` | `sorry` |
@@ -1094,8 +1094,6 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Explicit.lean](Explicit.lean) | `chebyshevW_cos` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `jacobi_finite_sum` | proved |
 | [Explicit.lean](Explicit.lean) | `jacobi_binomial_sum` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_finite_sum` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_cos_sum` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_hypergeometric` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `hermitePhys_finite_sum` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `laguerre_at_zero` | proved |
@@ -1113,10 +1111,10 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Explicit.lean](Explicit.lean) | `chebyshevW_at_one` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_eq_jacobi` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `legendre_eq_gegenbauer` | proved |
-| [Explicit.lean](Explicit.lean) | `jacobi_quadratic_even` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `jacobi_quadratic_odd` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_quadratic_even` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_quadratic_odd` | `sorry` |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `jacobi_quadratic_even` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `jacobi_quadratic_odd` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_quadratic_even` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_quadratic_odd` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevU_quadratic` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_quadratic` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `hermitePhys_even_eq_laguerre` | `sorry` |
@@ -1181,12 +1179,12 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Hahn.lean](Hahn.lean) | `krawtchouk_generating_function` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixner_generating_function` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `charlier_generating_function` | `sorry` |
-| [Hahn.lean](Hahn.lean) | `meixnerPollaczek_generating_function` | `sorry` |
+| [Hahn.lean](Hahn.lean) | `meixnerPollaczek_generating_function` | proved |
 | [Hahn.lean](Hahn.lean) | `hahn_limit_krawtchouk` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `hahn_limit_jacobi` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `krawtchouk_limit_charlier` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixner_limit_charlier` | `sorry` |
-| [Hahn.lean](Hahn.lean) | `charlier_limit_hermite` | `sorry` |
+| [Hahn.lean](Hahn.lean) | `charlier_limit_hermite` | proved |
 | [Hahn.lean](Hahn.lean) | `hahn_limit_meixner` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixner_limit_laguerre` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixnerPollaczek_limit_laguerre` | `sorry` |
@@ -1231,8 +1229,8 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Integrals.lean](Integrals.lean) | `gegenbauer_fourier_transform` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `legendre_bessel_square_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_fourier_eigenfunction` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermite_even_cosine_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermite_odd_sine_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermite_even_cosine_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `hermite_odd_sine_transform` | proved |
 | [Integrals.lean](Integrals.lean) | `hermite_product_cosine_transform` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_product_sine_transform` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_laplace_transform` | `sorry` |
@@ -1305,15 +1303,15 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [QFamilies.lean](QFamilies.lean) | `askeyWilsonAsymptoticCoefficient` | definition |
 | [QFamilies.lean](QFamilies.lean) | `askeyWilson_asymptotic` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_weighted_generating_function` | `sorry` |
+| [Series.lean](Series.lean) | `gegenbauer_generating_function` | proved |
+| [Series.lean](Series.lean) | `gegenbauer_weighted_generating_function` | proved |
 | [Series.lean](Series.lean) | `chebyshevT_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_log_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `legendre_generating_function` | `sorry` |
+| [Series.lean](Series.lean) | `legendre_generating_function` | proved |
 | [Series.lean](Series.lean) | `legendre_exponential_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `hermite_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_addition` | `sorry` |
+| [Series.lean](Series.lean) | `laguerre_addition` | proved |
 | [Series.lean](Series.lean) | `hermitePhys_addition` | `sorry` |
 | [Series.lean](Series.lean) | `laguerre_multiplication` | `sorry` |
 | [Series.lean](Series.lean) | `hermitePhys_multiplication` | `sorry` |
@@ -1326,24 +1324,26 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Series.lean](Series.lean) | `mehler_formula` | `sorry` |
 | [Series.lean](Series.lean) | `legendre_addition` | `sorry` |
 | [Series.lean](Series.lean) | `gegenbauer_linearization` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_convolution` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_geometric_convolution` | `sorry` |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_finite_sum` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_cos_sum` | proved |
+| [Series.lean](Series.lean) | `gegenbauer_convolution` | proved |
+| [Series.lean](Series.lean) | `gegenbauer_geometric_convolution` | proved |
 | [Series.lean](Series.lean) | `chebyshev_geometric_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_even_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_odd_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_even_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_odd_sum` | `sorry` |
-| [Series.lean](Series.lean) | `legendre_convolution` | `sorry` |
+| [Series.lean](Series.lean) | `legendre_convolution` | proved |
 | [Series.lean](Series.lean) | `laguerre_sum` | `sorry` |
-| [Series.lean](Series.lean) | `hermitePhys_even_convolution` | `sorry` |
-| [Series.lean](Series.lean) | `jacobi_regularized_generating_function` | `sorry` |
+| [Series.lean](Series.lean) | `hermitePhys_even_convolution` | proved |
+| [Series.lean](Series.lean) | `jacobi_regularized_generating_function` | proved |
 | [Series.lean](Series.lean) | `jacobi_brafman_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_weighted_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_adjacent_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `gegenbauer_bessel_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_poisson_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_bessel_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `hermitePhys_half_factorial_generating_function` | `sorry` |
+| [Series.lean](Series.lean) | `laguerre_bessel_generating_function` | proved |
+| [Series.lean](Series.lean) | `hermitePhys_half_factorial_generating_function` | proved |
 | [UnitCircle.lean](UnitCircle.lean) | `reflectedPolynomial` | definition |
 | [UnitCircle.lean](UnitCircle.lean) | `IsUnitCircleOP` | definition |
 | [UnitCircle.lean](UnitCircle.lean) | `verblunskyCoefficient` | definition |

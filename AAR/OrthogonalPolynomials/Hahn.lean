@@ -7,6 +7,7 @@ module
 
 public import AAR.OrthogonalPolynomials.Topics
 public import AAR.Hypergeometric.Continuation
+public import AAR.OrthogonalPolynomials.BinomialSeries
 public import Mathlib.Tactic.CrossRefAttribute
 
 /-!
@@ -858,11 +859,44 @@ theorem charlier_generating_function (a : ℂ) (x : ℕ) (z : ℂ) :
     rw [show z / a = (-a⁻¹) * (-z) by ring, mul_pow]
     ring
 
+/-- The Meixner–Pollaczek polynomial of degree zero. -/
+lemma meixnerPollaczek_zero (lam phi x : ℂ) : meixnerPollaczek lam phi 0 x = 1 := by
+  simp [meixnerPollaczek, terminatingHG, poch_zero]
+
+/-- `e^{iφ} + e^{-iφ} = 2 cos φ` and `e^{-iφ} - e^{iφ} = -2 i sin φ`, in the form used below. -/
+lemma exp_I_mul_add_inv (phi : ℂ) :
+    exp (I * phi) + (exp (I * phi))⁻¹ = 2 * cos phi ∧
+      exp (I * phi) - (exp (I * phi))⁻¹ = 2 * I * sin phi := by
+  rw [← Complex.exp_neg, Complex.cos, Complex.sin]
+  constructor
+  · ring_nf
+  · ring_nf; rw [I_sq]; ring
+
 @[dlmf 18.23.E7]
 theorem meixnerPollaczek_generating_function {lam : ℂ} (hlam : 0 < lam.re) (phi x : ℝ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => meixnerPollaczek lam phi n x * z ^ n)
       ((1 - exp (I * phi) * z) ^ (-lam + I * x) * (1 - exp (-I * phi) * z) ^ (-lam - I * x)) := by
-  sorry
+  set u := exp (I * phi) with hu
+  have hu0 : u ≠ 0 := Complex.exp_ne_zero _
+  have hu1 : ‖u‖ = 1 := by rw [hu, mul_comm, Complex.norm_exp_ofReal_mul_I]
+  have hlam0 : lam ≠ 0 := fun h => by rw [h, Complex.zero_re] at hlam; exact lt_irrefl _ hlam
+  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_inv (phi : ℂ)
+  have hcoeff : ∀ n, meixnerPollaczek lam phi n x =
+      PowerSeries.coeff n (binomProductSeries (lam - I * x) (lam + I * x) u) := by
+    refine eq_coeff_binomProductSeries hu0 (meixnerPollaczek_zero _ _ _) ?_ ?_
+    · rw [meixnerPollaczek_one hlam0]
+      linear_combination (-lam) * hcos + (I * x) * hsin + (2 * x * sin (phi : ℂ)) * I_sq
+    · intro n
+      rw [meixnerPollaczek_recurrence hlam]
+      linear_combination (-(n + 1 + lam : ℂ) * meixnerPollaczek lam phi (n + 1) x) * hcos +
+        (I * x * meixnerPollaczek lam phi (n + 1) x) * hsin +
+        (2 * x * sin (phi : ℂ) * meixnerPollaczek lam phi (n + 1) x) * I_sq
+  have h1 : ‖u * z‖ < 1 := by rwa [norm_mul, hu1, one_mul]
+  have h2 : ‖u⁻¹ * z‖ < 1 := by rwa [norm_mul, norm_inv, hu1, inv_one, one_mul]
+  have h := hasSum_coeff_binomProductSeries_mul_pow (lam - I * x) (lam + I * x) h1 h2
+  rw [show u⁻¹ = exp (-I * phi) by rw [hu, ← Complex.exp_neg]; ring_nf,
+    show -(lam - I * x) = -lam + I * x by ring, show -(lam + I * x) = -lam - I * x by ring] at h
+  simpa only [hcoeff] using h
 
 /-- Limits propagate through a three-term recurrence whose coefficients converge. -/
 lemma tendsto_of_three_term {ι : Type*} {l : Filter ι} {f : ℕ → ι → ℂ} {g : ℕ → ℂ}
@@ -1010,10 +1044,103 @@ theorem meixner_limit_charlier {a : ℝ} (ha : 0 < a) (n : ℕ) (x : ℂ) :
     rw [← mul_pow]; congr 1; field_simp; ring
   linear_combination (poch (-(n : ℂ)) k * poch (-x) k / k.factorial / poch (b : ℂ) k) * e
 
+/-- Charlier polynomials as polynomials in `x`. -/
+def charlierPoly (a : ℂ) (n : ℕ) : ℂ[X] :=
+  ∑ k ∈ Finset.range (n + 1), C (poch (-(n : ℂ)) k * (-a⁻¹) ^ k / k.factorial) *
+    (ascPochhammer ℂ k).comp (-X)
+
+/-- Evaluation of `charlierPoly` is the Charlier polynomial. -/
+lemma eval_charlierPoly (a : ℂ) (n : ℕ) (x : ℂ) : (charlierPoly a n).eval x = charlier a n x := by
+  simp only [charlierPoly, charlier, terminatingHG, eval_finsetSum, eval_mul, eval_C, eval_comp,
+    eval_neg, eval_X, List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [poch]; ring
+
+/-- Self-duality of the Charlier polynomials at integer points. -/
+lemma charlier_swap (a : ℂ) (n m : ℕ) : charlier a n m = charlier a m n := by
+  simp only [charlier]
+  exact terminatingHG_two_neg_nat_swap n m [] _
+
+/-- The three-term recurrence of the Charlier polynomials in the degree. -/
+theorem charlier_recurrence {a : ℂ} (ha : a ≠ 0) (n : ℕ) (x : ℂ) :
+    a * charlier a (n + 2) x =
+      (n + 1 + a - x) * charlier a (n + 1) x - (n + 1) * charlier a n x := by
+  -- integer points, from the difference equation and duality
+  have hint : ∀ m : ℕ, a * charlier a (n + 2) m =
+      (n + 1 + a - m) * charlier a (n + 1) m - (n + 1) * charlier a n m := by
+    intro m
+    have h := charlier_difference_equation ha m ((n + 1 : ℕ) : ℂ)
+    rw [show ((n + 1 : ℕ) : ℂ) + 1 = ((n + 2 : ℕ) : ℂ) by push_cast; ring,
+      show ((n + 1 : ℕ) : ℂ) - 1 = ((n : ℕ) : ℂ) by push_cast; ring,
+      charlier_swap a m (n + 2), charlier_swap a m (n + 1), charlier_swap a m n] at h
+    push_cast at h
+    linear_combination h
+  -- polynomial identity
+  have hpoly : C a * charlierPoly a (n + 2) =
+      (C (n + 1 + a) - X) * charlierPoly a (n + 1) - C ((n : ℂ) + 1) * charlierPoly a n := by
+    apply Polynomial.eq_of_infinite_eval_eq
+    refine Set.infinite_of_injective_forall_mem (f := fun m : ℕ => (m : ℂ))
+      Nat.cast_injective fun m => ?_
+    simp only [Set.mem_ofPred_eq, eval_mul, eval_sub, eval_C, eval_X, eval_charlierPoly]
+    rw [hint m]
+  have := congrArg (eval x) hpoly
+  simp only [eval_mul, eval_sub, eval_C, eval_X, eval_charlierPoly] at this
+  rw [this]
+
+
 @[dlmf 18.21.E9]
 theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
     Tendsto (fun a : ℝ => (Real.sqrt (2 * a) : ℂ) ^ n * charlier a n ((Real.sqrt (2 * a) : ℂ) * x + a)) atTop (𝓝 ((-1 : ℂ) ^ n * aeval x (hermitePhys n))) := by
-  sorry
+  set f : ℕ → ℝ → ℂ := fun n a =>
+    (Real.sqrt (2 * a) : ℂ) ^ n * charlier a n ((Real.sqrt (2 * a) : ℂ) * x + a) with hf
+  -- the scaled recurrence coefficient `√(2a)/a`
+  have hs : Tendsto (fun a : ℝ => ((Real.sqrt (2 * a) / a : ℝ) : ℂ)) atTop (𝓝 0) := by
+    have : Tendsto (fun a : ℝ => Real.sqrt 2 * (Real.sqrt a)⁻¹) atTop (𝓝 0) := by
+      simpa using (tendsto_inv_atTop_zero.comp (Real.tendsto_sqrt_atTop)).const_mul (Real.sqrt 2)
+    rw [show (0 : ℂ) = ((0 : ℝ) : ℂ) by simp]
+    refine Complex.continuous_ofReal.continuousAt.tendsto.comp (this.congr' ?_)
+    filter_upwards [eventually_gt_atTop 0] with a ha
+    rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2), mul_div_assoc]
+    congr 1
+    have hsa : (0 : ℝ) < Real.sqrt a := Real.sqrt_pos.mpr ha
+    field_simp
+    rw [Real.sq_sqrt ha.le]
+  refine tendsto_of_three_term (f := f) (g := fun n => (-1 : ℂ) ^ n * aeval x (hermitePhys n))
+    (A := fun n a => (n + 1 : ℂ) * ((Real.sqrt (2 * a) / a : ℝ) : ℂ) - 2 * x)
+    (B := fun n _ => -2 * (n + 1 : ℂ)) (A' := fun _ => -2 * x) (B' := fun n => -2 * (n + 1 : ℂ))
+    ?_ ?_ ?_ ?_ ?_ ?_ n
+  · simp [hf, charlier, terminatingHG, poch_zero]
+  · have h1 : (aeval x (hermitePhys 1) : ℂ) = 2 * x := by simp [hermitePhys_succ, map_ofNat]
+    simp only [pow_one, h1]
+    refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with a ha
+    have hsq : ((Real.sqrt (2 * a) : ℝ) : ℂ) ^ 2 = 2 * a := by
+      rw [← Complex.ofReal_pow, Real.sq_sqrt (by positivity)]; push_cast; ring
+    have ha0 : (a : ℂ) ≠ 0 := by exact_mod_cast ha.ne'
+    simp only [hf, charlier, terminatingHG, Finset.sum_range_succ, Finset.sum_range_zero,
+      List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, poch_zero, poch_one, pow_one]
+    field_simp
+    linear_combination x * hsq
+  · intro n
+    simpa using (hs.const_mul ((n : ℂ) + 1)).sub_const (2 * x)
+  · intro n; exact tendsto_const_nhds
+  · intro n
+    filter_upwards [eventually_gt_atTop 0] with a ha
+    have hsq : ((Real.sqrt (2 * a) : ℝ) : ℂ) ^ 2 = 2 * a := by
+      rw [← Complex.ofReal_pow, Real.sq_sqrt (by positivity)]; push_cast; ring
+    have ha0 : (a : ℂ) ≠ 0 := by exact_mod_cast ha.ne'
+    have hrec := charlier_recurrence ha0 n ((Real.sqrt (2 * a) : ℂ) * x + a)
+    simp only [hf]
+    set S : ℂ := ((Real.sqrt (2 * a) : ℝ) : ℂ)
+    push_cast
+    rw [show S ^ (n + 2) = S ^ n * S ^ 2 by ring, show S ^ (n + 1) = S ^ n * S by ring]
+    field_simp
+    linear_combination (S ^ n * S ^ 2) * hrec -
+      (S * S ^ n * x * charlier (↑a) (n + 1) (S * x + ↑a) +
+        S ^ n * (n + 1) * charlier (↑a) n (S * x + ↑a)) * hsq
+  · intro n
+    rw [aeval_hermitePhys_succ_succ]
+    ring
 
 
 @[dlmf 18.21.E4]

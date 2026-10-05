@@ -73,6 +73,15 @@ theorem hermitePhys_derivative (n : ℕ) :
     simp only [map_add, map_mul, map_natCast, map_ofNat, map_one]
     ring
 
+/-- The Hermite recurrence in evaluated form. -/
+lemma aeval_hermitePhys_succ_succ (x : ℂ) (n : ℕ) :
+    (aeval x (hermitePhys (n + 2)) : ℂ) =
+      2 * x * aeval x (hermitePhys (n + 1)) - 2 * (n + 1) * aeval x (hermitePhys n) := by
+  rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+  simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
+  push_cast
+  ring
+
 /-- Relation to Mathlib's probabilists' Hermite polynomials:
 `H_n(x) = 2^{n/2} He_n(√2 x)`. -/
 @[dlmf 18.7.E11, dlmf 18.7.E12]

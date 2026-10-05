@@ -252,13 +252,116 @@ theorem reverseBesselPolynomial_eq (n : ℕ) {x : ℂ} (hx : x ≠ 0) :
   rw [show -x⁻¹ / 2 = (-1 / 2 : ℂ) * x⁻¹ by ring, mul_pow, inv_pow]
   field_simp
 
+/-- Coefficients of the Bessel polynomial in powers of `-x/2`. -/
+def besselCoeff (a : ℂ) (m k : ℕ) : ℂ :=
+  poch (-(m : ℂ)) k * poch ((m : ℂ) + a - 1) k / k.factorial
+
+/-- The termwise form of the Bessel polynomial recurrence. -/
+lemma besselCoeff_rec (a : ℂ) (n j : ℕ) :
+    2 * (n + a) * (2 * n + a) * besselCoeff a (n + 2) (j + 1) =
+      -2 * ((2 * n + a + 2) * (2 * n + a + 1) * (2 * n + a)) * besselCoeff a (n + 1) j +
+        2 * (a - 2) * (2 * n + a + 1) * besselCoeff a (n + 1) (j + 1) +
+        2 * (n + 1) * (2 * n + a + 2) * besselCoeff a n (j + 1) := by
+  set X := poch (-(n : ℂ) - 1) j with hX
+  set Y := poch ((n : ℂ) + a) j with hY
+  have e1 : poch (-((n + 2 : ℕ) : ℂ)) (j + 1) = (-(n : ℂ) - 2) * X := by
+    rw [poch_succ_left, hX]; push_cast; congr 1 <;> ring_nf
+  have e2 : poch (-((n + 1 : ℕ) : ℂ)) j = X := by rw [hX]; push_cast; congr 1; ring_nf
+  have e3 : poch (-((n + 1 : ℕ) : ℂ)) (j + 1) = X * (-(n : ℂ) - 1 + j) := by
+    rw [poch_succ, hX]; push_cast; congr 1 <;> ring_nf
+  have e4 : ((n : ℂ) + 1) * poch (-(n : ℂ)) (j + 1) =
+      -(X * (-(n : ℂ) - 1 + j) * (-(n : ℂ) + j)) := by
+    have h1 := poch_succ_left (-(n : ℂ) - 1) (j + 1)
+    have h2 := poch_succ (-(n : ℂ) - 1) j
+    have h3 := poch_succ (-(n : ℂ) - 1) (j + 1)
+    rw [show -(n : ℂ) - 1 + 1 = -(n : ℂ) by ring] at h1
+    rw [← hX] at h2
+    push_cast at h3
+    linear_combination h1 - h3 - (-(n : ℂ) + j) * h2
+  have f1 : ((n : ℂ) + a) * poch (((n + 2 : ℕ) : ℂ) + a - 1) (j + 1) =
+      Y * ((n : ℂ) + a + j) * ((n : ℂ) + a + (j + 1)) := by
+    have h1 := poch_succ_left ((n : ℂ) + a) (j + 1)
+    have h2 := poch_succ ((n : ℂ) + a) (j + 1)
+    have h3 := poch_succ ((n : ℂ) + a) j
+    rw [← hY] at h3
+    push_cast at h2 ⊢
+    rw [show (n : ℂ) + 2 + a - 1 = (n : ℂ) + a + 1 by ring, ← h1, h2, h3]
+  have f2 : poch (((n + 1 : ℕ) : ℂ) + a - 1) j = Y := by rw [hY]; push_cast; congr 1; ring_nf
+  have f3 : poch (((n + 1 : ℕ) : ℂ) + a - 1) (j + 1) = Y * ((n : ℂ) + a + j) := by
+    rw [poch_succ, ← f2]; push_cast; ring_nf
+  have f4 : poch ((n : ℂ) + a - 1) (j + 1) = ((n : ℂ) + a - 1) * Y := by
+    rw [poch_succ_left, hY]; congr 1; ring_nf
+  unfold besselCoeff
+  rw [e1, e2, e3, f2, f3, f4, Nat.factorial_succ]
+  have hj : (j.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hj1 : ((j : ℂ) + 1) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero j
+  set P0 := poch (-(n : ℂ)) (j + 1)
+  set P1 := poch (((n + 2 : ℕ) : ℂ) + a - 1) (j + 1)
+  push_cast
+  field_simp
+  linear_combination ((2 * (n : ℂ) + a) * (-(n : ℂ) - 2) * X) * f1 -
+    ((2 * (n : ℂ) + a + 2) * ((n : ℂ) + a - 1) * Y) * e4
+
+
+/-- The Bessel polynomial as a sum over any sufficiently long range. -/
+lemma besselPolynomial_eq_sum (a : ℂ) {m M : ℕ} (hM : m + 1 ≤ M) (x : ℂ) :
+    besselPolynomial a m x = ∑ k ∈ Finset.range M, besselCoeff a m k * (-x / 2) ^ k := by
+  unfold besselPolynomial terminatingHG besselCoeff
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+  obtain ⟨d, rfl⟩ : ∃ d, M = m + 1 + d := ⟨M - (m + 1), by omega⟩
+  conv_rhs => rw [Finset.sum_range_add]
+  rw [Finset.sum_eq_zero (s := Finset.range d) (fun k _ => by
+    rw [poch_neg_nat_eq_zero (by omega)]; simp), add_zero]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  ring
+
+/-- The constant coefficient. -/
+lemma besselCoeff_zero (a : ℂ) (m : ℕ) : besselCoeff a m 0 = 1 := by
+  simp [besselCoeff, poch_zero]
+
+/-- Coefficients beyond the degree vanish. -/
+lemma besselCoeff_eq_zero (a : ℂ) {m k : ℕ} (hk : m < k) : besselCoeff a m k = 0 := by
+  simp [besselCoeff, poch_neg_nat_eq_zero hk]
+
 @[dlmf 18.34.E4]
 theorem besselPolynomial_recurrence (a : ℂ) (n : ℕ) (x : ℂ) :
     2 * (n + a) * (2 * n + a) * besselPolynomial a (n + 2) x =
       ((2 * n + a + 2) * (2 * n + a + 1) * (2 * n + a) * x +
         2 * (a - 2) * (2 * n + a + 1)) * besselPolynomial a (n + 1) x +
       2 * (n + 1) * (2 * n + a + 2) * besselPolynomial a n x := by
-  sorry
+  set w := -x / 2 with hw
+  have hx : x = -2 * w := by rw [hw]; ring
+  rw [besselPolynomial_eq_sum a (show n + 2 + 1 ≤ n + 3 by omega),
+    besselPolynomial_eq_sum a (show n + 1 + 1 ≤ n + 3 by omega),
+    besselPolynomial_eq_sum a (show n + 1 ≤ n + 3 by omega)]
+  -- `x` times the middle sum, shifted
+  have hshift : x * ∑ k ∈ Finset.range (n + 3), besselCoeff a (n + 1) k * w ^ k =
+      -2 * ∑ j ∈ Finset.range (n + 2), besselCoeff a (n + 1) j * w ^ (j + 1) := by
+    rw [hx, Finset.sum_range_succ, besselCoeff_eq_zero a (by omega : n + 1 < n + 2), zero_mul,
+      add_zero, Finset.mul_sum, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    ring
+  rw [show ((2 * n + a + 2) * (2 * n + a + 1) * (2 * n + a) * x + 2 * (a - 2) * (2 * n + a + 1)) *
+      ∑ k ∈ Finset.range (n + 3), besselCoeff a (n + 1) k * w ^ k =
+      (2 * n + a + 2) * (2 * n + a + 1) * (2 * n + a) *
+        (x * ∑ k ∈ Finset.range (n + 3), besselCoeff a (n + 1) k * w ^ k) +
+      2 * (a - 2) * (2 * n + a + 1) *
+        ∑ k ∈ Finset.range (n + 3), besselCoeff a (n + 1) k * w ^ k by ring, hshift]
+  rw [Finset.sum_range_succ' _ (n + 2), Finset.sum_range_succ' _ (n + 2),
+    Finset.sum_range_succ' _ (n + 2)]
+  simp only [besselCoeff_zero, pow_zero, mul_one]
+  have key : ∀ j ∈ Finset.range (n + 2),
+      2 * (n + a) * (2 * n + a) * (besselCoeff a (n + 2) (j + 1) * w ^ (j + 1)) =
+        (2 * n + a + 2) * (2 * n + a + 1) * (2 * n + a) *
+          (-2 * (besselCoeff a (n + 1) j * w ^ (j + 1))) +
+        2 * (a - 2) * (2 * n + a + 1) * (besselCoeff a (n + 1) (j + 1) * w ^ (j + 1)) +
+        2 * (n + 1) * (2 * n + a + 2) * (besselCoeff a n (j + 1) * w ^ (j + 1)) := by
+    intro j _
+    have := besselCoeff_rec a n j
+    linear_combination (w ^ (j + 1)) * this
+  rw [mul_add, Finset.mul_sum, Finset.sum_congr rfl key, Finset.sum_add_distrib,
+    Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum, ← Finset.mul_sum, ← Finset.mul_sum]
+  ring
 
 @[dlmf 18.34.E7]
 theorem besselPolynomial_differential_equation (a : ℂ) (n : ℕ) (x : ℂ) :
@@ -376,20 +479,89 @@ theorem pollaczek_reflection (lam a b : ℂ) (c : ℝ) (n : ℕ) (x : ℂ) :
     simp only [pollaczek, associated, pow_succ]
     ring
 
+/-- The Pollaczek polynomial of degree zero. -/
+lemma pollaczek_zero (lam a b x : ℂ) : pollaczek lam a b 0 0 x = 1 := by
+  simp [pollaczek, associated]
+
+/-- The Pollaczek polynomial of degree one. -/
+lemma pollaczek_one (lam a b x : ℂ) :
+    pollaczek lam a b 0 1 x = 2 * (lam + a) * x + 2 * b := by
+  simp [pollaczek, associated]
+
+/-- The three-term recurrence of the Pollaczek polynomials, DLMF 18.35.2. -/
+lemma pollaczek_recurrence (lam a b x : ℂ) (n : ℕ) :
+    (n + 2 : ℂ) * pollaczek lam a b 0 (n + 2) x =
+      (2 * (n + 1 + lam + a) * x + 2 * b) * pollaczek lam a b 0 (n + 1) x -
+        (n + 2 * lam) * pollaczek lam a b 0 n x := by
+  have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero (n + 1)
+  change (n + 2 : ℂ) * ((2 * ((n + 1 + (0 : ℝ) : ℝ) + lam + a) / ((n + 1 + (0 : ℝ) : ℝ) + 1) * x +
+      2 * b / ((n + 1 + (0 : ℝ) : ℝ) + 1)) * pollaczek lam a b 0 (n + 1) x -
+      (((n + 1 + (0 : ℝ) : ℝ) + 2 * lam - 1) / ((n + 1 + (0 : ℝ) : ℝ) + 1)) *
+        pollaczek lam a b 0 n x) = _
+  have hn' : (2 : ℂ) + n ≠ 0 := by rw [add_comm]; exact hn
+  push_cast
+  rw [show (n : ℂ) + 1 + 0 + 1 = n + 2 by ring, show (n : ℂ) + 1 + 0 = n + 1 by ring]
+  field_simp
+  ring
+
+/-- Pollaczek polynomials at `cos θ` are the coefficients of
+`G_{λ - iΦ}(e^{iθ}X) G_{λ + iΦ}(e^{-iθ}X)`, `Φ = (a cos θ + b)/sin θ`. -/
+lemma pollaczek_eq_coeff_binomProductSeries (lam a b : ℂ) {θ : ℂ} (hθ : sin θ ≠ 0) (n : ℕ) :
+    pollaczek lam a b 0 n (cos θ) = PowerSeries.coeff n (binomProductSeries
+      (lam - I * ((a * cos θ + b) / sin θ)) (lam + I * ((a * cos θ + b) / sin θ))
+      (exp (I * θ))) := by
+  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_inv θ
+  set Φ := (a * cos θ + b) / sin θ with hΦ
+  have hΦs : Φ * sin θ = a * cos θ + b := by rw [hΦ]; field_simp
+  refine eq_coeff_binomProductSeries (f := fun n => pollaczek lam a b 0 n (cos θ))
+    (Complex.exp_ne_zero _) (pollaczek_zero _ _ _ _) ?_ ?_ n
+  · rw [pollaczek_one]
+    linear_combination (-lam) * hcos + (I * Φ) * hsin + (2 * Φ * sin θ) * I_sq - 2 * hΦs
+  · intro n
+    rw [pollaczek_recurrence]
+    set P := pollaczek lam a b 0 (n + 1) (cos θ)
+    linear_combination (-(n + 1 + lam : ℂ) * P) * hcos + (I * Φ * P) * hsin +
+      (2 * Φ * sin θ * P) * I_sq - (2 * P) * hΦs
+
 @[dlmf 18.35.E4]
 theorem pollaczek_finite_sum (lam a b : ℂ) (n : ℕ) {θ : ℂ} (hθ : sin θ ≠ 0) :
     pollaczek lam a b 0 n (cos θ) = ∑ k ∈ Finset.range (n + 1),
       poch (lam + I * (a * cos θ + b) / sin θ) k / k.factorial *
       (poch (lam - I * (a * cos θ + b) / sin θ) (n - k) / (n - k).factorial) *
       exp (I * ((n : ℂ) - 2 * k) * θ) := by
-  sorry
+  rw [pollaczek_eq_coeff_binomProductSeries lam a b hθ, coeff_binomProductSeries,
+    ← Finset.sum_range_reflect]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  rw [show n + 1 - 1 - k = n - k by omega, Nat.sub_sub_self hkn, ← Complex.exp_neg,
+    ← Complex.exp_nat_mul, ← Complex.exp_nat_mul, ← Complex.exp_add]
+  have he : (((n - k : ℕ) : ℂ) * (I * θ) + (k : ℂ) * -(I * θ)) = I * ((n : ℂ) - 2 * k) * θ := by
+    push_cast [Nat.cast_sub hkn]; ring
+  rw [he]
+  have hd : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hd' : ((n - k).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  rw [mul_div_assoc, mul_div_assoc]
+  field_simp
 
 @[dlmf 18.35.E7]
 theorem pollaczek_generating_function (lam a b : ℂ) (θ : ℝ) (hθ : Real.sin θ ≠ 0) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => pollaczek lam a b 0 n (Real.cos θ) * z ^ n)
       ((1 - z * exp (I * θ)) ^ (-lam + I * (a * Real.cos θ + b) / Real.sin θ) *
        (1 - z * exp (-I * θ)) ^ (-lam - I * (a * Real.cos θ + b) / Real.sin θ)) := by
-  sorry
+  have hθ' : sin (θ : ℂ) ≠ 0 := by rw [← Complex.ofReal_sin]; exact_mod_cast hθ
+  set u := exp (I * θ) with hu
+  have hu1 : ‖u‖ = 1 := by rw [hu, mul_comm, Complex.norm_exp_ofReal_mul_I]
+  have h1 : ‖u * z‖ < 1 := by rwa [norm_mul, hu1, one_mul]
+  have h2 : ‖u⁻¹ * z‖ < 1 := by rwa [norm_mul, norm_inv, hu1, inv_one, one_mul]
+  have h := hasSum_coeff_binomProductSeries_mul_pow (lam - I * ((a * cos θ + b) / sin θ))
+    (lam + I * ((a * cos θ + b) / sin θ)) h1 h2
+  rw [show u⁻¹ = exp (-I * θ) by rw [hu, ← Complex.exp_neg]; ring_nf] at h
+  push_cast
+  convert h using 1
+  · funext n
+    rw [pollaczek_eq_coeff_binomProductSeries lam a b hθ']
+  · rw [mul_comm z, mul_comm z]
+    congr 2 <;> ring
 
 @[dlmf 18.35.E8]
 theorem pollaczek_eq_gegenbauer {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :

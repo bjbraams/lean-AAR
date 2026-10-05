@@ -8,6 +8,7 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.OrthogonalPolynomials.GegenbauerSeries
 
 /-!
 # Bounds, positive sums, zeros, and leading asymptotics
@@ -46,10 +47,55 @@ theorem jacobi_bernstein_bound {α β x : ℝ} (hα : α ∈ Set.Icc (-1 / 2) (1
         (n + (α + β + 1) / 2) ^ (max α β + 1 / 2)) := by
   sorry
 
+/-- Pochhammer symbols of a positive real are positive reals. -/
+lemma exists_poch_ofReal_eq {r : ℝ} (hr : 0 < r) (k : ℕ) :
+    ∃ s : ℝ, 0 < s ∧ poch (r : ℂ) k = s := by
+  induction k with
+  | zero => exact ⟨1, one_pos, by simp [poch_zero]⟩
+  | succ k ih =>
+    obtain ⟨s, hs, hk⟩ := ih
+    refine ⟨s * (r + k), by positivity, ?_⟩
+    rw [poch_succ, hk]; push_cast; ring
+
 @[dlmf 18.14.E4]
 theorem gegenbauer_bound_at_one {lam x : ℝ} (hlam : 0 < lam) (hx : |x| ≤ 1) (n : ℕ) :
     ‖gegenbauer lam n x‖ ≤ (poch (2 * lam) n).re / n.factorial := by
-  sorry
+  have hl : -1 / 2 < (lam : ℂ).re := by simp; linarith
+  set θ := Real.arccos x
+  have hcx : (x : ℂ) = cos (θ : ℂ) := by
+    rw [← Complex.ofReal_cos, Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2]
+  -- the coefficients of the trigonometric sum are positive reals
+  have hc : ∀ k ≤ n, ∃ c : ℝ, 0 < c ∧ poch (lam : ℂ) k * poch (lam : ℂ) (n - k) /
+      ((k.factorial : ℂ) * (n - k).factorial) = c := by
+    intro k _
+    obtain ⟨s, hs, h1⟩ := exists_poch_ofReal_eq hlam k
+    obtain ⟨t, ht, h2⟩ := exists_poch_ofReal_eq hlam (n - k)
+    refine ⟨s * t / (k.factorial * (n - k).factorial), by positivity, ?_⟩
+    rw [h1, h2]; push_cast; ring
+  choose! c hcpos hceq using hc
+  have hone := gegenbauer_cos_sum hl n 0
+  simp only [Complex.cos_zero, mul_zero] at hone
+  have hval : gegenbauer (lam : ℂ) n 1 = poch (2 * (lam : ℂ)) n / n.factorial := by
+    simp [gegenbauer]
+  rw [hcx, gegenbauer_cos_sum hl n θ]
+  calc ‖∑ k ∈ Finset.range (n + 1), poch (lam : ℂ) k * poch (lam : ℂ) (n - k) /
+          ((k.factorial : ℂ) * (n - k).factorial) * cos (((n : ℂ) - 2 * k) * θ)‖
+      ≤ ∑ k ∈ Finset.range (n + 1), c k := by
+        refine (norm_sum_le _ _).trans (Finset.sum_le_sum fun k hk => ?_)
+        have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+        rw [hceq k hkn, norm_mul, Complex.norm_real, Real.norm_of_nonneg (hcpos k hkn).le]
+        have : ‖cos (((n : ℂ) - 2 * k) * θ)‖ ≤ 1 := by
+          rw [show ((n : ℂ) - 2 * k) * θ = (((n : ℝ) - 2 * k) * θ : ℝ) by push_cast; ring,
+            ← Complex.ofReal_cos, Complex.norm_real, Real.norm_eq_abs]
+          exact Real.abs_cos_le_one _
+        nlinarith [hcpos k hkn]
+    _ = (poch (2 * (lam : ℂ)) n).re / n.factorial := by
+        have h := congrArg Complex.re (hone.symm.trans hval)
+        rw [Finset.sum_congr rfl fun k hk => by
+          rw [hceq k (Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)), mul_one]] at h
+        rw [← Complex.ofReal_sum, Complex.ofReal_re] at h
+        rw [h]
+        simp
 
 @[dlmf 18.14.E5]
 theorem gegenbauer_even_bound {lam x : ℝ} (hlam : -1 / 2 < lam) (hlam0 : lam < 0) (hx : |x| ≤ 1) (n : ℕ) :

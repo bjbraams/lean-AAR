@@ -10,6 +10,8 @@ public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.Bessel.Basic
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.OrthogonalPolynomials.GegenbauerSeries
+public import AAR.OrthogonalPolynomials.LaguerreSeries
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
 /-!
 # Generating functions, connection formulas, and linearization
@@ -143,14 +145,27 @@ theorem jacobi_generating_function {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < 
 theorem gegenbauer_generating_function {lam : ℂ} (hlam : -1 / 2 < lam.re) {x : ℝ} (hx : |x| ≤ 1)
     {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => gegenbauer lam n x * z ^ n) ((1 - 2 * x * z + z ^ 2) ^ (-lam)) := by
-  sorry
+  have h := hasSum_coeff_gegenbauerSeries_mul_pow lam (Real.arccos x) hz
+  rw [Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2] at h
+  refine h.congr_fun fun n => ?_
+  rw [ofReal_eq_half_add_inv_of_abs_le_one hx,
+    gegenbauer_eq_coeff_gegenbauerSeries hlam (Complex.exp_ne_zero _)]
 
 @[dlmf 18.12.E5]
 theorem gegenbauer_weighted_generating_function {lam : ℂ} (hlam : -1 / 2 < lam.re) (hlam0 : lam ≠ 0)
     {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => (n + 2 * lam) / (2 * lam) * gegenbauer lam n x * z ^ n)
       ((1 - x * z) / (1 - 2 * x * z + z ^ 2) ^ (lam + 1)) := by
-  sorry
+  set w := exp (Real.arccos x * I)
+  have hw : w ≠ 0 := Complex.exp_ne_zero _
+  have hQ := hasSum_coeff_gegenbauerSeries_mul_pow (lam + 1) (Real.arccos x) hz
+  rw [Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2] at hQ
+  have h := hasSum_coeff_one_sub_mul hQ ((w + w⁻¹) / 2)
+  rw [← weightedGegenbauerSeries_eq hlam0 hw, ← ofReal_eq_half_add_inv_of_abs_le_one hx] at h
+  rw [div_eq_mul_inv, ← Complex.cpow_neg]
+  refine h.congr_fun fun n => ?_
+  rw [coeff_weightedGegenbauerSeries hlam0, ofReal_eq_half_add_inv_of_abs_le_one hx,
+    gegenbauer_eq_coeff_gegenbauerSeries hlam hw]
 
 /-- Generating function of a sequence with constant-coefficient three-term recurrence. -/
 lemma hasSum_of_three_term {a : ℕ → ℂ} {p q z : ℂ}
@@ -312,7 +327,9 @@ theorem chebyshevU_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz 
 @[dlmf 18.12.E11]
 theorem legendre_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => legendreP n x * z ^ n) ((1 - 2 * x * z + z ^ 2) ^ (-1 / 2 : ℂ)) := by
-  sorry
+  simp_rw [legendre_eq_gegenbauer]
+  rw [show (-1 / 2 : ℂ) = -(1 / 2) by ring]
+  exact gegenbauer_generating_function (by norm_num) hx hz
 
 @[dlmf 18.12.E12]
 theorem legendre_exponential_generating_function {x : ℝ} (hx : |x| ≤ 1) (z : ℂ) :
@@ -512,7 +529,23 @@ lemma hermite_finite_sum (n : ℕ) (x : ℂ) :
 theorem laguerre_addition (α β x y : ℂ) (n : ℕ) :
     laguerreExtended (α + β + 1) n (x + y) =
       ∑ k ∈ Finset.range (n + 1), laguerreExtended α k x * laguerreExtended β (n - k) y := by
-  sorry
+  have hdiffL : ∀ β : ℂ, Differentiable ℂ fun α : ℂ => laguerreExtended (α + β + 1) n (x + y) :=
+    fun β => (differentiable_laguerreExtended n (x + y)).comp
+      ((differentiable_id.add_const _).add_const _)
+  have hstep : ∀ β : ℂ, -1 < β.re → ∀ α : ℂ, laguerreExtended (α + β + 1) n (x + y) =
+      ∑ k ∈ Finset.range (n + 1), laguerreExtended α k x * laguerreExtended β (n - k) y := by
+    intro β hβ
+    refine eq_of_differentiable_of_re_gt (hdiffL β) ?_
+      fun α hα => laguerre_addition_of_re hα hβ x y n
+    exact Differentiable.fun_sum fun k _ =>
+      (differentiable_laguerreExtended k x).mul (differentiable_const _)
+  refine eq_of_differentiable_of_re_gt (f := fun β => laguerreExtended (α + β + 1) n (x + y))
+    (g := fun β => ∑ k ∈ Finset.range (n + 1), laguerreExtended α k x *
+      laguerreExtended β (n - k) y) ?_ ?_ (fun β hβ => hstep β hβ α) β
+  · exact (differentiable_laguerreExtended n (x + y)).comp
+      ((differentiable_const _).add differentiable_id |>.add_const _)
+  · exact Differentiable.fun_sum fun k _ =>
+      (differentiable_const _).mul (differentiable_laguerreExtended (n - k) y)
 
 @[dlmf 18.18.E11, dlmf 18.18.E39]
 theorem hermitePhys_addition (a b x y : ℝ) (hab : a ^ 2 + b ^ 2 = 1) (n : ℕ) :
@@ -801,13 +834,24 @@ theorem gegenbauer_linearization {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) (x : �
 @[dlmf 18.18.E29]
 theorem gegenbauer_convolution {lam μ : ℂ} (hlam : 0 < lam.re) (hμ : 0 < μ.re) (n : ℕ) (x : ℂ) :
     ∑ k ∈ Finset.range (n + 1), gegenbauer lam k x * gegenbauer μ (n - k) x = gegenbauer (lam + μ) n x := by
-  sorry
+  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_inv x
+  have h1 : -1 / 2 < lam.re := by linarith
+  have h2 : -1 / 2 < μ.re := by linarith
+  have h3 : -1 / 2 < (lam + μ).re := by rw [Complex.add_re]; linarith
+  simp_rw [gegenbauer_eq_coeff_gegenbauerSeries h1 hw, gegenbauer_eq_coeff_gegenbauerSeries h2 hw,
+    gegenbauer_eq_coeff_gegenbauerSeries h3 hw]
+  exact sum_coeff_mul_coeff_gegenbauerSeries lam μ w n
 
 @[dlmf 18.18.E30]
 theorem gegenbauer_geometric_convolution {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
     ∑ k ∈ Finset.range (n + 1), (k + 2 * lam) / (2 * lam) * gegenbauer lam k x * x ^ (n - k) =
       gegenbauer (lam + 1) n x := by
-  sorry
+  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_inv x
+  have h1 : -1 / 2 < lam.re := by linarith
+  have h2 : -1 / 2 < (lam + 1).re := by rw [Complex.add_re, Complex.one_re]; linarith
+  have hlam0 : lam ≠ 0 := fun h => by rw [h, Complex.zero_re] at hlam; exact lt_irrefl _ hlam
+  simp_rw [gegenbauer_eq_coeff_gegenbauerSeries h1 hw, gegenbauer_eq_coeff_gegenbauerSeries h2 hw]
+  exact sum_weighted_coeff_gegenbauerSeries hlam0 hw n
 
 /-- `U_{n+2} = 2 T_{n+2} + U_n`. -/
 lemma chebyshevU_eq_two_T_add_U (n : ℕ) (x : ℂ) :
@@ -917,7 +961,9 @@ theorem chebyshevU_odd_sum (n : ℕ) (x : ℂ) :
 @[dlmf 18.18.E36]
 theorem legendre_convolution (n : ℕ) (x : ℂ) :
     ∑ k ∈ Finset.range (n + 1), legendreP k x * legendreP (n - k) x = (Chebyshev.U ℂ n).eval x := by
-  sorry
+  simp_rw [legendre_eq_gegenbauer]
+  rw [gegenbauer_convolution (by norm_num) (by norm_num), eval_U_eq_gegenbauer]
+  norm_num
 
 @[dlmf 18.18.E37]
 theorem laguerre_sum (α : ℂ) (n : ℕ) (x : ℂ) :
@@ -958,8 +1004,46 @@ theorem laguerre_sum (α : ℂ) (n : ℕ) (x : ℂ) :
 theorem hermitePhys_even_convolution (n : ℕ) (x y : ℂ) :
     ∑ k ∈ Finset.range (n + 1), (n.choose k : ℂ) * (aeval x (hermitePhys (2 * k)) : ℂ) *
       aeval y (hermitePhys (2 * n - 2 * k)) = (-1 : ℂ) ^ n * 2 ^ (2 * n) * n.factorial * laguerre 0 n (x ^ 2 + y ^ 2) := by
-  sorry
+  have hc : ∀ k : ℕ, (-1 / 2 : ℂ) + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by norm_num)
+  have hc0 : ∀ k : ℕ, (0 : ℂ) + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by norm_num)
+  have hadd := laguerre_addition (-1 / 2) (-1 / 2) (x ^ 2) (y ^ 2) n
+  rw [show (-1 / 2 : ℂ) + -1 / 2 + 1 = 0 by ring, laguerreExtended_eq hc0] at hadd
+  rw [hadd, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  rw [show 2 * n - 2 * k = 2 * (n - k) by omega, hermitePhys_even_eq_laguerre,
+    hermitePhys_even_eq_laguerre, laguerreExtended_eq hc, laguerreExtended_eq hc,
+    Nat.cast_choose ℂ hkn]
+  have h1 : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have h2 : ((n - k).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hpow1 : (-1 : ℂ) ^ n = (-1) ^ k * (-1) ^ (n - k) := by
+    rw [← pow_add, Nat.add_sub_cancel' hkn]
+  have hpow2 : (2 : ℂ) ^ (2 * n) = 2 ^ (2 * k) * 2 ^ (2 * (n - k)) := by
+    rw [← pow_add]; congr 1; omega
+  rw [hpow1, hpow2]
+  field_simp
 
+
+
+/-- The regularized `₀F₁` series converges absolutely everywhere. -/
+lemma summable_norm_regularized0F1 (c w : ℂ) :
+    Summable fun n : ℕ => ‖regularizedHGFunCoeff (∅ : Multiset ℂ) {c} n * w ^ n‖ := by
+  have hr : (FormalMultilinearSeries.ofScalars ℂ (regularizedHGFunCoeff ∅ {c})).radius = ⊤ :=
+    top_le_iff.mp (hasFPowerSeriesOnBall_regularized0F1 c).r_le
+  have := (FormalMultilinearSeries.ofScalars ℂ (regularizedHGFunCoeff ∅ {c})).summable_norm_mul_pow
+    (r := ‖w‖₊) (by rw [hr]; exact ENNReal.coe_lt_top)
+  simpa [FormalMultilinearSeries.ofScalars_norm, norm_mul, norm_pow] using this
+
+
+/-- `(a)ₖ / Γ(a + k) = 1 / Γ(a)` away from the poles of `Γ`. -/
+lemma poch_div_Gamma_add_nat {a : ℂ} (ha : ∀ k : ℕ, a ≠ -k) (k : ℕ) :
+    poch a k / Complex.Gamma (a + k) = 1 / Complex.Gamma a := by
+  have h := Complex.Gamma_add_nat_div_Gamma_eq (n := k) a ha
+  have hG : Complex.Gamma a ≠ 0 := Complex.Gamma_ne_zero ha
+  rw [poch, ← h]
+  have hGk : Complex.Gamma (a + k) ≠ 0 := Complex.Gamma_ne_zero fun m hm =>
+    ha (m + k) (by push_cast; linear_combination hm)
+  field_simp
 
 
 @[dlmf 18.12.E2]
@@ -968,7 +1052,51 @@ theorem jacobi_regularized_generating_function {α β : ℂ} (hα : -1 < α.re)
     HasSum (fun n : ℕ => jacobiP α β n x / (Gamma (n + α + 1) * Gamma (n + β + 1)) * z ^ n)
       (regularizedHGFun (∅ : Multiset ℂ) {α + 1} ((x - 1) * z / 2) *
        regularizedHGFun (∅ : Multiset ℂ) {β + 1} ((x + 1) * z / 2)) := by
-  sorry
+  set u := (x - 1) * z / 2
+  set v := (x + 1) * z / 2
+  have hu := summable_norm_regularized0F1 (α + 1) u
+  have hv := summable_norm_regularized0F1 (β + 1) v
+  have hprod := tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm hv hu
+  have hsum := (summable_norm_sum_mul_antidiagonal_of_summable_norm hv hu).of_norm.hasSum
+  rw [← hprod, ((hasFPowerSeriesOnBall_regularized0F1 (β + 1)).hasSum_mul_pow
+      (by simp)).tsum_eq, ((hasFPowerSeriesOnBall_regularized0F1 (α + 1)).hasSum_mul_pow
+      (by simp)).tsum_eq] at hsum
+  rw [mul_comm]
+  refine hsum.congr_fun fun n => ?_
+  rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk, jacobi_binomial_sum hα, Finset.mul_sum,
+    Finset.sum_div, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  have hA : poch (α + n - k + 1) k / Gamma (n + α + 1) = 1 / Gamma (α + 1 + (n - k : ℕ)) := by
+    have := poch_div_Gamma_add_nat (a := α + 1 + (n - k : ℕ)) (not_neg_nat_of_re_pos (by
+      simp only [Complex.add_re, Complex.one_re, Complex.natCast_re]
+      linarith [(Nat.cast_nonneg (α := ℝ) (n - k))])) k
+    rw [← this]
+    congr 1
+    · congr 1; push_cast [Nat.cast_sub hkn]; ring
+    · congr 1; push_cast [Nat.cast_sub hkn]; ring
+  have hB : poch (β + k + 1) (n - k) / Gamma (n + β + 1) = 1 / Gamma (β + 1 + k) := by
+    have := poch_div_Gamma_add_nat (a := β + 1 + k) (not_neg_nat_of_re_pos (by
+      simp only [Complex.add_re, Complex.one_re, Complex.natCast_re]
+      linarith [(Nat.cast_nonneg (α := ℝ) k)])) (n - k)
+    rw [← this]
+    congr 1
+    · congr 1; ring
+    · congr 1; push_cast [Nat.cast_sub hkn]; ring
+  simp only [regularizedHGFunCoeff_empty]
+  have hGA : Gamma (n + α + 1) ≠ 0 := Complex.Gamma_ne_zero (not_neg_nat_of_re_pos (by
+    simp only [Complex.add_re, Complex.one_re, Complex.natCast_re]
+    linarith [(Nat.cast_nonneg (α := ℝ) n)]))
+  have hGB : Gamma (n + β + 1) ≠ 0 := Complex.Gamma_ne_zero (not_neg_nat_of_re_pos (by
+    simp only [Complex.add_re, Complex.one_re, Complex.natCast_re]
+    linarith [(Nat.cast_nonneg (α := ℝ) n)]))
+  rw [div_eq_iff hGA] at hA
+  rw [div_eq_iff hGB] at hB
+  have hzn : z ^ n = z ^ k * z ^ (n - k) := by rw [← pow_add, Nat.add_sub_cancel' hkn]
+  have h2n : (2 : ℂ) ^ n = 2 ^ k * 2 ^ (n - k) := by rw [← pow_add, Nat.add_sub_cancel' hkn]
+  rw [hA, hB, hzn, h2n]
+  simp only [u, v, div_pow, mul_pow]
+  field_simp
 
 @[dlmf 18.12.E2_5]
 theorem jacobi_brafman_generating_function {α β : ℂ} (hα : -1 < α.re)
@@ -1019,13 +1147,96 @@ theorem chebyshevT_poisson_generating_function {x : ℝ} (hx : |x| ≤ 1)
     congr 1
     ring
 
+/-- The exponential series in `ℂ`. -/
+lemma hasSum_cexp (z : ℂ) : HasSum (fun n : ℕ => z ^ n / (n.factorial : ℂ)) (exp z) := by
+  rw [Complex.exp_eq_exp_ℂ]
+  exact NormedSpace.expSeries_div_hasSum_exp z
+
+/-- The exponential series converges absolutely. -/
+lemma summable_norm_pow_div_factorial (z : ℂ) :
+    Summable fun n : ℕ => ‖z ^ n / (n.factorial : ℂ)‖ := by
+  simpa [norm_div, norm_pow] using Real.summable_pow_div_factorial ‖z‖
+
 @[dlmf 18.12.E14]
 theorem laguerre_bessel_generating_function {α : ℝ} (hα : -1 < α)
     {x z : ℝ} (hx : 0 < x) (hz : 0 < z) :
     HasSum (fun n : ℕ => laguerre α n x / poch (α + 1) n * (z : ℂ) ^ n)
       (Gamma (α + 1 : ℂ) * (x * z : ℂ) ^ (-α / 2 : ℂ) * exp z *
         besselJ α (2 * Real.sqrt (x * z))) := by
-  sorry
+  have hc : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by simp; linarith)
+  set w : ℂ := -((x : ℂ) * z)
+  have hf := summable_norm_regularized0F1 (α + 1) w
+  have hg := summable_norm_pow_div_factorial (z : ℂ)
+  have hprod := tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm hf hg
+  have hsum := (summable_norm_sum_mul_antidiagonal_of_summable_norm hf hg).of_norm.hasSum
+  rw [← hprod, ((hasFPowerSeriesOnBall_regularized0F1 (α + 1)).hasSum_mul_pow
+      (by simp)).tsum_eq, (hasSum_cexp _).tsum_eq] at hsum
+  -- the Bessel prefactor
+  have hxz : (0 : ℝ) < x * z := mul_pos hx hz
+  have hbes : (x * z : ℂ) ^ (-α / 2 : ℂ) * besselJ α (2 * Real.sqrt (x * z)) =
+      regularizedHGFun (∅ : Multiset ℂ) {(α : ℂ) + 1} w := by
+    set t := x * z
+    have hsq : Real.sqrt t ^ 2 = t := Real.sq_sqrt hxz.le
+    unfold besselJ
+    have harg : -((2 * (Real.sqrt t : ℂ)) ^ 2 / 4) = w := by
+      simp only [w, t]
+      rw [mul_pow, ← Complex.ofReal_pow, hsq]
+      simp only [t]; push_cast; ring
+    rw [harg, ← mul_assoc]
+    convert one_mul _ using 2
+    rw [show 2 * (Real.sqrt t : ℂ) / 2 = (Real.sqrt t : ℂ) by ring,
+      show (x : ℂ) * z = (t : ℂ) by simp only [t]; push_cast; ring,
+      show (-(α : ℂ) / 2) = ((-α / 2 : ℝ) : ℂ) by push_cast; ring,
+      ← Complex.ofReal_cpow hxz.le, ← Complex.ofReal_cpow (Real.sqrt_nonneg t),
+      ← Complex.ofReal_mul, Real.sqrt_eq_rpow, ← Real.rpow_mul hxz.le, ← Real.rpow_add hxz,
+      show -α / 2 + 1 / 2 * α = 0 by ring, Real.rpow_zero, Complex.ofReal_one]
+  have hval : Gamma (α + 1 : ℂ) * (x * z : ℂ) ^ (-α / 2 : ℂ) * exp z *
+      besselJ α (2 * Real.sqrt (x * z)) =
+      Gamma (α + 1 : ℂ) * (regularizedHGFun (∅ : Multiset ℂ) {(α : ℂ) + 1} w * exp z) := by
+    rw [← hbes]; ring
+  rw [hval]
+  refine (hsum.mul_left (Gamma (α + 1 : ℂ))).congr_fun fun n => ?_
+  have hpos : 0 < ((α : ℂ) + 1).re := by simp; linarith
+  rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk, ← laguerreExtended_eq hc, laguerreExtended,
+    Finset.sum_div, Finset.sum_mul, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  have hsplit : poch ((α : ℂ) + 1) n = poch ((α : ℂ) + 1) k * poch ((α : ℂ) + 1 + k) (n - k) := by
+    rw [← poch_add, Nat.add_sub_cancel' hkn]
+  have hG : Gamma ((α : ℂ) + 1 + k) = Gamma ((α : ℂ) + 1) * poch ((α : ℂ) + 1) k := by
+    have := Complex.Gamma_add_nat_div_Gamma_eq (n := k) ((α : ℂ) + 1) hc
+    rw [div_eq_iff (Complex.Gamma_ne_zero hc)] at this
+    rw [this, poch]; ring
+  have h1 : poch ((α : ℂ) + 1) k ≠ 0 := poch_ne_zero_of_re_pos hpos k
+  have h2 : poch ((α : ℂ) + 1 + k) (n - k) ≠ 0 := poch_ne_zero_of_re_pos (by
+    simp only [Complex.add_re, Complex.natCast_re] at hpos ⊢; positivity) (n - k)
+  have h3 : Gamma ((α : ℂ) + 1) ≠ 0 := Complex.Gamma_ne_zero hc
+  have hzn : (z : ℂ) ^ n = (z : ℂ) ^ k * (z : ℂ) ^ (n - k) := by
+    rw [← pow_add, Nat.add_sub_cancel' hkn]
+  rw [regularizedHGFunCoeff_empty, hG, hsplit, hzn, show (α : ℂ) + k + 1 = α + 1 + k by ring]
+  have hw : w ^ k = (-1) ^ k * (x : ℂ) ^ k * (z : ℂ) ^ k := by
+    simp only [w]; rw [neg_pow, mul_pow]; ring
+  rw [hw, neg_pow (x : ℂ) k]
+  field_simp
+
+/-- The Laguerre generating function as a `HasSum`. -/
+lemma hasSum_laguerre_generating_function {α x t : ℂ} (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ))
+    (ht : ‖t‖ < 1) :
+    HasSum (fun n : ℕ => laguerre α n x * t ^ n) ((1 - t) ^ (-α - 1) * exp (-x * t / (1 - t))) := by
+  have h := laguerre_generating_function (x := x) hα ht
+  have h1t : (1 : ℂ) - t ≠ 0 := by
+    intro h0
+    have : t = 1 := by linear_combination -h0
+    rw [this, norm_one] at ht; exact lt_irrefl _ ht
+  have hne : (1 - t) ^ (-α - 1) * exp (-x * t / (1 - t)) ≠ 0 := by
+    refine mul_ne_zero ?_ (exp_ne_zero _)
+    rw [cpow_def_of_ne_zero h1t]; exact exp_ne_zero _
+  have hs : Summable fun n : ℕ => laguerre α n x * t ^ n := by
+    by_contra hns
+    rw [tsum_eq_zero_of_not_summable hns] at h
+    exact hne h
+  rw [h]; exact hs.hasSum
+
 
 /-- DLMF 18.12.17 prints the incorrect convergence condition `|z| < 1`
 (checked 2026-09-16). The disk is `|z| < 1/2`: already at `x = 0`,
@@ -1035,6 +1246,49 @@ theorem hermitePhys_half_factorial_generating_function (x : ℂ) {z : ℂ} (hz :
     HasSum (fun n : ℕ => aeval x (hermitePhys n) / ((n / 2).factorial : ℂ) * z ^ n)
       ((1 + 2 * x * z + 4 * z ^ 2) / (1 + 4 * z ^ 2) ^ (3 / 2 : ℂ) *
         exp (4 * x ^ 2 * z ^ 2 / (1 + 4 * z ^ 2))) := by
-  sorry
+  have ht : ‖-4 * z ^ 2‖ < 1 := by
+    rw [norm_mul, norm_neg, norm_pow]
+    have := norm_nonneg z
+    norm_num; nlinarith
+  have hw : (1 : ℂ) + 4 * z ^ 2 ≠ 0 := by
+    intro h0
+    have : -4 * z ^ 2 = 1 := by linear_combination -h0
+    rw [this, norm_one] at ht; exact lt_irrefl _ ht
+  have he := hasSum_laguerre_generating_function (α := -1 / 2) (x := x ^ 2)
+    (not_neg_nat_of_re_pos (by norm_num)) ht
+  have ho := (hasSum_laguerre_generating_function (α := 1 / 2) (x := x ^ 2)
+    (not_neg_nat_of_re_pos (by norm_num)) ht).mul_left (2 * x * z)
+  set E := exp (4 * x ^ 2 * z ^ 2 / (1 + 4 * z ^ 2))
+  have hE : exp (-x ^ 2 * (-4 * z ^ 2) / (1 + 4 * z ^ 2)) = E := by
+    congr 1; ring_nf
+  rw [show (1 : ℂ) - -4 * z ^ 2 = 1 + 4 * z ^ 2 by ring, hE] at he ho
+  set f : ℕ → ℂ := fun n => aeval x (hermitePhys n) / ((n / 2).factorial : ℂ) * z ^ n with hf
+  have hev : HasSum (fun m => f (2 * m))
+      ((1 + 4 * z ^ 2) ^ (-(-1 / 2) - 1 : ℂ) * E) := by
+    refine he.congr_fun fun m => ?_
+    have hm : (m.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    simp only [hf, show 2 * m / 2 = m by omega]
+    rw [hermitePhys_even_eq_laguerre, mul_pow, neg_pow (4 : ℂ),
+      show z ^ (2 * m) = (z ^ 2) ^ m by rw [pow_mul],
+      show (2 : ℂ) ^ (2 * m) = 4 ^ m by rw [pow_mul]; norm_num]
+    field_simp
+  have hod : HasSum (fun m => f (2 * m + 1))
+      (2 * x * z * ((1 + 4 * z ^ 2) ^ (-(1 / 2) - 1 : ℂ) * E)) := by
+    refine ho.congr_fun fun m => ?_
+    have hm : (m.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    simp only [hf, show (2 * m + 1) / 2 = m by omega]
+    rw [hermitePhys_odd_eq_laguerre, mul_pow, neg_pow (4 : ℂ),
+      show z ^ (2 * m + 1) = z * (z ^ 2) ^ m by rw [pow_succ, pow_mul]; ring,
+      show (2 : ℂ) ^ (2 * m + 1) = 2 * 4 ^ m by rw [pow_succ, pow_mul]; norm_num; ring]
+    field_simp
+  have hsum := hev.even_add_odd hod
+  convert hsum using 1
+  set w := (1 : ℂ) + 4 * z ^ 2
+  have h1 : w ^ (-(-1 / 2) - 1 : ℂ) = w * (w ^ (3 / 2 : ℂ))⁻¹ := by
+    rw [← cpow_neg, show (-(-1 / 2) - 1 : ℂ) = 1 + -(3 / 2) by norm_num, cpow_add _ _ hw, cpow_one]
+  have h2 : w ^ (-(1 / 2) - 1 : ℂ) = (w ^ (3 / 2 : ℂ))⁻¹ := by
+    rw [← cpow_neg]; norm_num
+  rw [h1, h2]
+  ring
 
 end AAR.OrthogonalPolynomials

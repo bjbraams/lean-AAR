@@ -34,6 +34,12 @@ The affected module headers also credit the imported work.
   the completeness and basis construction used to prove
   `orthogonal_polynomials_parseval`, followed by Mathlib’s Hilbert-basis Parseval identity.
 
+- [Hermite parity](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/RingTheory/Polynomial/Hermite/Derivative.lean):
+  `Polynomial.hermite_aeval_neg`, and the Gaussian integrability
+  `integrable_aeval_mul_gaussian` from the Hermite orthogonality module above. Both are
+  used for the now-proved `hermite_even_cosine_transform` and `hermite_odd_sine_transform`
+  in [Integrals.lean](AAR/OrthogonalPolynomials/Integrals.lean).
+
 Related real incomplete-gamma, Dirichlet and multivariate-Gamma developments are
 not replacements for AAR's general complex statements. Adoption should retain
 attribution in the affected module headers and at the point of use.

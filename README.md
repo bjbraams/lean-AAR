@@ -44,9 +44,10 @@ meaning of each special-function definition. Import the particular TauCeti modul
 
 See [TauCetiReview.md](TauCetiReview.md) for checked reuse candidates and the review's limits,
 and [CREDITS.md](CREDITS.md) for related-work credits. The first six adaptations are implemented, including proofs of
-both Hermite Fourier eigenfunction identities and compact-support Parseval. There
-are now 382 remaining source admissions (the earlier `REVIEW.md` inventory predates
-these three completed proofs).
+both Hermite Fourier eigenfunction identities and compact-support Parseval. A later
+pass (2026-10-05) proved 35 further admissions in the Gamma and orthogonal-polynomial
+chapters (see [TauCetiReview.md](TauCetiReview.md)). There are now 347 remaining source
+admissions; the earlier `REVIEW.md` inventory predates these proofs.
 
 ## Building
 

@@ -19,6 +19,10 @@ public import Mathlib.Topology.Instances.Nat
 public import AAR.Hypergeometric.Continuation
 public import Mathlib.Topology.Instances.Int
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+public import Mathlib.Analysis.Complex.SummableUniformlyOn
+public import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
+public import Mathlib.Analysis.Normed.Module.Connected
+public import Mathlib.Analysis.SumOverResidueClass
 
 /-!
 # Polygamma functions (DLMF §5.15)
@@ -26,12 +30,18 @@ public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
 The trigamma series 5.15.1 is `trigamma_eq_tsum` in `Digamma.lean` (real
 positive argument). Complex polygamma is the iterated derivative of Mathlib's
 `Complex.digamma`.
+
+The complex digamma series 5.7.6 (`digamma_eq_cDigammaSeries`) is obtained from the
+real one by the identity theorem on the complement of the poles, which is connected.
+Termwise differentiation (Mathlib's `iteratedDerivWithin_tsum`) gives the polygamma
+series 5.15.1 for all non-pole arguments (`polygamma_eq_tsum`). From this follow the
+values at `1` and `1/2` and the multiplication formula.
 -/
 
 @[expose] public section
 
 open Complex Filter
-open scoped Real Topology
+open scoped Nat Real Topology
 
 noncomputable section
 
@@ -40,17 +50,6 @@ namespace AAR.Gamma
 /-- Polygamma `ψ^{(n)}(z)`. -/
 def polygamma (n : ℕ) (z : ℂ) : ℂ :=
   iteratedDeriv n Complex.digamma z
-
-@[dlmf 5.15.E2]
-theorem polygamma_one (n : ℕ) (hn : 0 < n) :
-    polygamma n 1 = (-1 : ℂ) ^ (n + 1) * n.factorial * riemannZeta (n + 1) := by
-  sorry
-
-@[dlmf 5.15.E3]
-theorem polygamma_one_div_two (n : ℕ) (hn : 0 < n) :
-    polygamma n (1 / 2) =
-      (-1 : ℂ) ^ (n + 1) * n.factorial * ((2 : ℂ) ^ (n + 1) - 1) * riemannZeta (n + 1) := by
-  sorry
 
 /-- The trigamma recurrence `ψ'(x+1) = ψ'(x) - 1/x²` for `x > 0`. -/
 theorem trigamma_add_one {x : ℝ} (hx : 0 < x) :
@@ -101,6 +100,304 @@ lemma analyticAt_digamma {s : ℂ} (hs : ∀ m : ℕ, s ≠ -(m : ℂ)) :
     AnalyticAt ℂ Complex.digamma s := by
   have hG := analyticAt_Gamma hs
   exact hG.deriv.div hG (Complex.Gamma_ne_zero hs)
+
+/-! ### Complex digamma and polygamma series -/
+
+/-- The general term of the complex digamma series, `1/(n+1) - 1/(z+n)`. -/
+def cDigammaTerm (n : ℕ) (z : ℂ) : ℂ := 1 / (n + 1) - 1 / (z + n)
+
+/-- `z + n ≠ 0` when `z` is not a nonpositive integer. -/
+lemma add_nat_ne_zero_of_not_neg_nat {z : ℂ} (hz : ∀ m : ℕ, z ≠ -(m : ℂ)) (n : ℕ) :
+    z + n ≠ 0 := fun h => hz n (eq_neg_of_add_eq_zero_left h)
+
+/-- `‖z + n‖ ≥ n / 2` once `n ≥ 2 ‖z‖`. -/
+lemma half_le_norm_add_nat {z : ℂ} {R : ℝ} (hz : ‖z‖ ≤ R) {n : ℕ} (hn : 2 * R ≤ n) :
+    (n : ℝ) / 2 ≤ ‖z + n‖ := by
+  have h := norm_sub_norm_le (n : ℂ) (-z)
+  rw [sub_neg_eq_add, norm_neg, Complex.norm_natCast, add_comm] at h
+  linarith
+
+/-- A uniform `O(1/n²)` bound for the digamma series terms on `‖z‖ ≤ R`. -/
+lemma norm_cDigammaTerm_le {z : ℂ} {R : ℝ} (hz : ‖z‖ ≤ R) {n : ℕ} (hn : 2 * R ≤ n)
+    (hn1 : 1 ≤ n) : ‖cDigammaTerm n z‖ ≤ 2 * (R + 1) * (1 / (n : ℝ) ^ 2) := by
+  have hR : 0 ≤ R := (norm_nonneg z).trans hz
+  have hnpos : (0 : ℝ) < n := by exact_mod_cast hn1
+  have hzn := half_le_norm_add_nat hz hn
+  have hzn0 : z + n ≠ 0 := by
+    intro h; rw [h, norm_zero] at hzn; linarith
+  have hn10 : (n + 1 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
+  have heq : cDigammaTerm n z = (z - 1) / ((n + 1) * (z + n)) := by
+    unfold cDigammaTerm; field_simp; ring
+  rw [heq, norm_div, norm_mul]
+  have h1 : ‖z - 1‖ ≤ R + 1 := (norm_sub_le _ _).trans (by simp [hz])
+  have h2 : ‖(n + 1 : ℂ)‖ = n + 1 := by exact_mod_cast Complex.norm_natCast (n + 1)
+  rw [h2, div_le_iff₀ (by positivity)]
+  calc ‖z - 1‖ ≤ R + 1 := h1
+    _ ≤ 2 * (R + 1) * (1 / (n : ℝ) ^ 2) * ((n + 1) * ((n : ℝ) / 2)) := by
+        rw [show 2 * (R + 1) * (1 / (n : ℝ) ^ 2) * ((n + 1) * ((n : ℝ) / 2)) =
+          (R + 1) * ((n + 1) / n) by field_simp]
+        have : (1 : ℝ) ≤ (n + 1) / n := by rw [le_div_iff₀ hnpos]; linarith
+        nlinarith
+    _ ≤ _ := by gcongr
+
+
+/-- The complement of the nonpositive integers. -/
+abbrev notNegNat : Set ℂ := {s : ℂ | ∀ m : ℕ, s ≠ -(m : ℂ)}
+
+/-- Compact subsets of `ℂ` are bounded in norm. -/
+lemma exists_norm_le_of_isCompact {K : Set ℂ} (hK : IsCompact K) : ∃ R : ℝ, ∀ z ∈ K, ‖z‖ ≤ R := by
+  obtain ⟨R, hR⟩ := hK.isBounded.exists_norm_le
+  exact ⟨R, hR⟩
+
+/-- Cofinitely many `n` satisfy `2R ≤ n` and `1 ≤ n`. -/
+lemma eventually_two_mul_le_nat (R : ℝ) : ∀ᶠ n : ℕ in cofinite, 2 * R ≤ n ∧ 1 ≤ n := by
+  rw [Nat.cofinite_eq_atTop]
+  filter_upwards [eventually_ge_atTop (⌈2 * R⌉₊ + 1)] with n hn
+  refine ⟨(Nat.le_ceil _).trans (by exact_mod_cast (Nat.le_succ _).trans hn), by omega⟩
+
+/-- The digamma series converges locally uniformly off the poles. -/
+lemma summableLocallyUniformlyOn_cDigammaTerm :
+    SummableLocallyUniformlyOn cDigammaTerm notNegNat := by
+  apply SummableLocallyUniformlyOn.of_locally_bounded_eventually
+    AAR.Gamma.isOpen_not_neg_nat
+  intro K _ hKc
+  obtain ⟨R, hR⟩ := exists_norm_le_of_isCompact hKc
+  refine ⟨fun n => 2 * (R + 1) * (1 / (n : ℝ) ^ 2),
+    (Real.summable_one_div_nat_pow.mpr one_lt_two).mul_left _, ?_⟩
+  filter_upwards [eventually_two_mul_le_nat R] with n hn z hz
+  exact norm_cDigammaTerm_le (hR z hz) hn.1 hn.2
+
+/-- The digamma series converges off the poles. -/
+lemma summable_cDigammaTerm {z : ℂ} (hz : z ∈ notNegNat) : Summable (cDigammaTerm · z) :=
+  summableLocallyUniformlyOn_cDigammaTerm.summable hz
+
+/-- Each digamma series term is differentiable off the poles. -/
+lemma differentiableAt_cDigammaTerm (n : ℕ) {z : ℂ} (hz : z ∈ notNegNat) :
+    DifferentiableAt ℂ (cDigammaTerm n) z := by
+  unfold cDigammaTerm
+  have := add_nat_ne_zero_of_not_neg_nat hz n
+  fun_prop (disch := assumption)
+
+/-- The digamma series as a function on `ℂ`. -/
+def cDigammaSeries (z : ℂ) : ℂ := -Real.eulerMascheroniConstant + ∑' n, cDigammaTerm n z
+
+/-- The digamma series is holomorphic off the poles. -/
+lemma differentiableOn_cDigammaSeries : DifferentiableOn ℂ cDigammaSeries notNegNat :=
+  (differentiableOn_const _).add (summableLocallyUniformlyOn_cDigammaTerm.differentiableOn
+    AAR.Gamma.isOpen_not_neg_nat fun n _ hr => differentiableAt_cDigammaTerm n hr)
+
+/-- The complement of the nonpositive integers is preconnected. -/
+lemma isPreconnected_notNegNat : IsPreconnected notNegNat := by
+  have : notNegNat = (Set.range fun m : ℕ => -(m : ℂ))ᶜ := by
+    ext s; simp [eq_comm]
+  rw [this]
+  exact ((Set.countable_range _).isPathConnected_compl_of_one_lt_rank
+    (rank_real_complex ▸ Nat.one_lt_ofNat)).isConnected.isPreconnected
+
+/-- Positive reals are not poles of `Γ`. -/
+lemma ofReal_mem_notNegNat {x : ℝ} (hx : 0 < x) : (x : ℂ) ∈ notNegNat := fun m h => by
+  have : x = -(m : ℝ) := by exact_mod_cast h
+  linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
+
+/-- The complex digamma function extends the real one. -/
+lemma digamma_ofReal {x : ℝ} (hx : 0 < x) : Complex.digamma x = Real.digamma x := by
+  have hG : DifferentiableAt ℂ Complex.Gamma x :=
+    Complex.differentiableAt_Gamma _ (ofReal_mem_notNegNat hx)
+  have hGr : DifferentiableAt ℝ Real.Gamma x :=
+    Real.differentiableAt_Gamma fun m => by
+      linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
+  have h1 : HasDerivAt (fun y : ℝ => Complex.Gamma y) (deriv Complex.Gamma x) x :=
+    hG.hasDerivAt.comp_ofReal
+  have h2 : HasDerivAt (fun y : ℝ => (Real.Gamma y : ℂ)) ((deriv Real.Gamma x : ℝ) : ℂ) x :=
+    hGr.hasDerivAt.ofReal_comp
+  simp_rw [← Complex.Gamma_ofReal] at h2
+  rw [Complex.digamma_def, logDeriv_apply, h1.unique h2, Complex.Gamma_ofReal, Real.digamma]
+  push_cast; rfl
+
+/-- The complex digamma series extends the real one. -/
+lemma cDigammaSeries_ofReal {x : ℝ} (hx : 0 < x) : cDigammaSeries x = Real.digamma x := by
+  rw [Real.digamma_eq_tsum hx, cDigammaSeries]
+  push_cast
+  congr 2
+  funext n
+  simp [cDigammaTerm, Real.digammaSeriesTerm]
+
+/-- The digamma series, DLMF 5.7.6, for all complex arguments that are not poles. -/
+theorem digamma_eq_cDigammaSeries {z : ℂ} (hz : z ∈ notNegNat) :
+    Complex.digamma z = cDigammaSeries z := by
+  have hU := AAR.Gamma.isOpen_not_neg_nat
+  refine AnalyticOnNhd.eqOn_of_preconnected_of_frequently_eq (z₀ := 1)
+    (fun w hw => analyticAt_digamma hw)
+    (differentiableOn_cDigammaSeries.analyticOnNhd hU) isPreconnected_notNegNat
+    (fun m h => ofReal_mem_notNegNat (x := 1) one_pos m (by simpa using h)) ?_ hz
+  have hev : ∀ᶠ x : ℝ in 𝓝[≠] 1, Complex.digamma x = cDigammaSeries x := by
+    filter_upwards [nhdsWithin_le_nhds (lt_mem_nhds one_pos)] with x hx
+    rw [digamma_ofReal hx, cDigammaSeries_ofReal hx]
+  have ht : Tendsto (fun x : ℝ => (x : ℂ)) (𝓝[≠] 1) (𝓝[≠] 1) :=
+    Complex.continuous_ofReal.continuousWithinAt.tendsto_nhdsWithin fun x hx => by
+      simpa using hx
+  simpa using ht.frequently hev.frequently
+
+
+/-- Higher derivatives of a digamma series term. -/
+lemma iteratedDeriv_cDigammaTerm {k : ℕ} (hk : 1 ≤ k) (n : ℕ) :
+    iteratedDeriv k (cDigammaTerm n) =
+      fun w => -((-1 : ℂ) ^ k * (k ! : ℂ) * (w + n) ^ (-1 - k : ℤ)) := by
+  funext w
+  have h := congrFun (iter_deriv_inv_linear (𝕜 := ℂ) k 1 n) w
+  simp only [one_mul, one_pow, mul_one] at h
+  have hfun : cDigammaTerm n = fun w : ℂ => 1 / ((n : ℂ) + 1) - (w + n)⁻¹ := by
+    funext w; simp [cDigammaTerm]
+  rw [hfun, iteratedDeriv_const_sub hk]
+  simp only [Pi.neg_def, iteratedDeriv_fun_neg, iteratedDeriv_eq_iterate, h]
+
+
+/-- Higher derivatives of a digamma series term within the pole complement. -/
+lemma iteratedDerivWithin_cDigammaTerm {k : ℕ} (hk : 1 ≤ k) (n : ℕ) {w : ℂ}
+    (hw : w ∈ notNegNat) :
+    iteratedDerivWithin k (cDigammaTerm n) notNegNat w =
+      -((-1 : ℂ) ^ k * (k ! : ℂ) * (w + n) ^ (-1 - k : ℤ)) := by
+  rw [iteratedDerivWithin_of_isOpen AAR.Gamma.isOpen_not_neg_nat hw,
+    iteratedDeriv_cDigammaTerm hk]
+
+/-- Differentiability of the derivatives of the digamma series terms. -/
+lemma differentiableAt_iteratedDerivWithin_cDigammaTerm (k n : ℕ) {r : ℂ}
+    (hr : r ∈ notNegNat) :
+    DifferentiableAt ℂ (iteratedDerivWithin k (cDigammaTerm n) notNegNat) r := by
+  have hU := AAR.Gamma.isOpen_not_neg_nat
+  rcases Nat.eq_zero_or_pos k with rfl | hk
+  · simpa using differentiableAt_cDigammaTerm n hr
+  · have heq : iteratedDerivWithin k (cDigammaTerm n) notNegNat =ᶠ[𝓝 r]
+        fun w => -((-1 : ℂ) ^ k * (k ! : ℂ) * (w + n) ^ (-1 - k : ℤ)) := by
+      filter_upwards [hU.mem_nhds hr] with w hw
+      exact iteratedDerivWithin_cDigammaTerm hk n hw
+    refine DifferentiableAt.congr_of_eventuallyEq ?_ heq
+    have := add_nat_ne_zero_of_not_neg_nat hr n
+    fun_prop (disch := simp [this])
+
+/-- The differentiated digamma series converge locally uniformly off the poles. -/
+lemma summableLocallyUniformlyOn_iteratedDerivWithin_cDigammaTerm {k : ℕ} (hk : 1 ≤ k) :
+    SummableLocallyUniformlyOn
+      (fun n => iteratedDerivWithin k (cDigammaTerm n) notNegNat) notNegNat := by
+  apply SummableLocallyUniformlyOn.of_locally_bounded_eventually
+    AAR.Gamma.isOpen_not_neg_nat
+  intro K hKU hKc
+  obtain ⟨R, hR⟩ := exists_norm_le_of_isCompact hKc
+  refine ⟨fun n => (k ! : ℝ) * 2 ^ (k + 1) * (1 / (n : ℝ) ^ (k + 1)),
+    (Real.summable_one_div_nat_pow.mpr (by omega)).mul_left _, ?_⟩
+  filter_upwards [eventually_two_mul_le_nat R] with n hn z hz
+  rw [iteratedDerivWithin_cDigammaTerm hk n (hKU hz), norm_neg, norm_mul, norm_mul,
+    norm_pow, norm_neg, norm_one, one_pow, one_mul, Complex.norm_natCast, norm_zpow,
+    mul_assoc]
+  gcongr
+  have hnpos : (0 : ℝ) < n := by exact_mod_cast hn.2
+  have hzn := half_le_norm_add_nat (hR z hz) hn.1
+  rw [show (-1 - k : ℤ) = -((k + 1 : ℕ) : ℤ) by push_cast; ring, zpow_neg, zpow_natCast,
+    show (2 : ℝ) ^ (k + 1) * (1 / (n : ℝ) ^ (k + 1)) = (((n : ℝ) / 2) ^ (k + 1))⁻¹ by
+      field_simp; rw [← mul_pow]; ring_nf]
+  gcongr
+
+/-- The polygamma series, DLMF 5.15.1, for positive order. -/
+theorem polygamma_eq_tsum {n : ℕ} (hn : 0 < n) {z : ℂ} (hz : z ∈ notNegNat) :
+    polygamma n z = (-1 : ℂ) ^ (n + 1) * n ! * ∑' k : ℕ, (z + k) ^ (-1 - n : ℤ) := by
+  have hU := AAR.Gamma.isOpen_not_neg_nat
+  have heq : Complex.digamma =ᶠ[𝓝 z] cDigammaSeries := by
+    filter_upwards [hU.mem_nhds hz] with w hw
+    exact digamma_eq_cDigammaSeries hw
+  unfold polygamma
+  rw [heq.iteratedDeriv_eq, show cDigammaSeries = fun w =>
+      -(Real.eulerMascheroniConstant : ℂ) + ∑' n, cDigammaTerm n w from rfl,
+    iteratedDeriv_const_add hn,
+    ← iteratedDerivWithin_of_isOpen hU hz,
+    iteratedDerivWithin_tsum n hU hz (fun t ht => summable_cDigammaTerm ht)
+      (fun k hk _ => summableLocallyUniformlyOn_iteratedDerivWithin_cDigammaTerm hk)
+      (fun m k r _ hr => differentiableAt_iteratedDerivWithin_cDigammaTerm k m hr)]
+  simp_rw [iteratedDerivWithin_cDigammaTerm hn _ hz]
+  rw [tsum_neg, tsum_mul_left, pow_succ]
+  ring
+
+
+/-- `∑ (w + k)^{-1-n}` converges for `n ≥ 1` off the poles. -/
+lemma summable_add_nat_zpow {n : ℕ} (hn : 0 < n) {w : ℂ} (hw : w ∈ notNegNat) :
+    Summable fun k : ℕ => (w + k) ^ (-1 - n : ℤ) := by
+  have h := (summableLocallyUniformlyOn_iteratedDerivWithin_cDigammaTerm hn).summable hw
+  simp_rw [iteratedDerivWithin_cDigammaTerm hn _ hw] at h
+  have hc : (-1 : ℂ) ^ n * (n ! : ℂ) ≠ 0 := by
+    have := Nat.factorial_ne_zero n
+    simp [this]
+  refine (h.neg.mul_left ((-1 : ℂ) ^ n * (n ! : ℂ))⁻¹).congr fun k => ?_
+  simp only [neg_neg, ← mul_assoc]
+  rw [mul_assoc _ ((-1 : ℂ) ^ n), inv_mul_cancel₀ hc, one_mul]
+
+/-- `a^{-1-n} = 1/a^{n+1}`. -/
+lemma zpow_neg_one_sub_nat_eq (a : ℂ) (n : ℕ) :
+    a ^ (-1 - n : ℤ) = 1 / a ^ (n + 1) := by
+  rw [show (-1 - n : ℤ) = -((n + 1 : ℕ) : ℤ) by push_cast; ring, zpow_neg, zpow_natCast,
+    one_div]
+
+/-- `∑ 1/k^p` converges in `ℂ` for `p > 1`. -/
+lemma summable_one_div_nat_pow_complex {p : ℕ} (hp : 1 < p) :
+    Summable fun k : ℕ => 1 / (k : ℂ) ^ p := by
+  refine Summable.of_norm ?_
+  simpa using Real.summable_one_div_nat_pow.mpr hp
+
+/-- `ζ(p) = ∑ 1/(k+1)^p` for natural `p > 1`. -/
+lemma riemannZeta_nat_eq_tsum_succ {p : ℕ} (hp : 1 < p) :
+    riemannZeta p = ∑' k : ℕ, 1 / ((k : ℂ) + 1) ^ p := by
+  rw [zeta_nat_eq_tsum_of_gt_one hp, (summable_one_div_nat_pow_complex hp).tsum_eq_zero_add]
+  simp [Nat.cast_add_one, zero_pow (by omega : p ≠ 0)]
+
+@[dlmf 5.15.E2]
+theorem polygamma_one (n : ℕ) (hn : 0 < n) :
+    polygamma n 1 = (-1 : ℂ) ^ (n + 1) * n.factorial * riemannZeta (n + 1) := by
+  rw [polygamma_eq_tsum hn (fun m h => ofReal_mem_notNegNat (x := 1) one_pos m (by simpa using h)),
+    show ((n : ℂ) + 1) = ((n + 1 : ℕ) : ℂ) by push_cast; ring,
+    riemannZeta_nat_eq_tsum_succ (by omega)]
+  congr 2
+  funext k
+  rw [zpow_neg_one_sub_nat_eq, add_comm]
+
+@[dlmf 5.15.E3]
+theorem polygamma_one_div_two (n : ℕ) (hn : 0 < n) :
+    polygamma n (1 / 2) =
+      (-1 : ℂ) ^ (n + 1) * n.factorial * ((2 : ℂ) ^ (n + 1) - 1) * riemannZeta (n + 1) := by
+  have hhalf : (1 / 2 : ℂ) ∈ notNegNat := fun m h => by
+    simpa using ofReal_mem_notNegNat (x := 1 / 2) (by norm_num) m (by push_cast; exact h)
+  have hp : 1 < n + 1 := by omega
+  set f : ℕ → ℂ := fun k => 1 / (k : ℂ) ^ (n + 1) with hf
+  have hsum := summable_one_div_nat_pow_complex hp
+  have hres := Nat.sumByResidueClasses hsum 2
+  rw [← zeta_nat_eq_tsum_of_gt_one hp] at hres
+  rw [show (∑ j : ZMod 2, ∑' m : ℕ, f (j.val + 2 * m)) =
+    ∑' m : ℕ, f ((0 : ZMod 2).val + 2 * m) + ∑' m : ℕ, f ((1 : ZMod 2).val + 2 * m) from
+    Fin.sum_univ_two _] at hres
+  -- the even terms
+  have heven : ∑' m : ℕ, f ((0 : ZMod 2).val + 2 * m) =
+      riemannZeta ((n + 1 : ℕ) : ℂ) / 2 ^ (n + 1) := by
+    rw [zeta_nat_eq_tsum_of_gt_one hp, ← tsum_div_const]
+    congr 1; funext m
+    simp [hf, mul_pow]
+    ring
+  have hodd : ∑' m : ℕ, f ((1 : ZMod 2).val + 2 * m) =
+      ∑' m : ℕ, 1 / (2 * (m : ℂ) + 1) ^ (n + 1) := by
+    congr 1; funext m
+    simp [hf, ZMod.val_one, add_comm]
+  rw [heven, hodd] at hres
+  rw [polygamma_eq_tsum hn hhalf]
+  have hterm : ∀ k : ℕ, ((1 / 2 : ℂ) + k) ^ (-1 - n : ℤ) =
+      2 ^ (n + 1) * (1 / (2 * (k : ℂ) + 1) ^ (n + 1)) := by
+    intro k
+    rw [zpow_neg_one_sub_nat_eq, show (1 / 2 : ℂ) + k = (2 * k + 1) / 2 by ring, div_pow]
+    field_simp
+  simp_rw [hterm]
+  rw [tsum_mul_left, show ((n : ℂ) + 1) = ((n + 1 : ℕ) : ℂ) by push_cast; ring]
+  have h2 : (2 : ℂ) ^ (n + 1) ≠ 0 := pow_ne_zero _ two_ne_zero
+  set Z := riemannZeta ((n + 1 : ℕ) : ℂ)
+  set O := ∑' m : ℕ, 1 / (2 * (m : ℂ) + 1) ^ (n + 1)
+  have : 2 ^ (n + 1) * O = (2 ^ (n + 1) - 1) * Z := by
+    linear_combination (-(2 : ℂ) ^ (n + 1)) * hres - div_mul_cancel₀ Z h2
+  rw [this]; ring
+
 
 @[dlmf 5.15.E5]
 theorem polygamma_add_one (n : ℕ) {z : ℂ} (hz : ∀ k : ℕ, z ≠ -k) :
@@ -180,7 +477,37 @@ theorem polygamma_multiplication (n m : ℕ) (hn : 0 < n) (hm : 0 < m) {z : ℂ}
     polygamma n (m * z) =
       (m : ℂ) ^ (-(n + 1 : ℕ) : ℂ) *
         ∑ k ∈ Finset.range m, polygamma n (z + k / m) := by
-  sorry
+  have hm0 : (m : ℂ) ≠ 0 := by exact_mod_cast hm.ne'
+  have hmz : (m : ℂ) * z ∈ notNegNat := hz
+  have hshift : ∀ k < m, z + k / m ∈ notNegNat := by
+    intro k _ j hj
+    apply hz (k + m * j)
+    have : (m : ℂ) * (z + k / m) = m * (-(j : ℂ)) := by rw [hj]
+    rw [mul_add, mul_div_cancel₀ _ hm0] at this
+    push_cast
+    linear_combination this
+  have hterm : ∀ k j : ℕ, (z + k / m + j) ^ (-1 - n : ℤ) =
+      (m : ℂ) ^ (n + 1) * ((m * z) + ((k + m * j : ℕ) : ℂ)) ^ (-1 - n : ℤ) := by
+    intro k j
+    rw [zpow_neg_one_sub_nat_eq, zpow_neg_one_sub_nat_eq,
+      show z + k / m + j = ((m * z) + ((k + m * j : ℕ) : ℂ)) / m by push_cast; field_simp; ring,
+      div_pow]
+    field_simp
+  have hsum := summable_add_nat_zpow hn hmz
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  have hres := Nat.sumByResidueClasses hsum (m' + 1)
+  rw [Finset.sum_congr rfl fun k hk => polygamma_eq_tsum hn (hshift k (Finset.mem_range.mp hk)),
+    polygamma_eq_tsum hn hmz, ← Finset.mul_sum, hres, Finset.sum_range]
+  simp_rw [hterm, tsum_mul_left, ← Finset.mul_sum]
+  rw [show (-((n + 1 : ℕ) : ℂ)) = -(((n + 1 : ℕ) : ℕ) : ℂ) from rfl, Complex.cpow_neg,
+    Complex.cpow_natCast]
+  have hpow : (((m' + 1 : ℕ) : ℂ) ^ (n + 1)) ≠ 0 := pow_ne_zero _ hm0
+  rw [show (∑ j : ZMod (m' + 1), ∑' i : ℕ,
+      ((((m' + 1 : ℕ) : ℂ) * z) + ((j.val + (m' + 1) * i : ℕ) : ℂ)) ^ (-1 - n : ℤ)) =
+    ∑ j : Fin (m' + 1), ∑' i : ℕ,
+      ((((m' + 1 : ℕ) : ℂ) * z) + ((j.val + (m' + 1) * i : ℕ) : ℂ)) ^ (-1 - n : ℤ) from rfl]
+  field_simp
+
 
 @[dlmf 5.15.E8]
 theorem trigamma_asymptotic (n : ℕ) {x : ℝ} (hx : 1 < x) :

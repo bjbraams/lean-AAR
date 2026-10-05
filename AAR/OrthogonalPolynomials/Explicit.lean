@@ -16,6 +16,9 @@ public import Mathlib.Tactic.CrossRefAttribute
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+The Gegenbauer sums 18.5.10–18.5.11 and the quadratic transformations 18.7.13–18.7.16
+need the three-term recurrences of `Differential.lean`, which imports this file; they
+are stated and proved in `GegenbauerSeries.lean`.
 -/
 
 @[expose] public section
@@ -163,20 +166,6 @@ theorem jacobi_binomial_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ)
       (x - 1) ^ (n - k) * (x + 1) ^ k := by fun_prop
   exact congrFun (Continuous.ext_on (dense_compl_singleton (-1 : ℂ)) hL hR
     fun y hy => jacobi_binomial_sum_aux hα n hy) x
-
-@[dlmf 18.5.E10]
-theorem gegenbauer_finite_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam n x = ∑ k ∈ Finset.range (n / 2 + 1),
-      (-1 : ℂ) ^ k * poch lam (n - k) /
-        ((k.factorial : ℂ) * (n - 2 * k).factorial) * (2 * x) ^ (n - 2 * k) := by
-  sorry
-
-@[dlmf 18.5.E11]
-theorem gegenbauer_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : ℂ) :
-    gegenbauer lam n (cos θ) = ∑ k ∈ Finset.range (n + 1),
-      poch lam k * poch lam (n - k) / ((k.factorial : ℂ) * (n - k).factorial) *
-        cos (((n : ℂ) - 2 * k) * θ) := by
-  sorry
 
 /-- The finite sum for `H_n` at even degree `n = 2m`, via the confluent form 13.6.16. -/
 lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :
@@ -330,29 +319,6 @@ theorem chebyshevW_at_one (n : ℕ) : chebyshevW n 1 = 2 * n + 1 := by
 @[dlmf 18.7.E9]
 theorem legendre_eq_gegenbauer (n : ℕ) (x : ℂ) : legendreP n x = gegenbauer (1 / 2) n x := by
   norm_num [legendreP, jacobiP, gegenbauer]
-
-@[dlmf 18.7.E13]
-theorem jacobi_quadratic_even {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α α (2 * n) x / jacobiP α α (2 * n) 1 =
-      jacobiP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (-1 / 2) n 1 := by
-  sorry
-
-@[dlmf 18.7.E14]
-theorem jacobi_quadratic_odd {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α α (2 * n + 1) x / jacobiP α α (2 * n + 1) 1 =
-      x * jacobiP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (1 / 2) n 1 := by
-  sorry
-
-@[dlmf 18.7.E15]
-theorem gegenbauer_quadratic_even {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam (2 * n) x = poch lam n / poch (1 / 2) n * jacobiP (lam - 1 / 2) (-1 / 2) n (2 * x ^ 2 - 1) := by
-  sorry
-
-@[dlmf 18.7.E16]
-theorem gegenbauer_quadratic_odd {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam (2 * n + 1) x = poch lam (n + 1) / poch (1 / 2) (n + 1) * x *
-      jacobiP (lam - 1 / 2) (1 / 2) n (2 * x ^ 2 - 1) := by
-  sorry
 
 /-- `4^n (1/2)_n n! = (2n)!`. -/
 lemma two_pow_mul_poch_half (n : ℕ) :

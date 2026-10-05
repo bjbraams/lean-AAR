@@ -132,3 +132,41 @@ No existing theorem statement or assumption changed, and no additional false
 statement was identified. [REVIEW.md](REVIEW.md) contains an earlier mathematical
 review and inventory; its 385-admission count predates these three completed proofs.
 See [CREDITS.md](CREDITS.md) for attribution to the imported work.
+
+## Proof pass of 2026-10-05
+
+A second pass searched TauCeti per topic before attempting the admissions. TauCeti has
+little further special-function material at the pinned revision. Hermite parity
+(`Polynomial.hermite_aeval_neg`) and Gaussian integrability
+(`integrable_aeval_mul_gaussian`) were adopted for the Hermite cosine and sine transforms.
+TauCeti's complex binomial series and Hermite generating function were checked; the
+project's existing `hasSum_poch_div_factorial` already covers the former, and the latter
+did not match a remaining admission. There is nothing for polygamma, Barnes G, q-series,
+partition congruences, the Jacobi triple product, Hasse–Davenport or the
+`SU(2) → SO(3)` cover.
+
+35 admissions were proved, all depending only on `propext`, `Classical.choice` and
+`Quot.sound`:
+
+- Gamma: `polygamma_one`, `polygamma_one_div_two`, `polygamma_multiplication`,
+  `digamma_half_diff`, `digamma_one_add_zeta`, `digamma_one_add_odd_zeta`,
+  `sum_alternating_trigamma`, `digamma_add_euler`, `digamma_gauss`, `digamma_binet`.
+- Orthogonal polynomials: `hermite_even_cosine_transform`, `hermite_odd_sine_transform`,
+  `gegenbauer_cos_sum`, `gegenbauer_finite_sum`, the four quadratic transformations
+  18.7.13–18.7.16, `gegenbauer_convolution`, `gegenbauer_geometric_convolution`,
+  `legendre_convolution`, `gegenbauer_generating_function`,
+  `gegenbauer_weighted_generating_function`, `legendre_generating_function`,
+  `laguerre_addition`, `hermitePhys_even_convolution`,
+  `jacobi_regularized_generating_function`, `laguerre_bessel_generating_function`,
+  `hermitePhys_half_factorial_generating_function`, `gegenbauer_bound_at_one`,
+  `meixnerPollaczek_generating_function`, `pollaczek_finite_sum`,
+  `pollaczek_generating_function`, `charlier_limit_hermite`, `besselPolynomial_recurrence`.
+
+New modules: `BinomialSeries.lean` (the formal series `(1 - uX)^{-a}(1 - X/u)^{-b}`, its
+differential equation and three-term recurrence), `GegenbauerSeries.lean` and
+`LaguerreSeries.lean`. The Gegenbauer sums 18.5.10–18.5.11 and the quadratic
+transformations need the recurrences of `Differential.lean`, which imports
+`Explicit.lean`. They were therefore moved from `Explicit.lean` to
+`GegenbauerSeries.lean` with unchanged statements. `aeval_hermitePhys_succ_succ` moved
+from `Integrals.lean` to `Classical.lean` so that `Hahn.lean` can use it. No theorem
+statement or hypothesis was changed, and no false statement was found.

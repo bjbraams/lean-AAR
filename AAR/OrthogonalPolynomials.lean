@@ -12,6 +12,9 @@ public import AAR.OrthogonalPolynomials.MathlibCoverage
 public import AAR.OrthogonalPolynomials.GeneralIdentities
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.OrthogonalPolynomials.BinomialSeries
+public import AAR.OrthogonalPolynomials.GegenbauerSeries
+public import AAR.OrthogonalPolynomials.LaguerreSeries
 public import AAR.OrthogonalPolynomials.Limits
 public import AAR.OrthogonalPolynomials.Integrals
 public import AAR.OrthogonalPolynomials.Series

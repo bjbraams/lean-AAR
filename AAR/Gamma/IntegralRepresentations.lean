@@ -12,6 +12,7 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 public import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.Analysis.SpecialFunctions.FrullaniIntegral
 
 /-!
 # Integral representations (DLMF §5.9)
@@ -19,6 +20,11 @@ public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 Euler's integral 5.2.1 is Mathlib `Gamma_eq_integral`. Real-line Laplace,
 Fourier, and Binet-type integrals are acquired below. The Hankel loop 5.9.2
 and the Mellin–Barnes formulae 5.9.11, 5.9.17 are deferred.
+
+The digamma integrals 5.9.12, 5.9.13 and 5.9.16 are proved from the digamma series by
+termwise integration (`integral_tsum_of_summable_integral_norm`; the terms do not change
+sign). Mathlib's Frullani integral gives `log x`. The constant in Binet's formula is
+fixed by letting `x → ∞`, using `log x - 1/x ≤ ψ(x) ≤ log x`.
 -/
 
 @[expose] public section
@@ -317,20 +323,395 @@ theorem log_Gamma_binet_exp {x : ℝ} (hx : 0 < x) :
           Real.exp (-x * t) * (1 / (Real.exp t - 1) - 1 / t + 1 / 2) / t := by
   sorry
 
+section DigammaIntegrals
+
+open Set
+
+/-- `∫₀¹ (tⁿ - t^{n+x-1}) dt = 1/(n+1) - 1/(n+x)`. -/
+lemma integral_pow_sub_rpow {x : ℝ} (hx : 0 < x) (n : ℕ) :
+    ∫ t in Ioo (0 : ℝ) 1, (t ^ n - t ^ ((n : ℝ) + x - 1)) = Real.digammaSeriesTerm x n := by
+  have h1 : (-1 : ℝ) < (n : ℝ) + x - 1 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  rw [← integral_Ioc_eq_integral_Ioo, ← intervalIntegral.integral_of_le zero_le_one,
+    intervalIntegral.integral_sub (intervalIntegral.intervalIntegrable_pow _)
+      (intervalIntegral.intervalIntegrable_rpow' h1), integral_pow,
+    integral_rpow (Or.inl h1), Real.digammaSeriesTerm]
+  rw [zero_pow (Nat.succ_ne_zero n), Real.one_rpow,
+    Real.zero_rpow (by linarith : (n : ℝ) + x - 1 + 1 ≠ 0), one_pow,
+    show (n : ℝ) + x - 1 + 1 = x + n by ring]
+  have : (x + n : ℝ) ≠ 0 := by positivity
+  field_simp
+  ring
+
+
+/-- `tⁿ - t^{n+x-1} = tⁿ (1 - t^{x-1})` for `t > 0`. -/
+lemma pow_sub_rpow_eq {x t : ℝ} (ht : 0 < t) (n : ℕ) :
+    t ^ n - t ^ ((n : ℝ) + x - 1) = t ^ n * (1 - t ^ (x - 1)) := by
+  rw [show (n : ℝ) + x - 1 = n + (x - 1) by ring, Real.rpow_add ht, Real.rpow_natCast]; ring
+
+/-- `ψ(x) + γ = ∫₀¹ (1 - t^{x-1})/(1 - t) dt`, from the digamma series. -/
+lemma digamma_add_euler_Ioo {x : ℝ} (hx : 0 < x) :
+    Real.digamma x + Real.eulerMascheroniConstant =
+      ∫ t in Ioo (0 : ℝ) 1, (1 - t ^ (x - 1)) / (1 - t) := by
+  set F : ℕ → ℝ → ℝ := fun n t => t ^ n - t ^ ((n : ℝ) + x - 1) with hF
+  have hint : ∀ n, Integrable (F n) (volume.restrict (Ioo (0 : ℝ) 1)) := by
+    intro n
+    have h1 : (-1 : ℝ) < (n : ℝ) + x - 1 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+    have := ((intervalIntegral.intervalIntegrable_pow (μ := volume) (a := 0) (b := 1) n).sub
+      (intervalIntegral.intervalIntegrable_rpow' (a := 0) (b := 1) h1))
+    rw [intervalIntegrable_iff_integrableOn_Ioc_of_le zero_le_one] at this
+    exact this.mono_set Ioo_subset_Ioc_self
+  -- the terms do not change sign on `(0, 1)`
+  have hsign : ∃ ε : ℝ, (ε = 1 ∨ ε = -1) ∧ ∀ n, ∀ t ∈ Ioo (0 : ℝ) 1, ‖F n t‖ = ε * F n t := by
+    by_cases hx1 : 1 ≤ x
+    · refine ⟨1, Or.inl rfl, fun n t ht => ?_⟩
+      have h := Real.rpow_le_one ht.1.le ht.2.le (by linarith : (0 : ℝ) ≤ x - 1)
+      simp only [hF, pow_sub_rpow_eq ht.1, one_mul]
+      rw [Real.norm_of_nonneg (mul_nonneg (pow_nonneg ht.1.le _) (by linarith))]
+    · refine ⟨-1, Or.inr rfl, fun n t ht => ?_⟩
+      have h := Real.one_le_rpow_of_pos_of_le_one_of_nonpos ht.1 ht.2.le
+        (by linarith : x - 1 ≤ 0)
+      simp only [hF, pow_sub_rpow_eq ht.1]
+      rw [Real.norm_of_nonpos (mul_nonpos_of_nonneg_of_nonpos (pow_nonneg ht.1.le _)
+        (by linarith))]
+      ring
+  obtain ⟨ε, hε, hεF⟩ := hsign
+  have hnorm : ∀ n, ∫ t in Ioo (0 : ℝ) 1, ‖F n t‖ = ε * Real.digammaSeriesTerm x n := by
+    intro n
+    rw [setIntegral_congr_fun measurableSet_Ioo (hεF n), MeasureTheory.integral_const_mul,
+      integral_pow_sub_rpow hx]
+  have hsum : Summable fun n => ∫ t in Ioo (0 : ℝ) 1, ‖F n t‖ := by
+    simp_rw [hnorm]
+    exact (Real.summable_digammaSeriesTerm hx).mul_left ε
+  have key := integral_tsum_of_summable_integral_norm hint hsum
+  simp_rw [hF, integral_pow_sub_rpow hx] at key
+  rw [Real.digamma_eq_tsum hx, neg_add_cancel_comm, key]
+  refine setIntegral_congr_fun measurableSet_Ioo fun t ht => ?_
+  simp only [pow_sub_rpow_eq ht.1]
+  rw [tsum_mul_right, tsum_geometric_of_lt_one ht.1.le ht.2]
+  field_simp
+
+
+/-- `∫₀^∞ (e^{-(n+1)t} - e^{-(n+x)t}) dt = 1/(n+1) - 1/(n+x)`. -/
+lemma integral_exp_sub_exp {x : ℝ} (hx : 0 < x) (n : ℕ) :
+    ∫ t in Ioi (0 : ℝ), (Real.exp (-((n : ℝ) + 1) * t) - Real.exp (-((n : ℝ) + x) * t)) =
+      Real.digammaSeriesTerm x n := by
+  have h1 : -((n : ℝ) + 1) < 0 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have h2 : -((n : ℝ) + x) < 0 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  rw [integral_sub (integrableOn_exp_mul_Ioi h1 0) (integrableOn_exp_mul_Ioi h2 0),
+    integral_exp_mul_Ioi h1, integral_exp_mul_Ioi h2, Real.digammaSeriesTerm]
+  simp only [mul_zero, Real.exp_zero]
+  have : (x + n : ℝ) ≠ 0 := by positivity
+  have : ((n : ℝ) + 1) ≠ 0 := by positivity
+  field_simp
+  ring
+
+/-- Factorization of the exponential series term. -/
+lemma exp_sub_exp_eq {x t : ℝ} (n : ℕ) :
+    Real.exp (-((n : ℝ) + 1) * t) - Real.exp (-((n : ℝ) + x) * t) =
+      Real.exp (-t) ^ n * (Real.exp (-t) - Real.exp (-x * t)) := by
+  rw [← Real.exp_nat_mul, mul_sub, ← Real.exp_add, ← Real.exp_add]
+  congr 2 <;> ring
+
+/-- `ψ(x) + γ = ∫₀^∞ (e^{-t} - e^{-xt})/(1 - e^{-t}) dt`, from the digamma series. -/
+lemma digamma_add_euler_Ioi {x : ℝ} (hx : 0 < x) :
+    Real.digamma x + Real.eulerMascheroniConstant =
+      ∫ t in Ioi (0 : ℝ), (Real.exp (-t) - Real.exp (-x * t)) / (1 - Real.exp (-t)) := by
+  set F : ℕ → ℝ → ℝ := fun n t =>
+    Real.exp (-((n : ℝ) + 1) * t) - Real.exp (-((n : ℝ) + x) * t) with hF
+  have hint : ∀ n, Integrable (F n) (volume.restrict (Ioi (0 : ℝ))) := by
+    intro n
+    have h1 : -((n : ℝ) + 1) < 0 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+    have h2 : -((n : ℝ) + x) < 0 := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+    exact (integrableOn_exp_mul_Ioi h1 0).sub (integrableOn_exp_mul_Ioi h2 0)
+  have hsign : ∃ ε : ℝ, ∀ n, ∀ t ∈ Ioi (0 : ℝ), ‖F n t‖ = ε * F n t := by
+    by_cases hx1 : 1 ≤ x
+    · refine ⟨1, fun n t ht => ?_⟩
+      have h : Real.exp (-x * t) ≤ Real.exp (-t) :=
+        Real.exp_le_exp.mpr (by nlinarith [show (0 : ℝ) < t from ht])
+      simp only [hF, exp_sub_exp_eq, one_mul]
+      rw [Real.norm_of_nonneg (mul_nonneg (pow_nonneg (Real.exp_pos _).le _) (by linarith))]
+    · refine ⟨-1, fun n t ht => ?_⟩
+      have h : Real.exp (-t) ≤ Real.exp (-x * t) :=
+        Real.exp_le_exp.mpr (by nlinarith [show (0 : ℝ) < t from ht])
+      simp only [hF, exp_sub_exp_eq]
+      rw [Real.norm_of_nonpos (mul_nonpos_of_nonneg_of_nonpos (pow_nonneg (Real.exp_pos _).le _)
+        (by linarith))]
+      ring
+  obtain ⟨ε, hεF⟩ := hsign
+  have hnorm : ∀ n, ∫ t in Ioi (0 : ℝ), ‖F n t‖ = ε * Real.digammaSeriesTerm x n := by
+    intro n
+    rw [setIntegral_congr_fun measurableSet_Ioi (hεF n), MeasureTheory.integral_const_mul,
+      integral_exp_sub_exp hx]
+  have hsum : Summable fun n => ∫ t in Ioi (0 : ℝ), ‖F n t‖ := by
+    simp_rw [hnorm]
+    exact (Real.summable_digammaSeriesTerm hx).mul_left ε
+  have key := integral_tsum_of_summable_integral_norm hint hsum
+  simp_rw [hF, integral_exp_sub_exp hx] at key
+  rw [Real.digamma_eq_tsum hx, neg_add_cancel_comm, key]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+  simp only [exp_sub_exp_eq]
+  have he1 : Real.exp (-t) < 1 :=
+    Real.exp_lt_one_iff.mpr (by simpa using (show (0 : ℝ) < t from ht))
+  rw [tsum_mul_right, tsum_geometric_of_lt_one (Real.exp_pos _).le he1]
+  field_simp
+
+
+/-- The digamma function is monotone on `(0, ∞)`. -/
+lemma digamma_le_digamma {x y : ℝ} (hx : 0 < x) (hxy : x ≤ y) :
+    Real.digamma x ≤ Real.digamma y := by
+  have hy : 0 < y := hx.trans_le hxy
+  rw [Real.digamma_eq_tsum hx, Real.digamma_eq_tsum hy]
+  refine add_le_add_right ((Real.summable_digammaSeriesTerm hx).tsum_le_tsum (fun n => ?_)
+    (Real.summable_digammaSeriesTerm hy)) _
+  simp only [Real.digammaSeriesTerm]
+  have : 0 < x + n := by positivity
+  gcongr
+
+/-- `log x - 1/x ≤ ψ(x) ≤ log x`. -/
+lemma digamma_le_log_and {x : ℝ} (hx : 0 < x) :
+    Real.log x - 1 / x ≤ Real.digamma x ∧ Real.digamma x ≤ Real.log x := by
+  -- mean value theorem for `log Γ` on `[x, x + 1]`
+  have hcont : ContinuousOn (fun s => Real.log (Real.Gamma s)) (Icc x (x + 1)) := by
+    intro s hs
+    exact (Real.hasDerivAt_log_Gamma (hx.trans_le hs.1)).continuousAt.continuousWithinAt
+  obtain ⟨c, hc, hderiv⟩ := exists_hasDerivAt_eq_slope (fun s => Real.log (Real.Gamma s))
+    Real.digamma (by linarith) hcont
+    (fun s hs => Real.hasDerivAt_log_Gamma (hx.trans hs.1))
+  have hslope : (Real.log (Real.Gamma (x + 1)) - Real.log (Real.Gamma x)) / (x + 1 - x) =
+      Real.log x := by
+    rw [Real.Gamma_add_one hx.ne', Real.log_mul hx.ne' (Real.Gamma_pos_of_pos hx).ne']
+    ring
+  rw [hslope] at hderiv
+  have h1 := digamma_le_digamma hx hc.1.le
+  have h2 := digamma_le_digamma (hx.trans hc.1) hc.2.le
+  rw [Real.digamma_add_one hx] at h2
+  constructor
+  · rw [one_div]; linarith
+  · linarith
+
+
+/-- `|e^{-t} - e^{-xt}| ≤ |x - 1| t e^{-min(1,x) t}` for `t ≥ 0`. -/
+lemma abs_exp_neg_sub_exp_neg_le {x t : ℝ} (ht : 0 ≤ t) :
+    |Real.exp (-t) - Real.exp (-x * t)| ≤ |x - 1| * t * Real.exp (-min 1 x * t) := by
+  have key : ∀ a b : ℝ, a ≤ b → 0 ≤ Real.exp (-a * t) - Real.exp (-b * t) ∧
+      Real.exp (-a * t) - Real.exp (-b * t) ≤ (b - a) * t * Real.exp (-a * t) := by
+    intro a b hab
+    have h1 : Real.exp (-b * t) = Real.exp (-a * t) * Real.exp (-((b - a) * t)) := by
+      rw [← Real.exp_add]; ring_nf
+    have h2 := Real.add_one_le_exp (-((b - a) * t))
+    have h3 : Real.exp (-((b - a) * t)) ≤ 1 :=
+      Real.exp_le_one_iff.mpr (by nlinarith)
+    have he := Real.exp_pos (-a * t)
+    rw [h1]
+    constructor <;> nlinarith
+  rcases le_total 1 x with h | h
+  · obtain ⟨k0, k1⟩ := key 1 x h
+    rw [min_eq_left h]
+    simp only [neg_mul, one_mul] at k0 k1 ⊢
+    rw [abs_of_nonneg k0, abs_of_nonneg (show (0 : ℝ) ≤ x - 1 by linarith)]
+    exact k1
+  · obtain ⟨k0, k1⟩ := key x 1 h
+    rw [min_eq_right h]
+    simp only [neg_mul, one_mul] at k0 k1 ⊢
+    rw [abs_of_nonpos (show Real.exp (-t) - Real.exp (-(x * t)) ≤ 0 by linarith),
+      abs_of_nonpos (show x - 1 ≤ 0 by linarith)]
+    linarith
+
+/-- Integrability of the Frullani integrand `(e^{-t} - e^{-xt})/t`. -/
+lemma integrableOn_exp_neg_sub_exp_neg_div {x : ℝ} (hx : 0 < x) :
+    IntegrableOn (fun t : ℝ => t⁻¹ * (Real.exp (-t) - Real.exp (-x * t))) (Ioi 0) := by
+  have hm : -min 1 x < 0 := by simp [hx]
+  refine Integrable.mono' ((integrableOn_exp_mul_Ioi hm 0).const_mul |x - 1|) ?_ ?_
+  · exact (ContinuousOn.mul (continuousOn_inv₀.mono fun t ht => (ne_of_gt ht))
+      (by fun_prop)).aestronglyMeasurable measurableSet_Ioi
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    have ht' : (0 : ℝ) < t := ht
+    rw [Real.norm_eq_abs, abs_mul, abs_inv, abs_of_pos ht']
+    have := abs_exp_neg_sub_exp_neg_le (x := x) ht'.le
+    rw [inv_mul_le_iff₀ ht']
+    nlinarith
+
+/-- Frullani: `∫₀^∞ (e^{-t} - e^{-xt})/t dt = log x`. -/
+lemma integral_exp_neg_sub_exp_neg_div {x : ℝ} (hx : 0 < x) :
+    ∫ t in Ioi (0 : ℝ), t⁻¹ * (Real.exp (-t) - Real.exp (-x * t)) = Real.log x := by
+  have hc : Continuous fun t : ℝ => Real.exp (-t) := by fun_prop
+  have hloc : LocallyIntegrableOn (fun t : ℝ => Real.exp (-t)) (Ioi 0) :=
+    hc.locallyIntegrable.locallyIntegrableOn _
+  have hL : Tendsto (fun t : ℝ => Real.exp (-t)) (𝓝[>] 0) (𝓝 1) := by
+    simpa using (hc.tendsto 0).mono_left nhdsWithin_le_nhds
+  have hint : IntegrableOn (fun t : ℝ => t⁻¹ • (Real.exp (-(1 * t)) - Real.exp (-(x * t))))
+      (Ioi 0) := by
+    simpa [neg_mul, smul_eq_mul] using integrableOn_exp_neg_sub_exp_neg_div hx
+  have h := Frullani.integral_Ioi_eq hloc one_pos hx hL Real.tendsto_exp_neg_atTop_nhds_zero hint
+  simpa [neg_mul, smul_eq_mul] using h
+
+
+/-- The Binet kernel `1/(1 - e^{-t}) - 1/t`. -/
+def binetKernel (t : ℝ) : ℝ := 1 / (1 - Real.exp (-t)) - 1 / t
+
+/-- `0 ≤ 1/(1 - e^{-t}) - 1/t ≤ 1` for `t > 0`. -/
+lemma binetKernel_mem_Icc {t : ℝ} (ht : 0 < t) : binetKernel t ∈ Icc (0 : ℝ) 1 := by
+  have he : Real.exp (-t) < 1 := Real.exp_lt_one_iff.mpr (by linarith)
+  have hpos : 0 < 1 - Real.exp (-t) := by linarith
+  have h1 := Real.add_one_le_exp (-t)
+  have h2 : t + 1 ≤ Real.exp t := by linarith [Real.add_one_le_exp t]
+  have h3 : Real.exp t * Real.exp (-t) = 1 := by rw [← Real.exp_add]; simp
+  have hep := Real.exp_pos (-t)
+  unfold binetKernel
+  constructor
+  · rw [sub_nonneg, div_le_div_iff₀ ht hpos]; linarith
+  · rw [sub_le_iff_le_add, div_le_iff₀ hpos]
+    have : 1 / t * (1 - Real.exp (-t)) = (1 - Real.exp (-t)) / t := by ring
+    rw [add_mul, one_mul, this, ← sub_le_iff_le_add', le_div_iff₀ ht]
+    nlinarith
+
+/-- Integrability of `e^{-xt}` times the Binet kernel. -/
+lemma integrableOn_exp_mul_binetKernel {x : ℝ} (hx : 0 < x) :
+    IntegrableOn (fun t => Real.exp (-x * t) * binetKernel t) (Ioi 0) := by
+  have hm : -x < 0 := by linarith
+  refine Integrable.mono' (integrableOn_exp_mul_Ioi hm 0) ?_ ?_
+  · refine ContinuousOn.aestronglyMeasurable ?_ measurableSet_Ioi
+    intro t ht
+    have ht' : (0 : ℝ) < t := ht
+    have h1 : 1 - Real.exp (-t) ≠ 0 := by
+      have := Real.exp_lt_one_iff.mpr (by linarith : -t < 0); linarith
+    have h2 : t ≠ 0 := ht'.ne'
+    unfold binetKernel
+    exact (ContinuousAt.continuousWithinAt (by fun_prop (disch := assumption)))
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    obtain ⟨h0, h1⟩ := binetKernel_mem_Icc ht
+    rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _), abs_of_nonneg h0]
+    nlinarith [Real.exp_pos (-x * t)]
+
+/-- `J(x) = ∫₀^∞ e^{-xt} (1/(1 - e^{-t}) - 1/t) dt` lies in `[0, 1/x]`. -/
+lemma integral_exp_mul_binetKernel_mem {x : ℝ} (hx : 0 < x) :
+    0 ≤ ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t ∧
+      ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t ≤ 1 / x := by
+  have hm : -x < 0 := by linarith
+  constructor
+  · refine setIntegral_nonneg measurableSet_Ioi fun t ht => ?_
+    exact mul_nonneg (Real.exp_pos _).le (binetKernel_mem_Icc ht).1
+  · have hle : ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t ≤
+        ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) := by
+      refine setIntegral_mono_on (integrableOn_exp_mul_binetKernel hx)
+        (integrableOn_exp_mul_Ioi hm 0) measurableSet_Ioi fun t ht => ?_
+      have := (binetKernel_mem_Icc ht).2
+      nlinarith [Real.exp_pos (-x * t)]
+    rw [integral_exp_mul_Ioi hm] at hle
+    simpa [neg_div, div_neg] using hle
+
+
+/-- `ψ(x) + γ - log x = J(1) - J(x)`. -/
+lemma digamma_add_euler_sub_log {x : ℝ} (hx : 0 < x) :
+    Real.digamma x + Real.eulerMascheroniConstant - Real.log x =
+      (∫ t in Ioi (0 : ℝ), Real.exp (-1 * t) * binetKernel t) -
+        ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t := by
+  rw [digamma_add_euler_Ioi hx, ← integral_exp_neg_sub_exp_neg_div hx,
+    ← integral_sub (integrableOn_exp_mul_binetKernel one_pos) (integrableOn_exp_mul_binetKernel hx)]
+  have heq : EqOn (fun t => (Real.exp (-t) - Real.exp (-x * t)) / (1 - Real.exp (-t)))
+      (fun t => (Real.exp (-1 * t) * binetKernel t - Real.exp (-x * t) * binetKernel t) +
+        t⁻¹ * (Real.exp (-t) - Real.exp (-x * t))) (Ioi 0) := by
+    intro t ht
+    have ht' : (0 : ℝ) < t := ht
+    have h1 : 1 - Real.exp (-t) ≠ 0 := by
+      have := Real.exp_lt_one_iff.mpr (by linarith : -t < 0); linarith
+    simp only [binetKernel, neg_mul, one_mul]
+    field_simp
+    ring
+  have hi1 : IntegrableOn (fun t => Real.exp (-1 * t) * binetKernel t -
+      Real.exp (-x * t) * binetKernel t) (Ioi 0) :=
+    (integrableOn_exp_mul_binetKernel one_pos).sub (integrableOn_exp_mul_binetKernel hx)
+  rw [setIntegral_congr_fun measurableSet_Ioi heq,
+    integral_add hi1 (integrableOn_exp_neg_sub_exp_neg_div hx)]
+  ring
+
+/-- Binet's formula for the digamma function, together with `J(1) = γ`. -/
+lemma digamma_eq_log_sub {x : ℝ} (hx : 0 < x) :
+    Real.digamma x = Real.log x - ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t := by
+  set J : ℝ → ℝ := fun x => ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) * binetKernel t with hJ
+  -- `ψ(y) - log y + J(y)` is constant
+  have hconst : ∀ y : ℝ, 0 < y →
+      Real.digamma y - Real.log y + J y = J 1 - Real.eulerMascheroniConstant := by
+    intro y hy
+    have := digamma_add_euler_sub_log hy
+    simp only [hJ]
+    linarith
+  have hlim : Tendsto (fun y : ℝ => Real.digamma y - Real.log y + J y) atTop (𝓝 0) := by
+    have hinv : Tendsto (fun y : ℝ => 1 / y) atTop (𝓝 0) := by
+      simpa using tendsto_inv_atTop_zero
+    have h1 : Tendsto (fun y : ℝ => Real.digamma y - Real.log y) atTop (𝓝 0) := by
+      refine tendsto_of_tendsto_of_tendsto_of_le_of_le' (hinv.neg.trans (by simp))
+        tendsto_const_nhds
+        ?_ ?_
+      · filter_upwards [eventually_gt_atTop 0] with y hy
+        have := (digamma_le_log_and hy).1; linarith
+      · filter_upwards [eventually_gt_atTop 0] with y hy
+        have := (digamma_le_log_and hy).2; linarith
+    have h2 : Tendsto J atTop (𝓝 0) := by
+      refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hinv ?_ ?_
+      · filter_upwards [eventually_gt_atTop 0] with y hy
+        exact (integral_exp_mul_binetKernel_mem hy).1
+      · filter_upwards [eventually_gt_atTop 0] with y hy
+        exact (integral_exp_mul_binetKernel_mem hy).2
+    simpa using h1.add h2
+  have hc : J 1 - Real.eulerMascheroniConstant = 0 := by
+    refine tendsto_nhds_unique (tendsto_const_nhds.congr' ?_) hlim
+    filter_upwards [eventually_gt_atTop 0] with y hy
+    exact (hconst y hy).symm
+  have := hconst x hx
+  simp only [hJ] at this hc ⊢
+  linarith
+
+end DigammaIntegrals
+
+open Set in
 @[dlmf 5.9.E12]
 theorem digamma_gauss {x : ℝ} (hx : 0 < x) :
     Real.digamma x =
       ∫ t : ℝ in Set.Ioi 0,
         Real.exp (-t) / t - Real.exp (-x * t) / (1 - Real.exp (-t)) := by
-  sorry
+  have hJ1 : ∫ t in Ioi (0 : ℝ), Real.exp (-1 * t) * binetKernel t =
+      Real.eulerMascheroniConstant := by
+    have := digamma_eq_log_sub one_pos
+    rw [Real.digamma_one, Real.log_one] at this
+    linarith
+  have hA : IntegrableOn (fun t => (Real.exp (-t) - Real.exp (-x * t)) / (1 - Real.exp (-t)))
+      (Ioi 0) := by
+    have hi := ((integrableOn_exp_mul_binetKernel one_pos).sub
+      (integrableOn_exp_mul_binetKernel hx)).add (integrableOn_exp_neg_sub_exp_neg_div hx)
+    refine hi.congr_fun (fun t ht => ?_) measurableSet_Ioi
+    have ht' : (0 : ℝ) < t := ht
+    have h1 : 1 - Real.exp (-t) ≠ 0 := by
+      have := Real.exp_lt_one_iff.mpr (by linarith : -t < 0); linarith
+    simp only [Pi.add_apply, Pi.sub_apply, binetKernel, neg_mul, one_mul]
+    field_simp
+    ring
+  have heq : EqOn (fun t => Real.exp (-t) / t - Real.exp (-x * t) / (1 - Real.exp (-t)))
+      (fun t => (Real.exp (-t) - Real.exp (-x * t)) / (1 - Real.exp (-t)) -
+        Real.exp (-1 * t) * binetKernel t) (Ioi 0) := by
+    intro t ht
+    have ht' : (0 : ℝ) < t := ht
+    have h1 : 1 - Real.exp (-t) ≠ 0 := by
+      have := Real.exp_lt_one_iff.mpr (by linarith : -t < 0); linarith
+    simp only [binetKernel, neg_mul, one_mul]
+    field_simp
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi heq,
+    integral_sub hA (integrableOn_exp_mul_binetKernel one_pos), ← digamma_add_euler_Ioi hx, hJ1]
+  ring
 
+open Set in
 @[dlmf 5.9.E13]
 theorem digamma_binet {x : ℝ} (hx : 0 < x) :
     Real.digamma x =
       Real.log x +
         ∫ t : ℝ in Set.Ioi 0,
           (1 / t - 1 / (1 - Real.exp (-t))) * Real.exp (-t * x) := by
-  sorry
+  rw [digamma_eq_log_sub hx, sub_eq_add_neg, ← MeasureTheory.integral_neg]
+  congr 1
+  refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+  simp only [binetKernel]
+  ring_nf
 
 @[dlmf 5.9.E14]
 theorem digamma_frullani {x : ℝ} (hx : 0 < x) :
@@ -353,7 +734,9 @@ theorem digamma_add_euler {x : ℝ} (hx : 0 < x) :
         (Real.exp (-t) - Real.exp (-x * t)) / (1 - Real.exp (-t)) ∧
     Real.digamma x + Real.eulerMascheroniConstant =
       ∫ t : ℝ in (0 : ℝ)..1, (1 - t ^ (x - 1)) / (1 - t) := by
-  sorry
+  refine ⟨digamma_add_euler_Ioi hx, ?_⟩
+  rw [intervalIntegral.integral_of_le zero_le_one, integral_Ioc_eq_integral_Ioo]
+  exact digamma_add_euler_Ioo hx
 
 @[dlmf 5.9.E18]
 theorem eulerMascheroni_integrals :
