@@ -14,6 +14,11 @@ public import AAR.Confluent.IntegralRepresentations
 public import AAR.Confluent.ContinuedFractions
 public import AAR.Confluent.Relations
 public import AAR.Confluent.Asymptotics
+public import AAR.Confluent.IncompleteGamma
+public import AAR.Confluent.ExpIntegral
+public import AAR.Confluent.ParabolicCylinder
+public import AAR.Confluent.ErrorFunctions
+public import AAR.Confluent.Coulomb
 public import AAR.Confluent.Zeros
 public import AAR.Confluent.Integrals
 public import AAR.Confluent.Series
@@ -31,7 +36,12 @@ in `AAR.Bessel`.
 
 The additional modules collect DLMF Chapter 13 statements from §§13.2–13.26.
 Applications (§§13.27–13.28) and computation (§§13.29–13.32) are excluded, as is
-notation §13.1. Each statement taken from the DLMF records its equation number in a
+notation §13.1.
+
+The special cases of Temme, *Special Functions*, §7.3 have their own modules:
+`IncompleteGamma` (DLMF Chapter 8 and the `erfc` expansion), `ExpIntegral` (DLMF Chapter 6
+and §§8.19–8.20), `ParabolicCylinder` (DLMF Chapter 12), `ErrorFunctions` (Fresnel and
+Dawson integrals) and `Coulomb` (DLMF §33.2). Each statement taken from the DLMF records its equation number in a
 `@[dlmf]` attribute. Many newly acquired statements are admitted and remain proof
 obligations.
 -/

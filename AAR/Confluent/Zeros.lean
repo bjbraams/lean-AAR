@@ -46,10 +46,48 @@ theorem confluentM_posZeros_neg_a {a b : ℝ} (ha : a < 0) (hb : 0 < b) :
     (confluentMPosZeros a b).encard = Int.toNat ⌈-a⌉ := by
   sorry
 
+/-- Kummer's series has positive real part for nonnegative real numerator and
+positive real argument, including its totalized denominator value at zero. -/
+lemma confluentM_re_pos_of_nonneg {a b x : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hx : 0 < x) : 0 < (confluentM a b x).re := by
+  rcases eq_or_lt_of_le hb with rfl | hb
+  · have h : confluentM (a : ℂ) 0 x = 1 := by
+      unfold confluentM
+      rw [tsum_eq_single 0]
+      · simp [poch_zero]
+      · intro n hn
+        obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
+        simp only [Nat.succ_eq_add_one, poch_zero_succ, zero_mul, div_zero]
+    simp [h]
+  · have hb' : ∀ k : ℕ, (b : ℂ) ≠ -k := not_neg_nat_of_re_pos (by simpa using hb)
+    have hs := (hasFPowerSeriesOnBall_confluentM (a := (a : ℂ)) hb').hasSum_mul_pow
+      (z := (x : ℂ)) (by simp)
+    have hr := Complex.hasSum_re hs
+    let t : ℕ → ℝ := fun n => (ascPochhammer ℝ n).eval a /
+      ((ascPochhammer ℝ n).eval b * n.factorial) * x ^ n
+    have ht : ∀ n : ℕ, (confluentHGCoeff (a : ℂ) b n * (x : ℂ) ^ n).re = t n := by
+      intro n
+      simp [t, confluentHGCoeff, poch_ofReal, ← ofReal_natCast, ← ofReal_mul,
+        ← ofReal_div, ← ofReal_pow]
+    simp only [ht] at hr
+    have hnonneg : ∀ n, 0 ≤ t n := fun n => mul_nonneg
+      (div_nonneg (poch_eval_nonneg ha n)
+        (mul_nonneg (poch_eval_nonneg hb.le n) (Nat.cast_nonneg _)))
+      (pow_nonneg hx.le n)
+    have hle := hr.summable.sum_le_tsum ({0} : Finset ℕ) (fun n _ => hnonneg n)
+    have h0 : t 0 = 1 := by simp [t]
+    rw [Finset.sum_singleton, h0, hr.tsum_eq] at hle
+    linarith
+
 @[dlmf 13.9.E2]
 theorem confluentM_posZeros_nonneg {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
     (confluentMPosZeros a b).encard = 0 := by
-  sorry
+  rw [Set.encard_eq_zero]
+  apply Set.eq_empty_iff_forall_notMem.mpr
+  rintro x ⟨hx, hzero⟩
+  have hp := confluentM_re_pos_of_nonneg ha hb hx
+  rw [hzero] at hp
+  simp at hp
 
 @[dlmf 13.9.E3]
 theorem confluentM_posZeros_one {a b : ℝ} (ha : 0 < a) (hb0 : -1 < b) (hb1 : b < 0) :
@@ -78,7 +116,16 @@ theorem confluentM_posZeros_ceil_swap {a b : ℝ} (h : ⌈-b⌉ > ⌈-a⌉) (ha 
 theorem confluentM_negZeros_eq {a b : ℝ} (hbi : ∀ k : ℕ, b ≠ -(k : ℝ)) :
     {x : ℝ | x < 0 ∧ confluentM a b x = 0}.encard =
       (confluentMPosZeros (b - a) b).encard := by
-  sorry
+  have hb : ∀ k : ℕ, (b : ℂ) ≠ -k := fun k hk => hbi k (by exact_mod_cast hk)
+  have hz (x : ℝ) : confluentM a b x = 0 ↔ confluentM (b - a) b (-x) = 0 := by
+    rw [confluentM_kummer_transform hb, mul_eq_zero]
+    simp [Complex.exp_ne_zero]
+  have heq : {x : ℝ | x < 0 ∧ confluentM a b x = 0} =
+      (fun x : ℝ => -x) ⁻¹' confluentMPosZeros (b - a) b := by
+    ext x
+    simp only [Set.mem_ofPred_eq, Set.mem_preimage, confluentMPosZeros, neg_pos, hz, ofReal_sub, ofReal_neg]
+  rw [heq]
+  exact Set.encard_preimage_of_bijective (Equiv.neg ℝ).bijective _
 
 @[dlmf 13.9.E9]
 theorem confluentM_large_zeros (a b : ℂ) (sign : Bool) (ha : ∀ k : ℕ, a ≠ -k)

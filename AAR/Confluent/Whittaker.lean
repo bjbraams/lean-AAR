@@ -43,6 +43,15 @@ lemma whittakerW_half_zero (z : ℂ) :
     whittakerW (1 / 2) 0 z = exp (-z / 2) * z ^ (1 / 2 : ℂ) := by
   norm_num [whittakerW, confluentU_zero]
 
+/-- An elementary Whittaker W specialization, also detecting a missing parameter
+bound in the Bessel-K integral representation. -/
+lemma whittakerW_zero_half {z : ℂ} (hz : z ≠ 0) :
+    whittakerW 0 (1 / 2) z = exp (-z / 2) := by
+  have hU := AAR.Confluent.confluentU_kummer_transform_all 1 2 hz
+  norm_num [confluentU_zero] at hU
+  norm_num [whittakerW, hU, cpow_neg_one]
+  field [hz]
+
 /-- Whittaker's M on the logarithmic argument plane, which records full turns around zero. -/
 def whittakerMOnLog (κ μ w : ℂ) : ℂ :=
   exp (-exp w / 2) * exp ((μ + 1 / 2) * w) *
@@ -262,7 +271,51 @@ theorem tendsto_whittakerM_div_Gamma (κ : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ 
     Tendsto (fun μ : ℂ => whittakerM κ μ z / Gamma (2 * μ + 1)) (𝓝[≠] (-(n + 1 : ℂ) / 2))
       (𝓝 (poch (-(n : ℂ) / 2 - κ) (n + 1) / (n + 1).factorial *
         whittakerM κ ((n + 1 : ℂ) / 2) z)) := by
-  sorry
+  let p : ℂ := -(n + 1 : ℂ) / 2
+  have hB : 1 + 2 * p = -(n : ℂ) := by dsimp [p]; ring
+  have hA : p - κ + 1 / 2 = -(n : ℂ) / 2 - κ := by dsimp [p]; ring
+  have htB : Tendsto (fun μ : ℂ => 1 + 2 * μ) (𝓝[≠] p) (𝓝[≠] (-(n : ℂ))) := by
+    rw [← hB]
+    exact (by fun_prop : Continuous (fun μ : ℂ => 1 + 2 * μ)).continuousAt.continuousWithinAt.tendsto_nhdsWithin (fun μ hμ h => hμ (by
+        change μ = p
+        change 1 + 2 * μ = 1 + 2 * p at h
+        linear_combination h / 2))
+  have hreg := tendsto_regularizedConfluent_param (fun μ => μ - κ + 1 / 2)
+    (fun μ => 1 + 2 * μ) (by fun_prop) (by fun_prop) p z (𝓝[≠] p)
+    nhdsWithin_le_nhds
+  have hpow : Tendsto (fun μ : ℂ => z ^ (μ + 1 / 2)) (𝓝[≠] p)
+      (𝓝 (z ^ (p + 1 / 2))) := by
+    have hc : Continuous (fun μ : ℂ => z ^ (μ + 1 / 2)) :=
+      (continuous_id.add continuous_const).const_cpow (Or.inl (slitPlane_ne_zero hz))
+    exact hc.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+  have ht := (hpow.const_mul (exp (-z / 2))).mul hreg
+  have hval : exp (-z / 2) * z ^ (p + 1 / 2) *
+      regularizedHGFun {p - κ + 1 / 2} {1 + 2 * p} z =
+      poch (-(n : ℂ) / 2 - κ) (n + 1) / (n + 1).factorial *
+        whittakerM κ ((n + 1 : ℂ) / 2) z := by
+    rw [hB, hA, regularizedHGFun_of_neg_nat]
+    unfold whittakerM
+    rw [← cpow_natCast z (n + 1)]
+    have hp : z ^ (p + 1 / 2) * z ^ ((n + 1 : ℕ) : ℂ) =
+        z ^ ((n + 1 : ℂ) / 2 + 1 / 2) := by
+      rw [← cpow_add _ _ (slitPlane_ne_zero hz)]
+      congr 1
+      dsimp [p]
+      push_cast
+      ring
+    have ha : -(n : ℂ) / 2 - κ + n + 1 = (n + 1 : ℂ) / 2 - κ + 1 / 2 := by ring
+    have hb : (n : ℂ) + 2 = 1 + 2 * ((n + 1 : ℂ) / 2) := by ring
+    rw [ha, hb]
+    linear_combination exp (-z / 2) *
+      (poch (-(n : ℂ) / 2 - κ) (n + 1) / (n + 1).factorial) *
+      confluentM ((n + 1 : ℂ) / 2 - κ + 1 / 2) (1 + 2 * ((n + 1 : ℂ) / 2)) z * hp
+  rw [hval] at ht
+  apply ht.congr'
+  filter_upwards [htB.eventually (AAR.Hypergeometric.eventually_nhdsWithin_ne_neg_nat n)]
+    with μ hμ
+  rw [whittakerM, confluentM_eq_mul_regularizedHGFun hμ]
+  rw [show 2 * μ + 1 = 1 + 2 * μ by ring]
+  field [Gamma_ne_zero hμ]
 
 /-- Half-turn continuation of Whittaker M on the logarithmic argument plane. -/
 @[dlmf 13.14.E10]
@@ -702,4 +755,3 @@ theorem whittakerW_jump {κ μ z : ℂ} (hz : z ∈ slitPlane) (hμi : ∀ n : �
           confluentUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) (log z - π * I)) * he2
 
 end AAR.Confluent
-

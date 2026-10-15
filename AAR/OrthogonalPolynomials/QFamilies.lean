@@ -9,6 +9,7 @@ public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Wilson
 public import AAR.OrthogonalPolynomials.Explicit
+public import AAR.OrthogonalPolynomials.GegenbauerSeries
 public import AAR.QSeries.Identities
 /-!
 # The q-Hahn and Askey–Wilson classes
@@ -16,6 +17,8 @@ public import AAR.QSeries.Identities
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+The `q`-Gegenbauer limit follows termwise from the finite `q`-Pochhammer ratio limits
+and the proved coefficients of the Gegenbauer generating series.
 -/
 
 @[expose] public section
@@ -684,7 +687,45 @@ theorem askeyWilson_limit_wilson {a b c d : ℝ} (ha : 0 < a) (hb : 0 < b) (hc :
 @[dlmf 18.28.E31]
 theorem qGegenbauer_limit_gegenbauer {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) (θ : ℝ) :
     Tendsto (fun q : ℝ => qGegenbauer (Real.rpow q lam) q n (exp (I * θ))) (𝓝[<] 1) (𝓝 (gegenbauer lam n (Real.cos θ))) := by
-  sorry
+  let w : ℂ := exp (-I * θ)
+  have hw : w ≠ 0 := exp_ne_zero _
+  have hwi : w⁻¹ = exp (I * θ) := by
+    dsimp [w]
+    rw [← exp_neg]
+    congr 1
+    ring
+  have hcos : (w + w⁻¹) / 2 = (Real.cos θ : ℂ) := by
+    rw [hwi, ofReal_cos]
+    dsimp [w]
+    rw [Complex.cos]
+    congr 1 <;> ring
+  rw [← hcos, gegenbauer_eq_coeff_gegenbauerSeries (by simpa using hlam) hw,
+    coeff_gegenbauerSeries]
+  unfold qGegenbauer
+  refine tendsto_finsetSum _ fun k hk => ?_
+  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  have hpow : (exp (I * θ)) ^ ((n : ℤ) - 2 * k) = w ^ k * w⁻¹ ^ (n - k) := by
+    rw [← exp_int_mul, hwi]
+    dsimp [w]
+    rw [← exp_nat_mul, ← exp_nat_mul, ← exp_add]
+    congr 1
+    push_cast [Nat.cast_sub hkn]
+    ring
+  have h := (((tendsto_qPochhammer_rpow_div lam k).mul
+    (tendsto_qPochhammer_rpow_div lam (n - k))).div
+    ((tendsto_qPochhammer_self_div k).mul (tendsto_qPochhammer_self_div (n - k)))
+    (mul_ne_zero (Nat.cast_ne_zero.mpr k.factorial_ne_zero)
+      (Nat.cast_ne_zero.mpr (n - k).factorial_ne_zero))).mul_const
+        ((exp (I * θ)) ^ ((n : ℤ) - 2 * k))
+  rw [hpow] at h
+  refine h.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with q hq
+  have hk0 := one_sub_ofReal_pow_ne_zero hq k
+  have hnk0 := one_sub_ofReal_pow_ne_zero hq (n - k)
+  simp only [Pi.div_apply]
+  rw [hpow]
+  field_simp
+  simp only [Real.rpow_eq_pow]
 
 
 @[dlmf 18.27.E25]

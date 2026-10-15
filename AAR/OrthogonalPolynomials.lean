@@ -17,6 +17,8 @@ public import AAR.OrthogonalPolynomials.GegenbauerSeries
 public import AAR.OrthogonalPolynomials.LaguerreSeries
 public import AAR.OrthogonalPolynomials.Limits
 public import AAR.OrthogonalPolynomials.Integrals
+public import AAR.OrthogonalPolynomials.Legendre
+public import AAR.OrthogonalPolynomials.ChebyshevExpansion
 public import AAR.OrthogonalPolynomials.Series
 public import AAR.OrthogonalPolynomials.BoundsZeros
 public import AAR.OrthogonalPolynomials.ContinuedFractions
@@ -39,4 +41,9 @@ Chapter 7 topics (connection coefficients, Turán, Apéry's theorem).
 
 The additional modules collect DLMF Chapter 18 statements, each recording its equation
 number in a `@[dlmf]` attribute.
+
+Two modules follow Temme, *Special Functions*, §§6.8–6.9: `Legendre` (bounds from Laplace's
+integral, mean-square optimality of Legendre expansions, Bessel's inequality and the
+Laplace–Heine asymptotic formula) and `ChebyshevExpansion` (convergence of Chebyshev series,
+coefficient decay in Bernstein ellipses, truncation error and Clenshaw's algorithm).
 -/

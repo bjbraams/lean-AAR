@@ -21,7 +21,8 @@ Elementary, error-function, incomplete-gamma, Bessel, Hermite, Laguerre, and
 Charlier identities are recorded against existing project definitions.
 Parabolic-cylinder identities 13.6.12–13.6.15 and 13.18.11–13.18.13, Airy
 identities 13.6.11 and 13.18.10, and Coulomb-wave identities in 13.6(vii) are
-deferred: those functions are not yet in the project's API.
+deferred here. Parabolic cylinder and Coulomb wave functions are now defined in
+`AAR.Confluent.ParabolicCylinder` and `AAR.Confluent.Coulomb`.
 -/
 
 @[expose] public section
@@ -218,9 +219,13 @@ theorem confluentU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
   sorry
 
+/-- Finite Kummer–Bessel expansion away from the Gamma-prefactor poles.
+The former statement included `ν = 0, n = 0`, where totalized `Gamma 0`
+made the right-hand side zero. -/
 @[dlmf 13.6.E11_1]
 theorem confluentM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
-    (hν : ∀ k : ℕ, 2 * ν + 1 + n ≠ -k) (hz : z ∈ slitPlane) :
+    (hν : ∀ k : ℕ, 2 * ν + 1 + n ≠ -k)
+    (hΓ : ∀ k : ℕ, ν ≠ -k) (hz : z ∈ slitPlane) :
     confluentM (ν + 1 / 2) (2 * ν + 1 + n) (2 * z) =
       Gamma ν * exp z * (z / 2) ^ (-ν) *
         ∑ k ∈ Finset.range (n + 1),
@@ -228,9 +233,12 @@ theorem confluentM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
             (poch (2 * ν + 1 + n) k * k.factorial) * besselI (ν + k) z := by
   sorry
 
+/-- Negative-shift finite Kummer–Bessel expansion away from all poles of
+`Gamma (ν - n)`; excluding only `ν = 0` would not suffice. -/
 @[dlmf 13.6.E11_2]
 theorem confluentM_besselI_sum_neg (ν : ℂ) (n : ℕ) (z : ℂ)
-    (hν : ∀ k : ℕ, 2 * ν + 1 - n ≠ -k) (hz : z ∈ slitPlane) :
+    (hν : ∀ k : ℕ, 2 * ν + 1 - n ≠ -k)
+    (hΓ : ∀ k : ℕ, ν - n ≠ -k) (hz : z ∈ slitPlane) :
     confluentM (ν + 1 / 2) (2 * ν + 1 - n) (2 * z) =
       Gamma (ν - n) * exp z * (z / 2) ^ (n - ν : ℂ) *
         ∑ k ∈ Finset.range (n + 1),

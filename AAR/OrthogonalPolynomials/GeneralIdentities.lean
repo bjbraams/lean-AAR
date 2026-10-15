@@ -14,6 +14,8 @@ public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+The compact-support expansion uses the Tau Ceti contributors' polynomial
+completeness and weighted Hilbert-basis construction, as in `General`.
 -/
 
 @[expose] public section
@@ -331,7 +333,78 @@ theorem kernel_annihilates {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthog
 theorem kernel_polynomials_orthogonal {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
     {a b y : ℝ} (hsupp : μ (Set.Icc a b)ᶜ = 0) (hy : y < a ∨ b < y) {m n : ℕ} (hmn : m ≠ n) :
     ∫ x, christoffelDarbouxKernel μ p n x y * christoffelDarbouxKernel μ p m x y * |y - x| ∂μ = 0 := by
-  sorry
+  classical
+  let K (j : ℕ) : ℝ[X] := ∑ k ∈ Finset.range (j + 1),
+    C ((p k).eval y / squaredNorm μ p k) * p k
+  have hK (j : ℕ) (x : ℝ) : (K j).eval x = christoffelDarbouxKernel μ p j x y := by
+    simp only [K, eval_finsetSum, Polynomial.eval_mul, eval_C, christoffelDarbouxKernel]
+    apply Finset.sum_congr rfl
+    intro k _
+    ring
+  have hsigned (i j : ℕ) (hij : i < j) :
+      ∫ x, christoffelDarbouxKernel μ p j x y *
+        christoffelDarbouxKernel μ p i x y * (y - x) ∂μ = 0 := by
+    let A : ℝ := (p j).leadingCoeff / ((p (j + 1)).leadingCoeff * squaredNorm μ p j)
+    have hp : (X - C y) * K j = C A *
+        (C ((p j).eval y) * p (j + 1) - C ((p (j + 1)).eval y) * p j) := by
+      apply Polynomial.funext
+      intro x
+      simp only [Polynomial.eval_mul, Polynomial.eval_sub, Polynomial.eval_X, eval_C, hK]
+      by_cases hxy : x = y
+      · subst x; ring
+      · have hc := christoffel_darboux h (n := j + 1) (by omega) hxy
+        simp only [Nat.add_sub_cancel] at hc
+        dsimp [A]
+        unfold christoffelDarbouxKernel squaredNorm
+        rw [hc]
+        field_simp [sub_ne_zero.mpr hxy]
+    have horth (k : ℕ) (hk : k ≤ i) :
+        ∫ x, (((X - C y) * K j).eval x) * (p k).eval x ∂μ = 0 := by
+      rw [hp]
+      simp only [Polynomial.eval_mul, eval_sub, eval_C, sub_mul, mul_assoc]
+      rw [integral_const_mul, integral_sub
+        ((h.integrable_mul (p (j + 1)) (p k)).const_mul _)
+        ((h.integrable_mul (p j) (p k)).const_mul _),
+        integral_const_mul, integral_const_mul,
+        h.2.2.2 (j + 1) k (by omega), h.2.2.2 j k (by omega)]
+      ring
+    have he := kernel_annihilates h (h.memLp_eval ((X - C y) * K j)) i horth y
+    have hswap (x : ℝ) : christoffelDarbouxKernel μ p i y x =
+        christoffelDarbouxKernel μ p i x y := by
+      simp only [christoffelDarbouxKernel, mul_comm]
+    simp_rw [eval_mul, eval_sub, eval_X, eval_C, hK, hswap] at he
+    calc
+      _ = -(∫ x, (x - y) * christoffelDarbouxKernel μ p j x y *
+          christoffelDarbouxKernel μ p i x y ∂μ) := by
+        rw [← integral_neg]
+        apply integral_congr_ae
+        exact Filter.Eventually.of_forall fun x => by ring
+      _ = 0 := by rw [he, neg_zero]
+  have hs : ∫ x, christoffelDarbouxKernel μ p n x y *
+      christoffelDarbouxKernel μ p m x y * (y - x) ∂μ = 0 := by
+    rcases lt_or_gt_of_ne hmn with hlt | hgt
+    · exact hsigned m n hlt
+    · convert hsigned n m hgt using 1
+      congr 1
+      funext x
+      ring
+  rcases hy with hy | hy
+  · calc
+      _ = -(∫ x, christoffelDarbouxKernel μ p n x y *
+          christoffelDarbouxKernel μ p m x y * (y - x) ∂μ) := by
+        rw [← integral_neg]
+        apply integral_congr_ae
+        filter_upwards [ae_iff.mpr hsupp] with x hx
+        rw [abs_of_neg (by linarith [hx.1])]
+        ring
+      _ = 0 := by rw [hs, neg_zero]
+  · calc
+      _ = ∫ x, christoffelDarbouxKernel μ p n x y *
+          christoffelDarbouxKernel μ p m x y * (y - x) ∂μ := by
+        apply integral_congr_ae
+        filter_upwards [ae_iff.mpr hsupp] with x hx
+        rw [abs_of_pos (by linarith [hx.2])]
+      _ = 0 := hs
 
 @[dlmf 18.2.E29]
 theorem monic_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
@@ -359,7 +432,81 @@ theorem compact_support_L2_expansion {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h 
     {a b : ℝ} (hsupp : μ (Set.Icc a b)ᶜ = 0) {f : ℝ → ℝ} (hf : MemLp f 2 μ) :
     Tendsto (fun N : ℕ => ∫ x, (f x - ∑ n ∈ Finset.range N,
       ((∫ t, f t * (p n).eval t ∂μ) / squaredNorm μ p n) * (p n).eval x) ^ 2 ∂μ) atTop (𝓝 0) := by
-  sorry
+  classical
+  have hfinite : IsFiniteMeasure μ := by
+    have hi := h.integrable_mul (1 : ℝ[X]) 1
+    exact (integrable_const_iff_isFiniteMeasure (one_ne_zero : (1 : ℝ) ≠ 0)).mp
+      (by simpa using hi)
+  let := hfinite
+  have hexp : ∃ r : ℝ, 0 < r ∧ Integrable (fun x : ℝ => Real.exp (r * |x|)) μ := by
+    refine ⟨1, one_pos, ?_⟩
+    have hi := (show Continuous (fun x : ℝ => Real.exp (1 * |x|)) by fun_prop).continuousOn.integrableOn_compact
+      (μ := μ) (isCompact_Icc (a := a) (b := b))
+    simpa only [IntegrableOn, Measure.restrict_eq_self_of_ae_mem (ae_iff.mpr hsupp)] using hi
+  let c : ℕ → ℝ := fun n => ∫ x, (p n).eval x ^ 2 ∂μ
+  have hc : ∀ n, 0 < c n := h.2.2.1
+  have hmem : ∀ n, MemLp (fun x => (algebraMap ℝ ℝ) ((p n).eval x / Real.sqrt (c n))) 2
+      (μ.withDensity (fun _ => ENNReal.ofReal (1 : ℝ))) := by
+    intro n
+    simpa [div_eq_mul_inv] using (h.memLp_eval (p n)).mul_const (Real.sqrt (c n))⁻¹
+  -- Reuse the Tau Ceti contributors' polynomial completeness and basis APIs.
+  have hcomplete := TauCeti.orthogonal_span_range_bareNormalizedLp_eq_bot (𝕜 := ℝ)
+    p (fun _ => 1) c (fun n => (degree_eq_natDegree (h.ne_zero n)).trans (by rw [h.1 n]))
+    hc (by simpa using hexp) hmem
+  have horth : ∀ m n, (∫ x, (p m).eval x * (p n).eval x * 1 ∂μ) =
+      if m = n then c n else 0 := by
+    intro m n
+    by_cases hmn : m = n
+    · subst m; simp [c, pow_two]
+    · simpa [hmn] using h.2.2.2 m n hmn
+  let B := TauCeti.hilbertBasisOfOrthogonalSystem (𝕜 := ℝ) (fun n x => (p n).eval x)
+    (fun _ => 1) c (Filter.Eventually.of_forall fun _ => one_pos)
+    aemeasurable_const hc horth hmem hcomplete
+  have hB (n : ℕ) : ⇑(B n) =ᵐ[μ] fun x => (p n).eval x / Real.sqrt (c n) := by
+    simpa [B] using TauCeti.coeFn_hilbertBasisOfOrthogonalSystem (𝕜 := ℝ)
+      (fun n x => (p n).eval x) (fun _ => 1) c
+      (Filter.Eventually.of_forall fun _ => one_pos) aemeasurable_const hc horth hmem hcomplete n
+  have hinner (n : ℕ) : inner ℝ (hf.toLp f) (B n) =
+      (∫ x, f x * (p n).eval x ∂μ) / Real.sqrt (c n) := by
+    rw [L2.inner_def, ← MeasureTheory.integral_div]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [hf.coeFn_toLp, hB n] with x hx hb
+    simp [hx, hb, mul_div_assoc, mul_comm]
+  let v := hf.toLp f
+  let S (N : ℕ) := ∑ n ∈ Finset.range N, B.repr v n • B n
+  have hrepr (n : ℕ) : B.repr v n =
+      (∫ x, f x * (p n).eval x ∂μ) / Real.sqrt (c n) := by
+    rw [B.repr_apply_apply, real_inner_comm]
+    exact hinner n
+  have hS (N : ℕ) : ⇑(S N) =ᵐ[μ] fun x => ∑ n ∈ Finset.range N,
+      ((∫ t, f t * (p n).eval t ∂μ) / c n) * (p n).eval x := by
+    have hsmul (n : ℕ) : ⇑(B.repr v n • B n) =ᵐ[μ] fun x =>
+        ((∫ t, f t * (p n).eval t ∂μ) / c n) * (p n).eval x := by
+      filter_upwards [Lp.coeFn_smul (B.repr v n) (B n), hB n] with x hx hb
+      rw [hx, Pi.smul_apply, smul_eq_mul, hb, hrepr]
+      field_simp [ne_of_gt (Real.sqrt_pos.mpr (hc n)), ne_of_gt (hc n)]
+      rw [Real.sq_sqrt (hc n).le]
+      ring
+    filter_upwards [Lp.coeFn_finsetSum (Finset.range N) (fun n => B.repr v n • B n),
+      ae_all_iff.mpr hsmul] with x hx hn
+    rw [hx]
+    simp only [Finset.sum_apply]
+    exact Finset.sum_congr rfl (fun n _ => hn n)
+  have he (N : ℕ) : ∫ x, (f x - ∑ n ∈ Finset.range N,
+      ((∫ t, f t * (p n).eval t ∂μ) / squaredNorm μ p n) * (p n).eval x) ^ 2 ∂μ =
+        ‖v - S N‖ ^ 2 := by
+    rw [← real_inner_self_eq_norm_sq, L2.inner_def]
+    apply integral_congr_ae
+    filter_upwards [Lp.coeFn_sub v (S N), hf.coeFn_toLp, hS N] with x hx hv hs
+    change (f x - ∑ n ∈ Finset.range N,
+      ((∫ t, f t * (p n).eval t ∂μ) / c n) * (p n).eval x) ^ 2 =
+      (v - S N) x * (v - S N) x
+    rw [hx]
+    simp only [Pi.sub_apply]
+    rw [show v x = f x from hv, hs, pow_two]
+  simp_rw [he]
+  have ht := ((tendsto_const_nhds (x := v)).sub (B.hasSum_repr v).tendsto_sum_nat).norm.pow 2
+  simpa [S] using ht
 
 
 end AAR.OrthogonalPolynomials

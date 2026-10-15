@@ -15,7 +15,7 @@ area adds. Statements taken from the DLMF record their equation numbers with Mat
 | --- | --- | --- | --- |
 | `Gamma` | 1 | 5 | 23 |
 | `Hypergeometric` | 2–3 | 15 | 20 |
-| `Confluent` | 4.1–4.4 | 13 | 15 |
+| `Confluent` | 4.1–4.4 | 13 | 17 |
 | `Bessel` | 4.5–4.15 | | 5 |
 | `OrthogonalPolynomials` | 5–7 | 18 | 18 |
 | `Selberg` | 8 | | 2 |
@@ -46,8 +46,65 @@ See [TauCetiReview.md](TauCetiReview.md) for checked reuse candidates and the re
 and [CREDITS.md](CREDITS.md) for related-work credits. The first six adaptations are implemented, including proofs of
 both Hermite Fourier eigenfunction identities and compact-support Parseval. A later
 pass (2026-10-05) proved 35 further admissions in the Gamma and orthogonal-polynomial
-chapters (see [TauCetiReview.md](TauCetiReview.md)). There are now 347 remaining source
-admissions; the earlier `REVIEW.md` inventory predates these proofs.
+chapters (see [TauCetiReview.md](TauCetiReview.md)). A further pass (2026-10-07)
+repaired the Gamma sine integral and two finite
+Kummer–Bessel statements, and proved all ten theorems in priority groups 1–4:
+the two Kummer zero results, compact-support expansion and kernel orthogonality,
+three Hermite integrals, and three parameter/Euler integrals. The project-wide pass
+on 2026-10-08 proved the Whittaker M pole limit, the `q`-Gegenbauer classical limit,
+and both Laguerre fractional integrals, and repaired a missing parameter bound in
+the Whittaker W Bessel-K integral. The next priority pass proved the Jacobi fractional
+integral, both Rodrigues formulas, Legendre orthogonality, the unweighted Laguerre
+convolution, the regularized Kummer Laplace self-transform, and the closed Whittaker M
+Laplace transform. It also established convergence of Tricomi's Laplace kernel in the
+full stated region and its `b = a + 1` specialization. The continuation pass proved
+the weighted Laguerre convolution, the Jacobi squared norm, and Gegenbauer
+orthogonality. Supporting lemmas now give the general Kummer transform when
+`‖k‖ < Re z` and Tricomi's Laplace representation for every `b = a + N + 1`,
+with nonnegative integer `N`. The full half-plane Kummer transform is now proved
+using a polynomial exponential growth bound and holomorphic continuation, with
+all denominator parameters retained. Tricomi's full Laplace representation is now
+proved by a Gauss confluence limit, holomorphic continuation in the argument,
+and continuity in the second parameter, including integer parameters. The
+Whittaker W Laplace representation follows by an affine substitution. These
+complete the remaining integral priorities without changing their statements.
+Tricomi's Mellin transform is also proved throughout its original convergence
+strip, with a separate absolute-integrability theorem. A Gamma pass on 2026-10-15,
+guided by Temme's *Special Functions* (Wiley, 1996), Chapter 3, proved 24 further
+admissions: Binet's three formulas for `log Γ`, the remaining digamma and
+Euler-constant integrals of DLMF §5.9, Prym's and the Cauchy–Saalschütz
+representations, the oscillatory and Fresnel-type Gamma integrals, derivatives and
+integrals of `Γ` in its argument, Stirling's series for `log Γ`, `ψ` and `ψ⁽ⁿ⁾`, the
+modulus and balanced Gamma products, and four Gamma inequalities. It also corrected
+the bracketing of `Gamma_incomplete_sum`. A confluent pass, following Temme's Chapter 7,
+derived Tricomi's and Kummer's asymptotic expansions from Watson's lemma (proving six
+admissions in `AAR.Confluent.Asymptotics`) and added admission-free modules for the
+incomplete Gamma functions, the exponential, sine and cosine integrals, parabolic cylinder
+functions, the Fresnel and Dawson integrals, and Coulomb wave functions. A further pass on
+Temme's §§6.8–6.9 proved Laplace's integral for Legendre polynomials and added modules on
+Legendre bounds, expansions and large-degree asymptotics and on Chebyshev expansions. There are
+now 288 remaining source admissions; see [REVIEW.md](REVIEW.md) for the current inventory and the corrected
+statements.
+
+## Supporting library `ToMathlib`
+
+General results that the special-function library uses, following Temme's *Special
+Functions* (Wiley, 1996), Chapters 1–2, and written for eventual contribution to Mathlib:
+
+* `ToMathlib.NumberTheory.EulerPolynomials`: Euler polynomials and numbers, the difference
+  equation `Eₙ(x+1) + Eₙ(x) = 2xⁿ`, the Appell property, reflection, alternating power sums,
+  and the Euler-number recurrence.
+* `ToMathlib.Analysis.EulerMaclaurin`: the Euler–Maclaurin formula with remainder.
+* `ToMathlib.Analysis.BooleSummation`: Boole's alternating summation formula.
+* `ToMathlib.Analysis.Asymptotics.AsymptoticExpansion` and `.Watson`: Poincaré asymptotic
+  expansions and Watson's lemma, also with a complex exponent. In `AAR.Gamma.Asymptotics`
+  they give Stirling's series for `log Γ` as an asymptotic expansion
+  (`hasAsymptoticExpansion_log_Gamma`); in `AAR.Confluent` they give the expansions of
+  Tricomi's and Kummer's functions and of the functions derived from them.
+* `ToMathlib.Analysis.Integral.Laplace`: quantitative Laplace asymptotics, copied from
+  `lean-codes`.
+
+`ToMathlib` imports Mathlib only and contains no admissions.
 
 ## Building
 

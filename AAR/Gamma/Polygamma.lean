@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Gamma.Digamma
+public import AAR.Gamma.Asymptotics
 public import AAR.Gamma.SpecialValues
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
@@ -509,6 +510,152 @@ theorem polygamma_multiplication (n m : ℕ) (hn : 0 < n) (hm : 0 < m) {z : ℂ}
   field_simp
 
 
+section PolygammaAsymptotics
+
+/-! ### Asymptotic expansions of `ψ⁽ⁿ⁾` (DLMF 5.15.8–9)
+
+For `n ≥ 1`, `n! ∑ₖ (z+k)^{-(n+1)} = ∫₀^∞ tⁿ e^{-zt}/(1 - e^{-t}) dt`, and
+`tⁿ/(1 - e^{-t}) = t^{n-1} + tⁿ/2 + t^{n+1} β(t)/t`. The Bernoulli expansion of `β(t)/t`
+from `Asymptotics.lean` then gives the series with an explicit remainder. -/
+
+open MeasureTheory Set
+
+lemma summable_inv_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
+    Summable fun k : ℕ => ((z + k) ^ (n + 1))⁻¹ := by
+  refine Summable.of_norm_bounded_eventually_nat (g := fun k : ℕ => 1 / (k : ℝ) ^ 2)
+    (Real.summable_one_div_nat_pow.mpr one_lt_two) ?_
+  filter_upwards [eventually_ge_atTop 1] with k hk
+  have hk' : (1 : ℝ) ≤ k := by exact_mod_cast hk
+  have hzk : (k : ℝ) ≤ z + k := by linarith
+  rw [Real.norm_of_nonneg (by positivity), one_div]
+  apply inv_anti₀ (by positivity)
+  calc (k : ℝ) ^ 2 ≤ (z + k) ^ 2 := by gcongr
+    _ ≤ (z + k) ^ (n + 1) := pow_le_pow_right₀ (by linarith) (by omega)
+
+lemma integrableOn_exp_mul_pow_mul_binetBeta {z : ℝ} (hz : 0 < z) (n : ℕ) :
+    IntegrableOn (fun t => Real.exp (-z * t) * (t ^ n * binetBeta t)) (Ioi 0) := by
+  refine Integrable.mono' ((integrableOn_exp_mul_pow hz n).const_mul (1 / 2)) ?_ ?_
+  · exact ((by fun_prop : Continuous fun t => Real.exp (-z * t) * t ^ n).continuousOn.mul
+      continuousOn_binetBeta |>.congr fun t _ => by simp only [Pi.mul_apply]; ring)
+      |>.aestronglyMeasurable measurableSet_Ioi
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    have ht' : (0 : ℝ) < t := ht
+    rw [Real.norm_of_nonneg (by have := binetBeta_nonneg ht'; positivity)]
+    have := binetBeta_le_half ht'
+    have := binetBeta_nonneg ht'
+    have he := Real.exp_pos (-z * t)
+    have hp := pow_pos ht' n
+    nlinarith [mul_pos he hp]
+
+/-- `n! ∑ₖ (z+k)^{-(n+1)} = (n-1)!/zⁿ + n!/(2z^{n+1}) + ∫₀^∞ e^{-zt} t^{n+1} β(t)/t dt`. -/
+lemma factorial_mul_tsum_inv_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
+    (n.factorial : ℝ) * ∑' k : ℕ, ((z + k) ^ (n + 1))⁻¹ =
+      (n - 1).factorial / z ^ n + n.factorial / (2 * z ^ (n + 1)) +
+        ∫ t in Ioi (0 : ℝ), Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t)) := by
+  set F : ℕ → ℝ → ℝ := fun k t => Real.exp (-(z + k) * t) * t ^ n with hF
+  have hzk : ∀ k : ℕ, 0 < z + k := fun k => by positivity
+  have hFint : ∀ k, Integrable (F k) (volume.restrict (Ioi (0 : ℝ))) := fun k =>
+    integrableOn_exp_mul_pow (hzk k) n
+  have hFval : ∀ k, ∫ t in Ioi (0 : ℝ), F k t = n.factorial * ((z + k) ^ (n + 1))⁻¹ := fun k => by
+    rw [integral_exp_mul_pow (hzk k) n, div_eq_mul_inv]
+  have hnorm : ∀ k, ∫ t in Ioi (0 : ℝ), ‖F k t‖ = ∫ t in Ioi (0 : ℝ), F k t := fun k =>
+    setIntegral_congr_fun measurableSet_Ioi fun t ht => Real.norm_of_nonneg (by
+      have : (0 : ℝ) < t := ht; positivity)
+  have hsum : Summable fun k => ∫ t in Ioi (0 : ℝ), ‖F k t‖ := by
+    simp_rw [hnorm, hFval]
+    exact (summable_inv_add_pow hn hz).mul_left _
+  have key := integral_tsum_of_summable_integral_norm hFint hsum
+  simp_rw [hFval] at key
+  rw [← tsum_mul_left, key]
+  -- the pointwise sum
+  have hpt : ∀ t ∈ Ioi (0 : ℝ), ∑' k, F k t = Real.exp (-z * t) * t ^ (n - 1) +
+      1 / 2 * (Real.exp (-z * t) * t ^ n) +
+        Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t)) := by
+    intro t ht
+    have ht' : (0 : ℝ) < t := ht
+    have hq0 : 0 ≤ Real.exp (-t) := (Real.exp_pos _).le
+    have hq1 : Real.exp (-t) < 1 := Real.exp_lt_one_iff.mpr (by linarith)
+    have hgeom := (hasSum_geometric_of_lt_one hq0 hq1).mul_left (Real.exp (-z * t) * t ^ n)
+    have hFk : ∀ k : ℕ, F k t = Real.exp (-z * t) * t ^ n * Real.exp (-t) ^ k := by
+      intro k
+      simp only [hF]
+      rw [← Real.exp_nat_mul, mul_right_comm, ← Real.exp_add]
+      congr 2
+      ring
+    simp_rw [hFk]
+    rw [hgeom.tsum_eq]
+    have hK := binetKernel_eq_binetBeta ht'
+    unfold binetKernel at hK
+    have h1 : 1 - Real.exp (-t) ≠ 0 := by linarith
+    have hinv : (1 - Real.exp (-t))⁻¹ = binetBeta t + 1 / 2 + 1 / t := by
+      rw [← one_div]; linarith
+    rw [hinv]
+    have hpow : t ^ n = t * t ^ (n - 1) := by
+      rw [← pow_succ']; congr 1; omega
+    have ht0 : t ≠ 0 := ht'.ne'
+    rw [pow_succ, hpow]
+    field_simp
+    ring
+  have hi1 := integrableOn_exp_mul_pow hz (n - 1)
+  have hi2 := (integrableOn_exp_mul_pow hz n).const_mul (1 / 2)
+  have hi3 : IntegrableOn (fun t => Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t)))
+      (Ioi 0) := by
+    refine IntegrableOn.congr_fun (integrableOn_exp_mul_pow_mul_binetBeta hz n)
+      (fun t ht => ?_) measurableSet_Ioi
+    have ht' : (0 : ℝ) < t := ht
+    rw [pow_succ]
+    field_simp
+  have hi12 : Integrable (fun t => Real.exp (-z * t) * t ^ (n - 1) +
+      1 / 2 * (Real.exp (-z * t) * t ^ n)) (volume.restrict (Ioi 0)) := hi1.add hi2
+  rw [setIntegral_congr_fun measurableSet_Ioi hpt, integral_add hi12 hi3,
+    integral_add hi1 hi2, MeasureTheory.integral_const_mul, integral_exp_mul_pow hz,
+    integral_exp_mul_pow hz, show n - 1 + 1 = n by omega]
+  field_simp
+
+/-- The remainder of the polygamma expansion. -/
+lemma abs_factorial_mul_tsum_sub_le {n : ℕ} (hn : 1 ≤ n) (m : ℕ) {z : ℝ} (hz : 0 < z) :
+    |(n.factorial : ℝ) * ∑' k : ℕ, ((z + k) ^ (n + 1))⁻¹ -
+      ((n - 1).factorial / z ^ n + n.factorial / (2 * z ^ (n + 1)) +
+        ∑ k ∈ Finset.Icc 1 m, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
+          ((2 * k + n - 1).factorial / z ^ (2 * k + n)))| ≤
+      2 * binetRemConst m * ((2 * m + (n + 1)).factorial / z ^ (2 * m + (n + 1) + 1)) := by
+  rw [factorial_mul_tsum_inv_add_pow hn hz]
+  have hP := integral_exp_mul_pow_mul_binetPoly hz m (n + 1)
+  have hsum : ∑ k ∈ Finset.Icc 1 m, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
+      ((2 * k + n - 1).factorial / z ^ (2 * k + n)) =
+      ∫ s in Ioi (0 : ℝ), Real.exp (-z * s) * (s ^ (n + 1) * binetPoly m s) := by
+    rw [hP]
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk1 : 1 ≤ k := (Finset.mem_Icc.mp hk).1
+    rw [show 2 * k - 2 + (n + 1) = 2 * k + n - 1 by omega,
+      show 2 * k + n - 1 + 1 = 2 * k + n by omega]
+  have hI : (∫ t in Ioi (0 : ℝ), Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t))) -
+      ∫ s in Ioi (0 : ℝ), Real.exp (-z * s) * (s ^ (n + 1) * binetPoly m s) =
+      ∫ s in Ioi (0 : ℝ),
+        Real.exp (-z * s) * (s ^ (n + 1) * (binetBeta s / s - binetPoly m s)) := by
+    have hi3 : IntegrableOn (fun t => Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t)))
+        (Ioi 0) := by
+      refine IntegrableOn.congr_fun (integrableOn_exp_mul_pow_mul_binetBeta hz n)
+        (fun t ht => ?_) measurableSet_Ioi
+      have ht' : (0 : ℝ) < t := ht
+      rw [pow_succ]
+      field_simp
+    rw [← integral_sub hi3 (integrableOn_exp_mul_pow_mul_binetPoly hz m (n + 1))]
+    refine setIntegral_congr_fun measurableSet_Ioi fun s _ => ?_
+    ring
+  rw [hsum, show ∀ A B C D : ℝ, A + B + C - (A + B + D) = C - D from fun A B C D => by ring, hI]
+  exact abs_integral_exp_mul_pow_mul_rem_le hz m (n + 1)
+
+lemma isBigO_inv_add_pow {x : ℝ} (hx : 0 < x) (N : ℕ) (C : ℝ) :
+    Asymptotics.IsBigO atTop (fun t : ℝ => C / (t + x) ^ N) (fun t : ℝ => t ^ (-(N : ℝ))) := by
+  refine Asymptotics.IsBigO.of_bound |C| ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_div, abs_of_pos (by positivity : 0 < (t + x) ^ N),
+    abs_of_pos (Real.rpow_pos_of_pos ht _), Real.rpow_neg ht.le, Real.rpow_natCast,
+    ← div_eq_mul_inv]
+  exact div_le_div_of_nonneg_left (abs_nonneg C) (by positivity)
+    (pow_le_pow_left₀ ht.le (by linarith) N)
+
 @[dlmf 5.15.E8]
 theorem trigamma_asymptotic (n : ℕ) {x : ℝ} (hx : 1 < x) :
     Asymptotics.IsBigO atTop
@@ -516,7 +663,31 @@ theorem trigamma_asymptotic (n : ℕ) {x : ℝ} (hx : 1 < x) :
         (1 / (t + x) + 1 / (2 * (t + x) ^ 2) +
           ∑ k ∈ Finset.Icc 1 n, bernoulli (2 * k) / (t + x) ^ (2 * k + 1)))
       (fun t : ℝ => (t : ℝ) ^ (-(2 * n : ℝ) - 3)) := by
-  sorry
+  have h := (isBigO_inv_add_pow (by linarith : (0 : ℝ) < x) (2 * n + 3)
+    (2 * binetRemConst n * (2 * n + 2).factorial))
+  refine Asymptotics.IsBigO.trans ?_ (h.congr_right fun t => by push_cast; ring_nf)
+  refine Asymptotics.IsBigO.of_bound 1 ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  have hz : 0 < t + x := by linarith
+  have hb := abs_factorial_mul_tsum_sub_le (n := 1) le_rfl n hz
+  simp only [Nat.factorial_one, Nat.cast_one, one_mul, Nat.sub_self, Nat.factorial_zero,
+    pow_one] at hb
+  have hsum : ∑ k ∈ Finset.Icc 1 n, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
+      ((2 * k + 1 - 1).factorial / (t + x) ^ (2 * k + 1)) =
+      ∑ k ∈ Finset.Icc 1 n, (bernoulli (2 * k) : ℝ) / (t + x) ^ (2 * k + 1) := by
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [Nat.add_sub_cancel]
+    have : ((2 * k).factorial : ℝ) ≠ 0 := by positivity
+    field_simp
+  rw [hsum] at hb
+  simp only [show (1 : ℕ) + 1 = 2 from rfl, show 2 * n + 2 + 1 = 2 * n + 3 by ring] at hb
+  have htri : Real.trigamma (t + x) = ∑' k : ℕ, ((t + x + k) ^ 2)⁻¹ := by
+    rw [Real.trigamma_eq_tsum hz]; simp_rw [inv_pow]
+  have hS : 0 ≤ binetRemConst n := tsum_nonneg fun m => by positivity
+  rw [htri, one_mul, Real.norm_eq_abs, Real.norm_eq_abs,
+    abs_of_nonneg (by positivity : (0 : ℝ) ≤ 2 * binetRemConst n *
+      (2 * n + 2).factorial / (t + x) ^ (2 * n + 3)), mul_div_assoc]
+  exact hb
 
 @[dlmf 5.15.E9]
 theorem polygamma_asymptotic (n m : ℕ) (hn : 0 < n) {x : ℝ} (hx : 1 < x) :
@@ -529,6 +700,51 @@ theorem polygamma_asymptotic (n m : ℕ) (hn : 0 < n) {x : ℝ} (hx : 1 < x) :
               ((2 * k + n - 1).factorial / (2 * k).factorial) *
                 bernoulli (2 * k) / (t + x : ℂ) ^ (2 * k + n)))
       (fun t : ℝ => (t : ℂ) ^ (-(2 * m + n + 2 : ℕ) : ℂ)) := by
-  sorry
+  refine Asymptotics.IsBigO.of_bound (2 * binetRemConst m * (2 * m + (n + 1)).factorial) ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  have hz : 0 < t + x := by linarith
+  have hmem : (t : ℂ) + x ∈ notNegNat := by
+    intro k hk
+    have := congrArg Complex.re hk
+    simp at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hser : ∑' k : ℕ, ((t : ℂ) + x + k) ^ (-1 - n : ℤ) =
+      ((∑' k : ℕ, ((t + x + k) ^ (n + 1))⁻¹ : ℝ) : ℂ) := by
+    rw [Complex.ofReal_tsum]
+    congr 1
+    funext k
+    rw [show (-1 - (n : ℤ)) = -((n + 1 : ℕ) : ℤ) by push_cast; ring, zpow_neg, zpow_natCast]
+    push_cast
+    ring
+  have hsign : (-1 : ℂ) ^ (n + 1) = (-1) ^ (n - 1) := by
+    rw [show n + 1 = n - 1 + 2 by omega, pow_add]; norm_num
+  have hsumC : ∑ k ∈ Finset.Icc 1 m, ((2 * k + n - 1).factorial / (2 * k).factorial : ℂ) *
+      bernoulli (2 * k) / ((t : ℂ) + x) ^ (2 * k + n) =
+      ∑ k ∈ Finset.Icc 1 m, ((bernoulli (2 * k) : ℂ) / ((2 * k).factorial : ℂ) *
+        (((2 * k + n - 1).factorial : ℂ) / ((t : ℂ) + x) ^ (2 * k + n))) :=
+    Finset.sum_congr rfl fun k _ => by ring
+  have hb := abs_factorial_mul_tsum_sub_le hn m hz
+  set D : ℝ := (n.factorial : ℝ) * ∑' k : ℕ, ((t + x + k) ^ (n + 1))⁻¹ -
+      ((n - 1).factorial / (t + x) ^ n + n.factorial / (2 * (t + x) ^ (n + 1)) +
+        ∑ k ∈ Finset.Icc 1 m, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
+          ((2 * k + n - 1).factorial / (t + x) ^ (2 * k + n))) with hD
+  have hexpr : polygamma n ((t : ℂ) + x) - (-1 : ℂ) ^ (n - 1) *
+      ((n - 1).factorial / ((t : ℂ) + x) ^ n + n.factorial / (2 * ((t : ℂ) + x) ^ (n + 1)) +
+        ∑ k ∈ Finset.Icc 1 m, ((2 * k + n - 1).factorial / (2 * k).factorial : ℂ) *
+          bernoulli (2 * k) / ((t : ℂ) + x) ^ (2 * k + n)) = (-1 : ℂ) ^ (n - 1) * (D : ℂ) := by
+    rw [polygamma_eq_tsum hn hmem, hser, hsign, hsumC, hD]
+    push_cast
+    ring
+  rw [hexpr, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul, Complex.norm_real,
+    Real.norm_eq_abs, norm_cpow_eq_rpow_re_of_pos ht]
+  refine hb.trans ?_
+  have hS : 0 ≤ binetRemConst m := tsum_nonneg fun j => by positivity
+  have hre : (-((2 * m + n + 2 : ℕ) : ℂ)).re = -((2 * m + (n + 1) + 1 : ℕ) : ℝ) := by
+    simp only [neg_re, natCast_re]; push_cast; ring
+  rw [hre, Real.rpow_neg ht.le, Real.rpow_natCast, ← div_eq_mul_inv, mul_div_assoc]
+  exact mul_le_mul_of_nonneg_left (div_le_div_of_nonneg_left (by positivity) (by positivity)
+    (pow_le_pow_left₀ ht.le (by linarith) _)) (by positivity)
+
+end PolygammaAsymptotics
 
 end AAR.Gamma

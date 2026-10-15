@@ -5,9 +5,9 @@ buildDir = ".lake/build-AAR"
 
 [[lean_lib]]
 name = "Main"
-roots = ["AAR"]
+roots = ["AAR", "ToMathlib"]
 globs = [
-  "AAR", "AAR.+"
+  "AAR", "AAR.+", "ToMathlib", "ToMathlib.+"
 ]
 
 [[lean_exe]]

@@ -26,6 +26,14 @@ those gaps.
 
 ## Dependencies and import layers
 
+- `ToMathlib/` holds general results that are not specific to special functions
+  (Euler polynomials, Euler–Maclaurin and Boole summation, asymptotic expansions,
+  Watson's lemma, Laplace asymptotics), in the namespaces of the Mathlib APIs they extend.
+  `ToMathlib` imports Mathlib only, never `AAR`; `AAR` modules may import `ToMathlib`.
+  A `ToMathlib` file that also exists in `../lean-codes/ToMathlib` (currently
+  `Analysis/Integral/Laplace.lean`) must keep identical content and path; make changes in
+  lean-codes and copy them here.
+
 Mathlib and TauCeti are allowed throughout the AAR library, including when filling
 existing admissions. Preserve complex branches, normalizations, exceptional parameters
 and the meaning of totalized series and integrals when adopting upstream statements.
