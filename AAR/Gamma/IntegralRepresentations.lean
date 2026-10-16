@@ -17,6 +17,7 @@ public import Mathlib.Analysis.SpecialFunctions.FrullaniIntegral
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
 public import Mathlib.Analysis.Complex.IntegerCompl
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+public import ToMathlib.Analysis.Asymptotics.WatsonSector
 
 /-!
 # Integral representations (DLMF §5.9)
@@ -51,121 +52,12 @@ local macro "deriv_simp" : tactic => `(tactic| first
       ring)
   | (field_simp; ring) | (field_simp; done) | ring | (simp; field_simp; ring) | (simp; done))
 
-/-- Helper lemma for `integral_cpow_mul_exp_neg_mul_Ioi`: the case of a positive real scale. -/
-lemma integral_cpow_mul_exp_neg_mul_Ioi_of_real {s : ℂ} (hs : 0 < s.re) {r : ℝ} (hr : 0 < r) :
-    ∫ u : ℝ in Set.Ioi 0, (u : ℂ) ^ (s - 1) * Complex.exp (-((r : ℂ) * u)) =
-      Complex.Gamma s * (r : ℂ) ^ (-s) := by
-  have hr0 : (r : ℂ) ≠ 0 := ofReal_ne_zero.mpr hr.ne'
-  have hG : ∫ x : ℝ in Set.Ioi 0, (x : ℂ) ^ (s - 1) * Complex.exp (-(x : ℂ)) =
-      Complex.Gamma s := by
-    rw [Gamma_eq_integral hs, GammaIntegral]
-    refine setIntegral_congr_fun measurableSet_Ioi fun x _ => ?_
-    push_cast
-    ring
-  have h := integral_comp_mul_left_Ioi
-    (fun x : ℝ => (x : ℂ) ^ (s - 1) * Complex.exp (-(x : ℂ))) 0 hr
-  rw [mul_zero, hG] at h
-  have h2 : ∫ u : ℝ in Set.Ioi 0, (u : ℂ) ^ (s - 1) * Complex.exp (-((r : ℂ) * u)) =
-      (r : ℂ) ^ (-(s - 1)) * ∫ x : ℝ in Set.Ioi 0,
-        ((r * x : ℝ) : ℂ) ^ (s - 1) * Complex.exp (-((r * x : ℝ) : ℂ)) := by
-    rw [← MeasureTheory.integral_const_mul]
-    refine setIntegral_congr_fun measurableSet_Ioi fun u hu => ?_
-    have hP : (r : ℂ) ^ (-(s - 1)) * (r : ℂ) ^ (s - 1) = 1 := by
-      rw [cpow_neg, inv_mul_cancel₀ (cpow_ne_zero_iff.mpr (Or.inl hr0))]
-    rw [ofReal_mul, mul_cpow_ofReal_nonneg hr.le (le_of_lt hu)]
-    linear_combination (-((u : ℂ) ^ (s - 1) * Complex.exp (-((r : ℂ) * u)))) * hP
-  rw [h2, h, Complex.real_smul, ofReal_inv, show -s = -(s - 1) + -1 by ring,
-    cpow_add _ _ hr0, cpow_neg_one]
-  ring
-
 /-- The Laplace transform of a power: `∫₀^∞ u^(s-1) e^(-z u) du = Γ(s) z^(-s)` for
-`Re s > 0` and `Re z > 0`. Proved for real `z` by scaling and extended to the right
-half-plane by analytic continuation. -/
+`Re s > 0` and `Re z > 0` (proved in `ToMathlib.Analysis.Asymptotics.WatsonSector`). -/
 lemma integral_cpow_mul_exp_neg_mul_Ioi {s z : ℂ} (hs : 0 < s.re) (hz : 0 < z.re) :
     ∫ u : ℝ in Set.Ioi 0, (u : ℂ) ^ (s - 1) * Complex.exp (-(z * u)) =
-      Complex.Gamma s * z ^ (-s) := by
-  set U : Set ℂ := {w | 0 < w.re} with hU
-  have hUo : IsOpen U := isOpen_lt continuous_const continuous_re
-  let I : ℂ → ℂ := fun w => ∫ u : ℝ in Set.Ioi 0, (u : ℂ) ^ (s - 1) * Complex.exp (-(w * u))
-  have hmeas (w : ℂ) : AEStronglyMeasurable
-      (fun u : ℝ => (u : ℂ) ^ (s - 1) * Complex.exp (-(w * u))) (volume.restrict (Set.Ioi 0)) :=
-    Measurable.aestronglyMeasurable (by fun_prop)
-  have hnorm (w : ℂ) (u : ℝ) (hu : 0 < u) :
-      ‖(u : ℂ) ^ (s - 1) * Complex.exp (-(w * u))‖ = u ^ (s.re - 1) * Real.exp (-w.re * u) := by
-    rw [norm_mul, norm_cpow_eq_rpow_re_of_pos hu, Complex.norm_exp]
-    simp
-  have hint (w : ℂ) (hw : 0 < w.re) : Integrable
-      (fun u : ℝ => (u : ℂ) ^ (s - 1) * Complex.exp (-(w * u))) (volume.restrict (Set.Ioi 0)) := by
-    have hb := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) (s := s.re - 1) (b := w.re)
-      (by linarith) one_pos hw
-    refine Integrable.mono' hb (hmeas w) ?_
-    filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
-    rw [hnorm w u hu, Real.rpow_one]
-  have hdiff : DifferentiableOn ℂ I U := by
-    intro w₀ hw₀
-    have hw₀' : 0 < w₀.re := hw₀
-    set δ := w₀.re / 2 with hδ
-    have hδ0 : 0 < δ := by positivity
-    have hball : Metric.ball w₀ δ ∈ 𝓝 w₀ := Metric.ball_mem_nhds _ hδ0
-    have hre : ∀ w ∈ Metric.ball w₀ δ, δ < w.re := by
-      intro w hw
-      rw [Metric.mem_ball, dist_eq_norm] at hw
-      have h1 := abs_re_le_norm (w - w₀)
-      rw [sub_re] at h1
-      have h2 := (abs_lt.mp (lt_of_le_of_lt h1 hw)).1
-      linarith
-    have hbint : Integrable (fun u : ℝ => u ^ s.re * Real.exp (-δ * u))
-        (volume.restrict (Set.Ioi 0)) := by
-      have := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) (s := s.re) (b := δ)
-        (by linarith) one_pos hδ0
-      simp only [Real.rpow_one] at this
-      exact this
-    have h := hasDerivAt_integral_of_dominated_loc_of_deriv_le
-      (μ := volume.restrict (Set.Ioi 0))
-      (F := fun w (u : ℝ) => (u : ℂ) ^ (s - 1) * Complex.exp (-(w * u)))
-      (F' := fun w (u : ℝ) => (u : ℂ) ^ (s - 1) * (Complex.exp (-(w * u)) * -(u : ℂ)))
-      (bound := fun u : ℝ => u ^ s.re * Real.exp (-δ * u))
-      hball (Eventually.of_forall hmeas) (hint w₀ hw₀')
-      (Measurable.aestronglyMeasurable (by fun_prop)) ?_ hbint ?_
-    · exact h.2.differentiableAt.differentiableWithinAt
-    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu w hw
-      have hu' : 0 < u := hu
-      have hwre := hre w hw
-      rw [norm_mul, norm_mul, norm_neg, norm_cpow_eq_rpow_re_of_pos hu', Complex.norm_exp,
-        Complex.norm_real, Real.norm_of_nonneg hu'.le]
-      have e : u ^ (s - 1).re * u = u ^ s.re := by
-        rw [sub_re, one_re, Real.rpow_sub_one hu'.ne']
-        field_simp
-      have hexp : Real.exp (-(w * u)).re ≤ Real.exp (-δ * u) := by
-        apply Real.exp_le_exp.mpr
-        simp only [neg_re, mul_re, ofReal_re, ofReal_im, mul_zero, sub_zero]
-        nlinarith
-      calc u ^ (s - 1).re * (Real.exp (-(w * u)).re * u)
-          = u ^ s.re * Real.exp (-(w * u)).re := by rw [← e]; ring
-        _ ≤ u ^ s.re * Real.exp (-δ * u) := by gcongr
-    · filter_upwards with u w _
-      have := ((hasDerivAt_id w).mul_const (u : ℂ)).neg.cexp.const_mul ((u : ℂ) ^ (s - 1))
-      simpa using this
-  have hanI : AnalyticOnNhd ℂ I U := hdiff.analyticOnNhd hUo
-  have hanR : AnalyticOnNhd ℂ (fun w => Complex.Gamma s * w ^ (-s)) U := by
-    refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hUo
-    have hslit : w ∈ slitPlane := mem_slitPlane_iff.mpr (Or.inl hw)
-    exact ((differentiableAt_id.cpow (differentiableAt_const _) hslit).const_mul
-      _).differentiableWithinAt
-  have hfreq : ∃ᶠ w in 𝓝[≠] (1 : ℂ), I w = Complex.Gamma s * w ^ (-s) := by
-    have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] (1 : ℝ)) (𝓝[≠] (1 : ℂ)) := by
-      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
-      · have := (continuous_ofReal.tendsto (1 : ℝ)).mono_left
-          (nhdsWithin_le_nhds (s := ({1}ᶜ : Set ℝ)))
-        rwa [ofReal_one] at this
-      · filter_upwards [self_mem_nhdsWithin] with r hr
-        simpa using hr
-    apply ht.frequently
-    apply Eventually.frequently
-    filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (zero_lt_one' ℝ))] with r hr
-    exact integral_cpow_mul_exp_neg_mul_Ioi_of_real hs hr
-  exact hanI.eqOn_of_preconnected_of_frequently_eq hanR (convex_halfSpace_re_gt 0).isPreconnected
-    (by simp [hU]) hfreq hz
+      Complex.Gamma s * z ^ (-s) :=
+  integral_cpow_mul_cexp_neg_mul_Ioi hs hz
 
 /-- A Laplace-type integral for Gamma. The exponent `μ` must be real, as in DLMF: for
 non-real `μ` the factor `exp (-z t ^ μ)` grows along a sequence `t → ∞` and the integral

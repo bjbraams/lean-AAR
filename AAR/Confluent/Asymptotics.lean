@@ -15,12 +15,14 @@ public import AAR.Confluent.Continuation
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.Analytic.Binomial
 public import ToMathlib.Analysis.Asymptotics.Watson
+public import ToMathlib.Analysis.Asymptotics.WatsonSector
 
 /-!
 # Asymptotic expansions (DLMF §§13.7, 13.8, 13.19)
 
-Poincaré expansions are stated along the positive real axis and, for regularized M,
-on closed upper-half-plane sectors as the norm tends to infinity. Tricomi remainder
+Poincaré expansions are stated along the positive real axis. The two-sided expansion of
+regularized M on closed upper-half-plane sectors (13.7.2) and the limits 13.2.6, 13.2.23 are in
+`AAR.Confluent.AsymptoticConsequences`, which follows the rotated-sector expansions. Tricomi remainder
 statements include an error bound or an asymptotic order, rather than an arbitrary
 additive error. Remainder-region machinery 13.7.5–13.7.9 and 13.7.11–13.7.13, uniform
 parabolic-cylinder/Bessel approximations 13.8.4–13.8.16, and the uniform
@@ -35,6 +37,8 @@ from Watson's lemma (`ToMathlib.Analysis.Asymptotics.Watson`):
   relation 13.3.10;
 * `confluentU_poincare_finite`: for real `a > 0`, `b ≤ a + 1` the remainder is bounded by the
   first omitted term;
+* `hasAsymptoticExpansion_confluentU_sector`: the same expansion for complex `z → ∞` in every
+  sector `δ |z| ≤ re z`, from Watson's lemma in a sector;
 * `hasAsymptoticExpansion_regularizedConfluent`: `𝐌(a,b,x) ~ eˣ x^{a-b}/Γ(a) ·
   ∑ (1-a)_s (b-a)_s / s! · x^{-s}` for all complex `a, b`, from the Euler integral and the
   regularized contiguous relations.
@@ -251,6 +255,151 @@ theorem hasAsymptoticExpansion_confluentU (a b : ℂ) :
       (ih (a + 1) b (by simp at ha ⊢; linarith))
     simpa using h
 
+
+/-- The downward step in `a` along any filter on which `|z| ≥ 1` eventually. -/
+lemma hasAsymptoticExpansion_confluentU_sub_one_of_filter {l : Filter ℂ}
+    (hl : ∀ᶠ z in l, 1 ≤ ‖z‖) {a b : ℂ}
+    (h1 : HasAsymptoticExpansion l (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
+      (tricomiCoeff a (b + 1)) (fun z => confluentU a (b + 1) z))
+    (h2 : HasAsymptoticExpansion l (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
+      (tricomiCoeff a b) (fun z => confluentU a b z)) :
+    HasAsymptoticExpansion l (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + (a - 1))))
+      (tricomiCoeff (a - 1) b) (fun z => confluentU (a - 1) b z) := by
+  intro N
+  have hz0 : ∀ᶠ z in l, z ≠ 0 := hl.mono fun z hz h => by rw [h, norm_zero] at hz; linarith
+  have hmul : ∀ z : ℂ, z ≠ 0 → ∀ w : ℂ, z * z ^ (-(w + a)) = z ^ (-(w + (a - 1))) := by
+    intro z hz w
+    rw [show -(w + (a - 1)) = 1 + -(w + a) by ring, Complex.cpow_add _ _ hz, Complex.cpow_one]
+  have hA : (fun z : ℂ => z * (confluentU a (b + 1) z -
+      ∑ n ∈ Finset.range N, z ^ (-((n : ℂ) + a)) • tricomiCoeff a (b + 1) n)) =O[l]
+      fun z : ℂ => z ^ (-((N : ℂ) + (a - 1))) :=
+    ((isBigO_refl (fun z : ℂ => z) l).mul (h1 N)).congr' EventuallyEq.rfl
+      (hz0.mono fun z hz => hmul z hz _)
+  have hφ : (fun z : ℂ => z ^ (-(((N - 1 : ℕ) : ℂ) + a))) =O[l]
+      fun z : ℂ => z ^ (-((N : ℂ) + (a - 1))) := by
+    refine IsBigO.of_bound 1 ?_
+    filter_upwards [hl] with z hz
+    have hz0 : z ≠ 0 := by intro h; rw [h, norm_zero] at hz; linarith
+    rcases Nat.eq_zero_or_pos N with rfl | hN
+    · simp only [Nat.zero_sub, CharP.cast_eq_zero, zero_add, one_mul]
+      rw [show -(a - 1) = 1 + -a by ring, Complex.cpow_add _ _ hz0, Complex.cpow_one, norm_mul]
+      exact le_mul_of_one_le_left (norm_nonneg _) hz
+    · rw [one_mul, show ((N - 1 : ℕ) : ℂ) + a = (N : ℂ) + (a - 1) by
+        rw [Nat.cast_sub hN]; push_cast; ring]
+  have hB := (((h2 (N - 1)).trans hφ).const_mul_left (b - a))
+  refine (hA.sub hB).congr' ?_ EventuallyEq.rfl
+  filter_upwards [hz0] with x hx0
+  have hU := confluentU_contiguous_shift_a a b x hx0
+  have hsh : ∀ n : ℕ, x ^ (-((n : ℂ) + a)) = x ^ (-(((n + 1 : ℕ) : ℂ) + (a - 1))) :=
+    fun n => by push_cast; ring_nf
+  simp only [smul_eq_mul]
+  rcases N with _ | M
+  · simp only [Finset.range_zero, Finset.sum_empty, sub_zero]
+    linear_combination -hU
+  · have hsum : ∑ n ∈ Finset.range (M + 1), x ^ (-((n : ℂ) + (a - 1))) *
+        tricomiCoeff (a - 1) b n =
+        x * ∑ n ∈ Finset.range (M + 1), x ^ (-((n : ℂ) + a)) * tricomiCoeff a (b + 1) n -
+        (b - a) * ∑ n ∈ Finset.range M, x ^ (-((n : ℂ) + a)) * tricomiCoeff a b n := by
+      rw [Finset.sum_range_succ', Finset.sum_range_succ', Finset.mul_sum, mul_add,
+        Finset.mul_sum]
+      have hterm : ∀ i ∈ Finset.range M,
+          x ^ (-(((i + 1 : ℕ) : ℂ) + (a - 1))) * tricomiCoeff (a - 1) b (i + 1) =
+          x * (x ^ (-(((i + 1 : ℕ) : ℂ) + a)) * tricomiCoeff a (b + 1) (i + 1)) -
+            (b - a) * (x ^ (-((i : ℂ) + a)) * tricomiCoeff a b i) := by
+        intro i _
+        rw [tricomiCoeff_sub_one_succ, hsh i, ← hmul x hx0 ((i + 1 : ℕ) : ℂ)]
+        ring
+      rw [Finset.sum_congr rfl hterm, Finset.sum_sub_distrib, ← hmul x hx0 ((0 : ℕ) : ℂ)]
+      simp only [tricomiCoeff_zero, Nat.cast_zero]
+      ring
+    simp only [Nat.add_sub_cancel]
+    rw [hsum]
+    linear_combination -hU
+
+lemma one_le_norm_sectorAtTop (δ : ℝ) : ∀ᶠ z in sectorAtTop δ, 1 ≤ ‖z‖ :=
+  eventually_sectorAtTop (R := 1) fun _ hz _ => hz
+
+/-- **Tricomi's expansion in a sector**, for `re a > 0`: as `z → ∞` with `δ |z| ≤ re z`,
+`U(a,b,z) ~ ∑ (-1)^s (a)_s (a-b+1)_s / s! · z^{-a-s}` (DLMF 13.7.3). -/
+lemma hasAsymptoticExpansion_confluentU_sector_of_re_pos {a b : ℂ} (ha : 0 < a.re) {δ : ℝ}
+    (hδ : 0 < δ) :
+    HasAsymptoticExpansion (sectorAtTop δ) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
+      (tricomiCoeff a b) (fun z => confluentU a b z) := by
+  set F : ℝ → ℂ := fun t => (t : ℂ) ^ (a - 1) * (1 + (t : ℂ)) ^ (b - a - 1) with hFdef
+  have hint : IntegrableOn (fun t => Real.exp (-1 * t) • F t) (Set.Ioi 0) := by
+    refine IntegrableOn.congr_fun (confluentU_laplace_integrable (b := b) ha
+      (z := 1) (by simp)) (fun t _ => ?_) measurableSet_Ioi
+    simp only [hFdef, Complex.real_smul, Complex.ofReal_exp]
+    push_cast
+    ring
+  have hF : ∀ N : ℕ, (fun t => F t - ∑ n ∈ Finset.range N,
+      ((t : ℂ) ^ ((n : ℂ) + a - 1)) • Ring.choose (b - a - 1) n) =O[𝓝[>] 0]
+      fun t => t ^ ((N : ℝ) + a.re - 1) := by
+    intro N
+    have h1 : (fun t : ℝ => (t : ℂ) ^ (a - 1)) =O[𝓝[>] 0] fun t => t ^ (a.re - 1) := by
+      refine IsBigO.of_bound 1 ?_
+      filter_upwards [self_mem_nhdsWithin] with t ht
+      have ht : (0 : ℝ) < t := ht
+      rw [Complex.norm_cpow_eq_rpow_re_of_pos ht, Real.norm_eq_abs,
+        abs_of_pos (Real.rpow_pos_of_pos ht _)]
+      simp
+    refine ((h1.mul (one_add_cpow_sub_sum_isBigO (b - a - 1) N)).congr' ?_ ?_)
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      have ht0 : (t : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (ne_of_gt ht)
+      simp only [hFdef, smul_eq_mul, mul_sub, Finset.mul_sum]
+      congr 1
+      refine Finset.sum_congr rfl fun n _ => ?_
+      rw [show (n : ℂ) + a - 1 = (n : ℂ) + (a - 1) by ring, Complex.cpow_add _ _ ht0,
+        Complex.cpow_natCast]
+      ring
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      have ht : (0 : ℝ) < t := ht
+      rw [show (N : ℝ) + a.re - 1 = (a.re - 1) + N by ring, Real.rpow_add ht,
+        Real.rpow_natCast]
+  have hW := (hasAsymptoticExpansion_integral_cexp_smul_sector ha hδ hint hF).const_smul
+    (1 / Gamma a)
+  have ha' : ∀ k : ℕ, a ≠ -k := fun k hk => by
+    have := congrArg Complex.re hk
+    simp at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  refine (hW.congr' ?_).congr_coeff ?_
+  · refine eventually_sectorAtTop (R := 1) fun z hz hzs => ?_
+    have hre : 0 < z.re := lt_of_lt_of_le (by positivity) hzs
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [confluentU_laplace ha hre]
+    congr 1
+    refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+    simp only [hFdef, smul_eq_mul]
+    ring_nf
+  · funext n
+    have hG : Gamma (a + n) / Gamma a = poch a n := Gamma_add_nat_div_Gamma_eq (n := n) a ha'
+    have hG0 : Gamma a ≠ 0 := Complex.Gamma_ne_zero ha'
+    simp only [Pi.smul_apply, smul_eq_mul, tricomiCoeff]
+    rw [show b - a - 1 = -(a - b + 1) by ring, ring_choose_neg_eq_poch,
+      show (n : ℂ) + a = a + n by ring, ← hG]
+    field_simp
+
+/-- **Tricomi's expansion in a sector** (DLMF 13.7.3, Temme §7.2): for all complex `a, b`, as
+`z → ∞` with `δ |z| ≤ re z` (`δ > 0`), `U(a,b,z) ~ ∑ (-1)^s (a)_s (a-b+1)_s / s! · z^{-a-s}`. -/
+theorem hasAsymptoticExpansion_confluentU_sector (a b : ℂ) {δ : ℝ} (hδ : 0 < δ) :
+    HasAsymptoticExpansion (sectorAtTop δ) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
+      (tricomiCoeff a b) (fun z => confluentU a b z) := by
+  suffices h : ∀ m : ℕ, ∀ a b : ℂ, 0 < (a + m).re →
+      HasAsymptoticExpansion (sectorAtTop δ) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
+        (tricomiCoeff a b) (fun z => confluentU a b z) by
+    obtain ⟨m, hm⟩ := exists_nat_gt (-a.re)
+    exact h m a b (by simp; linarith)
+  intro m
+  induction m with
+  | zero =>
+    intro a b ha
+    exact hasAsymptoticExpansion_confluentU_sector_of_re_pos (by simpa using ha) hδ
+  | succ m ih =>
+    intro a b ha
+    have h := hasAsymptoticExpansion_confluentU_sub_one_of_filter (one_le_norm_sectorAtTop δ)
+      (ih (a + 1) (b + 1) (by simp at ha ⊢; linarith))
+      (ih (a + 1) b (by simp at ha ⊢; linarith))
+    simpa using h
 
 /-- The partial sums of Tricomi's expansion in the form of DLMF 13.7.3. -/
 lemma confluentU_sum_eq {x : ℝ} (hx : 0 < x) (a b : ℂ) (n : ℕ) :
@@ -703,26 +852,6 @@ theorem regularizedHGFun_poincare_real (a b : ℂ) (n : ℕ) (_ha : ∀ k : ℕ,
   refine (hasAsymptoticExpansion_regularizedConfluent a b n).congr' ?_ EventuallyEq.rfl
   filter_upwards [eventually_gt_atTop 0] with x hx
   simp only [regularizedConfluent_sum_eq hx]
-
-/-- Two-term-family Poincaré expansion in closed upper-half-plane sectors.
-The filter sends the norm to infinity; the bound contains both the exponential
-and algebraic remainder scales. It is not a local boundedness assertion. -/
-@[dlmf 13.7.E2]
-theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {δ : ℝ}
-    (hδ : 0 < δ) (hδπ : δ < π / 2)
-    (ha : ∀ k : ℕ, a ≠ -k) (hba : ∀ k : ℕ, b - a ≠ -k) :
-    Asymptotics.IsBigO
-      (Filter.comap (fun z : ℂ => ‖z‖) atTop ⊓
-        Filter.principal {z : ℂ | δ ≤ z.arg ∧ z.arg ≤ π - δ})
-      (fun z => regularizedHGFun {a} {b} z -
-        (exp z * z ^ (a - b) / Gamma a *
-          ∑ s ∈ Finset.range n, poch (1 - a) s * poch (b - a) s / s.factorial *
-            z ^ (-(s : ℂ)) +
-         exp (π * I * a) * z ^ (-a) / Gamma (b - a) *
-          ∑ s ∈ Finset.range n, poch a s * poch (a - b + 1) s / s.factorial *
-            (-z) ^ (-(s : ℂ))))
-      (fun z => ‖exp z * z ^ (a - b - n)‖ + ‖z ^ (-a - n)‖) := by
-  sorry
 
 @[dlmf 13.7.E3]
 theorem confluentU_poincare (a b : ℂ) (n : ℕ) :

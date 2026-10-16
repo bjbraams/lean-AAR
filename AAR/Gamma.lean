@@ -24,10 +24,14 @@ public import AAR.Gamma.Asymptotics
 public import AAR.Gamma.BetaFunction
 public import AAR.Gamma.Integrals
 public import AAR.Gamma.Polygamma
+public import AAR.Gamma.RationalSeries
+public import AAR.Gamma.PolygammaHurwitz
 public import AAR.Gamma.Multidimensional
 public import AAR.Gamma.BarnesG
 public import AAR.Gamma.QGamma
 public import AAR.Gamma.MathlibCoverage
+public import AAR.Gamma.VerticalBounds
+public import AAR.Gamma.MellinBarnes
 
 /-!
 # The Gamma and Beta functions (AAR Chapter 1; DLMF Chapter 5)

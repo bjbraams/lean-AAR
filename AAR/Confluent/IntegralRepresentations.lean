@@ -605,6 +605,140 @@ theorem confluentU_gauss {a b c z : ℂ} (ha : 0 < c.re) (hz : 0 < z.re) :
             AAR.Hypergeometric.gaussHGCut a (a - b + 1) c (-(t : ℂ)) := by
   sorry
 
+open Set MeasureTheory AAR.Gamma in
+/-- The Cahen–Mellin integral in Barnes's orientation: `e^{-v} = 1/(2π) ∫ Γ(-(σ+iy)) v^{σ+iy} dy`
+for `σ < 0 < v`. -/
+lemma exp_neg_eq_integral_barnes {σ : ℝ} (hσ : σ < 0) {v : ℝ} (hv : 0 < v) :
+    exp (-(v : ℂ)) =
+      1 / (2 * π) * ∫ y : ℝ, Gamma (-((σ : ℂ) + I * y)) * (v : ℂ) ^ ((σ : ℂ) + I * y) := by
+  have h := exp_neg_eq_integral (σ := -σ) (by linarith) hv
+  rw [ofReal_exp, ofReal_neg] at h
+  rw [h, ← integral_neg_eq_self]
+  congr 2; funext y
+  rw [show (((-σ : ℝ) : ℂ) + ((-y : ℝ) : ℂ) * I) = -((σ : ℂ) + I * y) by push_cast; ring, neg_neg]
+
+open Set MeasureTheory AAR.Gamma in
+lemma integrable_Gamma_neg_vertical {σ : ℝ} (hσ : σ < 0) :
+    Integrable (fun y : ℝ => Gamma (-((σ : ℂ) + I * y))) := by
+  refine (integrable_Gamma_vertical (σ := -σ) (by linarith)).comp_neg.congr
+    (Eventually.of_forall fun y => ?_)
+  simp only [Function.comp_apply]
+  rw [show (((-σ : ℝ) : ℂ) + ((-y : ℝ) : ℂ) * I) = -((σ : ℂ) + I * y) by push_cast; ring]
+
+open Set MeasureTheory AAR.Gamma in
+/-- Barnes's integral for `𝐌` (DLMF 13.4.16) when `re (b - a) > 0`, from Kummer's integral. -/
+lemma regularized_barnes_integral_of_re_sub_pos {a b : ℂ} {x σ : ℝ}
+    (hx : 0 < x) (ha : 0 < a.re + σ) (hσ : σ < 0) (hba : 0 < (b - a).re) :
+    regularizedHGFun {a} {b} (-(x : ℂ)) =
+      1 / (2 * π * Gamma a) * ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+        Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y) := by
+  have ha0 : 0 < a.re := by linarith
+  have hb0 : 0 < b.re := by simp only [sub_re] at hba; linarith
+  set Ψ : ℝ → ℂ := fun y => Gamma (-((σ : ℂ) + I * y)) with hΨ
+  have hΨi : Integrable Ψ := integrable_Gamma_neg_vertical hσ
+  have hΨc : Continuous Ψ := continuous_iff_continuousAt.mpr fun y =>
+    (continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+  set H : ℝ → ℝ → ℂ := fun t y => (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - a - 1) *
+    (Ψ y * (x : ℂ) ^ ((σ : ℂ) + I * y) * (t : ℂ) ^ ((σ : ℂ) + I * y)) with hH
+  have hGa : Gamma a ≠ 0 := Complex.Gamma_ne_zero_of_re_pos ha0
+  have hGba : Gamma (b - a) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos hba
+  have hpt : ∀ t ∈ Ioo (0 : ℝ) 1,
+      exp (-(x : ℂ) * t) * (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - a - 1) =
+        1 / (2 * π) * ∫ y : ℝ, H t y := by
+    intro t ht
+    have hxt : 0 < x * t := mul_pos hx ht.1
+    have hCM := exp_neg_eq_integral_barnes hσ hxt
+    have hH' : ∫ y : ℝ, H t y = (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - a - 1) *
+        ∫ y : ℝ, Ψ y * ((x * t : ℝ) : ℂ) ^ ((σ : ℂ) + I * y) := by
+      rw [← MeasureTheory.integral_const_mul]
+      congr 1; funext y
+      rw [hH, ofReal_mul, mul_cpow_ofReal_nonneg hx.le ht.1.le]; ring
+    rw [hH', show -(x : ℂ) * t = -((x * t : ℝ) : ℂ) by push_cast; ring, hCM]
+    ring
+  set μ : Measure ℝ := volume.restrict (Ioo (0 : ℝ) 1) with hμ
+  have hμprod :
+      μ.prod volume = (volume.prod volume).restrict (Ioo (0 : ℝ) 1 ×ˢ (univ : Set ℝ)) := by
+    rw [hμ, ← Measure.prod_restrict, Measure.restrict_univ]
+  have hf : Integrable (fun t : ℝ => ‖(t : ℂ) ^ (a + σ - 1) * (1 - (t : ℂ)) ^ (b - a - 1)‖) μ := by
+    have h := betaIntegral_convergent (u := a + σ) (v := b - a) (by simp; linarith) hba
+    have h' := (intervalIntegrable_iff_integrableOn_Ioc_of_le zero_le_one).mp h
+    exact (h'.mono_set Ioo_subset_Ioc_self).norm
+  have hg : Integrable (fun y : ℝ => ‖Ψ y‖ * x ^ σ) := hΨi.norm.mul_const _
+  have hcont : ContinuousOn (Function.uncurry H) (Ioo (0 : ℝ) 1 ×ˢ (univ : Set ℝ)) := by
+    rintro ⟨t, y⟩ ⟨ht, -⟩
+    have ht0 : (0 : ℝ) < t := ht.1
+    have ht1 : t < 1 := ht.2
+    refine ContinuousAt.continuousWithinAt ?_
+    simp only [hH, Function.uncurry_def]
+    refine ContinuousAt.mul (ContinuousAt.mul ?_ ?_) (ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_)
+    · exact ContinuousAt.cpow (by fun_prop) continuousAt_const (ofReal_mem_slitPlane.mpr ht0)
+    · refine ContinuousAt.cpow (by fun_prop) continuousAt_const ?_
+      rw [mem_slitPlane_iff]; left; simp; linarith
+    · exact (hΨc.comp continuous_snd).continuousAt
+    · exact ContinuousAt.cpow continuousAt_const (by fun_prop) (ofReal_mem_slitPlane.mpr hx)
+    · exact ContinuousAt.cpow (by fun_prop) (by fun_prop) (ofReal_mem_slitPlane.mpr ht0)
+  have hHi : Integrable (Function.uncurry H) (μ.prod volume) := by
+    refine (hf.mul_prod hg).mono' ?_ ?_
+    · rw [hμprod]
+      exact hcont.aestronglyMeasurable (measurableSet_Ioo.prod MeasurableSet.univ)
+    · rw [hμprod]
+      refine (ae_restrict_iff' (measurableSet_Ioo.prod MeasurableSet.univ)).mpr
+        (Eventually.of_forall ?_)
+      rintro ⟨t, y⟩ ⟨ht, -⟩
+      have ht0 : (0 : ℝ) < t := ht.1
+      simp only [hH, Function.uncurry_def, norm_mul]
+      rw [norm_cpow_eq_rpow_re_of_pos ht0, norm_cpow_eq_rpow_re_of_pos ht0,
+        norm_cpow_eq_rpow_re_of_pos hx, norm_cpow_eq_rpow_re_of_pos ht0]
+      simp only [sub_re, add_re, ofReal_re, one_re, mul_re, I_re, I_im, ofReal_im, zero_mul,
+        sub_zero, mul_zero, add_zero]
+      rw [show a.re + σ - 1 = (a.re - 1) + σ by ring, Real.rpow_add ht0]
+      apply le_of_eq; ring
+  have hswap := integral_integral_swap hHi
+  have hinner : ∀ y : ℝ, ∫ t, H t y ∂μ = Ψ y * (x : ℂ) ^ ((σ : ℂ) + I * y) *
+      (Gamma (a + σ + I * y) * Gamma (b - a) / Gamma (b + σ + I * y)) := by
+    intro y
+    have has : 0 < (a + σ + I * y).re := by
+      simp only [add_re, ofReal_re, mul_re, I_re, I_im, ofReal_im, zero_mul, mul_zero, sub_zero,
+        add_zero]; linarith
+    have hB := Complex.Gamma_mul_Gamma_eq_betaIntegral has hba
+    rw [show a + σ + I * y + (b - a) = b + σ + I * y by ring] at hB
+    have hGbs : Gamma (b + σ + I * y) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by
+      simp only [add_re, ofReal_re, mul_re, I_re, I_im, ofReal_im, zero_mul, mul_zero, sub_zero,
+        add_zero]; linarith [sub_re b a])
+    have hbeta : betaIntegral (a + σ + I * y) (b - a) =
+        ∫ t, (t : ℂ) ^ (a + σ + I * y - 1) * (1 - (t : ℂ)) ^ (b - a - 1) ∂μ := by
+      rw [betaIntegral, intervalIntegral.integral_of_le zero_le_one, integral_Ioc_eq_integral_Ioo]
+    calc ∫ t, H t y ∂μ = Ψ y * (x : ℂ) ^ ((σ : ℂ) + I * y) *
+          ∫ t, (t : ℂ) ^ (a + σ + I * y - 1) * (1 - (t : ℂ)) ^ (b - a - 1) ∂μ := by
+          rw [← MeasureTheory.integral_const_mul]
+          refine setIntegral_congr_fun measurableSet_Ioo fun t ht => ?_
+          have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.1.ne'
+          have hsplit : (t : ℂ) ^ (a + σ + I * y - 1) =
+              (t : ℂ) ^ (a - 1) * (t : ℂ) ^ ((σ : ℂ) + I * y) := by
+            rw [← cpow_add _ _ ht0]; ring_nf
+          simp only [hH]
+          rw [hsplit]
+          ring
+      _ = _ := by
+          rw [← hbeta]
+          congr 1
+          rw [eq_div_iff hGbs, hB]; ring
+  rw [regularized_euler_integral ha0 hba, intervalIntegral.integral_of_le zero_le_one,
+    integral_Ioc_eq_integral_Ioo, setIntegral_congr_fun measurableSet_Ioo hpt,
+    MeasureTheory.integral_const_mul]
+  change 1 / (Gamma a * Gamma (b - a)) * (1 / (2 * π) * ∫ t, ∫ y, H t y ∂volume ∂μ) = _
+  rw [hswap, integral_congr_ae (ae_of_all _ hinner)]
+  have hlast : ∫ y : ℝ, Ψ y * (x : ℂ) ^ ((σ : ℂ) + I * y) *
+      (Gamma (a + σ + I * y) * Gamma (b - a) / Gamma (b + σ + I * y)) =
+      Gamma (b - a) * ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+        Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1; funext y; rw [hΨ]; ring
+  rw [hlast]
+  generalize (∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+    Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y)) = J
+  field_simp
+
 /-- Vertical Mellin–Barnes line; the factor `i` from `dt` is included. -/
 @[dlmf 13.4.E16]
 theorem regularized_barnes_integral {a b : ℂ} {x σ : ℝ}
@@ -613,8 +747,166 @@ theorem regularized_barnes_integral {a b : ℂ} {x σ : ℝ}
       1 / (2 * π * I * Gamma a) *
         ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (-(σ + I * t)) /
           Gamma (b + σ + I * t) * (x : ℂ) ^ (σ + I * t) * I := by
-  sorry
+  set A : ℝ → ℂ := fun y => Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) *
+    (x : ℂ) ^ ((σ : ℂ) + I * y) with hA
+  have hAc : Continuous A := by
+    refine continuous_iff_continuousAt.mpr fun y => ?_
+    refine ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+    · exact ContinuousAt.cpow continuousAt_const (by fun_prop) (ofReal_mem_slitPlane.mpr hx)
+  obtain ⟨Ca, Ka, hCa⟩ := AAR.Gamma.exists_norm_Gamma_shift_le (x := a.re + σ) ha a.im
+  obtain ⟨Cs, Ks, hCs⟩ := AAR.Gamma.exists_norm_Gamma_shift_le (x := -σ) (by linarith) 0
+  have hCa0 : 0 ≤ Ca := (norm_nonneg _).trans (by simpa using hCa 0)
+  have hCs0 : 0 ≤ Cs := (norm_nonneg _).trans (by simpa using hCs 0)
+  have hAb : ∀ y : ℝ, ‖A y‖ ≤ Ca * Cs * x ^ σ * (1 + |y|) ^ (Ka + Ks) *
+      Real.exp (-(π * |y|)) := by
+    intro y
+    have e1 : a + σ + I * y = ((a.re + σ : ℝ) : ℂ) + I * ((a.im : ℂ) + (y : ℂ)) := by
+      apply Complex.ext <;> simp
+    have e3 : -((σ : ℂ) + I * y) = ((-σ : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + ((-y : ℝ) : ℂ)) := by
+      push_cast; ring
+    have h1 := hCa y; rw [← e1] at h1
+    have h3 := hCs (-y); rw [← e3, abs_neg] at h3
+    have h4 : ‖(x : ℂ) ^ ((σ : ℂ) + I * y)‖ = x ^ σ := by
+      rw [norm_cpow_eq_rpow_re_of_pos hx]; simp
+    simp only [hA, norm_mul]
+    rw [h4]
+    have hE : Real.exp (-(π * |y|) / 2) * Real.exp (-(π * |y|) / 2) = Real.exp (-(π * |y|)) := by
+      rw [← Real.exp_add]; ring_nf
+    calc ‖Gamma (a + σ + I * y)‖ * ‖Gamma (-((σ : ℂ) + I * y))‖ * x ^ σ
+        ≤ (Ca * (1 + |y|) ^ Ka * Real.exp (-(π * |y|) / 2)) *
+            (Cs * (1 + |y|) ^ Ks * Real.exp (-(π * |y|) / 2)) * x ^ σ := by gcongr
+      _ = _ := by rw [pow_add, ← hE]; ring
+  have hR := AAR.Gamma.differentiable_integral_mul_inv_Gamma hAc hAb σ
+  have hrw : ∀ b : ℂ, ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+      Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y) =
+      ∫ y : ℝ, A y * (Gamma (b + σ + I * y))⁻¹ := fun b => by
+    congr 1; funext y; simp only [hA]; ring
+  have key := AAR.Hypergeometric.eq_of_analyticOnNhd_univ_of_eqOn
+    (analyticOnNhd_regularizedConfluent_b a (-(x : ℂ)))
+    (g := fun b => 1 / (2 * π * Gamma a) * ∫ y : ℝ, A y * (Gamma (b + σ + I * y))⁻¹)
+    (fun b _ => (hR.const_mul _).analyticAt b)
+    (U := {b : ℂ | 0 < (b - a).re})
+    (isOpen_lt continuous_const (continuous_re.comp (continuous_id.sub continuous_const)))
+    ⟨a + 1, by simp⟩
+    (fun b hb => by
+      simp only
+      rw [regularized_barnes_integral_of_re_sub_pos hx ha hσ hb, hrw])
+  have hb := congrFun key b
+  rw [hb, ← hrw]
+  have hrw2 : ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (-(σ + I * t)) /
+      Gamma (b + σ + I * t) * (x : ℂ) ^ (σ + I * t) * I =
+      I * ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+        Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y) := by
+    rw [← MeasureTheory.integral_const_mul]; congr 1; funext y; ring
+  rw [hrw2]
+  generalize (∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
+    Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y)) = J
+  have hI : (I : ℂ) ≠ 0 := I_ne_zero
+  field_simp
 
+open Set MeasureTheory in
+/-- Barnes's integral for `₁F₁`, AAR Theorem 4.2.1, along the upward vertical
+line `s = σ + it`, with `-Re a < σ < 0`. -/
+theorem confluentM_eq_barnes_integral {a c z : ℂ} {σ : ℝ}
+    (haσ : -a.re < σ) (hσ : σ < 0) (hc : ∀ k : ℕ, c ≠ -k)
+    (hz : z ≠ 0) (harg : |(-z).arg| < π / 2) :
+    confluentM a c z =
+      Gamma c / (2 * π * I * Gamma a) *
+        ∫ t : ℝ, Gamma (-(σ + I * t)) * Gamma (a + σ + I * t) /
+          Gamma (c + σ + I * t) * (-z) ^ (σ + I * t) * I := by
+  set B : ℝ → ℂ := fun t => Gamma (-((σ : ℂ) + I * t)) * Gamma (a + σ + I * t) /
+    Gamma (c + σ + I * t) with hBdef
+  have ha : 0 < a.re + σ := by linarith
+  have hBc : Continuous B := by
+    refine continuous_iff_continuousAt.mpr fun y => ?_
+    refine ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+    · exact (AAR.Gamma.differentiable_inv_Gamma.continuous.comp (by fun_prop)).continuousAt
+  -- the decay of `B`
+  obtain ⟨Cs, Ks, hCs⟩ := AAR.Gamma.exists_norm_Gamma_shift_le (x := -σ) (by linarith) 0
+  obtain ⟨Ca, Ka, hCa⟩ := AAR.Gamma.exists_norm_Gamma_shift_le (x := a.re + σ) ha a.im
+  obtain ⟨Cc, Kc, hCc⟩ := AAR.Gamma.exists_norm_inv_Gamma_shift_le (c.re + σ) c.im
+  have hCs0 : 0 ≤ Cs := (norm_nonneg _).trans (by simpa using hCs 0)
+  have hCa0 : 0 ≤ Ca := (norm_nonneg _).trans (by simpa using hCa 0)
+  have hBb : ∀ y : ℝ, ‖B y‖ ≤ Cs * Ca * Cc * (1 + |y|) ^ (Ks + Ka + Kc) *
+      Real.exp (-(π * |y|) / 2) := by
+    intro y
+    have e1 : -((σ : ℂ) + I * y) = ((-σ : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + ((-y : ℝ) : ℂ)) := by
+      push_cast; ring
+    have e2 : a + σ + I * y = ((a.re + σ : ℝ) : ℂ) + I * ((a.im : ℂ) + (y : ℂ)) := by
+      apply Complex.ext <;> simp
+    have e3 : c + σ + I * y = ((c.re + σ : ℝ) : ℂ) + I * ((c.im : ℂ) + (y : ℂ)) := by
+      apply Complex.ext <;> simp
+    have h1 := hCs (-y); rw [← e1, abs_neg] at h1
+    have h2 := hCa y; rw [← e2] at h2
+    have h3 := hCc y; rw [← e3] at h3
+    simp only [hBdef]
+    rw [div_eq_mul_inv, norm_mul, norm_mul]
+    have hE : Real.exp (-(π * |y|) / 2) * Real.exp (-(π * |y|) / 2) * Real.exp (π * |y| / 2) =
+        Real.exp (-(π * |y|) / 2) := by
+      rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+    calc ‖Gamma (-((σ : ℂ) + I * y))‖ * ‖Gamma (a + σ + I * y)‖ * ‖(Gamma (c + σ + I * y))⁻¹‖
+        ≤ (Cs * (1 + |y|) ^ Ks * Real.exp (-(π * |y|) / 2)) *
+            (Ca * (1 + |y|) ^ Ka * Real.exp (-(π * |y|) / 2)) *
+            (Cc * (1 + |y|) ^ Kc * Real.exp (π * |y| / 2)) := by gcongr
+      _ = _ := by
+          rw [pow_add, pow_add]
+          generalize Real.exp (-(π * |y|) / 2) = E at hE ⊢
+          generalize Real.exp (π * |y| / 2) = F at hE ⊢
+          linear_combination (Cs * Ca * Cc * (1 + |y|) ^ Ks * (1 + |y|) ^ Ka * (1 + |y|) ^ Kc) * hE
+  have hG := AAR.Gamma.differentiableOn_integral_mul_cpow hBc hBb σ
+  -- both sides are analytic on the left half-plane
+  set Ω : Set ℂ := {z : ℂ | z.re < 0} with hΩ
+  have hΩo : IsOpen Ω := isOpen_lt continuous_re continuous_const
+  have hzΩ : z ∈ Ω := by
+    have := abs_arg_lt_pi_div_two_iff.mp harg
+    rcases this with h | h
+    · simpa [hΩ] using h
+    · exact absurd (neg_eq_zero.mp h) hz
+  set g : ℂ → ℂ := fun z => Gamma c / (2 * π * I * Gamma a) *
+    (I * ∫ t : ℝ, B t * (-z) ^ ((σ : ℂ) + I * t)) with hg
+  have hgd : DifferentiableOn ℂ g Ω := by
+    refine (DifferentiableOn.const_mul (DifferentiableOn.const_mul ?_ _) _)
+    exact hG.comp (differentiableOn_neg _) (fun w hw => by simpa [hΩ] using hw)
+  have hga : AnalyticOnNhd ℂ g Ω := hgd.analyticOnNhd hΩo
+  have hfa : AnalyticOnNhd ℂ (confluentM a c) Ω := fun w _ => analyticOnNhd_confluentM hc w trivial
+  -- agreement on the negative axis
+  have hagree : ∀ x : ℝ, 0 < x → confluentM a c (-(x : ℂ)) = g (-(x : ℂ)) := by
+    intro x hx
+    rw [confluentM_eq_mul_regularizedHGFun hc, regularized_barnes_integral hx ha hσ]
+    simp only [hg, neg_neg]
+    have hrw : ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (-(σ + I * t)) /
+        Gamma (c + σ + I * t) * (x : ℂ) ^ (σ + I * t) * I =
+        I * ∫ t : ℝ, B t * (x : ℂ) ^ ((σ : ℂ) + I * t) := by
+      rw [← MeasureTheory.integral_const_mul]; congr 1; funext t; simp only [hBdef]; ring
+    rw [hrw]
+    have hGa : Gamma a ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by linarith)
+    have hI : (I : ℂ) ≠ 0 := I_ne_zero
+    field_simp
+  have hfreq : ∃ᶠ w in 𝓝[≠] (-1 : ℂ), confluentM a c w = g w := by
+    have ht : Tendsto (fun x : ℝ => -(x : ℂ)) (𝓝[≠] (1 : ℝ)) (𝓝[≠] (-1 : ℂ)) := by
+      refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_ ?_
+      · have h1 := (continuous_ofReal.tendsto (1 : ℝ)).neg
+        rw [ofReal_one] at h1
+        exact h1.mono_left nhdsWithin_le_nhds
+      · filter_upwards [self_mem_nhdsWithin] with x hx
+        simp only [Set.mem_compl_iff, Set.mem_singleton_iff] at hx ⊢
+        intro h; apply hx; have := congrArg re h; simpa using this
+    refine ht.frequently ?_
+    have hpos : ∀ᶠ x in 𝓝[≠] (1 : ℝ), 0 < x :=
+      (eventually_gt_nhds one_pos).filter_mono nhdsWithin_le_nhds
+    exact (hpos.mono fun x hx => hagree x hx).frequently
+  have hΩc : IsPreconnected Ω := (convex_halfSpace_re_lt (r := 0)).isPreconnected
+  have heq := hfa.eqOn_of_preconnected_of_frequently_eq hga hΩc (by simp [hΩ]) hfreq hzΩ
+  rw [heq]
+  simp only [hg]
+  congr 1
+  rw [← MeasureTheory.integral_const_mul]; congr 1; funext t; simp only [hBdef]; push_cast; ring
+
+open Set MeasureTheory in
 @[dlmf 13.4.E17]
 theorem confluentU_barnes {a b : ℂ} {x σ : ℝ}
     (hx : 0 < x) (ha : 0 < a.re + σ) (hab : 0 < (1 + a - b).re + σ) (hσ : σ < 0) :
@@ -623,7 +915,109 @@ theorem confluentU_barnes {a b : ℂ} {x σ : ℝ}
         ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (1 + a - b + σ + I * t) *
           Gamma (-(σ + I * t)) / (Gamma a * Gamma (1 + a - b)) *
           (x : ℂ) ^ (-(σ + I * t)) * I := by
-  sorry
+  have ha0 : 0 < a.re := by linarith
+  have hA0 : 0 < (1 + a - b).re := by linarith
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hGa : Gamma a ≠ 0 := Complex.Gamma_ne_zero_of_re_pos ha0
+  have hGA : Gamma (1 + a - b) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos hA0
+  set Φ : ℝ → ℂ := fun y => Gamma (-((σ : ℂ) + I * y)) * Gamma (1 + a - b + σ + I * y) with hΦ
+  have hΦi : Integrable Φ := AAR.Hypergeometric.integrable_Gamma_neg_mul_Gamma hσ hab
+  have hΦc : Continuous Φ := AAR.Hypergeometric.continuous_Gamma_neg_mul_Gamma hσ hab
+  set H : ℝ → ℝ → ℂ := fun t y => exp (-(x : ℂ) * t) * (t : ℂ) ^ (a - 1) *
+    (Φ y * (t : ℂ) ^ ((σ : ℂ) + I * y)) with hH
+  -- the Laplace integral, with the Mellin–Barnes integral inserted
+  have hpt : ∀ t ∈ Ioi (0 : ℝ),
+      exp (-(x : ℂ) * t) * (t : ℂ) ^ (a - 1) * (1 + (t : ℂ)) ^ (b - a - 1) =
+        (Gamma (1 + a - b))⁻¹ * (1 / (2 * π)) * ∫ y : ℝ, H t y := by
+    intro t ht
+    have hMB := AAR.Hypergeometric.Gamma_mul_one_add_cpow_neg_barnes (a := 1 + a - b) hσ hab ht
+    have hpow : (1 + (t : ℂ)) ^ (b - a - 1) = (Gamma (1 + a - b))⁻¹ *
+        (1 / (2 * π) * ∫ y : ℝ, Φ y * (t : ℂ) ^ ((σ : ℂ) + I * y)) := by
+      rw [← hMB, show b - a - 1 = -(1 + a - b) by ring]; push_cast; field_simp
+    have hHt : ∫ y : ℝ, H t y = exp (-(x : ℂ) * t) * (t : ℂ) ^ (a - 1) *
+        ∫ y : ℝ, Φ y * (t : ℂ) ^ ((σ : ℂ) + I * y) := by
+      rw [← MeasureTheory.integral_const_mul]
+    rw [hpow, hHt]; ring
+  -- integrability on the product
+  set μ : Measure ℝ := volume.restrict (Ioi (0 : ℝ)) with hμ
+  have hμprod : μ.prod volume = (volume.prod volume).restrict (Ioi (0 : ℝ) ×ˢ (univ : Set ℝ)) := by
+    rw [hμ, ← Measure.prod_restrict, Measure.restrict_univ]
+  have hf : Integrable (fun t : ℝ => ‖(t : ℂ) ^ (a + σ - 1) * exp (-((x : ℂ) * t))‖) μ := by
+    have h := integral_cpow_mul_cexp_neg_mul_Ioi (s := a + σ) (z := x) (by simp; linarith)
+      (by simpa using hx)
+    have hi : IntegrableOn (fun t : ℝ => (t : ℂ) ^ (a + σ - 1) * exp (-((x : ℂ) * t))) (Ioi 0) := by
+      by_contra hni
+      rw [integral_undef hni] at h
+      exact (mul_ne_zero (Complex.Gamma_ne_zero_of_re_pos (by simp; linarith))
+        (by rw [cpow_def_of_ne_zero hx0]; exact exp_ne_zero _)) h.symm
+    exact hi.norm
+  have hg : Integrable (fun y : ℝ => ‖Φ y‖) := hΦi.norm
+  have hcont : ContinuousOn (Function.uncurry H) (Ioi (0 : ℝ) ×ˢ (univ : Set ℝ)) := by
+    rintro ⟨t, y⟩ ⟨ht, -⟩
+    have ht0 : (0 : ℝ) < t := ht
+    refine ContinuousAt.continuousWithinAt ?_
+    simp only [hH, Function.uncurry_def]
+    refine ContinuousAt.mul (ContinuousAt.mul (by fun_prop) ?_) (ContinuousAt.mul ?_ ?_)
+    · exact ContinuousAt.cpow (by fun_prop) continuousAt_const (ofReal_mem_slitPlane.mpr ht0)
+    · exact (hΦc.comp continuous_snd).continuousAt
+    · exact ContinuousAt.cpow (by fun_prop) (by fun_prop) (ofReal_mem_slitPlane.mpr ht0)
+  have hHi : Integrable (Function.uncurry H) (μ.prod volume) := by
+    refine (hf.mul_prod hg).mono' ?_ ?_
+    · rw [hμprod]
+      exact hcont.aestronglyMeasurable (measurableSet_Ioi.prod MeasurableSet.univ)
+    · rw [hμprod]
+      refine (ae_restrict_iff' (measurableSet_Ioi.prod MeasurableSet.univ)).mpr
+        (Eventually.of_forall ?_)
+      rintro ⟨t, y⟩ ⟨ht, -⟩
+      have ht0 : (0 : ℝ) < t := ht
+      simp only [hH, Function.uncurry_def, norm_mul]
+      rw [norm_cpow_eq_rpow_re_of_pos ht0, norm_cpow_eq_rpow_re_of_pos ht0,
+        norm_cpow_eq_rpow_re_of_pos ht0]
+      simp only [sub_re, add_re, ofReal_re, one_re, mul_re, I_re, I_im, ofReal_im, zero_mul,
+        sub_zero, mul_zero, add_zero, neg_mul]
+      rw [show a.re + σ - 1 = (a.re - 1) + σ by ring, Real.rpow_add ht0]
+      apply le_of_eq; ring
+  have hswap := integral_integral_swap hHi
+  -- the inner Gamma integrals
+  have hinner : ∀ y : ℝ, ∫ t, H t y ∂μ = Φ y * (Gamma (a + σ + I * y) *
+      (x : ℂ) ^ (-(a + σ + I * y))) := by
+    intro y
+    have h := integral_cpow_mul_cexp_neg_mul_Ioi (s := a + σ + I * y) (z := x)
+      (by simp; linarith) (by simpa using hx)
+    rw [← h, ← MeasureTheory.integral_const_mul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+    have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr (ne_of_gt ht)
+    have hsplit : (t : ℂ) ^ (a + σ + I * y - 1) =
+        (t : ℂ) ^ (a - 1) * (t : ℂ) ^ ((σ : ℂ) + I * y) := by
+      rw [← cpow_add _ _ ht0]; ring_nf
+    simp only [hH]
+    rw [hsplit, show -((x : ℂ) * t) = -(x : ℂ) * t by ring]
+    ring
+  -- assemble
+  rw [confluentU_laplace ha0 (by simpa using hx), setIntegral_congr_fun measurableSet_Ioi hpt,
+    MeasureTheory.integral_const_mul]
+  change 1 / Gamma a * ((Gamma (1 + a - b))⁻¹ * (1 / (2 * π)) *
+    ∫ t, ∫ y, H t y ∂volume ∂μ) = _
+  rw [hswap, integral_congr_ae (ae_of_all _ hinner)]
+  have hlast : ∫ y : ℝ, Φ y * (Gamma (a + σ + I * y) * (x : ℂ) ^ (-(a + σ + I * y))) =
+      (x : ℂ) ^ (-a) * ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (1 + a - b + σ + I * t) *
+        Gamma (-(σ + I * t)) * (x : ℂ) ^ (-(σ + I * t)) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1; funext y
+    rw [hΦ, show -(a + σ + I * y) = -a + -(σ + I * y) by ring, cpow_add _ _ hx0]
+    ring
+  have hlast' : ∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (1 + a - b + σ + I * t) *
+      Gamma (-(σ + I * t)) / (Gamma a * Gamma (1 + a - b)) * (x : ℂ) ^ (-(σ + I * t)) * I =
+      I / (Gamma a * Gamma (1 + a - b)) * ∫ t : ℝ, Gamma (a + σ + I * t) *
+        Gamma (1 + a - b + σ + I * t) * Gamma (-(σ + I * t)) * (x : ℂ) ^ (-(σ + I * t)) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1; funext y; ring
+  rw [hlast, hlast']
+  generalize (∫ t : ℝ, Gamma (a + σ + I * t) * Gamma (1 + a - b + σ + I * t) *
+    Gamma (-(σ + I * t)) * (x : ℂ) ^ (-(σ + I * t))) = J
+  have hI : (I : ℂ) ≠ 0 := I_ne_zero
+  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+  field_simp
 
 @[dlmf 13.4.E18]
 theorem confluentU_barnes_exp {a b : ℂ} {x σ : ℝ}
@@ -933,7 +1327,47 @@ theorem whittakerW_barnes {κ μ : ℂ} {x σ : ℝ} (hx : 0 < x)
           Gamma (-κ - (σ + I * t)) /
           (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *
           (x : ℂ) ^ (-(σ + I * t)) * I := by
-  sorry
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hU := confluentU_barnes (a := 1 / 2 + μ - κ) (b := 1 + 2 * μ) (σ := σ + κ.re) hx
+    (by simp only [sub_re, add_re] at hμ ⊢; linarith)
+    (by simp only [sub_re, add_re, mul_re] at hμ' ⊢; norm_num at hμ' ⊢; linarith)
+    (by linarith)
+  set F : ℝ → ℂ := fun t => Gamma (1 / 2 + μ - κ + ((σ + κ.re : ℝ) : ℂ) + I * t) *
+    Gamma (1 + (1 / 2 + μ - κ) - (1 + 2 * μ) + ((σ + κ.re : ℝ) : ℂ) + I * t) *
+    Gamma (-(((σ + κ.re : ℝ) : ℂ) + I * t)) /
+    (Gamma (1 / 2 + μ - κ) * Gamma (1 + (1 / 2 + μ - κ) - (1 + 2 * μ))) *
+    (x : ℂ) ^ (-(((σ + κ.re : ℝ) : ℂ) + I * t)) * I with hF
+  have htr := MeasureTheory.integral_add_right_eq_self (μ := MeasureTheory.volume) F κ.im
+  rw [← htr] at hU
+  have hpt : ∀ t : ℝ, F (t + κ.im) = (x : ℂ) ^ (-κ) *
+      (Gamma (1 / 2 + μ + σ + I * t) * Gamma (1 / 2 - μ + σ + I * t) *
+        Gamma (-κ - (σ + I * t)) / (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *
+        (x : ℂ) ^ (-(σ + I * t)) * I) := by
+    intro t
+    have e : ((σ + κ.re : ℝ) : ℂ) + I * ((t + κ.im : ℝ) : ℂ) = σ + I * t + κ := by
+      apply Complex.ext <;> simp
+    simp only [hF]
+    rw [show 1 / 2 + μ - κ + ((σ + κ.re : ℝ) : ℂ) + I * ((t + κ.im : ℝ) : ℂ) =
+        1 / 2 + μ - κ + (((σ + κ.re : ℝ) : ℂ) + I * ((t + κ.im : ℝ) : ℂ)) by ring,
+      show 1 + (1 / 2 + μ - κ) - (1 + 2 * μ) + ((σ + κ.re : ℝ) : ℂ) + I * ((t + κ.im : ℝ) : ℂ) =
+        1 + (1 / 2 + μ - κ) - (1 + 2 * μ) + (((σ + κ.re : ℝ) : ℂ) + I * ((t + κ.im : ℝ) : ℂ)) by
+        ring, e,
+      show 1 / 2 + μ - κ + (σ + I * t + κ) = 1 / 2 + μ + σ + I * t by ring,
+      show 1 + (1 / 2 + μ - κ) - (1 + 2 * μ) + (σ + I * t + κ) = 1 / 2 - μ + σ + I * t by ring,
+      show 1 + (1 / 2 + μ - κ) - (1 + 2 * μ) = 1 / 2 - μ - κ by ring,
+      show -((σ : ℂ) + I * t + κ) = -κ - (σ + I * t) by ring,
+      show -κ - ((σ : ℂ) + I * t) = -κ + -(σ + I * t) by ring, cpow_add _ _ hx0]
+    rw [show -κ + -((σ : ℂ) + I * t) = -κ - (σ + I * t) by ring]
+    ring
+  simp only [hpt] at hU
+  rw [MeasureTheory.integral_const_mul] at hU
+  rw [whittakerW, hU]
+  have hxx : (x : ℂ) ^ (1 / 2 + μ) * (x : ℂ) ^ (-(1 / 2 + μ - κ)) * (x : ℂ) ^ (-κ) = 1 := by
+    rw [← cpow_add _ _ hx0, ← cpow_add _ _ hx0]; ring_nf; exact cpow_zero _
+  generalize (∫ t : ℝ, Gamma (1 / 2 + μ + σ + I * t) * Gamma (1 / 2 - μ + σ + I * t) *
+    Gamma (-κ - (σ + I * t)) / (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *
+    (x : ℂ) ^ (-(σ + I * t)) * I) = J
+  linear_combination (exp (-(x : ℂ) / 2) / (2 * π * I) * J) * hxx
 
 @[dlmf 13.16.E12]
 theorem whittakerW_barnes_exp {κ μ : ℂ} {x σ : ℝ} (hx : 0 < x)

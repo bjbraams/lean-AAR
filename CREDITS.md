@@ -37,6 +37,110 @@ Laplace–Heine formula uses `integral_gaussian_complex_Ioi` and
 `Complex.tendsto_one_add_pow_exp_of_tendsto`. Example 6.3 uses the project's
 `chebyshevT_generating_function`.
 
+## Orthogonal-polynomial integrals and complex-sector asymptotics (2026-10-15)
+
+The ray rotation in `ToMathlib/Analysis/Complex/RotateRay.lean` applies the Mathlib contributors'
+`Complex.integral_boundary_rect_eq_zero_of_differentiableOn` in logarithmic coordinates. The sector
+form of Watson's lemma follows Temme, *Special Functions*, §2.4. Its Gamma integral starts from
+Mathlib's `Complex.Gamma_eq_integral` and extends by `AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq`.
+The Gegenbauer Laplace integral uses the project's `AAR.Gamma.beta_sin_cos` for its
+normalization. The Legendre exponential generating function exchanges sum and integral with
+Mathlib's `intervalIntegral.hasSum_integral_of_dominated_convergence` and identifies `J₀` through
+the project's `hasFPowerSeriesOnBall_regularized0F1`.
+
+## Duverney pass (2026-10-16)
+
+Targets and proof routes follow D. Duverney, *An Introduction to Hypergeometric Functions*
+(Birkhäuser, 2024). Upstream reuse:
+
+* Mathlib:
+  * Abel's limit theorem (`Real.tendsto_tsum_powerSeries_nhdsWithin_lt`) and
+    `Antitone.tendsto_alternating_series_of_tendsto_zero`.
+  * Zeta and Hurwitz: `riemannZeta_two_mul_nat`, `hasSum_hurwitzZeta_of_one_lt_re`,
+    `HurwitzZeta.expZeta`.
+  * `cot_series_rep'`, `hasSum_one_div_nat_pow_mul_sin`, and the Bernoulli-polynomial API.
+  * `Real.goldenRatio`, and `NNReal.agm` with its lemmas.
+  * The regularized `ₚF_q` series API (`regularizedHGFun`, `ofScalars_series_injective`).
+  * Tannery's theorem (`tendsto_tsum_of_dominated_convergence`).
+  * Integration: `intervalIntegral.hasSum_integral_of_dominated_convergence`,
+    `integral_tsum_of_summable_integral_norm`, `integral_image_eq_integral_abs_deriv_smul`.
+  * Derivatives and series: `Complex.hasSum_deriv_of_summable_norm`,
+    `tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm`, `Finset.sum_antidiagonal_choose_succ_mul`.
+* Project: Polygamma, Digamma and `deriv_inv_Gamma_neg_nat`; the `₂F₁` contiguous, Euler and
+  quadratic transformations; `q_binomial_theorem` and `heine_transformation`; the Jacobi/AGM API;
+  and the Bessel order-continuity and Wronskian lemmas.
+* The `linear_combination` multipliers for the Jacobi addition formulas and Clausen's formula were
+  found with sympy Gröbner reduction.
+
+## Gap pass, Temme Chapters 8, 9, 11, 12 (2026-10-16)
+
+Legendre: Neumann's integral uses Mathlib's `HasDerivAt.clog_real` and the project's
+`legendre_orthogonality` and `legendreP_recurrence`. The integer Wronskian uses
+`IsOpen.is_const_of_deriv_eq_zero`. Bessel zeros (Sturm comparison after Watson §15.6) use
+`strictMonoOn_of_deriv_pos`, `IsClosed.csInf_mem` and `intermediate_value_Icc'`. The continued fraction for
+`Γ(a,x)` uses Mathlib's `GenContFract` recurrences (`nums_recurrence`, `dens_recurrence`) and
+`MeasureTheory.integral_Ioi_mul_deriv_eq_deriv_mul`. The elliptic additions use Mathlib's
+`NNReal.agm` lemmas, `tsum_mul_tsum_of_summable_norm` and `Equiv.tsum_eq` for the theta doubling
+identities, and `HasDerivAt.arctan`.
+
+## Separation of the wave equation (2026-10-16)
+
+The coordinate systems and separated equations follow Temme, *Special Functions*, Chapter 10.
+The Cartesian computations use the project's regularized `₀F₁` contiguous relation and derivative
+lemmas from `AAR/Bessel/Basic.lean`. The Fourier–Bessel normalization uses Mathlib's
+`intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le` and `squeeze_zero_norm'`. The hypergeometric
+form of the incomplete Beta function uses the project's Euler integral
+`ordinaryHypergeometric_eq_integral` and Mathlib's `intervalIntegral.integral_comp_mul_left`.
+
+## Legendre, statistical and elliptic functions from Temme (2026-10-16)
+
+The proof routes follow N. M. Temme, *Special Functions* (Wiley, 1996), Chapters 8, 11 and 12,
+and the DLMF, Chapters 8, 14, 19, 20 and 22. The Legendre functions are built on the project's
+cut-plane continuation `gaussHGCut` and its contiguous relations, Gauss's second summation and
+quadratic transformations, Pfaff's transformation, and Mathlib's `binomialSeries` /
+`ordinaryHypergeometric` API. The statistical functions bridge to and reuse TauCeti's
+`regularizedGamma`, `lowerIncompleteGamma_eq_integral`, `regularizedIncompleteBeta` and
+`sum_Icc_choose_mul_pow_eq_regularizedIncompleteBeta`, and Mathlib's `Complex.betaIntegral` API,
+`integral_cpow` and `MeasureTheory.integral_tsum_of_summable_integral_norm`. The elliptic functions
+use Mathlib's `NNReal.agm` and `agmSequences` lemmas, `jacobiTheta₂` with its functional equation,
+change of variables `integral_image_eq_integral_abs_deriv_smul`, differentiation under the integral
+sign, `HasDerivAt.of_local_left_inverse` and `StrictMono.orderIsoOfSurjective`.
+
+## Bessel pass from Temme (2026-10-16)
+
+The proof routes follow N. M. Temme, *Special Functions* (Wiley, 1996), Chapter 9, and the
+DLMF, Chapter 10. `AAR/Bessel/MathlibBridge.lean` identifies the project's `besselJ` with Weiyi
+Wang's `Complex.besselJ` (`Mathlib.Analysis.SpecialFunctions.Bessel`) and reuses its parity,
+integer-order analyticity and value at `0`; entireness of the core series uses the Mathlib
+contributors' `analyticAt_regularizedHGFun_zero`. The integer-order limits use Mathlib's `dslope`
+and the project's parameter-continuity lemmas from `AAR/Confluent/BasicProperties.lean`. Bessel's
+integral uses `intervalIntegral.hasSum_integral_of_dominated_convergence`,
+`integral_exp_mul_complex` and `intervalIntegral.integral_comp_sub_left`. The `K_ν` integral uses
+`MeasureTheory.integral_comp_mul_left_Ioi` and `integral_add_left_eq_self`. Hankel's expansions
+rest on the project's sector Watson lemma and Tricomi expansion. The zero theorems use
+`intermediate_value_Icc'` and Rolle's theorem `exists_hasDerivAt_eq_zero`, and Lommel's integral
+uses `intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le` and
+`IntervalIntegrable.mono_fun'` with `intervalIntegral.intervalIntegrable_rpow'`.
+
+## Mellin–Barnes and loop integrals (2026-10-16)
+
+The Mellin–Barnes integrals rest on the Mathlib contributors' Mellin inversion theorem
+`mellinInv_mellin_eq` (`Mathlib.Analysis.MellinInversion`), Mathlib's Gamma integral
+(`Complex.GammaIntegral`, `Complex.Gamma_eq_integral`), Fubini (`integral_integral_swap`,
+`Integrable.mul_prod`), differentiation under the integral
+(`hasDerivAt_integral_of_dominated_loc_of_deriv_le`) and the Cauchy estimate
+`Complex.norm_deriv_le_of_forall_mem_sphere_norm_le`. The vertical bounds for `Γ` use the project's
+product formula DLMF 5.8.3 and modulus formulas 5.4.3–5.4.4. The generalized hypergeometric
+equation is stated for the Mathlib contributors' `Complex.regularizedHGFun`
+(`Mathlib.Analysis.SpecialFunctions.RegularizedHypergeometric`). The loop integral uses
+`Complex.integral_boundary_rect_eq_zero_of_differentiableOn` in logarithmic coordinates.
+
+## Connection formula 13.2.41 (2026-10-16)
+
+The proof uses the Mathlib contributors' reflection formula `Complex.Gamma_mul_Gamma_one_sub`,
+`Complex.differentiable_one_div_Gamma` for continuity of `1/Γ`, and `Complex.continuousAt_arg`.
+It also uses the project's continuity of `𝐌` and `U` in their parameters.
+
 ## Confluent pass from Temme (2026-10-15)
 
 The proof routes for the asymptotic expansions of the confluent functions and their special

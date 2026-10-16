@@ -24,6 +24,14 @@ public import AAR.Hypergeometric.Kummer
 public import AAR.Hypergeometric.Riemann
 public import AAR.Hypergeometric.Solutions
 public import AAR.Hypergeometric.Transformations
+public import AAR.Hypergeometric.BarnesAux
+public import AAR.Hypergeometric.Generalized
+public import AAR.Hypergeometric.LoopIntegral
+public import AAR.Hypergeometric.Saalschutz
+public import AAR.Hypergeometric.GeneralizedCalculus
+public import AAR.Hypergeometric.GeneralizedIntegral
+public import AAR.Hypergeometric.Clausen
+public import AAR.Hypergeometric.SpecialCases
 
 /-!
 # The hypergeometric function (AAR Chapters 2 and 3; DLMF Chapter 15)
@@ -34,4 +42,10 @@ convergence, the regularized generalized series, and the binomial series
 from DLMF §§15.2, 15.4–15.8, and 15.10–15.12 that are absent from Mathlib.
 Each statement taken from the DLMF records its equation number in a `@[dlmf]`
 attribute. Many newly acquired statements are admitted and remain proof obligations.
+
+From Duverney, *An Introduction to Hypergeometric Functions*, Chapters 3–4 (all proved):
+Pfaff–Saalschütz (`Saalschutz`); the derivative, contiguous relation, uniqueness of power-series
+solutions and Euler–Pochhammer integral of the general `ₚFq` (`GeneralizedCalculus`,
+`GeneralizedIntegral`); Clausen's formula with Euler's `arcsin²` series and
+`π² = 18 ∑ 1/(n² C(2n,n))` (`Clausen`); and `Si` as a `₁F₂` (`SpecialCases`).
 -/

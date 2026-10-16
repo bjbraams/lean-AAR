@@ -23,9 +23,10 @@ for `ℓ ∈ ℕ`.
 * `coulombWave_eq_conj_form`: the lower-sign form of 33.2.4, by Kummer's transformation.
 * `conj_coulombWave`, `ofReal_coulombF`: `F_ℓ(η,ρ)` is real for real `η`, `ρ`.
 
-The irregular solutions `G_ℓ`, `H_ℓ^±` (DLMF 33.2.7–33.2.11), the Wronskian 33.2.12 and the
-oscillatory asymptotics `F_ℓ ~ sin θ_ℓ`, which need Tricomi's expansion on the imaginary axis,
-are not yet formalized.
+The irregular functions `H_ℓ^±` (DLMF 33.2.8) and their asymptotic expansions (DLMF 33.11.1) are
+in `AAR.Confluent.CoulombAsymptotics`. The irregular function `G_ℓ`, the relation
+`H_ℓ^± = G_ℓ ± i F_ℓ` (DLMF 33.2.11), the Wronskian 33.2.12 and the limits
+`F_ℓ ~ sin θ_ℓ`, `G_ℓ ~ cos θ_ℓ` (33.10.1) are in `AAR.Confluent.CoulombIrregular`.
 -/
 
 @[expose] public section

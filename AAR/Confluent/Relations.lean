@@ -10,6 +10,7 @@ public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
+public import AAR.Bessel.SecondKind
 public import AAR.OrthogonalPolynomials.Classical
 public import AAR.OrthogonalPolynomials.Hahn
 public import AAR.Gamma.Pochhammer
@@ -213,11 +214,125 @@ theorem confluentM_besselI (ν z : ℂ) (hz : z ∈ slitPlane) (hν : ∀ k : �
   linear_combination (-(Gamma (ν + 1) * exp z *
     regularizedHGFun (∅ : Multiset ℂ) {ν + 1} (z ^ 2 / 4))) * hp
 
+lemma ofReal_mul_cpow' {r : ℝ} (hr : 0 < r) {w : ℂ} (hw : w ≠ 0) (s : ℂ) :
+    ((r : ℂ) * w) ^ s = (r : ℂ) ^ s * w ^ s := by
+  rw [cpow_def_of_ne_zero (mul_ne_zero (by exact_mod_cast hr.ne') hw), log_ofReal_mul hr hw,
+    cpow_def_of_ne_zero (by exact_mod_cast hr.ne'), cpow_def_of_ne_zero hw, ← exp_add,
+    ofReal_log hr.le]
+  ring_nf
+
+/-- DLMF 13.6.10 when `2ν` is not an integer, from the connection formula, 13.6.9, the
+duplication formula and the reflection formula. -/
+lemma confluentU_besselK_of_not_int (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (h2ν : ∀ k : ℤ, 2 * ν ≠ k) :
+    confluentU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
+      1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
+  have hz0 := slitPlane_ne_zero hz
+  have hν : ∀ k : ℤ, ν ≠ k := fun k h => h2ν (2 * k) (by rw [h]; push_cast; ring)
+  have hb : ∀ k : ℤ, 2 * ν + 1 ≠ k := fun k h => h2ν (k - 1) (by push_cast; linear_combination h)
+  have hb1 : ∀ k : ℕ, 1 + 2 * ν ≠ -k := fun k h => hb (-k) (by push_cast; linear_combination h)
+  have hb2 : ∀ k : ℕ, 1 + 2 * -ν ≠ -k := fun k h =>
+    h2ν (k + 1) (by push_cast; linear_combination -h)
+  have hhalf : ∀ k : ℤ, ν + 1 / 2 ≠ k := fun k h => h2ν (2 * k - 1) (by
+    push_cast; linear_combination 2 * h)
+  have hhalf' : ∀ k : ℤ, -ν + 1 / 2 ≠ k := fun k h => h2ν (1 - 2 * k) (by
+    push_cast; linear_combination -2 * h)
+  have hM1 := confluentM_besselI ν z hz hb1
+  have hM2 := confluentM_besselI (-ν) z hz hb2
+  rw [show -ν + 1 / 2 = ν + 1 / 2 - (2 * ν + 1) + 1 by ring,
+    show 2 * -ν + 1 = 2 - (2 * ν + 1) by ring, neg_neg] at hM2
+  rw [confluentU_eq_connection _ _ _ hb, confluentUConnection, hM1, hM2,
+    besselK_eq_of_not_int hν, besselE]
+  -- the Gamma coefficients
+  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+  have hsπ : (Real.sqrt π : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hsπ2 : (Real.sqrt π : ℂ) ^ 2 = π := by
+    rw [← ofReal_pow, Real.sq_sqrt Real.pi_pos.le]
+  have hs := sin_mul_pi_ne_zero hν
+  have hG : ∀ w : ℂ, (∀ k : ℤ, w ≠ k) → Gamma w ≠ 0 := fun w hw =>
+    Gamma_ne_zero fun k h => hw (-k) (by rw [h]; push_cast; ring)
+  have d1 := Complex.Gamma_mul_Gamma_add_half (-ν)
+  have d2 := Complex.Gamma_mul_Gamma_add_half ν
+  have r1 := Complex.Gamma_mul_Gamma_one_sub (-ν)
+  have r2 := Complex.Gamma_mul_Gamma_one_sub ν
+  rw [show 1 - -ν = 1 + ν by ring, mul_neg, Complex.sin_neg] at r1
+  rw [show ν + 1 / 2 - (2 * ν + 1) + 1 = -ν + 1 / 2 by ring] at *
+  -- the powers
+  have hP : ((2 : ℂ) * z) ^ (-ν) = (2 : ℂ) ^ (-ν) * z ^ (-ν) := by
+    have := ofReal_mul_cpow' (r := 2) (by norm_num) hz0 (-ν); simpa using this
+  have hP2 : ((2 : ℂ) * z) ^ (1 - (2 * ν + 1)) = (2 : ℂ) ^ (-ν) * z ^ (-ν) * ((2 : ℂ) ^ (-ν) *
+      z ^ (-ν)) := by
+    rw [show 1 - (2 * ν + 1) = -ν + -ν by ring, cpow_add _ _ (mul_ne_zero two_ne_zero hz0), hP]
+  have hQ : ∀ s : ℂ, (z / 2) ^ s = (2 : ℂ) ^ (-s) * z ^ s := fun s => by
+    have := ofReal_mul_cpow' (r := 1 / 2) (by norm_num) hz0 s
+    rw [show ((1 / 2 : ℝ) : ℂ) * z = z / 2 by push_cast; ring] at this
+    rw [this, cpow_neg, show ((1 / 2 : ℝ) : ℂ) = (2 : ℂ)⁻¹ by push_cast; ring,
+      inv_cpow _ _ (by rw [show (2 : ℂ) = ((2 : ℝ) : ℂ) by norm_num,
+        arg_ofReal_of_nonneg (by norm_num)]; exact Real.pi_pos.ne)]
+  rw [hP, hP2, hQ, hQ, neg_neg]
+  have hG1 : Gamma (-ν) ≠ 0 := hG _ fun k h => hν (-k) (by push_cast; linear_combination -h)
+  have hG2 : Gamma (-ν + 1 / 2) ≠ 0 := hG _ hhalf'
+  have hG3 : Gamma ν ≠ 0 := hG _ hν
+  have hG4 : Gamma (ν + 1 / 2) ≠ 0 := hG _ hhalf
+  have hP1 : (2 : ℂ) ^ (-ν) = ((2 : ℂ) ^ ν)⁻¹ := cpow_neg _ _
+  have hZ1 : z ^ (-ν) = (z ^ ν)⁻¹ := cpow_neg _ _
+  have hpow1 : (2 : ℂ) ^ (1 - 2 * -ν) = 2 * ((2 : ℂ) ^ ν) ^ 2 := by
+    rw [show 1 - 2 * -ν = 1 + (ν + ν) by ring, cpow_add _ _ two_ne_zero, cpow_add _ _ two_ne_zero,
+      cpow_one]; ring
+  have hpow2 : (2 : ℂ) ^ (1 - 2 * ν) = 2 * (((2 : ℂ) ^ ν)⁻¹) ^ 2 := by
+    rw [show 1 - 2 * ν = 1 + (-ν + -ν) by ring, cpow_add _ _ two_ne_zero,
+      cpow_add _ _ two_ne_zero, cpow_one, hP1]; ring
+  rw [hpow1] at d1
+  rw [hpow2] at d2
+  rw [show 2 * -ν = 1 - (2 * ν + 1) by ring] at d1
+  rw [show 2 * ν = 2 * ν + 1 - 1 by ring] at d2
+  rw [show (1 : ℂ) + -ν = 1 - ν by ring, show sin (ν * π) = sin (π * ν) by ring_nf, hP1, hZ1]
+  have hP0 : (2 : ℂ) ^ ν ≠ 0 := by rw [cpow_def_of_ne_zero two_ne_zero]; exact exp_ne_zero _
+  have hZ0 : z ^ ν ≠ 0 := by rw [cpow_def_of_ne_zero hz0]; exact exp_ne_zero _
+  generalize Gamma (1 - (2 * ν + 1)) = A at *
+  generalize Gamma (2 * ν + 1 - 1) = B at *
+  generalize (2 : ℂ) ^ ν = P at *
+  generalize z ^ ν = Z at *
+  generalize Gamma (-ν) = G1 at *
+  generalize Gamma (-ν + 1 / 2) = G2 at *
+  generalize Gamma ν = G3 at *
+  generalize Gamma (ν + 1 / 2) = G4 at *
+  generalize Gamma (1 + ν) = Gp at *
+  generalize Gamma (1 - ν) = Gm at *
+  rw [show sin (π * ν) = sin (ν * π) by ring_nf] at r1 r2 ⊢
+  generalize sin (ν * π) = S at *
+  generalize besselI ν z = Iν
+  generalize besselI (-ν) z = Im
+  have hA : A = G1 * G2 / (2 * P ^ 2 * Real.sqrt π) := by
+    field_simp; linear_combination -d1
+  have hB : B = G3 * G4 * P ^ 2 / (2 * Real.sqrt π) := by
+    field_simp; field_simp at d2; linear_combination -d2
+  rw [hA, hB]
+  field_simp at r1 r2 ⊢
+  linear_combination Iν * r1 + Im * r2
+
 @[dlmf 13.6.E10]
 theorem confluentU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
     confluentU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have h2z : 2 * z ≠ 0 := mul_ne_zero two_ne_zero hz0
+  -- both sides are continuous in the order; compare them along `t = 2ν`
+  have key : ∀ t : ℂ, confluentU (t / 2 + 1 / 2) (t + 1) (2 * z) =
+      1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-(t / 2)) * besselK (t / 2) z := by
+    intro t
+    refine eq_of_continuousAt_of_integerComplement
+      (f := fun t => confluentU (t / 2 + 1 / 2) (t + 1) (2 * z))
+      (g := fun t => 1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-(t / 2)) * besselK (t / 2) z)
+      (continuousAt_confluentU_comp (by fun_prop) (by fun_prop) h2z)
+      ((continuousAt_const.mul (((by fun_prop : ContinuousAt (fun t : ℂ => -(t / 2)) t).const_cpow
+        (Or.inl h2z)))).mul
+        (continuousAt_besselK_order (· / 2) (by fun_prop) t hz)) fun c hc => ?_
+    have hcz := forall_of_mem_integerComplement hc
+    have := confluentU_besselK_of_not_int (c / 2) hz (fun k h => hcz k (by linear_combination h))
+    rwa [show 2 * (c / 2) = c by ring] at this
+  have := key (2 * ν)
+  rwa [show 2 * ν / 2 = ν by ring] at this
 
 /-- Finite Kummer–Bessel expansion away from the Gamma-prefactor poles.
 The former statement included `ν = 0, n = 0`, where totalized `Gamma 0`
@@ -715,7 +830,24 @@ theorem whittakerM_besselI (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
 theorem whittakerW_besselK (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     whittakerW 0 ν (2 * z) =
       ((2 * z) / π) ^ (1 / 2 : ℂ) * besselK ν z := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have h2z : 2 * z ≠ 0 := mul_ne_zero two_ne_zero hz0
+  have hU := confluentU_besselK ν z hz
+  rw [whittakerW, show 1 / 2 + ν - 0 = ν + 1 / 2 by ring, show 1 + 2 * ν = 2 * ν + 1 by ring, hU]
+  have hsplit :
+      ((2 * z) / π) ^ (1 / 2 : ℂ) = ((1 / π : ℝ) : ℂ) ^ (1 / 2 : ℂ) * (2 * z) ^ (1 / 2 : ℂ) := by
+    rw [← ofReal_mul_cpow' (by positivity) h2z]; push_cast; ring_nf
+  have hsq : ((1 / π : ℝ) : ℂ) ^ (1 / 2 : ℂ) = 1 / (Real.sqrt π : ℂ) := by
+    rw [show ((1 / 2 : ℂ)) = ((1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow (by positivity : (0 : ℝ) ≤ 1 / π),
+      ← Real.sqrt_eq_rpow, Real.sqrt_div' _ Real.pi_pos.le, Real.sqrt_one]
+    push_cast; ring
+  have hp : (2 * z) ^ (1 / 2 + ν) * (2 * z) ^ (-ν) = (2 * z) ^ (1 / 2 : ℂ) := by
+    rw [← cpow_add _ _ h2z]; ring_nf
+  have he : exp (-(2 * z) / 2) * exp z = 1 := by rw [← exp_add]; ring_nf; simp
+  rw [hsplit, hsq]
+  linear_combination (1 / (Real.sqrt π : ℂ) * (2 * z) ^ (1 / 2 + ν) * (2 * z) ^ (-ν) *
+    besselK ν z) * he + (1 / (Real.sqrt π : ℂ) * besselK ν z) * hp
 
 /-- Whittaker function and Hermite polynomials. The left side depends only on `z ^ 2`, so the
 identity needs `0 < Re z`. -/

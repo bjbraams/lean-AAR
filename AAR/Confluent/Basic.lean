@@ -548,17 +548,6 @@ lemma confluentM_eq_euler_integral {a c z : ℂ}
     simp only [F, d, mul_pow]
     ring
 
-/-- Barnes's integral for `₁F₁`, AAR Theorem 4.2.1, along the upward vertical
-line `s = σ + it`, with `-Re a < σ < 0`. -/
-theorem confluentM_eq_barnes_integral {a c z : ℂ} {σ : ℝ}
-    (haσ : -a.re < σ) (hσ : σ < 0) (hc : ∀ k : ℕ, c ≠ -k)
-    (hz : z ≠ 0) (harg : |(-z).arg| < π / 2) :
-    confluentM a c z =
-      Gamma c / (2 * π * I * Gamma a) *
-        ∫ t : ℝ, Gamma (-(σ + I * t)) * Gamma (a + σ + I * t) /
-          Gamma (c + σ + I * t) * (-z) ^ (σ + I * t) * I := by
-  sorry
-
 /-- The error function as a confluent series, AAR §4.4:
 `erf z = (2z/√π) M(1/2, 3/2, -z²)`. -/
 @[dlmf 13.6.E7]

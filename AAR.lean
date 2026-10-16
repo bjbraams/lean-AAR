@@ -9,6 +9,12 @@ public import AAR.Gamma
 public import AAR.Hypergeometric
 public import AAR.Confluent
 public import AAR.Bessel
+public import AAR.Legendre
+public import AAR.Statistical
+public import AAR.Elliptic
+public import AAR.WaveEquation
+public import AAR.Polylog
+public import AAR.Constants
 public import AAR.OrthogonalPolynomials
 public import AAR.Selberg
 public import AAR.SphericalHarmonics

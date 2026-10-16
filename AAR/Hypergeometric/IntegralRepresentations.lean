@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Hypergeometric.EulerIntegral
+public import AAR.Hypergeometric.BarnesAux
 public import AAR.Hypergeometric.Continuation
 public import AAR.Hypergeometric.FurtherTransformations
 public import Mathlib.MeasureTheory.Function.JacobianOneDim
@@ -16,8 +17,10 @@ public import Mathlib.MeasureTheory.Function.JacobianOneDim
 The source uses Olver's regularized function. Euler's E1 is already recorded,
 with the equivalent ordinary-function normalization, in `EulerIntegral`.
 The substitutions and vertical Barnes integrals below need no continued contour
-branches. E2–E5 (excluding E2_5) require lifted logarithms along loop/Pochhammer
-contours; they are not recorded here, pending that infrastructure.
+branches. Barnes's integral E6 is proved in `AAR.Hypergeometric.BarnesAux` from the
+Mellin–Barnes integral for `(1+u)^{-a}` and analytic continuation in `c`. The loop integral E2 is
+in `AAR.Hypergeometric.LoopIntegral`, over an explicit loop about `1`; E3–E5 (Pochhammer and
+other loop contours) are not recorded.
 -/
 
 @[expose] public section
@@ -121,8 +124,8 @@ theorem barnes_integral {a b c : ℂ} {x σ : ℝ} (hx : -1 < x) (hx0 : x < 0)
     regularizedGaussHGFun a b c (x : ℂ) =
       (1 / (2 * Real.pi * Gamma a * Gamma b)) * ∫ y : ℝ,
         Gamma (a + σ + I * y) * Gamma (b + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
-          Gamma (c + σ + I * y) * (-(x : ℂ)) ^ ((σ : ℂ) + I * y) := by
-  sorry
+          Gamma (c + σ + I * y) * (-(x : ℂ)) ^ ((σ : ℂ) + I * y) :=
+  barnes_integral_all hx hx0 ha hb hσ
 
 @[dlmf 15.6.E7]
 theorem barnes_integral_one_sub {a b c z : ℂ} {σ : ℝ} (hz : ‖z‖ < 1)

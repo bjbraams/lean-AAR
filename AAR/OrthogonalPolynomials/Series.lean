@@ -331,12 +331,6 @@ theorem legendre_generating_function {x : ℝ} (hx : |x| ≤ 1) {z : ℂ} (hz : 
   rw [show (-1 / 2 : ℂ) = -(1 / 2) by ring]
   exact gegenbauer_generating_function (by norm_num) hx hz
 
-@[dlmf 18.12.E12]
-theorem legendre_exponential_generating_function {x : ℝ} (hx : |x| ≤ 1) (z : ℂ) :
-    HasSum (fun n : ℕ => legendreP n x / n.factorial * z ^ n)
-      (exp (x * z) * besselJ 0 (z * Real.sqrt (1 - x ^ 2))) := by
-  sorry
-
 @[dlmf 18.12.E16]
 theorem hermite_generating_function (x z : ℂ) :
     HasSum (fun n : ℕ => aeval x (hermite n) / (n.factorial : ℂ) * z ^ n)

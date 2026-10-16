@@ -423,18 +423,6 @@ theorem isBigO_whittakerM_at_zero {κ μ : ℂ} (hμ : ∀ k : ℕ, 2 * μ ≠ -
     rw [show μ + 3 / 2 = (μ + 1 / 2) + 1 by ring,
       (cpow_add _ _ hz : z ^ ((μ + 1 / 2) + 1) = z ^ (μ + 1 / 2) * z ^ (1 : ℂ)), cpow_one]
 
-@[dlmf 13.14.E20]
-theorem tendsto_whittakerM_atTop {κ μ : ℂ} (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k)
-    (hκ : ∀ k : ℕ, 1 / 2 + μ - κ ≠ -k) :
-    Tendsto (fun x : ℝ => whittakerM κ μ x * Gamma (1 / 2 + μ - κ) /
-      (Gamma (1 + 2 * μ) * exp (x / 2) * (x : ℂ) ^ (-κ))) atTop (𝓝 1) := by
-  sorry
-
-@[dlmf 13.14.E21]
-theorem tendsto_whittakerW_atTop (κ μ : ℂ) :
-    Tendsto (fun x : ℝ => whittakerW κ μ x / (exp (-x / 2) * (x : ℂ) ^ κ)) atTop (𝓝 1) := by
-  sorry
-
 /-- `W(g f₁, g f₂) = g² W(f₁, f₂)`. -/
 lemma wronskian_mul_left {g f₁ f₂ : ℂ → ℂ} {z : ℂ} (hg : DifferentiableAt ℂ g z)
     (h₁ : DifferentiableAt ℂ f₁ z) (h₂ : DifferentiableAt ℂ f₂ z) :
@@ -543,18 +531,6 @@ theorem wronskian_whittakerM_W {κ μ z : ℂ} (hz : z ∈ slitPlane)
   linear_combination (-Gamma (1 + 2 * μ) / Gamma (1 / 2 + μ - κ)) * (exp (-z) * exp z) * hp +
     (-Gamma (1 + 2 * μ) / Gamma (1 / 2 + μ - κ)) * he
 
-/-- DLMF's `W_{-κ,μ}(z e^{±πi})` is represented by the principal value at `-z`, which is the
-`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
-@[dlmf 13.14.E27]
-theorem wronskian_whittakerM_W_neg {κ μ z : ℂ} (hz : z ∈ slitPlane)
-    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (sign : Bool)
-    (hsign : if sign then z.arg < 0 else 0 < z.arg) :
-    wronskian (whittakerM κ μ)
-      (fun w => whittakerW (-κ) μ (exp ((if sign then 1 else -1) * π * I) * w)) z =
-      Gamma (1 + 2 * μ) / Gamma (1 / 2 + μ + κ) *
-        exp (-(if sign then 1 else -1) * (1 / 2 + μ) * π * I) := by
-  sorry
-
 @[dlmf 13.14.E28]
 theorem wronskian_whittakerM_neg_W {κ μ z : ℂ} (hz : z ∈ slitPlane)
     (hμ : ∀ k : ℕ, 1 - 2 * μ ≠ -k) :
@@ -603,16 +579,6 @@ theorem wronskian_whittakerM_neg_W {κ μ z : ℂ} (hz : z ∈ slitPlane)
   linear_combination (-Gamma (1 - 2 * μ) / Gamma (1 / 2 - μ - κ)) * (exp (-z) * exp z) * hp +
     (-Gamma (1 - 2 * μ) / Gamma (1 / 2 - μ - κ)) * he
 
-/-- DLMF's `W_{-κ,μ}(z e^{±πi})` is represented by the principal value at `-z`, which is the
-`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
-@[dlmf 13.14.E30]
-theorem wronskian_whittakerW_pair {κ μ z : ℂ} (hz : z ∈ slitPlane) (sign : Bool)
-    (hsign : if sign then z.arg < 0 else 0 < z.arg) :
-    wronskian (whittakerW κ μ)
-      (fun w => whittakerW (-κ) μ (exp ((if sign then 1 else -1) * π * I) * w)) z =
-      exp (-(if sign then 1 else -1) * κ * π * I) := by
-  sorry
-
 /-- Symmetry in the order for the generic W connection formula on the slit plane.
 Extension to half-integer orders requires the Tricomi parameter-limit API. -/
 @[dlmf 13.14.E31]
@@ -628,19 +594,6 @@ theorem whittakerW_even_mu (κ μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
   simp only [neg_neg]
   rw [add_comm]
   refine congrArg₂ (· + ·) ?_ ?_ <;> congr 1 <;> ring
-
-/-- DLMF's `W_{-κ,μ}(z e^{±πi})` is represented by the principal value at `-z`, which is the
-`e^{+πi}` continuation for `ph z ≤ 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
-@[dlmf 13.14.E32]
-theorem whittakerM_eq_whittakerW_connection {κ μ z : ℂ} (hz : z ∈ slitPlane)
-    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (sign : Bool)
-    (hsign : if sign then z.arg ≤ 0 else 0 < z.arg) :
-    whittakerM κ μ z / Gamma (1 + 2 * μ) =
-      exp ((if sign then 1 else -1) * (κ - μ - 1 / 2) * π * I) /
-          Gamma (1 / 2 + μ + κ) * whittakerW κ μ z +
-        exp ((if sign then 1 else -1) * κ * π * I) / Gamma (1 / 2 + μ - κ) *
-          whittakerW (-κ) μ (exp ((if sign then 1 else -1) * π * I) * z) := by
-  sorry
 
 /-- The jump of `W` across the negative axis, with both continuations `z e^{±πi}` taken on
 the logarithmic argument plane. `whittakerWOnLog` represents `W` there for noninteger `2μ`. -/

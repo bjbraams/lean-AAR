@@ -13,6 +13,7 @@ public import AAR.OrthogonalPolynomials.Series
 public import AAR.OrthogonalPolynomials.Associated
 public import AAR.Bessel.Basic
 public import AAR.Gamma.IntegralRepresentations
+public import AAR.Gamma.BetaFunction
 public import AAR.Confluent.IntegralRepresentations
 public import AAR.Hypergeometric.IntegralRepresentations
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
@@ -795,11 +796,195 @@ theorem laguerre_rodrigues {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 
   have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
   field_simp [cpow_ne_zero_iff.mpr (Or.inl hx0), Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n)]
 
+
+/-- **Rodrigues' formula for Gegenbauer polynomials** (DLMF 18.5.5, Temme §6.3): for `λ > -1/2`
+and `-1 < x < 1`,
+`C_n^λ(x) = (2λ)_n / ((-2)ⁿ n! (λ+1/2)_n) · (1-x²)^{1/2-λ} dⁿ/dxⁿ (1-x²)^{n+λ-1/2}`. -/
+theorem gegenbauer_rodrigues {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) {x : ℝ}
+    (hx : x ∈ Set.Ioo (-1) 1) :
+    gegenbauer lam n x = poch (2 * lam) n / ((-2 : ℂ) ^ n * n.factorial * poch (lam + 1 / 2) n) *
+      ((1 - x ^ 2) ^ (1 / 2 - lam) *
+        deriv^[n] (fun t : ℝ => (1 - t ^ 2) ^ (n + lam - 1 / 2)) x : ℝ) := by
+  have hα : -1 < lam - 1 / 2 := by linarith
+  have hp : poch ((lam : ℂ) + 1 / 2) n ≠ 0 := poch_ne_zero_of_not_neg_nat
+    (not_neg_nat_of_re_pos (by simp; linarith)) n
+  have hJ := jacobi_rodrigues hα hα n hx
+  rw [gegenbauer_eq_jacobiP n x hp]
+  push_cast at hJ ⊢
+  rw [hJ]
+  -- the two weights agree near `x`
+  have hev : (fun t : ℝ => (1 - t) ^ (lam - 1 / 2 + n) * (1 + t) ^ (lam - 1 / 2 + n)) =ᶠ[𝓝 x]
+      fun t : ℝ => (1 - t ^ 2) ^ (n + lam - 1 / 2) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hx] with t ht
+    rw [← Real.mul_rpow (by linarith [ht.2]) (by linarith [ht.1])]
+    congr 1 <;> ring
+  rw [← iteratedDeriv_eq_iterate, ← iteratedDeriv_eq_iterate, hev.iteratedDeriv_eq n]
+  have h1 : 0 < 1 - x := by linarith [hx.2]
+  have h2 : 0 < 1 + x := by linarith [hx.1]
+  have hw : ((1 - x : ℂ) ^ ((lam : ℂ) - 1 / 2)) * ((1 + x : ℂ) ^ ((lam : ℂ) - 1 / 2)) =
+      (((1 - x ^ 2) ^ (lam - 1 / 2) : ℝ) : ℂ) := by
+    rw [show (1 - x ^ 2) = (1 - x) * (1 + x) by ring, Real.mul_rpow h1.le h2.le]
+    push_cast
+    rw [Complex.ofReal_cpow h1.le, Complex.ofReal_cpow h2.le]
+    push_cast; ring
+  have hw' : ((1 - x ^ 2) ^ (1 / 2 - lam) : ℝ) * (1 - x ^ 2) ^ (lam - 1 / 2) = 1 := by
+    rw [← Real.rpow_add (by nlinarith)]; norm_num
+  have hw0 : (((1 - x ^ 2) ^ (lam - 1 / 2) : ℝ) : ℂ) ≠ 0 :=
+    Complex.ofReal_ne_zero.mpr (Real.rpow_pos_of_pos (by nlinarith) _).ne'
+  have hwC : (((1 - x ^ 2) ^ (1 / 2 - lam) : ℝ) : ℂ) = ((((1 - x ^ 2) ^ (lam - 1 / 2) : ℝ) : ℂ))⁻¹ := by
+    refine eq_inv_of_mul_eq_one_left ?_
+    rw [← Complex.ofReal_mul, hw']; simp
+  rw [mul_assoc ((-2 : ℂ) ^ n * n.factorial), hw, hwC]
+  have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  field_simp
+
+/-- **Rodrigues' formula for Legendre polynomials** (DLMF 18.5.5, Temme (6.20)):
+`P_n(x) = (2ⁿ n!)⁻¹ dⁿ/dxⁿ (x² - 1)ⁿ` for `-1 < x < 1`. -/
+theorem legendre_rodrigues (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
+    legendreP n x = ((2 ^ n * n.factorial : ℝ)⁻¹ *
+      deriv^[n] (fun t : ℝ => (t ^ 2 - 1) ^ n) x : ℝ) := by
+  have h := gegenbauer_rodrigues (lam := 1 / 2) (by norm_num) n hx
+  rw [show ((1 / 2 : ℝ) : ℂ) = 1 / 2 by norm_num, ← legendre_eq_gegenbauer] at h
+  rw [h]
+  have hfun : (fun t : ℝ => (1 - t ^ 2) ^ ((n : ℝ) + 1 / 2 - 1 / 2)) =
+      fun t : ℝ => (-1) ^ n * (t ^ 2 - 1) ^ n := by
+    funext t
+    rw [show (n : ℝ) + 1 / 2 - 1 / 2 = (n : ℕ) by ring, Real.rpow_natCast, ← mul_pow]
+    ring_nf
+  rw [hfun, ← iteratedDeriv_eq_iterate, ← iteratedDeriv_eq_iterate,
+    iteratedDeriv_const_mul_field]
+  simp only [show (1 / 2 : ℝ) - 1 / 2 = 0 by norm_num, Real.rpow_zero, one_mul]
+  have hp1 : poch (2 * (1 / 2 : ℂ)) n = n.factorial := by
+    rw [show (2 : ℂ) * (1 / 2) = 1 by norm_num, poch_nat_one]
+  have hp2 : poch ((1 / 2 : ℂ) + 1 / 2) n = n.factorial := by
+    rw [show (1 / 2 : ℂ) + 1 / 2 = 1 by norm_num, poch_nat_one]
+  rw [hp1, hp2]
+  have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  push_cast
+  rw [show (-2 : ℂ) ^ n = (-1) ^ n * 2 ^ n by rw [← mul_pow]; norm_num]
+  have h1 : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+  field_simp
+
 @[dlmf 18.10.E2]
 theorem legendre_dirichlet_mehler (n : ℕ) {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
     legendreP n (Real.cos θ) = (Real.sqrt 2 / Real.pi *
       ∫ phi : ℝ in (0 : ℝ)..θ, Real.cos ((n + 1 / 2) * phi) / Real.sqrt (Real.cos phi - Real.cos θ) : ℝ) := by
   sorry
+
+section GegenbauerLaplace
+
+open Set
+
+/-- `∫₀^π sin^{2λ-1} = √π Γ(λ)/Γ(λ+1/2)` for `λ > 0`, from the trigonometric Beta integral,
+together with the integrability of `sin^{2λ-1}` on `[0, π]`. -/
+lemma integral_sin_rpow_aux {lam : ℝ} (hlam : 0 < lam) :
+    IntervalIntegrable (fun t : ℝ => Real.sin t ^ (2 * lam - 1)) volume 0 π ∧
+    ∫ t in (0 : ℝ)..π, Real.sin t ^ (2 * lam - 1) =
+      Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) := by
+  have hB := AAR.Gamma.beta_sin_cos (a := lam) (b := 1 / 2) hlam (by norm_num)
+  simp only [show 2 * (1 / 2 : ℝ) - 1 = 0 by norm_num, Real.rpow_zero, mul_one,
+    Real.Gamma_one_half_eq] at hB
+  set f : ℝ → ℝ := fun t => Real.sin t ^ (2 * lam - 1) with hf
+  have hpos : 0 < (1 / 2) * (Real.Gamma lam * Real.sqrt π / Real.Gamma (lam + 1 / 2)) := by
+    have := Real.Gamma_pos_of_pos hlam
+    have := Real.Gamma_pos_of_pos (show 0 < lam + 1 / 2 by linarith)
+    have := Real.sqrt_pos.mpr Real.pi_pos
+    positivity
+  have hI1 : IntervalIntegrable f volume 0 (π / 2) := by
+    by_contra h
+    rw [intervalIntegral.integral_undef h] at hB
+    linarith
+  have hsymm : ∀ t, f (π - t) = f t := fun t => by simp [hf, Real.sin_pi_sub]
+  have hI2 : IntervalIntegrable f volume (π / 2) π := by
+    have := hI1.comp_sub_left π
+    simp only [hsymm, sub_zero, show π - π / 2 = π / 2 by ring] at this
+    exact this.symm
+  refine ⟨hI1.trans hI2, ?_⟩
+  rw [← intervalIntegral.integral_add_adjacent_intervals hI1 hI2]
+  have h2 := intervalIntegral.integral_comp_sub_left f (a := 0) (b := π / 2) π
+  rw [show π - π / 2 = π / 2 by ring, sub_zero] at h2
+  simp only [hsymm] at h2
+  rw [← h2, hB]
+  ring
+
+/-- The weighted Laplace integral `∫₀^π (cos θ + i sin θ cos φ)ⁿ sin^{2λ-1} φ dφ`. -/
+def gegenbauerLaplace (lam θ : ℝ) (n : ℕ) : ℂ :=
+  ∫ t : ℝ in (0 : ℝ)..π, ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) ^ n *
+    ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)
+
+/-- The weighted Laplace integrals satisfy the normalized Gegenbauer recurrence. -/
+lemma gegenbauerLaplace_recurrence {lam : ℝ} (hlam : 0 < lam) (θ : ℝ) (n : ℕ) :
+    (n + 1 + 2 * lam : ℂ) * gegenbauerLaplace lam θ (n + 2) =
+      2 * (n + 1 + lam) * Real.cos θ * gegenbauerLaplace lam θ (n + 1) -
+        (n + 1) * gegenbauerLaplace lam θ n := by
+  set c : ℂ := (Real.cos θ : ℂ) with hc
+  set s : ℂ := (Real.sin θ : ℂ) with hs
+  set w : ℝ → ℂ := fun t => c + I * s * Real.cos t with hw
+  set ρ : ℝ → ℂ := fun t => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) with hρ
+  have hρi : IntervalIntegrable ρ volume 0 π := by
+    have := (integral_sin_rpow_aux hlam).1
+    exact ⟨this.1.ofReal, this.2.ofReal⟩
+  have hU : uIcc (0 : ℝ) π = Icc 0 π := uIcc_of_le Real.pi_pos.le
+  have hcs : c ^ 2 + s ^ 2 = 1 := by
+    rw [hc, hs, ← Complex.ofReal_pow, ← Complex.ofReal_pow, ← Complex.ofReal_add,
+      Real.cos_sq_add_sin_sq]; simp
+  have hsplit : ∀ x : ℝ, 0 ≤ x → x ^ (2 * lam) = x * x ^ (2 * lam - 1) := by
+    intro x hx
+    rcases hx.eq_or_lt with h | h
+    · subst h; rw [Real.zero_rpow (by positivity), zero_mul]
+    · rw [← Real.rpow_one_add' h.le (by linarith)]; ring_nf
+  -- `F' = ρ g` is the derivative of `F = w^{n+1} sin^{2λ}` on `(0, π)`
+  set g : ℝ → ℂ := fun t => (n + 1 : ℂ) * w t ^ n * (-(I * s) * Real.sin t) * Real.sin t +
+    w t ^ (n + 1) * (2 * lam * Real.cos t) with hg
+  have hgc : Continuous g := by fun_prop
+  have hD : ∀ t ∈ Ioo (0 : ℝ) π, HasDerivAt (fun t : ℝ => w t ^ (n + 1) *
+      ((Real.sin t ^ (2 * lam) : ℝ) : ℂ)) (ρ t * g t) t := by
+    intro t ht
+    have hst : 0 < Real.sin t := Real.sin_pos_of_pos_of_lt_pi ht.1 ht.2
+    have hwd : HasDerivAt w (-(I * s) * Real.sin t) t := by
+      have := ((Real.hasDerivAt_cos t).ofReal_comp).const_mul (I * s)
+      exact (this.const_add c).congr_deriv (by push_cast; ring)
+    have hr := ((Real.hasDerivAt_sin t).rpow_const (p := 2 * lam) (Or.inl hst.ne')).ofReal_comp
+    have := (hwd.pow (n + 1)).mul hr
+    refine this.congr_deriv ?_
+    simp only [hρ, hg, Nat.add_sub_cancel, Pi.pow_apply]
+    rw [hsplit _ hst.le]
+    push_cast
+    ring
+  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le Real.pi_pos.le
+    ((by fun_prop : Continuous fun t : ℝ => w t ^ (n + 1)).continuousOn.mul
+      (Complex.continuous_ofReal.comp ((Real.continuous_rpow_const (by positivity)).comp
+        Real.continuous_sin)).continuousOn) hD (hρi.mul_continuousOn (hU ▸ hgc.continuousOn))
+  simp only [Pi.mul_apply, Function.comp_apply, Real.sin_pi, Real.sin_zero,
+    Real.zero_rpow (by positivity : 2 * lam ≠ 0), Complex.ofReal_zero, mul_zero, sub_zero] at hFTC
+  -- multiply by `i s`
+  have hpt : ∀ t : ℝ, I * s * (ρ t * g t) = ρ t * ((n + 1) * w t ^ n -
+      2 * (n + 1 + lam) * c * w t ^ (n + 1) + (n + 1 + 2 * lam) * w t ^ (n + 2)) := by
+    intro t
+    have htrig : (Real.sin t : ℂ) ^ 2 + (Real.cos t : ℂ) ^ 2 = 1 := by
+      rw [← Complex.ofReal_pow, ← Complex.ofReal_pow, ← Complex.ofReal_add,
+        Real.sin_sq_add_cos_sq]; simp
+    simp only [hg, hw]
+    linear_combination (ρ t * (n + 1 : ℂ) * (c + I * s * Real.cos t) ^ n * (-I ^ 2 * s ^ 2)) *
+      htrig - (ρ t * (n + 1 : ℂ) * (c + I * s * Real.cos t) ^ n * s ^ 2) * Complex.I_sq +
+      (ρ t * (n + 1 : ℂ) * (c + I * s * Real.cos t) ^ n) * hcs
+  have h0 : ∫ t : ℝ in (0 : ℝ)..π, I * s * (ρ t * g t) = 0 := by
+    rw [intervalIntegral.integral_const_mul, hFTC]; simp
+  rw [intervalIntegral.integral_congr (fun t _ => hpt t)] at h0
+  have hk : ∀ k : ℕ, IntervalIntegrable (fun t => w t ^ k * ρ t) volume 0 π :=
+    fun k => hρi.continuousOn_mul (hU ▸ (by fun_prop : Continuous fun t : ℝ => w t ^ k).continuousOn)
+  have hsplit3 : ∀ t : ℝ, ρ t * ((n + 1) * w t ^ n - 2 * (n + 1 + lam) * c * w t ^ (n + 1) +
+      (n + 1 + 2 * lam) * w t ^ (n + 2)) = (n + 1) * (w t ^ n * ρ t) -
+      2 * (n + 1 + lam) * c * (w t ^ (n + 1) * ρ t) + (n + 1 + 2 * lam) * (w t ^ (n + 2) * ρ t) :=
+    fun t => by ring
+  rw [intervalIntegral.integral_congr (fun t _ => hsplit3 t),
+    intervalIntegral.integral_add (((hk n).const_mul _).sub ((hk (n + 1)).const_mul _))
+      ((hk (n + 2)).const_mul _),
+    intervalIntegral.integral_sub ((hk n).const_mul _) ((hk (n + 1)).const_mul _),
+    intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_const_mul] at h0
+  simp only [gegenbauerLaplace]
+  linear_combination h0
 
 @[dlmf 18.10.E4]
 theorem gegenbauer_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ : ℝ) :
@@ -807,7 +992,80 @@ theorem gegenbauer_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ :
       Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) *
         ∫ phi : ℝ in (0 : ℝ)..Real.pi, (Real.cos θ + I * Real.sin θ * Real.cos phi) ^ n *
           (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ) := by
-  sorry
+  obtain ⟨hρi', hρint⟩ := integral_sin_rpow_aux hlam
+  set K : ℂ := ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) with hK
+  have hG1 : 0 < Real.Gamma (lam + 1 / 2) := Real.Gamma_pos_of_pos (by linarith)
+  have hG2 : 0 < Real.Gamma lam := Real.Gamma_pos_of_pos hlam
+  have hsq : 0 < Real.sqrt π := Real.sqrt_pos.mpr Real.pi_pos
+  have hK0 : K ≠ 0 := Complex.ofReal_ne_zero.mpr (by positivity)
+  have hlamC : 0 < (lam : ℂ).re := by simpa using hlam
+  -- the normalized polynomials
+  set R : ℕ → ℂ := fun n => gegenbauer lam n (Real.cos θ) / gegenbauer lam n 1 with hR
+  have hbase0 : gegenbauerLaplace lam θ 0 = K := by
+    simp only [gegenbauerLaplace, pow_zero, one_mul, hK]
+    rw [intervalIntegral.integral_ofReal, hρint]
+  have hcos0 : ∫ t : ℝ in (0 : ℝ)..π, (Real.cos t * Real.sin t ^ (2 * lam - 1) : ℝ) = 0 := by
+    have hD : ∀ t ∈ Ioo (0 : ℝ) π, HasDerivAt (fun t : ℝ => Real.sin t ^ (2 * lam) / (2 * lam))
+        (Real.cos t * Real.sin t ^ (2 * lam - 1)) t := by
+      intro t ht
+      have hst : 0 < Real.sin t := Real.sin_pos_of_pos_of_lt_pi ht.1 ht.2
+      have := ((Real.hasDerivAt_sin t).rpow_const (p := 2 * lam) (Or.inl hst.ne')).div_const
+        (2 * lam)
+      refine this.congr_deriv ?_
+      field_simp
+    have h := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le Real.pi_pos.le
+      (((Real.continuous_rpow_const (by positivity)).comp Real.continuous_sin).div_const
+        (2 * lam)).continuousOn hD (hρi'.continuousOn_mul Real.continuous_cos.continuousOn)
+    rw [h]
+    simp [Real.zero_rpow (by positivity : 2 * lam ≠ 0)]
+  have hbase1 : gegenbauerLaplace lam θ 1 = Real.cos θ * K := by
+    simp only [gegenbauerLaplace, pow_one]
+    have hsplit : ∀ t : ℝ, ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) *
+        ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) = Real.cos θ * ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) +
+          I * Real.sin θ * ((Real.cos t * Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) := by
+      intro t; push_cast; ring
+    have hρC : IntervalIntegrable (fun t : ℝ => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) volume 0 π :=
+      ⟨hρi'.1.ofReal, hρi'.2.ofReal⟩
+    have hψ := hρi'.continuousOn_mul Real.continuous_cos.continuousOn
+    have hψC : IntervalIntegrable (fun t : ℝ => ((Real.cos t * Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ))
+        volume 0 π := ⟨hψ.1.ofReal, hψ.2.ofReal⟩
+    rw [intervalIntegral.integral_congr (fun t _ => hsplit t),
+      intervalIntegral.integral_add (hρC.const_mul _) (hψC.const_mul _),
+      intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_ofReal, intervalIntegral.integral_ofReal, hρint, hcos0, hK]
+    simp
+  -- induction
+  have hind : ∀ n : ℕ, gegenbauerLaplace lam θ n = K * R n ∧
+      gegenbauerLaplace lam θ (n + 1) = K * R (n + 1) := by
+    intro n
+    induction n with
+    | zero =>
+      refine ⟨?_, ?_⟩
+      · rw [hbase0]; simp [hR, gegenbauer_zero]
+      · rw [hbase1]; simp only [hR, zero_add, gegenbauer_normalized_one hlamC]; ring
+    | succ n ih =>
+      refine ⟨ih.2, ?_⟩
+      have hr := gegenbauerLaplace_recurrence hlam θ n
+      have hP := gegenbauer_normalized_recurrence hlamC n (Real.cos θ)
+      rw [ih.1, ih.2] at hr
+      have hn : (n + 1 + 2 * lam : ℂ) ≠ 0 := by
+        intro h; have := congrArg Complex.re h; simp at this; linarith
+      apply mul_left_cancel₀ hn
+      rw [show n + 1 + 1 = n + 2 by ring, hr]
+      simp only [hR]
+      linear_combination (-K) * hP
+  have hmain := (hind n).1
+  have hGam : Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) = K⁻¹ := by
+    rw [hK, show (lam + 1 / 2 : ℂ) = ((lam + 1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      Complex.Gamma_ofReal, Complex.Gamma_ofReal]
+    push_cast
+    field_simp
+  rw [hGam, show (∫ phi : ℝ in (0 : ℝ)..Real.pi, ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos phi) ^ n *
+      (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ)) = gegenbauerLaplace lam θ n from rfl, hmain]
+  field_simp
+  rfl
+
+end GegenbauerLaplace
 
 /-- The Laplace integral `∫₀^π (cos θ + i sin θ cos t)^n dt`. -/
 def legendreLaplace (θ : ℝ) (n : ℕ) : ℂ :=

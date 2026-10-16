@@ -20,9 +20,14 @@ Olver's regularized function `𝐌(a,b,z)` is Mathlib's `regularizedHGFun {a} {b
 The series `confluentM` is entire in `z` at regular denominator parameters; `confluentU`
 uses the connection formula 13.2.42 and parameter limits at integer `b`.
 The proved Kummer transformation currently retains a noninteger hypothesis;
-extending it to the limit branch remains a separate task. Complex powers use the principal branch on the slit plane. Numerically
-satisfactory pairs (13.2.24–13.2.26) are recorded as Wronskian identities on
-the indicated argument sectors.
+extending it to the limit branch remains a separate task. Complex powers use the principal branch
+on the slit plane. Numerically satisfactory pairs (13.2.24–13.2.26) are recorded as Wronskian
+identities on the indicated argument sectors.
+
+The connection formula 13.2.41 is proved for every `b`, in regularized form, as
+`regularizedHGFun_eq_confluentU_connection`, from 13.2.42, Kummer's transformation 13.2.39 and the
+reflection formula, then by continuity in `b`. The Wronskians 13.2.24, 13.2.25, 13.2.35, 13.2.37
+and 13.2.38 that follow from it are in `AAR.Confluent.ConnectionWronskians`.
 -/
 
 @[expose] public section
@@ -670,11 +675,6 @@ theorem confluentU_kummer_transform_all (a b : ℂ) {z : ℂ} (hz0 : z ≠ 0) :
 
 /- The punctured parameter-limit theorem is proved in `AAR.Confluent.Continuation`. -/
 
-@[dlmf 13.2.E6]
-theorem tendsto_confluentU_mul_cpow_atTop (a b : ℂ) :
-    Tendsto (fun x : ℝ => confluentU a b x * (x : ℂ) ^ a) atTop (𝓝 1) := by
-  sorry
-
 /-- Polynomial specialization of Tricomi U, expressed using ordinary Kummer M. -/
 lemma poch_one_sub_sub_nat (c : ℂ) (m : ℕ) : poch (1 - c - m) m = (-1) ^ m * poch c m := by
   induction m with
@@ -1005,12 +1005,6 @@ theorem isBigO_confluentU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) (hb0 :
       (fun z => confluentU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
   sorry
 
-@[dlmf 13.2.E23]
-theorem tendsto_regularizedHGFun_mul_exp_neg_atTop (a b : ℂ) (ha : ∀ k : ℕ, a ≠ -k) :
-    Tendsto (fun x : ℝ => regularizedHGFun {a} {b} x * Gamma a /
-      (exp x * (x : ℂ) ^ (a - b))) atTop (𝓝 1) := by
-  sorry
-
 /-! ### Wronskians -/
 
 lemma analyticOnNhd_confluentM {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
@@ -1297,26 +1291,6 @@ lemma tendsto_regularizedConfluent_param (A B : ℂ → ℂ) (hA : Continuous A)
     (f := fun c => (A c, B c, z)) (by fun_prop)
   exact (h.continuousAt.tendsto).mono_left hl
 
-/-- Numerically satisfactory pair on `-π/2 ≤ ph z ≤ 3π/2`. The second function is taken on
-the principal branch, so `-z` must avoid the cut for it to be differentiable at `z`. -/
-@[dlmf 13.2.E24]
-theorem wronskian_confluentU_kummer_neg (a b : ℂ) {z : ℂ}
-    (hz : z ∈ slitPlane) (hz' : -z ∈ slitPlane) (harg : -(π / 2) ≤ z.arg)
-    (harg' : z.arg ≤ 3 * π / 2) (hb : ∀ n : ℤ, b ≠ n) :
-    wronskian (confluentU a b)
-      (fun w => exp w * confluentU (b - a) b (exp (-π * I) * w)) z ≠ 0 := by
-  sorry
-
-/-- Numerically satisfactory pair on `-3π/2 ≤ ph z ≤ π/2`. The second function is taken on
-the principal branch, so `-z` must avoid the cut for it to be differentiable at `z`. -/
-@[dlmf 13.2.E25]
-theorem wronskian_confluentU_kummer_pos (a b : ℂ) {z : ℂ}
-    (hz : z ∈ slitPlane) (hz' : -z ∈ slitPlane) (harg : -(3 * π / 2) ≤ z.arg)
-    (harg' : z.arg ≤ π / 2) (hb : ∀ n : ℤ, b ≠ n) :
-    wronskian (confluentU a b)
-      (fun w => exp w * confluentU (b - a) b (exp (π * I) * w)) z ≠ 0 := by
-  sorry
-
 @[dlmf 13.2.E26]
 theorem wronskian_confluentM_pair {a b z : ℂ} (hb : ∀ n : ℤ, b ≠ n)
     (hz : z ∈ slitPlane) :
@@ -1407,16 +1381,97 @@ theorem wronskian_regularizedHGFun_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ 
       -(z ^ (-b) * exp z) / Gamma a := by
   exact wronskian_regularizedHGFun_confluentU_all a b hz
 
-/-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
-`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
-@[dlmf 13.2.E35]
-theorem wronskian_regularizedHGFun_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) (hsign : if sign then z.arg < 0 else 0 < z.arg)
-    (hba : ∀ k : ℕ, b - a ≠ -k) :
-    wronskian (regularizedHGFun {a} {b})
-      (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
-      exp (-(if sign then 1 else -1) * b * π * I) * z ^ (-b) * exp z / Gamma (b - a) := by
-  sorry
+/-- `(-z)^w = z^w e^{επiw}` when `-z = z e^{επi}` with `arg z + επ ∈ (-π, π]`. -/
+lemma neg_cpow_of_arg {z : ℂ} (hz : z ≠ 0) (ε : ℂ) (hε : ε = 1 ∨ ε = -1)
+    (h1 : -π < arg z + ε.re * π) (h2 : arg z + ε.re * π ≤ π) (w : ℂ) :
+    (-z) ^ w = z ^ w * exp (ε * π * I * w) := by
+  have hn : -z = exp (log z + ε * π * I) := by
+    rw [exp_add, exp_log hz]
+    rcases hε with rfl | rfl
+    · rw [one_mul, exp_pi_mul_I]; ring
+    · rw [show (-1 : ℂ) * π * I = -(π * I) by ring, exp_neg, exp_pi_mul_I]; ring
+  have hre : ε = (ε.re : ℂ) := by rcases hε with rfl | rfl <;> simp
+  have hlog : log (-z) = log z + ε * π * I := by
+    rw [hn, log_exp]
+    · rw [hre]; simp [log_im]; linarith
+    · rw [hre]; simp [log_im]; linarith
+  rw [cpow_def_of_ne_zero (neg_ne_zero.mpr hz), hlog, cpow_def_of_ne_zero hz, add_mul, exp_add]
+
+/-- The reciprocal reflection formula, valid for all `s` with the totalized `Γ`. -/
+lemma inv_Gamma_mul_Gamma_one_sub (s : ℂ) : (Gamma s * Gamma (1 - s))⁻¹ = sin (π * s) / π := by
+  rw [Gamma_mul_Gamma_one_sub, inv_div]
+
+/-- The trigonometric identity behind the `M(a,b,z)` coefficient in DLMF 13.2.41. -/
+lemma exp_sin_connection (a b ε : ℂ) (hε : ε = 1 ∨ ε = -1) :
+    exp (-ε * a * π * I) * sin (π * (b - a)) + exp (ε * (b - a) * π * I) * sin (π * a) =
+      sin (π * b) := by
+  have hu := exp_ne_zero (a * π * I)
+  have hv := exp_ne_zero (b * π * I)
+  have e1 : ∀ x : ℂ, sin (π * x) = (exp (-(x * π * I)) - exp (x * π * I)) * I / 2 := fun x => by
+    rw [Complex.sin]; ring_nf
+  rw [e1, e1, e1]
+  rcases hε with rfl | rfl
+  · rw [show -1 * a * π * I = -(a * π * I) by ring,
+      show (1 : ℂ) * (b - a) * π * I = b * π * I - a * π * I by ring,
+      show -((b - a) * π * I) = a * π * I - b * π * I by ring,
+      show (b - a) * π * I = b * π * I - a * π * I by ring]
+    simp only [exp_neg, exp_sub]
+    field_simp
+    ring
+  · rw [show -(-1) * a * π * I = a * π * I by ring,
+      show (-1 : ℂ) * (b - a) * π * I = a * π * I - b * π * I by ring,
+      show -((b - a) * π * I) = a * π * I - b * π * I by ring,
+      show (b - a) * π * I = b * π * I - a * π * I by ring]
+    simp only [exp_neg, exp_sub]
+    field_simp
+    ring
+
+/-- The cancellation of the `z^{1-b}` terms in DLMF 13.2.41. -/
+lemma exp_connection_cancel (a b ε : ℂ) (hε : ε = 1 ∨ ε = -1) :
+    exp (-ε * a * π * I) + exp (ε * (b - a) * π * I) * exp (ε * π * I * (1 - b)) = 0 := by
+  rw [← exp_add, show ε * (b - a) * π * I + ε * π * I * (1 - b) = -ε * a * π * I + ε * π * I by
+    ring, exp_add]
+  rcases hε with rfl | rfl
+  · rw [one_mul, exp_pi_mul_I]; ring
+  · rw [show (-1 : ℂ) * π * I = -(π * I) by ring, exp_neg, exp_pi_mul_I]; ring
+
+/-- DLMF 13.2.41 for noninteger `b`, with `-z = z e^{επi}` and `ε = ±1`. -/
+theorem confluentM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : ∀ k : ℤ, b ≠ k)
+    (ε : ℂ) (hε : ε = 1 ∨ ε = -1)
+    (hc : (-z) ^ (1 - b) = z ^ (1 - b) * exp (ε * π * I * (1 - b))) :
+    confluentM a b z / Gamma b =
+      exp (-ε * a * π * I) / Gamma (b - a) * confluentU a b z +
+        exp (ε * (b - a) * π * I) / Gamma a * exp z * confluentU (b - a) b (-z) := by
+  have hbn : ∀ k : ℕ, b ≠ -k := fun k h => hb (-k) (by simp [h])
+  have h2b : ∀ k : ℕ, 2 - b ≠ -k := fun k h => hb (k + 2) (by push_cast; linear_combination -h)
+  rw [confluentU_eq_connection _ _ _ hb, confluentU_eq_connection _ _ _ hb, confluentUConnection,
+    confluentUConnection, hc, show b - a - b + 1 = 1 - a by ring]
+  have hk1 := confluentM_kummer_transform (a := a) (z := z) hbn
+  have hk2 := confluentM_kummer_transform (a := a - b + 1) (z := z) h2b
+  rw [show 2 - b - (a - b + 1) = 1 - a by ring] at hk2
+  rw [hk1, hk2]
+  have hG1 := inv_Gamma_mul_Gamma_one_sub (b - a)
+  have hG2 := inv_Gamma_mul_Gamma_one_sub a
+  have hG3 := inv_Gamma_mul_Gamma_one_sub b
+  rw [show 1 - (b - a) = a - b + 1 by ring] at hG1
+  have hg : Gamma (1 - b) ≠ 0 :=
+    Gamma_ne_zero fun k h => hb (k + 1) (by push_cast; linear_combination -h)
+  have hgb : (Gamma b)⁻¹ = Gamma (1 - b) * (sin (π * b) / π) := by
+    rw [← hG3, mul_inv, mul_comm, mul_assoc, inv_mul_cancel₀ hg, mul_one]
+  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+  simp only [div_eq_mul_inv]
+  rw [hgb]
+  rw [mul_inv] at hG1 hG2
+  have hS1 := exp_sin_connection a b ε hε
+  have hS2 := exp_connection_cancel a b ε hε
+  set E := exp z
+  set Mb := confluentM (b - a) b (-z)
+  set Mc := confluentM (1 - a) (2 - b) (-z)
+  set Z := z ^ (1 - b)
+  linear_combination (-(E * Mb * Gamma (1 - b) * exp (-ε * a * π * I))) * hG1 -
+    E * Mb * Gamma (1 - b) * exp (ε * (b - a) * π * I) * hG2 -
+    E * Mb * Gamma (1 - b) / π * hS1 -
+    E * Mc * Z * Gamma (b - 1) * (Gamma a)⁻¹ * (Gamma (b - a))⁻¹ * hS2
 
 /-- 13.2.36 without the hypothesis on `a - b + 1`. -/
 lemma wronskian_shifted_regularized_confluentU_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
@@ -1484,25 +1539,46 @@ theorem wronskian_shifted_regularized_confluentU (a b : ℂ) {z : ℂ} (hz : z �
       -(z ^ (-b) * exp z) / Gamma (a - b + 1) := by
   exact wronskian_shifted_regularized_confluentU_all a b hz
 
-/-- The value does not depend on the branch; `-z` must avoid the cut so that the second
-function is differentiable at `z`. -/
-@[dlmf 13.2.E37]
-theorem wronskian_shifted_regularized_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (hz' : -z ∈ slitPlane) (sign : Bool) (ha : ∀ k : ℕ, 1 - a ≠ -k) :
-    wronskian (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w)
-      (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
-      -(z ^ (-b) * exp z) / Gamma (1 - a) := by
-  sorry
-
-/-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
-`e^{+πi}` continuation for `ph z < 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
-@[dlmf 13.2.E38]
-theorem wronskian_confluentU_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
-    (sign : Bool) (hsign : if sign then z.arg < 0 else 0 < z.arg) :
-    wronskian (confluentU a b)
-      (fun w => exp w * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * w)) z =
-      exp ((if sign then 1 else -1) * (a - b) * π * I) * z ^ (-b) * exp z := by
-  sorry
+/-- **DLMF 13.2.41 in regularized form**, valid for every `b`:
+`𝐌(a,b,z) = e^{∓πia}/Γ(b-a) U(a,b,z) + e^{±πi(b-a)}/Γ(a) e^z U(b-a,b,z e^{±πi})`. -/
+theorem regularizedHGFun_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+    (sign : Bool) (hsign : if sign then z.arg ≤ 0 else 0 < z.arg) :
+    regularizedHGFun {a} {b} z =
+      exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * confluentU a b z +
+        exp ((if sign then 1 else -1) * (b - a) * π * I) / Gamma a *
+          exp z * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
+  have hz0 := slitPlane_ne_zero hz
+  set ε : ℂ := if sign then 1 else -1 with hεdef
+  have hε : ε = 1 ∨ ε = -1 := by cases sign <;> simp [hεdef]
+  have hw : exp (ε * π * I) * z = -z := by
+    rcases hε with h | h <;> rw [h]
+    · rw [one_mul, exp_pi_mul_I]; ring
+    · rw [show (-1 : ℂ) * π * I = -(π * I) by ring, exp_neg, exp_pi_mul_I]; ring
+  have hc : ∀ w : ℂ, (-z) ^ w = z ^ w * exp (ε * π * I * w) := by
+    have harg := arg_le_pi z
+    have harg' := neg_pi_lt_arg z
+    refine neg_cpow_of_arg hz0 ε hε ?_ ?_ <;> cases sign <;> simp_all <;> linarith
+  rw [hw]
+  have hiG : Continuous fun s : ℂ => (Gamma s)⁻¹ := by
+    simpa [one_div] using differentiable_one_div_Gamma.continuous
+  have hnz : -z ≠ 0 := neg_ne_zero.mpr hz0
+  refine eq_of_continuousAt_of_integerComplement
+    (f := fun c => regularizedHGFun {a} {c} z)
+    (g := fun c => exp (-ε * a * π * I) / Gamma (c - a) * confluentU a c z +
+      exp (ε * (c - a) * π * I) / Gamma a * exp z * confluentU (c - a) c (-z)) ?_ ?_ ?_
+  · exact (continuous_regularizedConfluent.comp (by fun_prop :
+      Continuous fun c : ℂ => (a, c, z))).continuousAt
+  · simp only [div_eq_mul_inv]
+    refine ContinuousAt.add (ContinuousAt.mul (continuousAt_const.mul
+      (hiG.comp (by fun_prop : Continuous fun c : ℂ => c - a)).continuousAt)
+      (continuousAt_confluentU_comp continuousAt_const continuousAt_id hz0)) ?_
+    refine ContinuousAt.mul ((ContinuousAt.mul (by fun_prop) continuousAt_const).mul
+      continuousAt_const) (continuousAt_confluentU_comp (by fun_prop) continuousAt_id hnz)
+  · intro c hc'
+    have hcz := forall_of_mem_integerComplement hc'
+    have hcn : ∀ k : ℕ, c ≠ -k := fun k h => hcz (-k) (by simp [h])
+    rw [regularizedConfluent_eq_div_Gamma hcn]
+    exact confluentM_div_Gamma_connection_of_not_int a c hcz ε hε (hc _)
 
 /-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
 `e^{+πi}` continuation for `ph z ≤ 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
@@ -1513,7 +1589,8 @@ theorem confluentM_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ sl
       exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * confluentU a b z +
         exp ((if sign then 1 else -1) * (b - a) * π * I) / Gamma a *
           exp z * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
-  sorry
+  rw [← regularizedConfluent_eq_div_Gamma hb]
+  exact regularizedHGFun_eq_confluentU_connection a b hz sign hsign
 
 /-- Exponential form of a sine jump. -/
 lemma exp_sub_exp_neg_mul_I (t : ℂ) :

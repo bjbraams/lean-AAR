@@ -7,6 +7,7 @@ module
 
 public import AAR.Gamma.Digamma
 public import AAR.Gamma.Polygamma
+public import AAR.Gamma.MellinBarnes
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.ZetaValues
@@ -39,7 +40,34 @@ theorem mellin_barnes_beta {a b : ℂ} {x σ : ℝ}
         Complex.Gamma (σ + I * t + a) * Complex.Gamma (b - (σ + I * t)) *
           (x : ℂ) ^ (-(σ + I * t)) =
       Complex.Gamma (a + b) * (x : ℂ) ^ a / (1 + (x : ℂ)) ^ (a + b) := by
-  sorry
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have h := Gamma_mul_one_add_cpow_neg (a := a + b) (σ := σ + a.re) (by linarith)
+    (by simp only [add_re]; linarith) hx
+  have htr := integral_add_right_eq_self (μ := volume) (fun y : ℝ =>
+    Complex.Gamma (((σ + a.re : ℝ) : ℂ) + y * I) *
+      Complex.Gamma (a + b - (((σ + a.re : ℝ) : ℂ) + y * I)) *
+      (x : ℂ) ^ (-(((σ + a.re : ℝ) : ℂ) + y * I))) a.im
+  rw [← htr] at h
+  have hpt : ∀ t : ℝ, Complex.Gamma (((σ + a.re : ℝ) : ℂ) + ((t + a.im : ℝ) : ℂ) * I) *
+      Complex.Gamma (a + b - (((σ + a.re : ℝ) : ℂ) + ((t + a.im : ℝ) : ℂ) * I)) *
+      (x : ℂ) ^ (-(((σ + a.re : ℝ) : ℂ) + ((t + a.im : ℝ) : ℂ) * I)) =
+      (x : ℂ) ^ (-a) * (Complex.Gamma (σ + I * t + a) * Complex.Gamma (b - (σ + I * t)) *
+        (x : ℂ) ^ (-(σ + I * t))) := by
+    intro t
+    have e : ((σ + a.re : ℝ) : ℂ) + ((t + a.im : ℝ) : ℂ) * I = σ + I * t + a := by
+      apply Complex.ext <;> simp
+    rw [e, show a + b - (σ + I * t + a) = b - (σ + I * t) by ring,
+      show -((σ : ℂ) + I * t + a) = -a + -(σ + I * t) by ring, cpow_add _ _ hx0]
+    ring
+  simp only [hpt] at h
+  rw [integral_const_mul] at h
+  have hxa : (x : ℂ) ^ a * (x : ℂ) ^ (-a) = 1 := by
+    rw [← cpow_add _ _ hx0, add_neg_cancel, cpow_zero]
+  have h1 : ((1 + x : ℝ) : ℂ) = 1 + (x : ℂ) := by push_cast; ring
+  rw [h1, cpow_neg] at h
+  generalize (∫ t : ℝ, Complex.Gamma (σ + I * t + a) * Complex.Gamma (b - (σ + I * t)) *
+    (x : ℂ) ^ (-(σ + I * t))) = J at h ⊢
+  linear_combination (-(x : ℂ) ^ a) * h - (1 / (2 * π) * J) * hxa
 
 @[dlmf 5.13.E2]
 theorem mellin_barnes_norm_sq {a b : ℝ} (ha : 0 < a) (hb : 0 < b) (hbπ : b < π / 2) :

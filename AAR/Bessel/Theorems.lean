@@ -131,11 +131,6 @@ theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
           gegenbauer ν n (Real.cos phi) := by
   sorry
 
-/-- For real `ν > -1` and `x > 0`, `J_ν(x)` has infinitely many positive zeros (AAR §4.14). -/
-theorem besselJ_infinite_zeros {ν : ℝ} (hν : -1 < ν) :
-    Set.Infinite {x : ℝ | 0 < x ∧ besselJ ν x = 0} := by
-  sorry
-
 /-- At a nonzero point, a zero of regularized `₀F₁` has nonzero derivative.
 The contiguous relation propagates a hypothetical double zero to every derivative. -/
 lemma regularized0F1_deriv_ne_zero {c w : ℂ} (hc : ∀ k : ℕ, c ≠ -k)
@@ -197,8 +192,3 @@ theorem besselJ_zeros_simple {ν x : ℝ} (hν : -1 < ν) (hx : 0 < x)
   rw [deriv_regularized0F1] at hne
   rw [(hasDerivAt_besselJ hxslit).deriv, hroot, mul_zero, zero_sub, neg_ne_zero]
   exact mul_ne_zero (hp _) hne
-
-/-- The first positive Bessel zero is strictly increasing with the nonnegative order. -/
-theorem besselJ_first_positive_zero_strictMono :
-    StrictMonoOn (fun ν : ℝ => sInf {x : ℝ | 0 < x ∧ besselJ ν x = 0}) (Set.Ici 0) := by
-  sorry

@@ -6,6 +6,9 @@ Authors: Bastiaan J Braams
 module
 
 public import ToMathlib.NumberTheory.EulerPolynomials
+public import ToMathlib.NumberTheory.EulerNumbers
+public import ToMathlib.NumberTheory.BernoulliTaylor
+public import ToMathlib.Analysis.SpecialFunctions.Trigonometric.PartialFractions
 public import ToMathlib.Analysis.EulerMaclaurin
 public import ToMathlib.Analysis.BooleSummation
 public import ToMathlib.Analysis.Asymptotics.AsymptoticExpansion

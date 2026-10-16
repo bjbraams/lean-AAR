@@ -24,6 +24,8 @@ mean-square optimality of truncated Legendre expansions.
 * `integral_norm_sub_sum_legendreCoeff_sq_le`: the truncated Legendre series is the best
   mean-square polynomial approximation.
 * `sum_legendreCoeff_sq_le`: Bessel's inequality (Temme (6.62)).
+* `besselJ_zero_eq_integral`, `legendre_exponential_generating_function`: Bessel's integral
+  `J₀(u) = (1/π) ∫₀^π e^{iu cos φ} dφ` and `∑ Pₙ(x) zⁿ/n! = e^{xz} J₀(z√(1-x²))` (DLMF 18.12.12).
 * `tendsto_sqrt_mul_legendreP_cos`: the Laplace–Heine formula
   `√n P_n(cos θ) - √(2/(π sin θ)) cos((n + 1/2)θ - π/4) → 0` (Temme §6.8.4). Laplace's integral
   is split at `π/2`, rescaled by `√n`, and passed to the limit by dominated convergence, with
@@ -612,5 +614,125 @@ theorem tendsto_sqrt_mul_legendreP_cos {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < �
   rw [hP n, ← hmain n]
   simp only [map_mul, map_sub, Complex.conj_ofReal]
   ring
+
+/-! ### The exponential generating function (Temme §6.7) -/
+
+/-- Wallis' integrals on `[0, π]`: odd powers of `cos` integrate to zero. -/
+lemma integral_cos_pow_odd_zero_pi (m : ℕ) : ∫ t in (0 : ℝ)..π, Real.cos t ^ (2 * m + 1) = 0 := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    rw [show 2 * (m + 1) + 1 = (2 * m + 1) + 2 by ring, integral_cos_pow, ih]
+    simp
+
+/-- Wallis' integrals on `[0, π]`: `∫₀^π cos^{2m} = π (2m)! / (4^m (m!)²)`. -/
+lemma integral_cos_pow_even_zero_pi (m : ℕ) :
+    ∫ t in (0 : ℝ)..π, Real.cos t ^ (2 * m) = π * ((2 * m)! / (4 ^ m * (m ! : ℝ) ^ 2)) := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    rw [show 2 * (m + 1) = 2 * m + 2 by ring, integral_cos_pow, ih]
+    simp only [Real.sin_pi, Real.sin_zero, mul_zero, sub_zero, zero_div, zero_add]
+    rw [show 2 * m + 2 = (2 * m + 1) + 1 by ring, Nat.factorial_succ, Nat.factorial_succ,
+      Nat.factorial_succ m, pow_succ]
+    push_cast
+    have hf : (m ! : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+    have hm : (m : ℝ) + 1 ≠ 0 := by positivity
+    field_simp
+    ring
+
+/-- Termwise integration over `[0, π]` of a power series in a bounded continuous function. -/
+lemma hasSum_integral_pow_div_factorial {g : ℝ → ℂ} (hg : Continuous g)
+    (hb : ∀ t, ‖g t‖ ≤ 1) (u : ℂ) :
+    HasSum (fun k : ℕ => ∫ t in (0 : ℝ)..π, (u * g t) ^ k / k !)
+      (∫ t in (0 : ℝ)..π, Complex.exp (u * g t)) := by
+  refine intervalIntegral.hasSum_integral_of_dominated_convergence
+    (fun k _ => ‖u‖ ^ k / k !) (fun k => (by fun_prop : Continuous fun t =>
+      (u * g t) ^ k / (k ! : ℂ)).aestronglyMeasurable)
+    (fun k => Eventually.of_forall fun t _ => ?_)
+    (Eventually.of_forall fun t _ => Real.summable_pow_div_factorial ‖u‖)
+    intervalIntegrable_const
+    (Eventually.of_forall fun t _ => by
+      simpa only [Complex.exp_eq_exp_ℂ] using NormedSpace.expSeries_div_hasSum_exp (u * g t))
+  rw [norm_div, norm_pow, norm_mul, Complex.norm_natCast]
+  gcongr
+  calc ‖u‖ * ‖g t‖ ≤ ‖u‖ * 1 := by gcongr; exact hb t
+    _ = ‖u‖ := mul_one _
+
+/-- **Bessel's integral for `J₀`** (DLMF 10.9.1 with `n = 0`): for every complex `u`,
+`J₀(u) = (1/π) ∫₀^π e^{iu cos φ} dφ`. -/
+theorem besselJ_zero_eq_integral (u : ℂ) :
+    besselJ 0 u = (π : ℂ)⁻¹ * ∫ t in (0 : ℝ)..π, Complex.exp (I * u * Real.cos t) := by
+  have hπ : (π : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hS := hasSum_integral_pow_div_factorial (g := fun t => (Real.cos t : ℂ))
+    (by fun_prop) (fun t => by rw [Complex.norm_real, Real.norm_eq_abs]; exact Real.abs_cos_le_one t)
+    (I * u)
+  -- the terms
+  have hterm : ∀ k : ℕ, ∫ t in (0 : ℝ)..π, (I * u * (Real.cos t : ℂ)) ^ k / k ! =
+      (I * u) ^ k / k ! * ((∫ t in (0 : ℝ)..π, Real.cos t ^ k : ℝ) : ℂ) := by
+    intro k
+    rw [← intervalIntegral.integral_ofReal, ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    push_cast; ring
+  simp only [hterm] at hS
+  -- only even terms survive
+  have hodd : ∀ k ∉ Set.range (fun m : ℕ => 2 * m), (I * u) ^ k / k ! *
+      ((∫ t in (0 : ℝ)..π, Real.cos t ^ k : ℝ) : ℂ) = 0 := by
+    intro k hk
+    obtain ⟨m, rfl⟩ : Odd k := by
+      rcases Nat.even_or_odd k with ⟨m, rfl⟩ | h
+      · exact absurd ⟨m, by ring⟩ hk
+      · exact h
+    rw [integral_cos_pow_odd_zero_pi]; simp
+  rw [← (show Function.Injective (fun m : ℕ => 2 * m) from fun a b h => by simpa using h).hasSum_iff
+    hodd] at hS
+  -- the Bessel series
+  have hB := (hasFPowerSeriesOnBall_regularized0F1 (0 + 1)).hasSum_mul_pow
+    (z := -(u ^ 2 / 4)) (by simp)
+  rw [besselJ, Complex.cpow_zero, one_mul]
+  refine hB.unique ?_
+  have h2 := hS.mul_left (π : ℂ)⁻¹
+  convert h2 using 1
+  · funext m
+    simp only [Function.comp_apply, regularizedHGFunCoeff_empty, zero_add]
+    rw [integral_cos_pow_even_zero_pi, show (1 : ℂ) + m = (m : ℂ) + 1 by ring,
+      Complex.Gamma_nat_eq_factorial, pow_mul, mul_pow, Complex.I_sq]
+    have hf : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+    have hf2 : ((2 * m)! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (2 * m).factorial_ne_zero
+    push_cast
+    field_simp
+    rw [← mul_pow]
+    ring_nf
+
+/-- **The exponential generating function of Legendre polynomials** (DLMF 18.12.12):
+`∑ Pₙ(x) zⁿ/n! = e^{xz} J₀(z √(1-x²))` for `|x| ≤ 1`. -/
+@[dlmf 18.12.E12]
+theorem legendre_exponential_generating_function {x : ℝ} (hx : |x| ≤ 1) (z : ℂ) :
+    HasSum (fun n : ℕ => legendreP n x / n.factorial * z ^ n)
+      (exp (x * z) * besselJ 0 (z * Real.sqrt (1 - x ^ 2))) := by
+  set θ := Real.arccos x with hθ
+  have hc : Real.cos θ = x := Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2
+  have hs : Real.sin θ = Real.sqrt (1 - x ^ 2) := Real.sin_arccos x
+  have hπ : (π : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hS := hasSum_integral_pow_div_factorial
+    (g := fun t => (Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) (by fun_prop)
+    (fun t => by
+      rw [norm_laplace_integrand, Real.sqrt_le_one]
+      nlinarith [sq_nonneg (Real.sin θ * Real.sin t)]) z
+  have h := hS.mul_left (π : ℂ)⁻¹
+  convert h using 1
+  · funext n
+    have hI : ∫ t in (0 : ℝ)..π, (z * ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t)) ^ n /
+        n ! = z ^ n / n ! * ∫ t in (0 : ℝ)..π, ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) ^ n := by
+      rw [← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun t _ => ?_
+      rw [mul_pow]; ring
+    rw [hI, ← hc, legendre_laplace_integral]
+    ring
+  · rw [besselJ_zero_eq_integral, ← hs, ← hc, ← intervalIntegral.integral_const_mul,
+      ← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    rw [mul_left_comm, ← Complex.exp_add]
+    ring_nf
 
 end AAR.OrthogonalPolynomials

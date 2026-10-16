@@ -5,27 +5,37 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.Bessel.Asymptotics
 public import AAR.Bessel.Basic
+public import AAR.Bessel.BesselIntegral
+public import AAR.Bessel.KIntegrals
+public import AAR.Bessel.Lommel
+public import AAR.Bessel.MathlibBridge
 public import AAR.Bessel.Modified
+public import AAR.Bessel.SecondKind
 public import AAR.Bessel.Theorems
+public import AAR.Bessel.WeberSeries
+public import AAR.Bessel.Zeros
 
 /-!
-# Bessel functions (AAR Chapter 4, §§4.5–4.15)
+# Bessel functions (AAR Chapter 4, §§4.5–4.15; DLMF Chapter 10)
 
-Mathlib now defines `Complex.besselJ` via the same regularized `₀F₁` series as the
-project's `besselJ` (with `-(z/2)^2` in place of `-z^2/4`). This cluster also defines
-`Y_ν`, `I_ν`, and `K_ν` and proves differential equations, recurrences, half-integer
-values, Poisson's and Sonine's integrals, and the absolutely convergent generating function.
+The project's `besselJ` is Mathlib's `Complex.besselJ` (`besselJ_eq_complex_besselJ`): both use
+the regularized `₀F₁` series. This cluster also defines `Y_ν`, `I_ν`, `K_ν` and the Hankel
+functions. It proves differential equations, recurrences, Wronskians, half-integer values,
+Poisson's, Sonine's, Bessel's and Lommel's integrals, the generating function, Hankel's
+large-argument expansions and the existence of infinitely many real zeros.
 
-The remaining admitted results are Gegenbauer's addition theorem (DLMF 10.23.8),
-Nicholson's integral (10.9.30), infinitely many positive zeros, and monotonicity of the first positive zero (10.21). Their stated domains
-agree with DLMF; in particular, no radius ordering is needed in 10.23.8 for `J`.
+The integer-order values of `Y` and `K` are parameter limits (`Filter.limUnder`). These limits
+exist at every nonzero argument, are jointly continuous in order and argument
+(`continuousAt_besselY`, `continuousAt_besselK`), and satisfy the recurrences and differential
+equations for all orders. `WeberSeries` gives `Y_{-n} = (-1)ⁿ Y_n`, `Y_n` as an order derivative
+of `J_ν`, the logarithmic series of `Y_n` (DLMF 10.8.1–10.8.2), the general solution
+`A J_ν + B Y_ν` of Bessel's equation, the product formula 10.8.3 and the Jacobi–Anger cosine and
+sine series. The values at zero supplied by the totalized definitions must not be
+interpreted as finite limits of the classical singular functions.
 
-The integer-order definitions of `Y` and `K` use `Filter.limUnder`. Existence of
-these parameter limits at nonzero arguments remains to be proved; the current
-ODE theorems for `Y` and `K` therefore cover only noninteger orders. The values at
-zero supplied by the totalized definitions must not be interpreted as finite
-limits of the classical singular functions. Sonine's integral (10.22.51) is proved
-by termwise integration and Gamma moments. Nicholson's integral and the zero theorems
-require further integral representations or oscillation/comparison theory.
+The remaining admitted results are Gegenbauer's addition theorem (DLMF 10.23.8) and Nicholson's
+integral (10.9.30). Their
+stated domains agree with DLMF; in particular, no radius ordering is needed in 10.23.8 for `J`.
 -/
