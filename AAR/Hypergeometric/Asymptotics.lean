@@ -28,6 +28,7 @@ turning-point branches not yet available in this project's hypergeometric API.
 
 open Complex Filter
 open scoped Real Topology
+open AAR.Bessel
 
 noncomputable section
 

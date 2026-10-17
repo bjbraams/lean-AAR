@@ -30,6 +30,7 @@ Corollaries: Euler's series `2 arcsin² x = ∑ (2x)^{2n}/(n² C(2n,n))` (Duvern
 
 open PowerSeries Complex
 open scoped Nat Real
+open AAR.Bessel
 
 noncomputable section
 

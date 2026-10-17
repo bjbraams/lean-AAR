@@ -20,13 +20,14 @@ are `poch_zero` and `poch_succ` in `Hypergeometric.Basic`. The Gamma quotient
 @[expose] public section
 
 open Complex
+open AAR.Hypergeometric
 
 noncomputable section
 
 namespace AAR.Gamma
 
 lemma poch_succ_left (a : ℂ) (n : ℕ) : poch a (n + 1) = a * poch (a + 1) n :=
-  _root_.poch_succ_left a n
+  AAR.Hypergeometric.poch_succ_left a n
 @[dlmf 5.2.E6]
 theorem poch_neg_eq (a : ℂ) (n : ℕ) :
     poch (-a) n = (-1 : ℂ) ^ n * poch (a - n + 1) n := by

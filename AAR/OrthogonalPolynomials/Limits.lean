@@ -21,6 +21,9 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
+open AAR.Bessel
 
 noncomputable section
 
@@ -69,7 +72,8 @@ lemma tendsto_jacobiSeries_div_pow {α : ℂ} (n : ℕ) (u : ℂ) :
 
 @[dlmf 18.6.E2]
 theorem jacobi_limit_alpha {β : ℂ} (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => jacobiP a β n x / jacobiP a β n 1) atTop (𝓝 (((1 + x) / 2) ^ n)) := by
+    Tendsto (fun a : ℝ => jacobiPolyP a β n x / jacobiPolyP a β n 1) atTop
+        (𝓝 (((1 + x) / 2) ^ n)) := by
   have hx : ((1 + x) / 2) ^ n = (1 - (1 - x) / 2) ^ n := by ring_nf
   rw [hx, ← sum_poch_neg_nat_div_factorial_mul_pow]
   have hlim : Tendsto (fun a : ℝ => ∑ k ∈ Finset.range (n + 1),
@@ -91,7 +95,7 @@ theorem jacobi_limit_alpha {β : ℂ} (n : ℕ) (x : ℂ) :
   have h0 : ₂F₁ (-(n : ℂ)) (n + a + β + 1) (a + 1) (0 : ℂ) = 1 := by
     rw [ordinaryHypergeometric_eq_sum_neg_nat, Finset.sum_range_succ']
     simp [gaussHGCoeff, poch_zero]
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [show ((1 : ℂ) - 1) / 2 = 0 by ring, h0, mul_one, mul_div_cancel_left₀ _ hp,
     ordinaryHypergeometric_eq_sum_neg_nat]
   refine Finset.sum_congr rfl fun k _ => ?_
@@ -103,7 +107,8 @@ theorem jacobi_limit_alpha {β : ℂ} (n : ℕ) (x : ℂ) :
 
 @[dlmf 18.6.E3]
 theorem jacobi_limit_beta {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    Tendsto (fun b : ℝ => jacobiP α b n x / jacobiP α b n (-1)) atTop (𝓝 (((1 - x) / 2) ^ n)) := by
+    Tendsto (fun b : ℝ => jacobiPolyP α b n x / jacobiPolyP α b n (-1)) atTop
+        (𝓝 (((1 - x) / 2) ^ n)) := by
   have hc : ∀ k : ℕ, α + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
   have hG : poch (-(n : ℂ)) n / (poch (α + 1) n * n !) ≠ 0 := by
     refine div_ne_zero ?_ (mul_ne_zero (poch_ne_zero_of_not_neg_nat hc n)
@@ -118,13 +123,13 @@ theorem jacobi_limit_beta {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
   refine h.congr' ?_
   filter_upwards [eventually_gt_atTop 0] with b hb
   have hb' : (b : ℂ) ^ n ≠ 0 := pow_ne_zero _ (ofReal_ne_zero.mpr hb.ne')
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [Pi.div_apply, show (1 - (-1 : ℂ)) / 2 = 1 by norm_num, ordinaryHypergeometric_eq_sum_neg_nat,
     ordinaryHypergeometric_eq_sum_neg_nat, mul_div_mul_left _ _ hp, div_div_div_cancel_right₀ hb']
 
 @[dlmf 18.6.E4]
-theorem gegenbauer_limit_monomial (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => gegenbauer a n x / gegenbauer a n 1) atTop (𝓝 (x ^ n)) := by
+theorem ultrasphPoly_limit_monomial (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℝ => ultrasphPoly a n x / ultrasphPoly a n 1) atTop (𝓝 (x ^ n)) := by
   have hx : x ^ n = (1 - (1 - x)) ^ n := by ring
   rw [hx, ← sum_poch_neg_nat_div_factorial_mul_pow]
   have h2 : Tendsto (fun a : ℝ => 2 * a) atTop atTop := tendsto_id.const_mul_atTop two_pos
@@ -145,7 +150,7 @@ theorem gegenbauer_limit_monomial (n : ℕ) (x : ℂ) :
   have hc : ∀ k : ℕ, (a : ℂ) + 1 / 2 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
   have hp : poch (2 * (a : ℂ)) n / n ! ≠ 0 :=
     div_ne_zero (poch_ne_zero_of_not_neg_nat h2a n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-  unfold gegenbauer
+  unfold ultrasphPoly
   have h0 : ₂F₁ (-(n : ℂ)) (n + 2 * a) (a + 1 / 2) (0 : ℂ) = 1 := by
     rw [ordinaryHypergeometric_eq_sum_neg_nat, Finset.sum_range_succ']
     simp [gaussHGCoeff, poch_zero]
@@ -161,8 +166,9 @@ theorem gegenbauer_limit_monomial (n : ℕ) (x : ℂ) :
   ring
 
 @[dlmf 18.6.E5]
-theorem laguerre_limit_monomial (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => laguerre a n (a * x) / laguerre a n 0) atTop (𝓝 ((1 - x) ^ n)) := by
+theorem laguerrePolyL_limit_monomial (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℝ => laguerrePolyL a n (a * x) / laguerrePolyL a n 0) atTop
+        (𝓝 ((1 - x) ^ n)) := by
   rw [← sum_poch_neg_nat_div_factorial_mul_pow]
   have hlim : Tendsto (fun a : ℝ => ∑ k ∈ Finset.range (n + 1),
       poch (-(n : ℂ)) k / k ! * x ^ k * (poch (1 + a) k / (a : ℂ) ^ k)⁻¹) atTop
@@ -177,8 +183,8 @@ theorem laguerre_limit_monomial (n : ℕ) (x : ℂ) :
   have hα : ∀ k : ℕ, (a : ℂ) + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
   have hp : poch ((a : ℂ) + 1) n / n ! ≠ 0 :=
     div_ne_zero (poch_ne_zero_of_not_neg_nat hα n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-  unfold laguerre
-  rw [confluentM_zero, mul_one, mul_div_cancel_left₀ _ hp, confluentM_eq_sum_neg_nat]
+  unfold laguerrePolyL
+  rw [kummerM_zero, mul_one, mul_div_cancel_left₀ _ hp, kummerM_eq_sum_neg_nat]
   refine Finset.sum_congr rfl fun k _ => ?_
   have hk : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
   have hpk : poch ((a : ℂ) + 1) k ≠ 0 := poch_ne_zero_of_not_neg_nat hα k
@@ -187,11 +193,11 @@ theorem laguerre_limit_monomial (n : ℕ) (x : ℂ) :
   ring
 
 @[dlmf 18.7.E21]
-theorem jacobi_limit_laguerre {α : ℂ} (n : ℕ) (x : ℂ) :
-    Tendsto (fun b : ℝ => jacobiP α b n (1 - 2 * x / b)) atTop (𝓝 (laguerre α n x)) := by
-  unfold laguerre
-  rw [confluentM_eq_sum_neg_nat]
-  unfold jacobiP
+theorem jacobi_limit_laguerrePolyL {α : ℂ} (n : ℕ) (x : ℂ) :
+    Tendsto (fun b : ℝ => jacobiPolyP α b n (1 - 2 * x / b)) atTop (𝓝 (laguerrePolyL α n x)) := by
+  unfold laguerrePolyL
+  rw [kummerM_eq_sum_neg_nat]
+  unfold jacobiPolyP
   apply Tendsto.const_mul
   have hlim : Tendsto (fun b : ℝ => ∑ k ∈ Finset.range (n + 1),
       poch (-(n : ℂ)) k / (poch (α + 1) k * k !) * x ^ k *
@@ -213,22 +219,23 @@ theorem jacobi_limit_laguerre {α : ℂ} (n : ℕ) (x : ℂ) :
   field_simp
 
 @[dlmf 18.7.E22]
-theorem jacobi_limit_laguerre_reflected {β : ℂ} (hβ : -1 < β.re) (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => jacobiP a β n (2 * x / a - 1)) atTop (𝓝 ((-1 : ℂ) ^ n * laguerre β n x)) := by
-  refine ((jacobi_limit_laguerre (α := β) n x).const_mul ((-1 : ℂ) ^ n)).congr' ?_
+theorem jacobi_limit_laguerrePolyL_reflected {β : ℂ} (hβ : -1 < β.re) (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℝ => jacobiPolyP a β n (2 * x / a - 1)) atTop
+        (𝓝 ((-1 : ℂ) ^ n * laguerrePolyL β n x)) := by
+  refine ((jacobi_limit_laguerrePolyL (α := β) n x).const_mul ((-1 : ℂ) ^ n)).congr' ?_
   filter_upwards [eventually_gt_atTop 0] with a ha
   rw [show 2 * x / (a : ℂ) - 1 = -(1 - 2 * x / a) by ring,
     jacobi_reflection (by simp; linarith) hβ]
 
 @[dlmf 18.7.E23]
 theorem jacobi_limit_hermite (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => (Real.sqrt a : ℂ)⁻¹ ^ n * jacobiP a a n (x / Real.sqrt a)) atTop
-      (𝓝 (aeval x (hermitePhys n) / ((2 : ℂ) ^ n * n.factorial))) := by
+    Tendsto (fun a : ℝ => (Real.sqrt a : ℂ)⁻¹ ^ n * jacobiPolyP a a n (x / Real.sqrt a)) atTop
+      (𝓝 (aeval x (hermitePolyH n) / ((2 : ℂ) ^ n * n.factorial))) := by
   have hc (c : ℂ) (d : ℂ) : Tendsto (fun a : ℝ => d + c / (a : ℂ)) atTop (𝓝 d) := by
     simpa using (tendsto_const_div_ofReal_atTop c).const_add d
   refine tendsto_of_three_term (f := fun n a => (Real.sqrt a : ℂ)⁻¹ ^ n *
-      jacobiP a a n (x / Real.sqrt a))
-    (g := fun n => aeval x (hermitePhys n) / ((2 : ℂ) ^ n * (n ! : ℂ)))
+      jacobiPolyP a a n (x / Real.sqrt a))
+    (g := fun n => aeval x (hermitePolyH n) / ((2 : ℂ) ^ n * (n ! : ℂ)))
     (A := fun n a => x * ((2 + (2 * n + 3) / (a : ℂ)) * (1 + (n + 2) / (a : ℂ))) /
       ((n + 2) * (2 + (n + 2) / (a : ℂ))))
     (B := fun n a => -((1 + (n + 1) / (a : ℂ)) * (1 + (n + 2) / (a : ℂ))) /
@@ -243,7 +250,7 @@ theorem jacobi_limit_hermite (n : ℕ) (x : ℂ) :
     have hs : (Real.sqrt a : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr ha).ne'
     have hs2 : (a : ℂ) = (Real.sqrt a : ℂ) ^ 2 := by
       rw [← ofReal_pow, Real.sq_sqrt ha.le]
-    rw [jacobiP_one_eq (by simp; linarith), hs2]
+    rw [jacobiPolyP_one_eq (by simp; linarith), hs2]
     field_simp
     ring
   · intro n
@@ -276,18 +283,18 @@ theorem jacobi_limit_hermite (n : ℕ) (x : ℂ) :
     have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 ≠ 0)
     have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn2 : (n : ℂ) + 1 + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 + 1 ≠ 0)
-    simp only [hermitePhys_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
+    simp only [hermitePolyH_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
       Nat.factorial_succ]
     push_cast
     field_simp
     ring
 
 @[dlmf 18.7.E24]
-theorem gegenbauer_limit_hermite (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => (Real.sqrt a : ℂ)⁻¹ ^ n * gegenbauer a n (x / Real.sqrt a)) atTop
-      (𝓝 (aeval x (hermitePhys n) / (n.factorial : ℂ))) := by
+theorem ultrasphPoly_limit_hermite (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℝ => (Real.sqrt a : ℂ)⁻¹ ^ n * ultrasphPoly a n (x / Real.sqrt a)) atTop
+      (𝓝 (aeval x (hermitePolyH n) / (n.factorial : ℂ))) := by
   refine tendsto_of_three_term (f := fun n a => (Real.sqrt a : ℂ)⁻¹ ^ n *
-      gegenbauer a n (x / Real.sqrt a)) (g := fun n => aeval x (hermitePhys n) / (n ! : ℂ))
+      ultrasphPoly a n (x / Real.sqrt a)) (g := fun n => aeval x (hermitePolyH n) / (n ! : ℂ))
     (A := fun n a => 2 * x / (n + 2) * (1 + (n + 1) / (a : ℂ)))
     (B := fun n a => -(1 / (n + 2)) * (2 + n / (a : ℂ)))
     (A' := fun n => 2 * x / (n + 2)) (B' := fun n => -(1 / (n + 2)) * 2) ?_ ?_ ?_ ?_ ?_ ?_ n
@@ -297,8 +304,8 @@ theorem gegenbauer_limit_hermite (n : ℕ) (x : ℂ) :
     have hs : (Real.sqrt a : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr ha).ne'
     have hs2 : (Real.sqrt a : ℂ) ^ 2 = a := by
       rw [← ofReal_pow, Real.sq_sqrt ha.le]
-    rw [gegenbauer_one_eq (by simp; linarith)]
-    simp only [hermitePhys_one, map_mul, aeval_X, Nat.factorial_one, Nat.cast_one, div_one,
+    rw [ultrasphPoly_one_eq (by simp; linarith)]
+    simp only [hermitePolyH_one, map_mul, aeval_X, Nat.factorial_one, Nat.cast_one, div_one,
       pow_one]
     rw [← hs2]
     field_simp
@@ -316,7 +323,7 @@ theorem gegenbauer_limit_hermite (n : ℕ) (x : ℂ) :
     have hs2 : (a : ℂ) = (Real.sqrt a : ℂ) ^ 2 := by
       rw [← ofReal_pow, Real.sq_sqrt ha.le]
     have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
-    have hr := gegenbauer_recurrence (lam := a) (by simp; linarith) n (x / Real.sqrt a)
+    have hr := ultrasphPoly_recurrence (lam := a) (by simp; linarith) n (x / Real.sqrt a)
     rw [hs2] at hr ⊢
     simp only [inv_pow]
     field_simp
@@ -327,15 +334,15 @@ theorem gegenbauer_limit_hermite (n : ℕ) (x : ℂ) :
     have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 ≠ 0)
     have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn2 : (n : ℂ) + 1 + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 + 1 ≠ 0)
-    simp only [hermitePhys_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
+    simp only [hermitePolyH_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
       Nat.factorial_succ]
     push_cast
     field_simp
     ring
 
 @[dlmf 18.7.E25]
-theorem gegenbauer_limit_chebyshev (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℂ => (n + a) / a * gegenbauer a n x) (𝓝[≠] 0)
+theorem ultrasphPoly_limit_chebyshev (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℂ => (n + a) / a * ultrasphPoly a n x) (𝓝[≠] 0)
       (𝓝 (if n = 0 then 1 else 2 * (Chebyshev.T ℂ n).eval x)) := by
   -- a punctured neighbourhood on which the recurrence is valid
   have hev : ∀ᶠ a : ℂ in 𝓝[≠] 0, a ≠ 0 ∧ ‖a‖ < 1 / 2 := by
@@ -354,7 +361,7 @@ theorem gegenbauer_limit_chebyshev (n : ℕ) (x : ℂ) :
     rw [h', norm_neg, Complex.norm_natCast] at ha
     have : (1 : ℝ) ≤ k := by exact_mod_cast hk
     linarith
-  refine tendsto_of_three_term (f := fun n a => (n + a) / a * gegenbauer a n x)
+  refine tendsto_of_three_term (f := fun n a => (n + a) / a * ultrasphPoly a n x)
     (g := fun n => if n = 0 then 1 else 2 * (Chebyshev.T ℂ n).eval x)
     (A := fun n a => (n + 2 + a) / (n + 2) * (2 * x))
     (B := fun n a => -((n + 2 + a) / (n + 2) * ((n + 2 * a) / (n + a))))
@@ -367,7 +374,7 @@ theorem gegenbauer_limit_chebyshev (n : ℕ) (x : ℂ) :
         continuous_const).tendsto 0 |>.mono_left nhdsWithin_le_nhds
     refine (h.congr' ?_).trans (by simp)
     filter_upwards [hev] with a ⟨ha0, ha⟩
-    rw [gegenbauer_one_eq (hre a ha)]
+    rw [ultrasphPoly_one_eq (hre a ha)]
     field_simp
     push_cast
     ring
@@ -402,7 +409,7 @@ theorem gegenbauer_limit_chebyshev (n : ℕ) (x : ℂ) :
     have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
     have h1 := hk a ha (n + 1) (by omega)
     have h2 := hk a ha (n + 2) (by omega)
-    have hr := gegenbauer_recurrence (hre a ha) n x
+    have hr := ultrasphPoly_recurrence (hre a ha) n x
     push_cast at h1 h2
     rcases Nat.eq_zero_or_pos n with rfl | hpos
     · simp only [CharP.cast_eq_zero, zero_add] at hr h1 h2 ⊢
@@ -424,9 +431,10 @@ theorem gegenbauer_limit_chebyshev (n : ℕ) (x : ℂ) :
       ring
 
 @[dlmf 18.7.E26]
-theorem laguerre_limit_hermite (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => (Real.sqrt (2 / a) : ℂ) ^ n * laguerre a n ((Real.sqrt (2 * a) : ℂ) * x + a)) atTop
-      (𝓝 ((-1 : ℂ) ^ n / n.factorial * aeval x (hermitePhys n))) := by
+theorem laguerrePolyL_limit_hermite (n : ℕ) (x : ℂ) :
+    Tendsto (fun a : ℝ => (Real.sqrt (2 / a) : ℂ) ^ n
+        * laguerrePolyL a n ((Real.sqrt (2 * a) : ℂ) * x + a)) atTop
+      (𝓝 ((-1 : ℂ) ^ n / n.factorial * aeval x (hermitePolyH n))) := by
   have hr0 : Tendsto (fun a : ℝ => (Real.sqrt (2 / a) : ℂ)) atTop (𝓝 0) := by
     have h1 : Tendsto (fun a : ℝ => 2 / a) atTop (𝓝 0) :=
       tendsto_const_nhds.div_atTop tendsto_id
@@ -445,16 +453,16 @@ theorem laguerre_limit_hermite (n : ℕ) (x : ℂ) :
       all_goals norm_num
     · rw [← ofReal_pow, Real.sq_sqrt (by positivity), ← ofReal_mul, div_mul_cancel₀ _ ha.ne']
       all_goals norm_num
-  have hlag1 : ∀ α y : ℂ, α + 1 ≠ 0 → laguerre α 1 y = α + 1 - y := by
+  have hlag1 : ∀ α y : ℂ, α + 1 ≠ 0 → laguerrePolyL α 1 y = α + 1 - y := by
     intro α y hα
-    unfold laguerre
-    rw [confluentM_eq_sum_neg_nat]
+    unfold laguerrePolyL
+    rw [kummerM_eq_sum_neg_nat]
     simp [Finset.sum_range_succ, poch_one, poch_zero]
     field_simp
     ring
   refine tendsto_of_three_term (f := fun n a => (Real.sqrt (2 / a) : ℂ) ^ n *
-      laguerre a n ((Real.sqrt (2 * a) : ℂ) * x + a))
-    (g := fun n => (-1 : ℂ) ^ n / (n ! : ℂ) * aeval x (hermitePhys n))
+      laguerrePolyL a n ((Real.sqrt (2 * a) : ℂ) * x + a))
+    (g := fun n => (-1 : ℂ) ^ n / (n ! : ℂ) * aeval x (hermitePolyH n))
     (A := fun n a => ((2 * n + 3) * (Real.sqrt (2 / a) : ℂ) - 2 * x) / (n + 2))
     (B := fun n a => -(2 + 2 * (n + 1) / (a : ℂ)) / (n + 2))
     (A' := fun n => -(2 * x) / (n + 2)) (B' := fun n => -2 / (n + 2)) ?_ ?_ ?_ ?_ ?_ ?_ n
@@ -480,21 +488,21 @@ theorem laguerre_limit_hermite (n : ℕ) (x : ℂ) :
     filter_upwards [eventually_gt_atTop 0] with a ha
     have ha' : (a : ℂ) ≠ 0 := ofReal_ne_zero.mpr ha.ne'
     have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
-    have hl := laguerre_recurrence (α := a) (by simp; linarith) n
+    have hl := laguerrePolyL_recurrence (α := a) (by simp; linarith) n
       ((Real.sqrt (2 * a) : ℂ) * x + a)
     obtain ⟨h1, h2⟩ := hsq a ha
     set r : ℂ := (Real.sqrt (2 / a) : ℂ)
     set s : ℂ := (Real.sqrt (2 * a) : ℂ)
     field_simp
     linear_combination r ^ (n + 2) * a * hl -
-      a * r ^ (n + 1) * x * laguerre a (n + 1) (s * x + a) * h1 -
-      (n + a + 1) * r ^ n * laguerre a n (s * x + a) * h2
+      a * r ^ (n + 1) * x * laguerrePolyL a (n + 1) (s * x + a) * h1 -
+      (n + a + 1) * r ^ n * laguerrePolyL a n (s * x + a) * h2
   · intro n
     have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
     have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 ≠ 0)
     have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn2 : (n : ℂ) + 1 + 1 ≠ 0 := by exact_mod_cast (by omega : n + 1 + 1 ≠ 0)
-    simp only [hermitePhys_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
+    simp only [hermitePolyH_recurrence, map_sub, map_mul, aeval_X, aeval_C, map_ofNat,
       Nat.factorial_succ]
     push_cast
     field_simp
@@ -502,26 +510,29 @@ theorem laguerre_limit_hermite (n : ℕ) (x : ℂ) :
 
 @[dlmf 18.11.E5]
 theorem jacobi_mehler_heine {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {z : ℝ} (hz : 0 < z) :
-    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * jacobiP α β n (cos ((z : ℂ) / n))) atTop
+    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * jacobiPolyP α β n (cos ((z : ℂ) / n)))
+        atTop
       (𝓝 ((Real.rpow (2 / z) α : ℂ) * besselJ α z)) := by
   sorry
 
 @[dlmf 18.11.E6]
-theorem laguerre_mehler_heine {α : ℝ} (hα : -1 < α) {z : ℝ} (hz : 0 < z) :
-    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * laguerre α n ((z : ℂ) / n)) atTop
+theorem laguerrePolyL_mehler_heine {α : ℝ} (hα : -1 < α) {z : ℝ} (hz : 0 < z) :
+    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * laguerrePolyL α n ((z : ℂ) / n)) atTop
       (𝓝 ((Real.rpow z (-α / 2) : ℂ) * besselJ α (2 * Real.sqrt z))) := by
   sorry
 
 @[dlmf 18.11.E7]
 theorem hermite_even_mehler_heine (z : ℂ) :
     Tendsto (fun n : ℕ => (-1 : ℂ) ^ n * Real.sqrt n / (2 ^ (2 * n) * (n.factorial : ℂ)) *
-      aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePhys (2 * n))) atTop (𝓝 (cos z / (Real.sqrt Real.pi : ℂ))) := by
+      aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePolyH (2 * n))) atTop
+          (𝓝 (cos z / (Real.sqrt Real.pi : ℂ))) := by
   sorry
 
 @[dlmf 18.11.E8]
 theorem hermite_odd_mehler_heine (z : ℂ) :
     Tendsto (fun n : ℕ => (-1 : ℂ) ^ n / (2 ^ (2 * n) * (n.factorial : ℂ)) *
-      aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePhys (2 * n + 1))) atTop (𝓝 (2 * sin z / (Real.sqrt Real.pi : ℂ))) := by
+      aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePolyH (2 * n + 1))) atTop
+          (𝓝 (2 * sin z / (Real.sqrt Real.pi : ℂ))) := by
   sorry
 
 

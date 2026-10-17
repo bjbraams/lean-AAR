@@ -17,7 +17,7 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 # Kummer `M` and Tricomi `U`: remaining basic properties (DLMF §13.2)
 
 Olver's regularized function `𝐌(a,b,z)` is Mathlib's `regularizedHGFun {a} {b}`.
-The series `confluentM` is entire in `z` at regular denominator parameters; `confluentU`
+The series `kummerM` is entire in `z` at regular denominator parameters; `kummerU`
 uses the connection formula 13.2.42 and parameter limits at integer `b`.
 The proved Kummer transformation currently retains a noninteger hypothesis;
 extending it to the limit branch remains a separate task. Complex powers use the principal branch
@@ -25,7 +25,7 @@ on the slit plane. Numerically satisfactory pairs (13.2.24–13.2.26) are record
 identities on the indicated argument sectors.
 
 The connection formula 13.2.41 is proved for every `b`, in regularized form, as
-`regularizedHGFun_eq_confluentU_connection`, from 13.2.42, Kummer's transformation 13.2.39 and the
+`regularizedHGFun_eq_kummerU_connection`, from 13.2.42, Kummer's transformation 13.2.39 and the
 reflection formula, then by continuity in `b`. The Wronskians 13.2.24, 13.2.25, 13.2.35, 13.2.37
 and 13.2.38 that follow from it are in `AAR.Confluent.ConnectionWronskians`.
 -/
@@ -34,6 +34,7 @@ and 13.2.38 that follow from it are in `AAR.Confluent.ConnectionWronskians`.
 
 open Complex Filter
 open scoped Real Topology
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -47,7 +48,7 @@ def wronskian (f g : ℂ → ℂ) (z : ℂ) : ℂ :=
 theorem regularizedHGFun_of_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
     regularizedHGFun {a} {(-(n : ℂ))} z =
       poch a (n + 1) / (n + 1).factorial * z ^ (n + 1) *
-        confluentM (a + n + 1) (n + 2) z := by
+        kummerM (a + n + 1) (n + 2) z := by
   rw [regularizedHGFun_eq_tsum]
   have hs : Summable fun k : ℕ => regularizedHGFunCoeff {a} {(-(n : ℂ))} k * z ^ k := by
     have hr : (regularizedHGFunSeries {a} {(-(n : ℂ))}).radius = ⊤ :=
@@ -72,7 +73,7 @@ theorem regularizedHGFun_of_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
     have := congrArg Complex.re h
     simp only [Complex.add_re, Complex.natCast_re, Complex.re_ofNat, Complex.neg_re] at this
     linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), (Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
-  have hF := (hasFPowerSeriesOnBall_confluentM (a := a + n + 1) hpole).hasSum_mul_pow
+  have hF := (hasFPowerSeriesOnBall_kummerM (a := a + n + 1) hpole).hasSum_mul_pow
     (by simp : z ∈ Metric.eball (0 : ℂ) ⊤)
   rw [← hF.tsum_eq, ← tsum_mul_left]
   congr 1
@@ -95,7 +96,7 @@ theorem regularizedHGFun_of_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
   have hf3 : ((n + 1 + j).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
   rw [hΓ1, hΓ2] at hΓ
   rw [regularizedHGFunCoeff_singleton, hΓ3]
-  simp only [confluentHGCoeff, poch]
+  simp only [kummerMCoeff, poch]
   rw [add_comm j (n + 1), AAR.Hypergeometric.ascPochhammer_eval_add a,
     show a + ((n + 1 : ℕ) : ℂ) = a + n + 1 by push_cast; ring, pow_add]
   field_simp
@@ -119,8 +120,8 @@ lemma mem_integerComplement_of_forall {c : ℂ} (hc : ∀ k : ℤ, c ≠ k) : c 
 lemma forall_of_mem_integerComplement {c : ℂ} (hc : c ∈ integerComplement) : ∀ k : ℤ, c ≠ k :=
   fun k hk => hc ⟨k, hk.symm⟩
 
-lemma confluentUConnection_eq_tricomiD {a c z : ℂ} (hc : c ∈ integerComplement) :
-    confluentUConnection a c z = π / sin (π * c) * tricomiD a c z := by
+lemma kummerUConnection_eq_tricomiD {a c z : ℂ} (hc : c ∈ integerComplement) :
+    kummerUConnection a c z = π / sin (π * c) * tricomiD a c z := by
   have hc0 := not_neg_nat_of_mem_integerComplement hc
   have hc2 : 2 - c ∈ integerComplement := by
     have := (add_intCast_mem_integerComplement (x := -c) 2).mpr (by
@@ -136,9 +137,9 @@ lemma confluentUConnection_eq_tricomiD {a c z : ℂ} (hc : c ∈ integerCompleme
   have h2 := Gamma_mul_Gamma_one_sub (c - 1)
   rw [show 1 - (c - 1) = 2 - c by ring, show (π : ℂ) * (c - 1) = π * c - π by ring,
     Complex.sin_sub_pi] at h2
-  unfold confluentUConnection tricomiD
-  rw [confluentM_eq_mul_regularizedHGFun hc0,
-    confluentM_eq_mul_regularizedHGFun (not_neg_nat_of_mem_integerComplement hc2)]
+  unfold kummerUConnection tricomiD
+  rw [kummerM_eq_mul_regularizedHGFun hc0,
+    kummerM_eq_mul_regularizedHGFun (not_neg_nat_of_mem_integerComplement hc2)]
   rw [div_eq_mul_inv (Gamma (1 - c)), div_eq_mul_inv (Gamma (c - 1))]
   calc Gamma (1 - c) * (Gamma (a - c + 1))⁻¹ * (Gamma c * regularizedHGFun {a} {c} z) +
         Gamma (c - 1) * (Gamma a)⁻¹ * z ^ (1 - c) *
@@ -157,7 +158,7 @@ lemma tricomiD_intCast (a z : ℂ) (hz : z ≠ 0) (n : ℤ) : tricomiD a n z = 0
     have hp : ∀ j : ℕ, ((k : ℂ) + 2) ≠ -(j : ℂ) := fun j h => by
       have := congrArg re h; simp at this
       linarith [(Nat.cast_nonneg j : (0 : ℝ) ≤ j), (Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
-    rw [regularizedHGFun_of_neg_nat, confluentM_eq_mul_regularizedHGFun hp,
+    rw [regularizedHGFun_of_neg_nat, kummerM_eq_mul_regularizedHGFun hp,
       show (k : ℂ) + 2 = ((k + 1 : ℕ) : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
     have hf : (((k + 1).factorial : ℕ) : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
     field_simp
@@ -214,17 +215,17 @@ lemma sin_pi_mul_ne_zero_of_mem {c : ℂ} (hc : c ∈ integerComplement) : sin (
 
 /-- **Existence of Tricomi's function at every second parameter**: for `z ≠ 0`, the
 connection formula converges along noninteger parameters to `U(a,b,z)`. -/
-theorem tendsto_confluentUConnection (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
-    Tendsto (fun c => confluentUConnection a c z) (𝓝[integerComplement] b)
-      (𝓝 (confluentU a b z)) := by
+theorem tendsto_kummerUConnection (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    Tendsto (fun c => kummerUConnection a c z) (𝓝[integerComplement] b)
+      (𝓝 (kummerU a b z)) := by
   have hD := differentiable_tricomiD a hz
   have hev : (fun c => π / sin (π * c) * tricomiD a c z) =ᶠ[𝓝[integerComplement] b]
-      fun c => confluentUConnection a c z :=
-    eventually_nhdsWithin_of_forall fun c hc => (confluentUConnection_eq_tricomiD hc).symm
+      fun c => kummerUConnection a c z :=
+    eventually_nhdsWithin_of_forall fun c hc => (kummerUConnection_eq_tricomiD hc).symm
   have := integerComplement_nhdsWithin_neBot b
   by_cases hb : b ∈ integerComplement
-  · rw [confluentU_eq_connection a b z (forall_of_mem_integerComplement hb),
-      confluentUConnection_eq_tricomiD hb]
+  · rw [kummerU_eq_connection a b z (forall_of_mem_integerComplement hb),
+      kummerUConnection_eq_tricomiD hb]
     have hc1 : ContinuousAt (fun c : ℂ => sin (π * c)) b :=
       (continuous_sin.comp (continuous_const.mul continuous_id)).continuousAt
     have hc2 : ContinuousAt (fun c : ℂ => π / sin (π * c) * tricomiD a c z) b :=
@@ -269,8 +270,8 @@ theorem tendsto_confluentUConnection (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
       rw [← e1, ← e2]
       simp only [Pi.div_apply, hS]
       field_simp
-    have hU : confluentU a n z = π * dslope (fun c => tricomiD a c z) n n / dslope S n n := by
-      unfold confluentU
+    have hU : kummerU a n z = π * dslope (fun c => tricomiD a c z) n n / dslope S n n := by
+      unfold kummerU
       simp only [show ¬ (∀ k : ℤ, (n : ℂ) ≠ k) from fun h => h n rfl, ↓reduceIte]
       exact (hL.congr' hev).limUnder_eq
     rw [hU]
@@ -284,20 +285,20 @@ lemma tendsto_add_intCast_integerComplement (b : ℂ) (k : ℤ) :
   · exact (add_intCast_mem_integerComplement k).mpr hc
 
 /-- `U(a, c + k, z) → U(a, b + k, z)` along noninteger `c → b`. -/
-theorem tendsto_confluentU_add_intCast (a b : ℂ) (k : ℤ) {z : ℂ} (hz : z ≠ 0) :
-    Tendsto (fun c => confluentU a (c + k) z) (𝓝[integerComplement] b)
-      (𝓝 (confluentU a (b + k) z)) := by
-  refine ((tendsto_confluentUConnection a (b + k) hz).comp
+theorem tendsto_kummerU_add_intCast (a b : ℂ) (k : ℤ) {z : ℂ} (hz : z ≠ 0) :
+    Tendsto (fun c => kummerU a (c + k) z) (𝓝[integerComplement] b)
+      (𝓝 (kummerU a (b + k) z)) := by
+  refine ((tendsto_kummerUConnection a (b + k) hz).comp
     (tendsto_add_intCast_integerComplement b k)).congr' ?_
   filter_upwards [self_mem_nhdsWithin] with c hc
   simp only [Function.comp_apply]
-  exact (confluentU_eq_connection a (c + k) z (forall_of_mem_integerComplement
+  exact (kummerU_eq_connection a (c + k) z (forall_of_mem_integerComplement
     ((add_intCast_mem_integerComplement k).mpr hc))).symm
 
 /-- `U(a, c, z) → U(a, b, z)` along noninteger `c → b`. -/
-theorem tendsto_confluentU (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
-    Tendsto (fun c => confluentU a c z) (𝓝[integerComplement] b) (𝓝 (confluentU a b z)) := by
-  simpa using tendsto_confluentU_add_intCast a b 0 hz
+theorem tendsto_kummerU (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    Tendsto (fun c => kummerU a c z) (𝓝[integerComplement] b) (𝓝 (kummerU a b z)) := by
+  simpa using tendsto_kummerU_add_intCast a b 0 hz
 
 /-- `1/Γ(x) = x / Γ(x + 1)` for every `x`. -/
 lemma inv_Gamma_eq_mul_inv_Gamma_add_one (x : ℂ) : (Gamma x)⁻¹ = x * (Gamma (x + 1))⁻¹ := by
@@ -412,8 +413,8 @@ lemma mem_integerComplement_of_norm_sub_lt_one {n : ℤ} {c : ℂ} (hc : ‖c - 
   linarith
 
 /-- Near an integer `n`, Tricomi's function is a quotient of difference quotients. -/
-theorem confluentU_eq_dslope (a : ℂ) {z : ℂ} (hz : z ≠ 0) (n : ℤ) {b : ℂ} (hb : ‖b - n‖ < 1) :
-    confluentU a b z = π * dslope (fun c => tricomiD a c z) n b /
+theorem kummerU_eq_dslope (a : ℂ) {z : ℂ} (hz : z ≠ 0) (n : ℤ) {b : ℂ} (hb : ‖b - n‖ < 1) :
+    kummerU a b z = π * dslope (fun c => tricomiD a c z) n b /
       dslope (fun c => sin (π * c)) n b := by
   set S : ℂ → ℂ := fun c => sin (π * c) with hS
   set D : ℂ → ℂ := fun c => tricomiD a c z with hDdef
@@ -427,7 +428,7 @@ theorem confluentU_eq_dslope (a : ℂ) {z : ℂ} (hz : z ≠ 0) (n : ℤ) {b : �
   have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   -- the formula off `n`
   have hoff : ∀ c : ℂ, c ∈ integerComplement →
-      confluentU a c z = π * dslope D n c / dslope S n c := by
+      kummerU a c z = π * dslope D n c / dslope S n c := by
     intro c hc
     have hcn : c - n ≠ 0 := sub_ne_zero.mpr fun h => hc ⟨n, h.symm⟩
     have e1 := sub_smul_dslope D (n : ℂ) c
@@ -437,8 +438,8 @@ theorem confluentU_eq_dslope (a : ℂ) {z : ℂ} (hz : z ≠ 0) (n : ℤ) {b : �
     have hsc : sin (π * c) ≠ 0 := sin_pi_mul_ne_zero_of_mem hc
     have hd2 : dslope S n c ≠ 0 := by
       intro h0; apply hsc; simp only [hS] at e2; rw [← e2, h0, mul_zero]
-    rw [confluentU_eq_connection a c z (forall_of_mem_integerComplement hc),
-      confluentUConnection_eq_tricomiD hc]
+    rw [kummerU_eq_connection a c z (forall_of_mem_integerComplement hc),
+      kummerUConnection_eq_tricomiD hc]
     simp only [hS, hDdef] at e1 e2 hd2 ⊢
     rw [← e1, ← e2]
     field_simp
@@ -456,26 +457,26 @@ theorem confluentU_eq_dslope (a : ℂ) {z : ℂ} (hz : z ≠ 0) (n : ℤ) {b : �
     have hSn : dslope S n n ≠ 0 := by
       rw [dslope_same, hSd.deriv]; exact mul_ne_zero hcos hπ
     have := integerComplement_nhdsWithin_neBot (n : ℂ)
-    have hL : Tendsto (fun c => confluentU a c z) (𝓝[integerComplement] (n : ℂ))
+    have hL : Tendsto (fun c => kummerU a c z) (𝓝[integerComplement] (n : ℂ))
         (𝓝 (π * dslope D n n / dslope S n n)) :=
       ((((hcD.const_mul (π : ℂ)).div hcS hSn).tendsto).mono_left nhdsWithin_le_nhds).congr'
         (eventually_nhdsWithin_of_forall fun c hc => (hoff c hc).symm)
-    exact tendsto_nhds_unique (tendsto_confluentU a n hz) hL
+    exact tendsto_nhds_unique (tendsto_kummerU a n hz) hL
   · exact hoff b (mem_integerComplement_of_norm_sub_lt_one hb hbn)
 
 /-- **Joint continuity of Tricomi's function** in both parameters and the argument on the slit
 plane, including integer second parameters. -/
-theorem continuousAt_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    ContinuousAt (fun q : ℂ × ℂ × ℂ => confluentU q.1 q.2.1 q.2.2) (a, b, z) := by
+theorem continuousAt_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    ContinuousAt (fun q : ℂ × ℂ × ℂ => kummerU q.1 q.2.1 q.2.2) (a, b, z) := by
   have hz0 := slitPlane_ne_zero hz
   by_cases hb : b ∈ integerComplement
   · have hev : (fun q : ℂ × ℂ × ℂ => π / sin (π * q.2.1) * tricomiD q.1 q.2.1 q.2.2) =ᶠ[𝓝 (a, b, z)]
-        fun q => confluentU q.1 q.2.1 q.2.2 := by
+        fun q => kummerU q.1 q.2.1 q.2.2 := by
       have hopen : IsOpen ((fun q : ℂ × ℂ × ℂ => q.2.1) ⁻¹' integerComplement) :=
         (Complex.isOpen_compl_range_intCast).preimage (by fun_prop)
       filter_upwards [hopen.mem_nhds hb] with q hq
-      rw [confluentU_eq_connection _ _ _ (forall_of_mem_integerComplement hq),
-        confluentUConnection_eq_tricomiD hq]
+      rw [kummerU_eq_connection _ _ _ (forall_of_mem_integerComplement hq),
+        kummerUConnection_eq_tricomiD hq]
     refine ContinuousAt.congr ?_ hev
     have hs : ContinuousAt (fun q : ℂ × ℂ × ℂ => sin (π * q.2.1)) (a, b, z) := by fun_prop
     exact (continuousAt_const.div hs (sin_pi_mul_ne_zero_of_mem hb)).mul
@@ -486,11 +487,11 @@ theorem continuousAt_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     have hW : IsOpen ({q : ℂ × ℂ × ℂ | ‖q.2.1 - n‖ < 1} ∩ {q | q.2.2 ∈ slitPlane}) :=
       (isOpen_lt (by fun_prop) continuous_const).inter (isOpen_slitPlane.preimage (by fun_prop))
     have hev : (fun q : ℂ × ℂ × ℂ => π * dslope (fun c => tricomiD q.1 c q.2.2) n q.2.1 /
-        dslope S n q.2.1) =ᶠ[𝓝 ((a, n, z) : ℂ × ℂ × ℂ)] fun q => confluentU q.1 q.2.1 q.2.2 := by
+        dslope S n q.2.1) =ᶠ[𝓝 ((a, n, z) : ℂ × ℂ × ℂ)] fun q => kummerU q.1 q.2.1 q.2.2 := by
       filter_upwards [hW.mem_nhds (⟨by simp, hz⟩ :
         ((a, n, z) : ℂ × ℂ × ℂ) ∈ {q : ℂ × ℂ × ℂ | ‖q.2.1 - n‖ < 1} ∩ {q | q.2.2 ∈ slitPlane})]
         with q hq
-      exact (confluentU_eq_dslope q.1 (slitPlane_ne_zero hq.2) n hq.1).symm
+      exact (kummerU_eq_dslope q.1 (slitPlane_ne_zero hq.2) n hq.1).symm
     refine ContinuousAt.congr ?_ hev
     -- the numerator
     have hX : IsOpen (univ ×ˢ slitPlane : Set (ℂ × ℂ)) := isOpen_univ.prod isOpen_slitPlane
@@ -550,16 +551,16 @@ lemma continuous_tricomiD_param {z : ℂ} (hz : z ≠ 0) :
   exact (h1.mul h3).sub ((h5.mul h2).mul h4)
 
 /-- **Joint continuity of Tricomi's function in the parameters** at a fixed `z ≠ 0`. -/
-theorem continuousAt_confluentU_param (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
-    ContinuousAt (fun p : ℂ × ℂ => confluentU p.1 p.2 z) (a, b) := by
+theorem continuousAt_kummerU_param (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    ContinuousAt (fun p : ℂ × ℂ => kummerU p.1 p.2 z) (a, b) := by
   by_cases hb : b ∈ integerComplement
   · have hev : (fun p : ℂ × ℂ => π / sin (π * p.2) * tricomiD p.1 p.2 z) =ᶠ[𝓝 (a, b)]
-        fun p => confluentU p.1 p.2 z := by
+        fun p => kummerU p.1 p.2 z := by
       have hopen : IsOpen ((fun p : ℂ × ℂ => p.2) ⁻¹' integerComplement) :=
         (Complex.isOpen_compl_range_intCast).preimage (by fun_prop)
       filter_upwards [hopen.mem_nhds hb] with p hp
-      rw [confluentU_eq_connection _ _ _ (forall_of_mem_integerComplement hp),
-        confluentUConnection_eq_tricomiD hp]
+      rw [kummerU_eq_connection _ _ _ (forall_of_mem_integerComplement hp),
+        kummerUConnection_eq_tricomiD hp]
     refine ContinuousAt.congr ?_ hev
     have hs : ContinuousAt (fun p : ℂ × ℂ => sin (π * p.2)) (a, b) := by fun_prop
     exact (continuousAt_const.div hs (sin_pi_mul_ne_zero_of_mem hb)).mul
@@ -569,10 +570,10 @@ theorem continuousAt_confluentU_param (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
     set S : ℂ → ℂ := fun c => sin (π * c) with hS
     have hW : IsOpen {p : ℂ × ℂ | ‖p.2 - n‖ < 1} := isOpen_lt (by fun_prop) continuous_const
     have hev : (fun p : ℂ × ℂ => π * dslope (fun c => tricomiD p.1 c z) n p.2 /
-        dslope S n p.2) =ᶠ[𝓝 ((a, n) : ℂ × ℂ)] fun p => confluentU p.1 p.2 z := by
+        dslope S n p.2) =ᶠ[𝓝 ((a, n) : ℂ × ℂ)] fun p => kummerU p.1 p.2 z := by
       filter_upwards [hW.mem_nhds (show ((a, n) : ℂ × ℂ) ∈ {p : ℂ × ℂ | ‖p.2 - n‖ < 1} by simp)]
         with p hp
-      exact (confluentU_eq_dslope p.1 hz n hp).symm
+      exact (kummerU_eq_dslope p.1 hz n hp).symm
     refine ContinuousAt.congr ?_ hev
     have hnum := continuousOn_dslope_param (f := fun x : ℂ => fun c => tricomiD x c z)
       isOpen_univ ((continuous_tricomiD_param hz).continuousOn)
@@ -604,17 +605,17 @@ theorem continuousAt_confluentU_param (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
 end TricomiContinuity
 
 /-- Kummer's transformation at noninteger second parameter, for every `z ≠ 0`. -/
-lemma confluentU_kummer_transform_of_ne_zero (a b : ℂ) {z : ℂ} (hz0 : z ≠ 0)
+lemma kummerU_kummer_transform_of_ne_zero (a b : ℂ) {z : ℂ} (hz0 : z ≠ 0)
     (hb : ∀ k : ℤ, b ≠ k) :
-    confluentU a b z = z ^ (1 - b) * confluentU (a - b + 1) (2 - b) z := by
+    kummerU a b z = z ^ (1 - b) * kummerU (a - b + 1) (2 - b) z := by
   have hb' : ∀ k : ℤ, (2 : ℂ) - b ≠ k := by
     intro k hk
     apply hb (2 - k)
     push_cast
     linear_combination -hk
-  rw [confluentU_eq_connection a b z hb,
-    confluentU_eq_connection (a - b + 1) (2 - b) z hb']
-  unfold confluentUConnection
+  rw [kummerU_eq_connection a b z hb,
+    kummerU_eq_connection (a - b + 1) (2 - b) z hb']
+  unfold kummerUConnection
   have h1 : (1 : ℂ) - (2 - b) = b - 1 := by ring
   have h2 : (a - b + 1 : ℂ) - (2 - b) + 1 = a := by ring
   have h3 : (2 - b : ℂ) - 1 = 1 - b := by ring
@@ -627,22 +628,22 @@ lemma confluentU_kummer_transform_of_ne_zero (a b : ℂ) {z : ℂ} (hz0 : z ≠ 
   simp only [h1, h2, h3, h5]
   rw [mul_add]
   have hswap :
-      z ^ (1 - b) * (Gamma (1 - b) / Gamma (a - b + 1) * z ^ (b - 1) * confluentM a b z) =
-        Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z := by
+      z ^ (1 - b) * (Gamma (1 - b) / Gamma (a - b + 1) * z ^ (b - 1) * kummerM a b z) =
+        Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b z := by
     calc
       _ = (z ^ (1 - b) * z ^ (b - 1)) *
-            (Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z) := by ring
+            (Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b z) := by ring
       _ = _ := by rw [hpow, one_mul]
   rw [hswap]
   ring
 
 /-- Kummer transformation for U at noninteger second parameter; see
-`confluentU_kummer_transform_all` for every second parameter. -/
+`kummerU_kummer_transform_all` for every second parameter. -/
 @[dlmf 13.2.E40]
-theorem confluentU_kummer_transform (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerU_kummer_transform (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (hb : ∀ k : ℤ, b ≠ k) :
-    confluentU a b z = z ^ (1 - b) * confluentU (a - b + 1) (2 - b) z :=
-  confluentU_kummer_transform_of_ne_zero a b (slitPlane_ne_zero hz) hb
+    kummerU a b z = z ^ (1 - b) * kummerU (a - b + 1) (2 - b) z :=
+  kummerU_kummer_transform_of_ne_zero a b (slitPlane_ne_zero hz) hb
 
 /-- Two functions continuous at `b` that agree at all noninteger points agree at `b`. -/
 lemma eq_of_continuousAt_of_integerComplement {f g : ℂ → ℂ} {b : ℂ} (hf : ContinuousAt f b)
@@ -653,25 +654,25 @@ lemma eq_of_continuousAt_of_integerComplement {f g : ℂ → ℂ} {b : ℂ} (hf 
       (eventually_nhdsWithin_of_forall fun c hc => (h c hc).symm))
 
 /-- `U` is continuous along any continuous curve in the parameters, at fixed `z ≠ 0`. -/
-lemma continuousAt_confluentU_comp {A B : ℂ → ℂ} {b : ℂ} (hA : ContinuousAt A b)
+lemma continuousAt_kummerU_comp {A B : ℂ → ℂ} {b : ℂ} (hA : ContinuousAt A b)
     (hB : ContinuousAt B b) {z : ℂ} (hz : z ≠ 0) :
-    ContinuousAt (fun c => confluentU (A c) (B c) z) b := by
-  have h := continuousAt_confluentU_param (A b) (B b) hz
+    ContinuousAt (fun c => kummerU (A c) (B c) z) b := by
+  have h := continuousAt_kummerU_param (A b) (B b) hz
   have hc : ContinuousAt (fun c => (A c, B c)) b := hA.prodMk hB
   exact ContinuousAt.comp (f := fun c => (A c, B c)) h hc
 
 /-- **Kummer's transformation** `U(a,b,z) = z^{1-b} U(a-b+1,2-b,z)` for every `b`. -/
 @[dlmf 13.2.E40]
-theorem confluentU_kummer_transform_all (a b : ℂ) {z : ℂ} (hz0 : z ≠ 0) :
-    confluentU a b z = z ^ (1 - b) * confluentU (a - b + 1) (2 - b) z := by
-  refine eq_of_continuousAt_of_integerComplement (f := fun c => confluentU a c z)
-    (g := fun c => z ^ (1 - c) * confluentU (a - c + 1) (2 - c) z)
-    (continuousAt_confluentU_comp continuousAt_const continuousAt_id hz0) ?_
-    (fun c hc => confluentU_kummer_transform_of_ne_zero a c hz0
+theorem kummerU_kummer_transform_all (a b : ℂ) {z : ℂ} (hz0 : z ≠ 0) :
+    kummerU a b z = z ^ (1 - b) * kummerU (a - b + 1) (2 - b) z := by
+  refine eq_of_continuousAt_of_integerComplement (f := fun c => kummerU a c z)
+    (g := fun c => z ^ (1 - c) * kummerU (a - c + 1) (2 - c) z)
+    (continuousAt_kummerU_comp continuousAt_const continuousAt_id hz0) ?_
+    (fun c hc => kummerU_kummer_transform_of_ne_zero a c hz0
       (forall_of_mem_integerComplement hc))
   have hpow : ContinuousAt (fun c : ℂ => z ^ (1 - c)) b :=
     (continuousAt_const.sub continuousAt_id).const_cpow (Or.inl hz0)
-  exact hpow.mul (continuousAt_confluentU_comp (by fun_prop) (by fun_prop) hz0)
+  exact hpow.mul (continuousAt_kummerU_comp (by fun_prop) (by fun_prop) hz0)
 
 /- The punctured parameter-limit theorem is proved in `AAR.Confluent.Continuation`. -/
 
@@ -687,8 +688,8 @@ lemma poch_one_sub_sub_nat (c : ℂ) (m : ℕ) : poch (1 - c - m) m = (-1) ^ m *
 /-- The polynomial `(-1)^m ∑ C(m,s) (b+s)_{m-s} (-z)^s` equals `(-1)^m (b)_m M(-m,b,z)`. -/
 lemma neg_nat_sum_eq (m : ℕ) {b : ℂ} (hb : ∀ k : ℕ, b ≠ -(k : ℂ)) (z : ℂ) :
     (-1 : ℂ) ^ m * ∑ s ∈ Finset.range (m + 1), (m.choose s : ℂ) * poch (b + s) (m - s) * (-z) ^ s =
-      (-1 : ℂ) ^ m * poch b m * confluentM (-(m : ℂ)) b z := by
-  rw [confluentM_eq_sum_neg_nat, Finset.mul_sum, Finset.mul_sum]
+      (-1 : ℂ) ^ m * poch b m * kummerM (-(m : ℂ)) b z := by
+  rw [kummerM_eq_sum_neg_nat, Finset.mul_sum, Finset.mul_sum]
   refine Finset.sum_congr rfl fun s hs => ?_
   rw [Finset.mem_range] at hs
   have hps : poch b s ≠ 0 := poch_ne_zero_of_not_neg_nat hb s
@@ -702,11 +703,11 @@ lemma neg_nat_sum_eq (m : ℕ) {b : ℂ} (hb : ∀ k : ℕ, b ≠ -(k : ℂ)) (z
   ring
 
 /-- The connection formula at `a = -m`, for noninteger `c`. -/
-lemma confluentUConnection_neg_nat (m : ℕ) {c : ℂ} (hc : c ∈ integerComplement) (z : ℂ) :
-    confluentUConnection (-(m : ℂ)) c z =
+lemma kummerUConnection_neg_nat (m : ℕ) {c : ℂ} (hc : c ∈ integerComplement) (z : ℂ) :
+    kummerUConnection (-(m : ℂ)) c z =
       (-1 : ℂ) ^ m * ∑ s ∈ Finset.range (m + 1), (m.choose s : ℂ) * poch (c + s) (m - s) * (-z) ^ s := by
   have hc0 := not_neg_nat_of_mem_integerComplement hc
-  rw [neg_nat_sum_eq m hc0, confluentUConnection, Gamma_neg_nat_eq_zero, div_zero, zero_mul,
+  rw [neg_nat_sum_eq m hc0, kummerUConnection, Gamma_neg_nat_eq_zero, div_zero, zero_mul,
     zero_mul, add_zero]
   have h1 : ∀ k : ℕ, 1 - c - m ≠ -(k : ℂ) := by
     intro k hk
@@ -716,8 +717,8 @@ lemma confluentUConnection_neg_nat (m : ℕ) {c : ℂ} (hc : c ∈ integerComple
   rw [show -(m : ℂ) - c + 1 = 1 - c - m by ring, ← poch_one_sub_sub_nat, poch, ← hG]
 
 /-- DLMF 13.2.7 in polynomial form, for every second parameter. -/
-lemma confluentU_neg_nat_sum_aux (m : ℕ) (b z : ℂ) :
-    confluentU (-(m : ℂ)) b z =
+lemma kummerU_neg_nat_sum_aux (m : ℕ) (b z : ℂ) :
+    kummerU (-(m : ℂ)) b z =
       (-1 : ℂ) ^ m * ∑ s ∈ Finset.range (m + 1),
         (m.choose s : ℂ) * poch (b + s) (m - s) * (-z) ^ s := by
   set P : ℂ → ℂ := fun c => (-1 : ℂ) ^ m * ∑ s ∈ Finset.range (m + 1),
@@ -727,53 +728,53 @@ lemma confluentU_neg_nat_sum_aux (m : ℕ) (b z : ℂ) :
     exact (continuous_const.mul ((Polynomial.differentiable (ascPochhammer ℂ (m - s))).continuous.comp
       (continuous_id.add continuous_const))).mul continuous_const
   by_cases hb : ∀ k : ℤ, b ≠ k
-  · rw [confluentU_eq_connection _ _ _ hb,
-      confluentUConnection_neg_nat m (mem_integerComplement_of_forall hb)]
-  · unfold confluentU
+  · rw [kummerU_eq_connection _ _ _ hb,
+      kummerUConnection_neg_nat m (mem_integerComplement_of_forall hb)]
+  · unfold kummerU
     simp only [hb, ↓reduceIte]
     have := integerComplement_nhdsWithin_neBot b
     refine Tendsto.limUnder_eq ?_
     refine (hPc.continuousAt.tendsto.mono_left nhdsWithin_le_nhds).congr' ?_
     filter_upwards [self_mem_nhdsWithin] with c hc
-    exact (confluentUConnection_neg_nat m hc z).symm
+    exact (kummerUConnection_neg_nat m hc z).symm
 
 @[dlmf 13.2.E7]
-theorem confluentU_neg_nat (m : ℕ) (b z : ℂ) (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentU (-(m : ℂ)) b z =
-      (-1 : ℂ) ^ m * poch b m * confluentM (-(m : ℂ)) b z := by
-  rw [confluentU_neg_nat_sum_aux, neg_nat_sum_eq m hb]
+theorem kummerU_neg_nat (m : ℕ) (b z : ℂ) (hb : ∀ k : ℕ, b ≠ -k) :
+    kummerU (-(m : ℂ)) b z =
+      (-1 : ℂ) ^ m * poch b m * kummerM (-(m : ℂ)) b z := by
+  rw [kummerU_neg_nat_sum_aux, neg_nat_sum_eq m hb]
 
 @[dlmf 13.2.E7]
-theorem confluentU_neg_nat_sum (m : ℕ) (b z : ℂ) :
-    confluentU (-(m : ℂ)) b z =
+theorem kummerU_neg_nat_sum (m : ℕ) (b z : ℂ) :
+    kummerU (-(m : ℂ)) b z =
       (-1 : ℂ) ^ m * ∑ s ∈ Finset.range (m + 1),
         (m.choose s : ℂ) * poch (b + s) (m - s) * (-z) ^ s := by
-  exact confluentU_neg_nat_sum_aux m b z
+  exact kummerU_neg_nat_sum_aux m b z
 
 /-- Kummer's transformation at `b = a + n + 1`. -/
-lemma confluentU_shift_nat_aux (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a (a + n + 1) z = z ^ (-a - n) * confluentU (-(n : ℂ)) (1 - a - n) z := by
-  rw [confluentU_kummer_transform_all a _ (slitPlane_ne_zero hz)]
+lemma kummerU_shift_nat_aux (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a (a + n + 1) z = z ^ (-a - n) * kummerU (-(n : ℂ)) (1 - a - n) z := by
+  rw [kummerU_kummer_transform_all a _ (slitPlane_ne_zero hz)]
   congr 2 <;> ring
 
 /-- A shifted Tricomi identity with a regular denominator in ordinary Kummer M. -/
 @[dlmf 13.2.E8]
-theorem confluentU_shift_nat (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerU_shift_nat (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
     (ha : ∀ k : ℕ, 1 - a - n ≠ -k) :
-    confluentU a (a + n + 1) z =
+    kummerU a (a + n + 1) z =
       (-1 : ℂ) ^ n * poch (1 - a - n) n / z ^ (a + n) *
-        confluentM (-(n : ℂ)) (1 - a - n) z := by
-  rw [confluentU_shift_nat_aux a n hz, confluentU_neg_nat n _ z ha,
+        kummerM (-(n : ℂ)) (1 - a - n) z := by
+  rw [kummerU_shift_nat_aux a n hz, kummerU_neg_nat n _ z ha,
     show -a - (n : ℂ) = -(a + n) by ring, cpow_neg]
   ring
 
 @[dlmf 13.2.E8]
-theorem confluentU_shift_nat_sum (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a (a + n + 1) z =
+theorem kummerU_shift_nat_sum (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a (a + n + 1) z =
       z ^ (-a) * ∑ s ∈ Finset.range (n + 1),
         (n.choose s : ℂ) * poch a s * z ^ (-(s : ℂ)) := by
   have hz0 := slitPlane_ne_zero hz
-  rw [confluentU_shift_nat_aux a n hz, confluentU_neg_nat_sum, Finset.mul_sum, Finset.mul_sum,
+  rw [kummerU_shift_nat_aux a n hz, kummerU_neg_nat_sum, Finset.mul_sum, Finset.mul_sum,
     Finset.mul_sum]
   rw [← Finset.sum_range_reflect]
   refine Finset.sum_congr rfl fun s hs => ?_
@@ -795,9 +796,9 @@ theorem confluentU_shift_nat_sum (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitP
   linear_combination (z ^ (-a) * (n.choose s : ℂ) * poch a s) * e5
 
 @[dlmf 13.2.E9]
-theorem confluentU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
     (ha : ∀ k : ℕ, a - n ≠ -k) :
-    confluentU a (n + 1) z =
+    kummerU a (n + 1) z =
       (-1 : ℂ) ^ (n + 1) / ((n.factorial : ℂ) * Gamma (a - n)) *
         ∑' k : ℕ, poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
           (log z + digamma (a + k) - digamma (1 + k) - digamma (n + k + 1)) +
@@ -808,18 +809,18 @@ theorem confluentU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane
 
 /-- Polynomial specialization at positive integer second parameter, using the continued U. -/
 @[dlmf 13.2.E10]
-theorem confluentU_neg_nat_nat_denom (m n : ℕ) (z : ℂ) :
-    confluentU (-(m : ℂ)) (n + 1) z =
-      (-1 : ℂ) ^ m * poch (n + 1 : ℂ) m * confluentM (-(m : ℂ)) (n + 1) z := by
-  refine confluentU_neg_nat m _ z fun k hk => ?_
+theorem kummerU_neg_nat_nat_denom (m n : ℕ) (z : ℂ) :
+    kummerU (-(m : ℂ)) (n + 1) z =
+      (-1 : ℂ) ^ m * poch (n + 1 : ℂ) m * kummerM (-(m : ℂ)) (n + 1) z := by
+  refine kummerU_neg_nat m _ z fun k hk => ?_
   have := congrArg re hk
   simp at this
   linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), (Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
 
 @[dlmf 13.2.E11]
-theorem confluentU_neg_nat_shift (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a (-(n : ℂ)) z = z ^ (n + 1 : ℂ) * confluentU (a + n + 1) (n + 2) z := by
-  rw [confluentU_kummer_transform_all a _ (slitPlane_ne_zero hz)]
+theorem kummerU_neg_nat_shift (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a (-(n : ℂ)) z = z ^ (n + 1 : ℂ) * kummerU (a + n + 1) (n + 2) z := by
+  rw [kummerU_kummer_transform_all a _ (slitPlane_ne_zero hz)]
   congr 2 <;> ring
 
 /-- Exponential form of the sine factor occurring in monodromy. -/
@@ -833,13 +834,13 @@ lemma one_sub_exp_neg_two_mul_I (t : ℂ) :
 
 /-- Monodromy on the logarithmic argument plane for noninteger second parameter. -/
 @[dlmf 13.2.E12]
-theorem confluentU_analytic_continuation (a b z : ℂ) (m : ℤ) {w : ℂ}
+theorem kummerU_analytic_continuation (a b z : ℂ) (m : ℤ) {w : ℂ}
     (hw : w = log z + 2 * π * I * m) (hz : z ∈ slitPlane)
     (hb : ∀ n : ℤ, b ≠ n) :
-    confluentUOnLog a b w =
+    kummerUOnLog a b w =
       (2 * π * I * exp (-π * I * b * m) * sin (π * b * m)) /
           (Gamma (1 + a - b) * sin (π * b)) * regularizedHGFun {a} {b} z +
-        exp (-2 * π * I * b * m) * confluentU a b z := by
+        exp (-2 * π * I * b * m) * kummerU a b z := by
   subst w
   have hz0 := slitPlane_ne_zero hz
   have hbk : ∀ k : ℕ, b ≠ -(k : ℂ) := not_neg_nat_of_mem_integerComplement
@@ -852,9 +853,9 @@ theorem confluentU_analytic_continuation (a b z : ℂ) (m : ℤ) {w : ℂ}
     rw [show (1 - b) * (log z + 2 * π * I * m) =
       log z * (1 - b) + (m * (2 * π * I) + (-2 * π * I * b * m)) by ring,
       exp_add, exp_add, exp_int_mul_two_pi_mul_I, one_mul, cpow_def_of_ne_zero hz0]
-  have hc : Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z =
+  have hc : Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b z =
       π / (Gamma (1 + a - b) * sin (π * b)) * regularizedHGFun {a} {b} z := by
-    rw [confluentM_eq_mul_regularizedHGFun hbk,
+    rw [kummerM_eq_mul_regularizedHGFun hbk,
       show 1 + a - b = a - b + 1 by ring]
     have hg := Gamma_mul_Gamma_one_sub b
     calc _ = (Gamma b * Gamma (1 - b)) / Gamma (a - b + 1) *
@@ -863,59 +864,59 @@ theorem confluentU_analytic_continuation (a b z : ℂ) (m : ℤ) {w : ℂ}
   have ht := one_sub_exp_neg_two_mul_I (π * b * m)
   rw [show -2 * (π * b * (m : ℂ)) * I = -2 * π * I * b * m by ring,
     show -(π * b * (m : ℂ)) * I = -π * I * b * m by ring] at ht
-  rw [confluentUOnLog, he, hp, confluentU_eq_connection a b z hb]
-  unfold confluentUConnection
+  rw [kummerUOnLog, he, hp, kummerU_eq_connection a b z hb]
+  unfold kummerUConnection
   calc _ = (1 - exp (-2 * π * I * b * m)) *
-        (Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z) +
+        (Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b z) +
       exp (-2 * π * I * b * m) *
-        (Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b z +
-          Gamma (b - 1) / Gamma a * z ^ (1 - b) * confluentM (a - b + 1) (2 - b) z) := by ring
+        (Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b z +
+          Gamma (b - 1) / Gamma a * z ^ (1 - b) * kummerM (a - b + 1) (2 - b) z) := by ring
     _ = _ := by rw [hc, ht]; ring
 
-lemma confluentM_eq_sum_neg_nat_denom (n : ℕ) (a z : ℂ) :
-    confluentM a (-(n : ℂ)) z =
+lemma kummerM_eq_sum_neg_nat_denom (n : ℕ) (a z : ℂ) :
+    kummerM a (-(n : ℂ)) z =
       ∑ k ∈ Finset.range (n + 1),
         poch a k / (poch (-(n : ℂ)) k * k.factorial) * z ^ k := by
-  unfold confluentM
+  unfold kummerM
   refine tsum_eq_sum fun k hk => ?_
   have hkn : n < k := by
     rw [Finset.mem_range, not_lt] at hk
     exact Nat.lt_of_succ_le hk
   rw [poch_neg_nat_eq_zero hkn, zero_mul, div_zero, zero_mul]
 
-lemma differentiableAt_confluentM (a b : ℂ) :
-    DifferentiableAt ℂ (confluentM a b) 0 := by
+lemma differentiableAt_kummerM (a b : ℂ) :
+    DifferentiableAt ℂ (kummerM a b) 0 := by
   by_cases hb : ∀ k : ℕ, b ≠ -k
-  · exact ((hasFPowerSeriesOnBall_confluentM (a := a) hb).analyticAt_of_mem
+  · exact ((hasFPowerSeriesOnBall_kummerM (a := a) hb).analyticAt_of_mem
       (by simp : (0 : ℂ) ∈ Metric.eball (0 : ℂ) ⊤)).differentiableAt
   · obtain ⟨n, hn⟩ : ∃ n : ℕ, b = -n := by
       push Not at hb
       simpa using hb
-    have hfun : confluentM a b =
+    have hfun : kummerM a b =
         fun z => ∑ k ∈ Finset.range (n + 1),
           poch a k / (poch (-(n : ℂ)) k * k.factorial) * z ^ k := by
       funext z
-      rw [hn, confluentM_eq_sum_neg_nat_denom]
+      rw [hn, kummerM_eq_sum_neg_nat_denom]
     rw [hfun]
     refine (Differentiable.fun_sum fun k _ => ?_).differentiableAt
     exact ((differentiable_id (𝕜 := ℂ)).pow k).const_mul _
 
 @[dlmf 13.2.E13]
-theorem isBigO_confluentM_sub_one (a b : ℂ) :
-    Asymptotics.IsBigO (𝓝 (0 : ℂ)) (fun z => confluentM a b z - 1) id := by
-  refine (differentiableAt_confluentM a b).isBigO_sub.congr ?_ ?_
+theorem isBigO_kummerM_sub_one (a b : ℂ) :
+    Asymptotics.IsBigO (𝓝 (0 : ℂ)) (fun z => kummerM a b z - 1) id := by
+  refine (differentiableAt_kummerM a b).isBigO_sub.congr ?_ ?_
   · intro x
-    simp [confluentM_zero]
+    simp [kummerM_zero]
   · intro x
     simp [id]
 
 @[dlmf 13.2.E14]
-theorem isBigO_confluentU_neg_nat (n : ℕ) (b : ℂ) :
+theorem isBigO_kummerU_neg_nat (n : ℕ) (b : ℂ) :
     Asymptotics.IsBigO (𝓝 (0 : ℂ))
-      (fun z => confluentU (-(n : ℂ)) b z - (-1 : ℂ) ^ n * poch b n) id := by
+      (fun z => kummerU (-(n : ℂ)) b z - (-1 : ℂ) ^ n * poch b n) id := by
   set P : ℂ → ℂ := fun z => (-1 : ℂ) ^ n * ∑ s ∈ Finset.range (n + 1),
     (n.choose s : ℂ) * poch (b + s) (n - s) * (-z) ^ s with hP
-  have hU : ∀ z, confluentU (-(n : ℂ)) b z = P z := fun z => confluentU_neg_nat_sum n b z
+  have hU : ∀ z, kummerU (-(n : ℂ)) b z = P z := fun z => kummerU_neg_nat_sum n b z
   have hP0 : P 0 = (-1 : ℂ) ^ n * poch b n := by
     simp only [hP, neg_zero]
     rw [Finset.sum_range_succ']
@@ -928,100 +929,193 @@ theorem isBigO_confluentU_neg_nat (n : ℕ) (b : ℂ) :
   · simp
 
 @[dlmf 13.2.E15]
-theorem isBigO_confluentU_neg_nat_shift (n : ℕ) (b : ℂ) :
+theorem isBigO_kummerU_neg_nat_shift (n : ℕ) (b : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU (-(n : ℂ) + b - 1) b z -
+      (fun z => kummerU (-(n : ℂ) + b - 1) b z -
         (-1 : ℂ) ^ n * poch (2 - b) n * z ^ (1 - b))
       (fun z => z ^ (2 - b)) := by
-  have h := (isBigO_confluentU_neg_nat n (2 - b)).mono (nhdsWithin_le_nhds (s := {0}ᶜ))
+  have h := (isBigO_kummerU_neg_nat n (2 - b)).mono (nhdsWithin_le_nhds (s := {0}ᶜ))
   have hb : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z ^ (1 - b)) (fun z => z ^ (1 - b)) :=
     Asymptotics.isBigO_refl _ _
   refine (hb.mul h).congr' ?_ ?_
   · filter_upwards [self_mem_nhdsWithin] with z hz
-    rw [confluentU_kummer_transform_all (-(n : ℂ) + b - 1) b hz,
+    rw [kummerU_kummer_transform_all (-(n : ℂ) + b - 1) b hz,
       show -(n : ℂ) + b - 1 - b + 1 = -(n : ℂ) by ring]
     ring
   · filter_upwards [self_mem_nhdsWithin] with z hz
     simp only [id]
     rw [show (2 : ℂ) - b = (1 - b) + 1 by ring, cpow_add _ _ hz, cpow_one]
 
+/-- `‖z^w‖ ≤ ‖z‖^{Re w} e^{π |Im w|}` for `z ≠ 0`. -/
+private lemma norm_cpow_le_exp_pi {z : ℂ} (hz : z ≠ 0) (w : ℂ) :
+    ‖z ^ w‖ ≤ ‖z‖ ^ w.re * Real.exp (Real.pi * |w.im|) := by
+  rw [norm_cpow_of_ne_zero hz, div_eq_mul_inv, ← Real.exp_neg]
+  gcongr
+  calc -(arg z * w.im) ≤ |arg z * w.im| := neg_le_abs _
+    _ = |arg z| * |w.im| := abs_mul _ _
+    _ ≤ Real.pi * |w.im| := by gcongr; exact abs_arg_le_pi z
+
+/-- `z^w = O(‖z‖^{Re w})` near `0`. -/
+private lemma isBigO_cpow_norm_rpow (w : ℂ) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z ^ w) (fun z => ‖z‖ ^ w.re) := by
+  refine Asymptotics.IsBigO.of_bound (Real.exp (Real.pi * |w.im|)) ?_
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  rw [Real.norm_of_nonneg (by positivity), mul_comm]
+  exact norm_cpow_le_exp_pi hz w
+
+/-- `z = O(‖z‖^r)` near `0` for `r ≤ 1`. -/
+private lemma isBigO_id_norm_rpow {r : ℝ} (hr : r ≤ 1) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z) (fun z => ‖z‖ ^ r) := by
+  refine Asymptotics.IsBigO.of_bound 1 ?_
+  filter_upwards [nhdsWithin_le_nhds (Metric.closedBall_mem_nhds (0 : ℂ) one_pos)] with z hz
+  rw [Metric.mem_closedBall, dist_zero_right] at hz
+  rw [one_mul, Real.norm_of_nonneg (by positivity)]
+  exact Real.self_le_rpow_of_le_one (norm_nonneg z) hz hr
+
+/-- `‖z‖^r = O(z^r)` near `0` for real `r`. -/
+private lemma isBigO_norm_rpow_cpow (r : ℝ) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => ‖z‖ ^ r) (fun z => z ^ (r : ℂ)) :=
+  Asymptotics.isBigO_of_le _ fun z => by
+    rw [norm_cpow_real, Real.norm_of_nonneg (by positivity)]
+
+/-- A noninteger `b` from a strip of width one containing at most the integer `n`. -/
+private lemma not_int_of_re_mem {b : ℂ} {n : ℤ} (h0 : (n : ℝ) ≤ b.re) (h1 : b.re < n + 1)
+    (hb : b ≠ n) : ∀ k : ℤ, b ≠ k := by
+  intro k hk
+  have hre : b.re = k := by rw [hk]; simp
+  have hkn : k = n := by
+    have h0' : (n : ℝ) ≤ k := hre ▸ h0
+    have h1' : (k : ℝ) < n + 1 := hre ▸ h1
+    have : n ≤ k := by exact_mod_cast h0'
+    have : k < n + 1 := by exact_mod_cast h1'
+    omega
+  exact hb (hk.trans (by rw [hkn]))
+
 /-- Behaviour of `U` at zero for `Re b ≥ 2`, `b ≠ 2`; at `b = 2` a `log z` term appears
-(see `isBigO_confluentU_at_zero_b_two`). -/
+(see `isBigO_kummerU_at_zero_b_two`). -/
 @[dlmf 13.2.E16]
-theorem isBigO_confluentU_at_zero_re_ge_two (a b : ℂ) (hb : 2 ≤ b.re) (hb2 : b ≠ 2) :
+theorem isBigO_kummerU_at_zero_re_ge_two (a b : ℂ) (hb : 2 ≤ b.re) (hb2 : b ≠ 2) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b))
+      (fun z => kummerU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b))
       (fun z => z ^ (2 - b.re : ℂ)) := by
   sorry
 
 @[dlmf 13.2.E17]
-theorem isBigO_confluentU_at_zero_b_two (a : ℂ) :
+theorem isBigO_kummerU_at_zero_b_two (a : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a 2 z - 1 / Gamma a * z⁻¹)
+      (fun z => kummerU a 2 z - 1 / Gamma a * z⁻¹)
       (fun z => log z) := by
   sorry
 
 /-- Behaviour of `U` at zero for `1 ≤ Re b < 2`, `b ≠ 1`; at `b = 1` a `log z` term
-appears (see `isBigO_confluentU_at_zero_b_one`). -/
+appears (see `isBigO_kummerU_at_zero_b_one`). -/
 @[dlmf 13.2.E18]
-theorem isBigO_confluentU_at_zero_re_one_to_two (a b : ℂ)
+theorem isBigO_kummerU_at_zero_re_one_to_two (a b : ℂ)
     (hb0 : 1 ≤ b.re) (hb1 : b.re < 2) (hb2 : b ≠ 1) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b) -
+      (fun z => kummerU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b) -
         Gamma (1 - b) / Gamma (a - b + 1))
       (fun z => z ^ (2 - b.re : ℂ)) := by
-  sorry
+  have hbZ : ∀ k : ℤ, b ≠ k :=
+    not_int_of_re_mem (n := 1) (by simpa using hb0) (by norm_num; linarith) (by simpa using hb2)
+  have h1 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => kummerM a b z - 1)
+      (fun z => ‖z‖ ^ (2 - b.re)) :=
+    ((isBigO_kummerM_sub_one a b).mono nhdsWithin_le_nhds).trans
+      (isBigO_id_norm_rpow (by linarith))
+  have h2 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
+      (fun z => z ^ (1 - b) * (kummerM (a - b + 1) (2 - b) z - 1))
+      (fun z => ‖z‖ ^ (2 - b.re)) := by
+    refine ((isBigO_cpow_norm_rpow (1 - b)).mul
+      ((isBigO_kummerM_sub_one (a - b + 1) (2 - b)).mono
+        (nhdsWithin_le_nhds (s := {0}ᶜ))).norm_right).trans ?_
+    refine Asymptotics.IsBigO.of_bound 1 ?_
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    have hz0 : 0 < ‖z‖ := norm_pos_iff.mpr hz
+    have he : ‖z‖ ^ (1 - b).re * ‖id z‖ = ‖z‖ ^ (2 - b.re) := by
+      rw [id, show 2 - b.re = (1 - b).re + 1 by simp; ring, Real.rpow_add hz0, Real.rpow_one]
+    rw [he, one_mul]
+  have hsum := ((h1.const_mul_left (Gamma (1 - b) / Gamma (a - b + 1))).add
+    (h2.const_mul_left (Gamma (b - 1) / Gamma a))).trans
+      (by simpa using isBigO_norm_rpow_cpow (2 - b.re))
+  refine hsum.congr (fun z => ?_) (fun z => rfl)
+  rw [kummerU_eq_connection a b z hbZ, kummerUConnection]
+  ring
 
 @[dlmf 13.2.E19]
 /- At nonpositive integer a the Gamma/digamma product must be continued jointly.
 The old statement at a = 0 asserted 1 = O(z log z). -/
-theorem isBigO_confluentU_at_zero_b_one (a : ℂ) (ha : ∀ k : ℕ, a ≠ -k) :
+theorem isBigO_kummerU_at_zero_b_one (a : ℂ) (ha : ∀ k : ℕ, a ≠ -k) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a 1 z +
+      (fun z => kummerU a 1 z +
         1 / Gamma a * (log z + digamma a + 2 * (Real.eulerMascheroniConstant : ℂ)))
       (fun z => z * log z) := by
   sorry
 
 @[dlmf 13.2.E20]
-theorem isBigO_confluentU_at_zero_re_zero_to_one (a b : ℂ)
+theorem isBigO_kummerU_at_zero_re_zero_to_one (a b : ℂ)
     (hb0 : 0 < b.re) (hb1 : b.re < 1) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a b z - Gamma (1 - b) / Gamma (a - b + 1))
+      (fun z => kummerU a b z - Gamma (1 - b) / Gamma (a - b + 1))
       (fun z => z ^ (1 - b.re : ℂ)) := by
-  sorry
+  have hbZ : ∀ k : ℤ, b ≠ k := by
+    refine not_int_of_re_mem (n := 0) (by simpa using hb0.le) (by simpa using hb1) ?_
+    intro h
+    rw [h] at hb0
+    simp at hb0
+  have h1 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => kummerM a b z - 1)
+      (fun z => ‖z‖ ^ (1 - b.re)) :=
+    ((isBigO_kummerM_sub_one a b).mono nhdsWithin_le_nhds).trans
+      (isBigO_id_norm_rpow (by linarith))
+  have hM : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => kummerM (a - b + 1) (2 - b) z)
+      (fun _ => (1 : ℝ)) :=
+    ((differentiableAt_kummerM (a - b + 1) (2 - b)).continuousAt.tendsto.isBigO_one ℝ).mono
+      nhdsWithin_le_nhds
+  have h2 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
+      (fun z => z ^ (1 - b) * kummerM (a - b + 1) (2 - b) z)
+      (fun z => ‖z‖ ^ (1 - b.re)) := by
+    refine ((isBigO_cpow_norm_rpow (1 - b)).mul hM).trans ?_
+    refine Asymptotics.IsBigO.of_bound 1 ?_
+    filter_upwards with z
+    simp
+  have hsum := ((h1.const_mul_left (Gamma (1 - b) / Gamma (a - b + 1))).add
+    (h2.const_mul_left (Gamma (b - 1) / Gamma a))).trans
+      (by simpa using isBigO_norm_rpow_cpow (1 - b.re))
+  refine hsum.congr (fun z => ?_) (fun z => rfl)
+  rw [kummerU_eq_connection a b z hbZ, kummerUConnection]
+  ring
 
 @[dlmf 13.2.E21]
-theorem isBigO_confluentU_at_zero_b_zero (a : ℂ) :
+theorem isBigO_kummerU_at_zero_b_zero (a : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
-      (fun z => confluentU a 0 z - 1 / Gamma (a + 1))
+      (fun z => kummerU a 0 z - 1 / Gamma (a + 1))
       (fun z => z * log z) := by
   sorry
 
 /-- Behaviour of `U` at zero for `Re b ≤ 0`, `b ≠ 0`; at `b = 0` a `z log z` term
-appears (see `isBigO_confluentU_at_zero_b_zero`). -/
+appears (see `isBigO_kummerU_at_zero_b_zero`). -/
 @[dlmf 13.2.E22]
-theorem isBigO_confluentU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) (hb0 : b ≠ 0) :
+theorem isBigO_kummerU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) (hb0 : b ≠ 0) :
     Asymptotics.IsBigO (𝓝 (0 : ℂ))
-      (fun z => confluentU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
+      (fun z => kummerU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
   sorry
 
 /-! ### Wronskians -/
 
-lemma analyticOnNhd_confluentM {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
-    AnalyticOnNhd ℂ (confluentM a b) Set.univ := fun z _ =>
-  (hasFPowerSeriesOnBall_confluentM (a := a) hb).analyticAt_of_mem (by simp)
+lemma analyticOnNhd_kummerM {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
+    AnalyticOnNhd ℂ (kummerM a b) Set.univ := fun z _ =>
+  (hasFPowerSeriesOnBall_kummerM (a := a) hb).analyticAt_of_mem (by simp)
 
 /-- The entire part of the Wronskian of Kummer's pair `M(a,b,z)`, `z^{1-b} M(a-b+1,2-b,z)`
 equals `(1-b) e^z`. -/
 lemma kummer_pair_wronskian_core {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k)
     (hB : ∀ k : ℕ, 2 - b ≠ -k) (z : ℂ) :
-    (1 - b) * confluentM a b z * confluentM (a - b + 1) (2 - b) z +
-      z * (confluentM a b z * deriv (confluentM (a - b + 1) (2 - b)) z -
-        confluentM (a - b + 1) (2 - b) z * deriv (confluentM a b) z) = (1 - b) * exp z := by
-  set u := confluentM a b with hu
-  set v := confluentM (a - b + 1) (2 - b) with hv
-  have hua := analyticOnNhd_confluentM (a := a) hb
-  have hva := analyticOnNhd_confluentM (a := a - b + 1) hB
+    (1 - b) * kummerM a b z * kummerM (a - b + 1) (2 - b) z +
+      z * (kummerM a b z * deriv (kummerM (a - b + 1) (2 - b)) z -
+        kummerM (a - b + 1) (2 - b) z * deriv (kummerM a b) z) = (1 - b) * exp z := by
+  set u := kummerM a b with hu
+  set v := kummerM (a - b + 1) (2 - b) with hv
+  have hua := analyticOnNhd_kummerM (a := a) hb
+  have hva := analyticOnNhd_kummerM (a := a - b + 1) hB
   have hud : Differentiable ℂ u := fun w => (hua w (Set.mem_univ _)).differentiableAt
   have hvd : Differentiable ℂ v := fun w => (hva w (Set.mem_univ _)).differentiableAt
   have hud' : Differentiable ℂ (deriv u) := fun w => (hua.deriv w (Set.mem_univ _)).differentiableAt
@@ -1057,8 +1151,8 @@ lemma kummer_pair_wronskian_core {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k)
   have hEF : E = F := by
     refine Continuous.ext_on (dense_compl_singleton (0 : ℂ)) hEc hFc fun w hw => ?_
     have hw' : w ≠ 0 := hw
-    have hU := confluentM_ode (a := a) hb hw'
-    have hV := confluentM_ode (a := a - b + 1) hB hw'
+    have hU := kummerM_ode (a := a) hb hw'
+    have hV := kummerM_ode (a := a - b + 1) hB hw'
     rw [iteratedDeriv_succ, iteratedDeriv_one] at hU hV
     rw [← hu] at hU
     rw [← hv] at hV
@@ -1076,7 +1170,7 @@ lemma kummer_pair_wronskian_core {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k)
   have hGd : Differentiable ℂ (fun w => F w * exp (-w)) := fun w =>
     ((hFd w).differentiableAt.mul (by fun_prop))
   have hc := is_const_of_deriv_eq_zero hGd hG z 0
-  have hF0 : F 0 = 1 - b := by simp [hF, hu, hv, confluentM_zero]
+  have hF0 : F 0 = 1 - b := by simp [hF, hu, hv, kummerM_zero]
   simp only [neg_zero, exp_zero, mul_one, hF0] at hc
   have hez : exp (-z) * exp z = 1 := by rw [← exp_add]; simp
   change F z = (1 - b) * exp z
@@ -1086,15 +1180,15 @@ lemma kummer_pair_wronskian_core {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -k)
 denominators. -/
 lemma wronskian_kummer_pair_of_nonpole (a b : ℂ) {z : ℂ} (hbk : ∀ k : ℕ, b ≠ -k)
     (hBk : ∀ k : ℕ, 2 - b ≠ -k) (hz : z ∈ slitPlane) :
-    wronskian (confluentM a b) (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z =
+    wronskian (kummerM a b) (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z =
       (1 - b) * z ^ (-b) * exp z := by
   have hz0 := slitPlane_ne_zero hz
-  have hv := ((analyticOnNhd_confluentM (a := a - b + 1) hBk) z (Set.mem_univ _)).differentiableAt
+  have hv := ((analyticOnNhd_kummerM (a := a - b + 1) hBk) z (Set.mem_univ _)).differentiableAt
   have hp := (hasDerivAt_id z).cpow_const (c := 1 - b) hz
   have hy := hp.mul hv.hasDerivAt
   simp only [id, mul_one] at hy
   unfold wronskian
-  rw [HasDerivAt.deriv (f := fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) hy]
+  rw [HasDerivAt.deriv (f := fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) hy]
   have hcore := kummer_pair_wronskian_core (a := a) hbk hBk z
   have e1 : z ^ (1 - b - 1) = z ^ (-b) := by ring_nf
   have e2 : z ^ (1 - b) = z * z ^ (-b) := by
@@ -1105,7 +1199,7 @@ lemma wronskian_kummer_pair_of_nonpole (a b : ℂ) {z : ℂ} (hbk : ∀ k : ℕ,
 
 /-- The Wronskian of Kummer's pair `M(a,b,z)`, `z^{1-b} M(a-b+1,2-b,z)`. -/
 lemma wronskian_kummer_pair (a b : ℂ) {z : ℂ} (hb : ∀ n : ℤ, b ≠ n) (hz : z ∈ slitPlane) :
-    wronskian (confluentM a b) (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z =
+    wronskian (kummerM a b) (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z =
       (1 - b) * z ^ (-b) * exp z :=
   wronskian_kummer_pair_of_nonpole a b (fun k h => hb (-k) (by push_cast; exact h))
     (fun k h => hb (2 + k) (by push_cast; linear_combination -h)) hz
@@ -1133,49 +1227,49 @@ lemma tendstoUniformlyOnFilter_of_continuousAt {F : ℂ → ℂ → ℂ} {b x : 
     _ = ε := by ring
 
 /-- At noninteger `c`, `U(a,c,·)` is differentiable on the slit plane. -/
-lemma differentiableOn_confluentU_of_mem (a : ℂ) {c : ℂ} (hc : c ∈ integerComplement) :
-    DifferentiableOn ℂ (confluentU a c) slitPlane := by
+lemma differentiableOn_kummerU_of_mem (a : ℂ) {c : ℂ} (hc : c ∈ integerComplement) :
+    DifferentiableOn ℂ (kummerU a c) slitPlane := by
   have hcz := forall_of_mem_integerComplement hc
   have hck := not_neg_nat_of_mem_integerComplement hc
   have h2c : ∀ k : ℕ, 2 - c ≠ -k := fun k h => hcz (2 + k) (by push_cast; linear_combination -h)
-  have hfun : confluentU a c = fun w => confluentUConnection a c w :=
-    funext fun w => confluentU_eq_connection a c w hcz
+  have hfun : kummerU a c = fun w => kummerUConnection a c w :=
+    funext fun w => kummerU_eq_connection a c w hcz
   rw [hfun]
   intro w hw
-  have hu := ((analyticOnNhd_confluentM (a := a) hck) w (Set.mem_univ _)).differentiableAt
-  have hv := ((analyticOnNhd_confluentM (a := a - c + 1) h2c) w (Set.mem_univ _)).differentiableAt
+  have hu := ((analyticOnNhd_kummerM (a := a) hck) w (Set.mem_univ _)).differentiableAt
+  have hv := ((analyticOnNhd_kummerM (a := a - c + 1) h2c) w (Set.mem_univ _)).differentiableAt
   have hp := ((hasDerivAt_id w).cpow_const (c := 1 - c) hw).differentiableAt
-  unfold confluentUConnection
+  unfold kummerUConnection
   exact ((hu.const_mul _).add (((hp.const_mul _).mul hv))).differentiableWithinAt
 
 /-- `U(a,c,·) → U(a,b,·)` locally uniformly on the slit plane along noninteger `c → b`. -/
-lemma tendstoLocallyUniformlyOn_confluentU (a b : ℂ) :
-    TendstoLocallyUniformlyOn (fun c => confluentU a c) (confluentU a b)
+lemma tendstoLocallyUniformlyOn_kummerU (a b : ℂ) :
+    TendstoLocallyUniformlyOn (fun c => kummerU a c) (kummerU a b)
       (𝓝[integerComplement] b) slitPlane := by
   rw [tendstoLocallyUniformlyOn_iff_filter]
   intro x hx
-  have hc : ContinuousAt (fun p : ℂ × ℂ => confluentU a p.1 p.2) (b, x) := by
-    have h := continuousAt_confluentU a b hx
+  have hc : ContinuousAt (fun p : ℂ × ℂ => kummerU a p.1 p.2) (b, x) := by
+    have h := continuousAt_kummerU a b hx
     have hf : ContinuousAt (fun p : ℂ × ℂ => (a, p.1, p.2)) (b, x) := by fun_prop
-    exact ContinuousAt.comp (g := fun q : ℂ × ℂ × ℂ => confluentU q.1 q.2.1 q.2.2)
+    exact ContinuousAt.comp (g := fun q : ℂ × ℂ × ℂ => kummerU q.1 q.2.1 q.2.2)
       (f := fun p : ℂ × ℂ => (a, p.1, p.2)) h hf
-  exact (tendstoUniformlyOnFilter_of_continuousAt (F := fun c w => confluentU a c w) hc
+  exact (tendstoUniformlyOnFilter_of_continuousAt (F := fun c w => kummerU a c w) hc
     nhdsWithin_le_nhds).mono_right nhdsWithin_le_nhds
 
 /-- **`U(a,b,·)` is holomorphic on the slit plane** for every `b`, including integers. -/
-theorem differentiableOn_confluentU (a b : ℂ) : DifferentiableOn ℂ (confluentU a b) slitPlane := by
+theorem differentiableOn_kummerU (a b : ℂ) : DifferentiableOn ℂ (kummerU a b) slitPlane := by
   have := integerComplement_nhdsWithin_neBot b
-  exact (tendstoLocallyUniformlyOn_confluentU a b).differentiableOn
-    (eventually_nhdsWithin_of_forall fun c hc => differentiableOn_confluentU_of_mem a hc)
+  exact (tendstoLocallyUniformlyOn_kummerU a b).differentiableOn
+    (eventually_nhdsWithin_of_forall fun c hc => differentiableOn_kummerU_of_mem a hc)
     isOpen_slitPlane
 
 /-- The `z`-derivative of `U(a,c,z)` converges along noninteger `c → b`. -/
-theorem tendsto_deriv_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    Tendsto (fun c => deriv (confluentU a c) z) (𝓝[integerComplement] b)
-      (𝓝 (deriv (confluentU a b) z)) := by
-  have hd : ∀ᶠ c in 𝓝[integerComplement] b, DifferentiableOn ℂ (confluentU a c) slitPlane :=
-    eventually_nhdsWithin_of_forall fun c hc => differentiableOn_confluentU_of_mem a hc
-  exact ((tendstoLocallyUniformlyOn_confluentU a b).deriv hd isOpen_slitPlane).tendsto_at hz
+theorem tendsto_deriv_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    Tendsto (fun c => deriv (kummerU a c) z) (𝓝[integerComplement] b)
+      (𝓝 (deriv (kummerU a b) z)) := by
+  have hd : ∀ᶠ c in 𝓝[integerComplement] b, DifferentiableOn ℂ (kummerU a c) slitPlane :=
+    eventually_nhdsWithin_of_forall fun c hc => differentiableOn_kummerU_of_mem a hc
+  exact ((tendstoLocallyUniformlyOn_kummerU a b).deriv hd isOpen_slitPlane).tendsto_at hz
 
 private lemma cpow_ne_zero_of_ne_zero' {z : ℂ} (hz : z ≠ 0) (s : ℂ) : z ^ s ≠ 0 := by
   rw [cpow_def_of_ne_zero hz]; exact exp_ne_zero _
@@ -1187,99 +1281,99 @@ lemma Gamma_mul_Gamma_two_sub (b : ℂ) (hb1 : (1 : ℂ) - b ≠ 0) :
   ring
 
 /-- The connection formula as an identity of functions, with its derivative. -/
-lemma hasDerivAt_confluentU_connection (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
+lemma hasDerivAt_kummerU_connection (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
     (hz : z ∈ slitPlane) :
-    HasDerivAt (confluentU a c)
-      (Gamma (1 - c) / Gamma (a - c + 1) * deriv (confluentM a c) z +
+    HasDerivAt (kummerU a c)
+      (Gamma (1 - c) / Gamma (a - c + 1) * deriv (kummerM a c) z +
         Gamma (c - 1) / Gamma a *
-          deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z) z := by
+          deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z) z := by
   have hcz := forall_of_mem_integerComplement hc
   have hck := not_neg_nat_of_mem_integerComplement hc
   have h2c : ∀ k : ℕ, 2 - c ≠ -k := fun k h => hcz (2 + k) (by push_cast; linear_combination -h)
-  have hfun : confluentU a c = fun w => Gamma (1 - c) / Gamma (a - c + 1) * confluentM a c w +
-      Gamma (c - 1) / Gamma a * (w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) := by
+  have hfun : kummerU a c = fun w => Gamma (1 - c) / Gamma (a - c + 1) * kummerM a c w +
+      Gamma (c - 1) / Gamma a * (w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) := by
     funext w
-    rw [confluentU_eq_connection a c w hcz]
-    unfold confluentUConnection
+    rw [kummerU_eq_connection a c w hcz]
+    unfold kummerUConnection
     ring
-  have hu := ((analyticOnNhd_confluentM (a := a) hck) z (Set.mem_univ _)).differentiableAt
-  have hv := ((analyticOnNhd_confluentM (a := a - c + 1) h2c) z (Set.mem_univ _)).differentiableAt
-  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z :=
+  have hu := ((analyticOnNhd_kummerM (a := a) hck) z (Set.mem_univ _)).differentiableAt
+  have hv := ((analyticOnNhd_kummerM (a := a - c + 1) h2c) z (Set.mem_univ _)).differentiableAt
+  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z :=
     ((hasDerivAt_id z).cpow_const (c := 1 - c) hz).differentiableAt.mul hv
   rw [hfun]
   exact (hu.hasDerivAt.const_mul _).add (hy.hasDerivAt.const_mul _)
 
-lemma wronskian_regularized_confluentU_of_mem (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
+lemma wronskian_regularized_kummerU_of_mem (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
     (hz : z ∈ slitPlane) :
-    regularizedHGFun {a} {c} z * deriv (confluentU a c) z -
-      confluentU a c z * deriv (regularizedHGFun {a} {c}) z = -(z ^ (-c) * exp z) / Gamma a := by
+    regularizedHGFun {a} {c} z * deriv (kummerU a c) z -
+      kummerU a c z * deriv (regularizedHGFun {a} {c}) z = -(z ^ (-c) * exp z) / Gamma a := by
   have hcz := forall_of_mem_integerComplement hc
   have hck := not_neg_nat_of_mem_integerComplement hc
-  have h1 : regularizedHGFun {a} {c} = fun w => (Gamma c)⁻¹ * confluentM a c w := by
+  have h1 : regularizedHGFun {a} {c} = fun w => (Gamma c)⁻¹ * kummerM a c w := by
     funext w; rw [regularizedConfluent_eq_div_Gamma hck, div_eq_inv_mul]
-  have hu := ((analyticOnNhd_confluentM (a := a) hck) z (Set.mem_univ _)).differentiableAt
+  have hu := ((analyticOnNhd_kummerM (a := a) hck) z (Set.mem_univ _)).differentiableAt
   have hW := wronskian_kummer_pair a c hcz hz
   unfold wronskian at hW
-  rw [(hasDerivAt_confluentU_connection a hc hz).deriv, h1, deriv_const_mul _ hu,
-    confluentU_eq_connection a c z hcz]
-  unfold confluentUConnection
+  rw [(hasDerivAt_kummerU_connection a hc hz).deriv, h1, deriv_const_mul _ hu,
+    kummerU_eq_connection a c z hcz]
+  unfold kummerUConnection
   have hc1 : c - 1 ≠ 0 := fun h => hcz 1 (by push_cast; linear_combination h)
   have hGc : Gamma c = (c - 1) * Gamma (c - 1) := by
     rw [← Gamma_add_one _ hc1]; ring_nf
   have hGc1 : Gamma (c - 1) ≠ 0 := Gamma_ne_zero fun k h => hcz (-k + 1) (by
     push_cast; linear_combination h)
   rw [hGc]
-  calc ((c - 1) * Gamma (c - 1))⁻¹ * confluentM a c z *
-        (Gamma (1 - c) / Gamma (a - c + 1) * deriv (confluentM a c) z +
+  calc ((c - 1) * Gamma (c - 1))⁻¹ * kummerM a c z *
+        (Gamma (1 - c) / Gamma (a - c + 1) * deriv (kummerM a c) z +
           Gamma (c - 1) / Gamma a *
-            deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z) -
-      (Gamma (1 - c) / Gamma (a - c + 1) * confluentM a c z +
-          Gamma (c - 1) / Gamma a * z ^ (1 - c) * confluentM (a - c + 1) (2 - c) z) *
-        (((c - 1) * Gamma (c - 1))⁻¹ * deriv (confluentM a c) z)
+            deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z) -
+      (Gamma (1 - c) / Gamma (a - c + 1) * kummerM a c z +
+          Gamma (c - 1) / Gamma a * z ^ (1 - c) * kummerM (a - c + 1) (2 - c) z) *
+        (((c - 1) * Gamma (c - 1))⁻¹ * deriv (kummerM a c) z)
       = ((c - 1) * Gamma (c - 1))⁻¹ * (Gamma (c - 1) / Gamma a) *
-          (confluentM a c z * deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z -
-            z ^ (1 - c) * confluentM (a - c + 1) (2 - c) z * deriv (confluentM a c) z) := by ring
+          (kummerM a c z * deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z -
+            z ^ (1 - c) * kummerM (a - c + 1) (2 - c) z * deriv (kummerM a c) z) := by ring
     _ = _ := by
       rw [hW]
       field_simp
       ring
 
-lemma wronskian_shifted_confluentU_of_mem (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
+lemma wronskian_shifted_kummerU_of_mem (a : ℂ) {c z : ℂ} (hc : c ∈ integerComplement)
     (hz : z ∈ slitPlane) :
-    z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (confluentU a c) z -
-      confluentU a c z * deriv (fun w => w ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} w) z =
+    z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (kummerU a c) z -
+      kummerU a c z * deriv (fun w => w ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} w) z =
       -(z ^ (-c) * exp z) / Gamma (a - c + 1) := by
   have hcz := forall_of_mem_integerComplement hc
   have hck := not_neg_nat_of_mem_integerComplement hc
   have h2c : ∀ k : ℕ, 2 - c ≠ -k := fun k h => hcz (2 + k) (by push_cast; linear_combination -h)
   have h2 : (fun w => w ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} w) =
-      fun w => (Gamma (2 - c))⁻¹ * (w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) := by
+      fun w => (Gamma (2 - c))⁻¹ * (w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) := by
     funext w; rw [regularizedConfluent_eq_div_Gamma h2c, div_eq_inv_mul]; ring
-  have hv := ((analyticOnNhd_confluentM (a := a - c + 1) h2c) z (Set.mem_univ _)).differentiableAt
-  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z :=
+  have hv := ((analyticOnNhd_kummerM (a := a - c + 1) h2c) z (Set.mem_univ _)).differentiableAt
+  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z :=
     ((hasDerivAt_id z).cpow_const (c := 1 - c) hz).differentiableAt.mul hv
   have hW := wronskian_kummer_pair a c hcz hz
   unfold wronskian at hW
-  rw [(hasDerivAt_confluentU_connection a hc hz).deriv, h2, deriv_const_mul _ hy,
-    regularizedConfluent_eq_div_Gamma h2c, confluentU_eq_connection a c z hcz]
-  unfold confluentUConnection
+  rw [(hasDerivAt_kummerU_connection a hc hz).deriv, h2, deriv_const_mul _ hy,
+    regularizedConfluent_eq_div_Gamma h2c, kummerU_eq_connection a c z hcz]
+  unfold kummerUConnection
   have hc1 : (1 : ℂ) - c ≠ 0 := fun h => hcz 1 (by push_cast; linear_combination -h)
   have hG2 : Gamma (2 - c) = (1 - c) * Gamma (1 - c) := by
     rw [show (2 : ℂ) - c = (1 - c) + 1 by ring, Gamma_add_one _ hc1]
   have hG1 : Gamma (1 - c) ≠ 0 := Gamma_ne_zero fun k h => hcz (k + 1) (by
     push_cast; linear_combination -h)
   rw [hG2]
-  calc z ^ (1 - c) * (confluentM (a - c + 1) (2 - c) z / ((1 - c) * Gamma (1 - c))) *
-        (Gamma (1 - c) / Gamma (a - c + 1) * deriv (confluentM a c) z +
+  calc z ^ (1 - c) * (kummerM (a - c + 1) (2 - c) z / ((1 - c) * Gamma (1 - c))) *
+        (Gamma (1 - c) / Gamma (a - c + 1) * deriv (kummerM a c) z +
           Gamma (c - 1) / Gamma a *
-            deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z) -
-      (Gamma (1 - c) / Gamma (a - c + 1) * confluentM a c z +
-          Gamma (c - 1) / Gamma a * z ^ (1 - c) * confluentM (a - c + 1) (2 - c) z) *
+            deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z) -
+      (Gamma (1 - c) / Gamma (a - c + 1) * kummerM a c z +
+          Gamma (c - 1) / Gamma a * z ^ (1 - c) * kummerM (a - c + 1) (2 - c) z) *
         (((1 - c) * Gamma (1 - c))⁻¹ *
-          deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z)
+          deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z)
       = -(((1 - c) * Gamma (1 - c))⁻¹ * (Gamma (1 - c) / Gamma (a - c + 1))) *
-          (confluentM a c z * deriv (fun w => w ^ (1 - c) * confluentM (a - c + 1) (2 - c) w) z -
-            z ^ (1 - c) * confluentM (a - c + 1) (2 - c) z * deriv (confluentM a c) z) := by ring
+          (kummerM a c z * deriv (fun w => w ^ (1 - c) * kummerM (a - c + 1) (2 - c) w) z -
+            z ^ (1 - c) * kummerM (a - c + 1) (2 - c) z * deriv (kummerM a c) z) := by ring
     _ = _ := by
       rw [hW]
       field_simp
@@ -1292,10 +1386,10 @@ lemma tendsto_regularizedConfluent_param (A B : ℂ → ℂ) (hA : Continuous A)
   exact (h.continuousAt.tendsto).mono_left hl
 
 @[dlmf 13.2.E26]
-theorem wronskian_confluentM_pair {a b z : ℂ} (hb : ∀ n : ℤ, b ≠ n)
+theorem wronskian_kummerM_pair {a b z : ℂ} (hb : ∀ n : ℤ, b ≠ n)
     (hz : z ∈ slitPlane) :
-    wronskian (confluentM a b)
-      (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z ≠ 0 := by
+    wronskian (kummerM a b)
+      (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z ≠ 0 := by
   rw [wronskian_kummer_pair a b hb hz]
   have hb1 : (1 : ℂ) - b ≠ 0 := fun h => hb 1 (by push_cast; linear_combination -h)
   exact mul_ne_zero (mul_ne_zero hb1 (cpow_ne_zero_of_ne_zero' (slitPlane_ne_zero hz) _))
@@ -1314,56 +1408,56 @@ theorem wronskian_regularizedHGFun (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
   have hsin := sin_pi_mul_ne_zero_of_mem hbc
   have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   have hz0 := slitPlane_ne_zero hz
-  have h1 : regularizedHGFun {a} {b} = fun w => (Gamma b)⁻¹ * confluentM a b w := by
+  have h1 : regularizedHGFun {a} {b} = fun w => (Gamma b)⁻¹ * kummerM a b w := by
     funext w; rw [regularizedConfluent_eq_div_Gamma hbk, div_eq_inv_mul]
   have h2 : (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w) =
-      fun w => (Gamma (2 - b))⁻¹ * (w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) := by
+      fun w => (Gamma (2 - b))⁻¹ * (w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) := by
     funext w; rw [regularizedConfluent_eq_div_Gamma hBk, div_eq_inv_mul]; ring
   have hW := wronskian_kummer_pair a b hb hz
-  have hu := ((analyticOnNhd_confluentM (a := a) hbk) z (Set.mem_univ _)).differentiableAt
-  have hv := ((analyticOnNhd_confluentM (a := a - b + 1) hBk) z (Set.mem_univ _)).differentiableAt
-  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z :=
+  have hu := ((analyticOnNhd_kummerM (a := a) hbk) z (Set.mem_univ _)).differentiableAt
+  have hv := ((analyticOnNhd_kummerM (a := a - b + 1) hBk) z (Set.mem_univ _)).differentiableAt
+  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z :=
     ((hasDerivAt_id z).cpow_const (c := 1 - b) hz).differentiableAt.mul hv
   unfold wronskian at hW ⊢
   rw [h1, h2, deriv_const_mul _ hu, deriv_const_mul _ hy]
   have hG := Gamma_mul_Gamma_two_sub b hb1
   have hGb : Gamma b ≠ 0 := Gamma_ne_zero hbk
   have hGB : Gamma (2 - b) ≠ 0 := Gamma_ne_zero hBk
-  calc (Gamma b)⁻¹ * confluentM a b z * ((Gamma (2 - b))⁻¹ *
-        deriv (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z) -
-      (Gamma (2 - b))⁻¹ * (z ^ (1 - b) * confluentM (a - b + 1) (2 - b) z) *
-        ((Gamma b)⁻¹ * deriv (confluentM a b) z)
-      = (Gamma b * Gamma (2 - b))⁻¹ * (confluentM a b z *
-          deriv (fun w => w ^ (1 - b) * confluentM (a - b + 1) (2 - b) w) z -
-        (z ^ (1 - b) * confluentM (a - b + 1) (2 - b) z) * deriv (confluentM a b) z) := by
+  calc (Gamma b)⁻¹ * kummerM a b z * ((Gamma (2 - b))⁻¹ *
+        deriv (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z) -
+      (Gamma (2 - b))⁻¹ * (z ^ (1 - b) * kummerM (a - b + 1) (2 - b) z) *
+        ((Gamma b)⁻¹ * deriv (kummerM a b) z)
+      = (Gamma b * Gamma (2 - b))⁻¹ * (kummerM a b z *
+          deriv (fun w => w ^ (1 - b) * kummerM (a - b + 1) (2 - b) w) z -
+        (z ^ (1 - b) * kummerM (a - b + 1) (2 - b) z) * deriv (kummerM a b) z) := by
           rw [mul_inv]; ring
     _ = _ := by
       rw [hW, hG]
       field_simp
 
 /-- 13.2.34 without the hypothesis on `a`. -/
-lemma wronskian_regularizedHGFun_confluentU_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    wronskian (regularizedHGFun {a} {b}) (confluentU a b) z =
+lemma wronskian_regularizedHGFun_kummerU_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    wronskian (regularizedHGFun {a} {b}) (kummerU a b) z =
       -(z ^ (-b) * exp z) / Gamma a := by
   have hz0 := slitPlane_ne_zero hz
   have := integerComplement_nhdsWithin_neBot b
   unfold wronskian
-  have key : ∀ c, regularizedHGFun {a} {c} z * deriv (confluentU a c) z -
-      confluentU a c z * deriv (regularizedHGFun {a} {c}) z =
-      regularizedHGFun {a} {c} z * deriv (confluentU a c) z -
-        confluentU a c z * (a * regularizedHGFun {a + 1} {c + 1} z) := fun c => by
+  have key : ∀ c, regularizedHGFun {a} {c} z * deriv (kummerU a c) z -
+      kummerU a c z * deriv (regularizedHGFun {a} {c}) z =
+      regularizedHGFun {a} {c} z * deriv (kummerU a c) z -
+        kummerU a c z * (a * regularizedHGFun {a + 1} {c + 1} z) := fun c => by
     rw [deriv_regularizedConfluent]
   rw [key]
-  have hL : Tendsto (fun c => regularizedHGFun {a} {c} z * deriv (confluentU a c) z -
-      confluentU a c z * (a * regularizedHGFun {a + 1} {c + 1} z)) (𝓝[integerComplement] b)
-      (𝓝 (regularizedHGFun {a} {b} z * deriv (confluentU a b) z -
-        confluentU a b z * (a * regularizedHGFun {a + 1} {b + 1} z))) := by
+  have hL : Tendsto (fun c => regularizedHGFun {a} {c} z * deriv (kummerU a c) z -
+      kummerU a c z * (a * regularizedHGFun {a + 1} {c + 1} z)) (𝓝[integerComplement] b)
+      (𝓝 (regularizedHGFun {a} {b} z * deriv (kummerU a b) z -
+        kummerU a b z * (a * regularizedHGFun {a + 1} {b + 1} z))) := by
     have h1 := tendsto_regularizedConfluent_param (fun _ => a) id continuous_const continuous_id
       b z (𝓝[integerComplement] b) nhdsWithin_le_nhds
     have h2 := tendsto_regularizedConfluent_param (fun _ => a + 1) (fun c => c + 1)
       continuous_const (by fun_prop) b z (𝓝[integerComplement] b) nhdsWithin_le_nhds
-    exact (h1.mul (tendsto_deriv_confluentU a b hz)).sub
-      ((tendsto_confluentU a b hz0).mul (h2.const_mul a))
+    exact (h1.mul (tendsto_deriv_kummerU a b hz)).sub
+      ((tendsto_kummerU a b hz0).mul (h2.const_mul a))
   have hR : Tendsto (fun c : ℂ => -(z ^ (-c) * exp z) / Gamma a) (𝓝[integerComplement] b)
       (𝓝 (-(z ^ (-b) * exp z) / Gamma a)) := by
     have hc : ContinuousAt (fun c : ℂ => z ^ (-c)) b :=
@@ -1372,14 +1466,14 @@ lemma wronskian_regularizedHGFun_confluentU_all (a b : ℂ) {z : ℂ} (hz : z �
   refine tendsto_nhds_unique hL (hR.congr' ?_)
   filter_upwards [self_mem_nhdsWithin] with c hc
   rw [← key]
-  exact (wronskian_regularized_confluentU_of_mem a hc hz).symm
+  exact (wronskian_regularized_kummerU_of_mem a hc hz).symm
 
 @[dlmf 13.2.E34]
-theorem wronskian_regularizedHGFun_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem wronskian_regularizedHGFun_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (ha : ∀ k : ℕ, a ≠ -k) :
-    wronskian (regularizedHGFun {a} {b}) (confluentU a b) z =
+    wronskian (regularizedHGFun {a} {b}) (kummerU a b) z =
       -(z ^ (-b) * exp z) / Gamma a := by
-  exact wronskian_regularizedHGFun_confluentU_all a b hz
+  exact wronskian_regularizedHGFun_kummerU_all a b hz
 
 /-- `(-z)^w = z^w e^{επiw}` when `-z = z e^{επi}` with `arg z + επ ∈ (-π, π]`. -/
 lemma neg_cpow_of_arg {z : ℂ} (hz : z ≠ 0) (ε : ℂ) (hε : ε = 1 ∨ ε = -1)
@@ -1436,18 +1530,18 @@ lemma exp_connection_cancel (a b ε : ℂ) (hε : ε = 1 ∨ ε = -1) :
   · rw [show (-1 : ℂ) * π * I = -(π * I) by ring, exp_neg, exp_pi_mul_I]; ring
 
 /-- DLMF 13.2.41 for noninteger `b`, with `-z = z e^{επi}` and `ε = ±1`. -/
-theorem confluentM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : ∀ k : ℤ, b ≠ k)
+theorem kummerM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : ∀ k : ℤ, b ≠ k)
     (ε : ℂ) (hε : ε = 1 ∨ ε = -1)
     (hc : (-z) ^ (1 - b) = z ^ (1 - b) * exp (ε * π * I * (1 - b))) :
-    confluentM a b z / Gamma b =
-      exp (-ε * a * π * I) / Gamma (b - a) * confluentU a b z +
-        exp (ε * (b - a) * π * I) / Gamma a * exp z * confluentU (b - a) b (-z) := by
+    kummerM a b z / Gamma b =
+      exp (-ε * a * π * I) / Gamma (b - a) * kummerU a b z +
+        exp (ε * (b - a) * π * I) / Gamma a * exp z * kummerU (b - a) b (-z) := by
   have hbn : ∀ k : ℕ, b ≠ -k := fun k h => hb (-k) (by simp [h])
   have h2b : ∀ k : ℕ, 2 - b ≠ -k := fun k h => hb (k + 2) (by push_cast; linear_combination -h)
-  rw [confluentU_eq_connection _ _ _ hb, confluentU_eq_connection _ _ _ hb, confluentUConnection,
-    confluentUConnection, hc, show b - a - b + 1 = 1 - a by ring]
-  have hk1 := confluentM_kummer_transform (a := a) (z := z) hbn
-  have hk2 := confluentM_kummer_transform (a := a - b + 1) (z := z) h2b
+  rw [kummerU_eq_connection _ _ _ hb, kummerU_eq_connection _ _ _ hb, kummerUConnection,
+    kummerUConnection, hc, show b - a - b + 1 = 1 - a by ring]
+  have hk1 := kummerM_kummer_transform (a := a) (z := z) hbn
+  have hk2 := kummerM_kummer_transform (a := a - b + 1) (z := z) h2b
   rw [show 2 - b - (a - b + 1) = 1 - a by ring] at hk2
   rw [hk1, hk2]
   have hG1 := inv_Gamma_mul_Gamma_one_sub (b - a)
@@ -1465,8 +1559,8 @@ theorem confluentM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : �
   have hS1 := exp_sin_connection a b ε hε
   have hS2 := exp_connection_cancel a b ε hε
   set E := exp z
-  set Mb := confluentM (b - a) b (-z)
-  set Mc := confluentM (1 - a) (2 - b) (-z)
+  set Mb := kummerM (b - a) b (-z)
+  set Mc := kummerM (1 - a) (2 - b) (-z)
   set Z := z ^ (1 - b)
   linear_combination (-(E * Mb * Gamma (1 - b) * exp (-ε * a * π * I))) * hG1 -
     E * Mb * Gamma (1 - b) * exp (ε * (b - a) * π * I) * hG2 -
@@ -1474,9 +1568,9 @@ theorem confluentM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : �
     E * Mc * Z * Gamma (b - 1) * (Gamma a)⁻¹ * (Gamma (b - a))⁻¹ * hS2
 
 /-- 13.2.36 without the hypothesis on `a - b + 1`. -/
-lemma wronskian_shifted_regularized_confluentU_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+lemma wronskian_shifted_regularized_kummerU_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     wronskian (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w)
-      (confluentU a b) z =
+      (kummerU a b) z =
       -(z ^ (-b) * exp z) / Gamma (a - b + 1) := by
   have hz0 := slitPlane_ne_zero hz
   have := integerComplement_nhdsWithin_neBot b
@@ -1492,10 +1586,10 @@ lemma wronskian_shifted_regularized_confluentU_all (a b : ℂ) {z : ℂ} (hz : z
     simp only [id, mul_one] at h
     convert h using 2
     ring_nf
-  have key : ∀ c, z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (confluentU a c) z -
-      confluentU a c z * deriv (fun w => w ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} w) z =
-      z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (confluentU a c) z -
-      confluentU a c z * ((1 - c) * z ^ (-c) * regularizedHGFun {a - c + 1} {2 - c} z +
+  have key : ∀ c, z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (kummerU a c) z -
+      kummerU a c z * deriv (fun w => w ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} w) z =
+      z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * deriv (kummerU a c) z -
+      kummerU a c z * ((1 - c) * z ^ (-c) * regularizedHGFun {a - c + 1} {2 - c} z +
         z ^ (1 - c) * ((a - c + 1) * regularizedHGFun {a - c + 1 + 1} {2 - c + 1} z)) :=
     fun c => by rw [(hD c).deriv]
   rw [key]
@@ -1510,7 +1604,7 @@ lemma wronskian_shifted_regularized_confluentU_all (a b : ℂ) {z : ℂ} (hz : z
   have c1 : Tendsto (fun _ : ℂ => (1 : ℂ)) (𝓝[integerComplement] b) (𝓝 1) := tendsto_const_nhds
   have ca : Tendsto (fun _ : ℂ => a) (𝓝[integerComplement] b) (𝓝 a) := tendsto_const_nhds
   have hL := (((hpow (fun c => 1 - c) (by fun_prop)).mul h1).mul
-    (tendsto_deriv_confluentU a b hz)).sub ((tendsto_confluentU a b hz0).mul
+    (tendsto_deriv_kummerU a b hz)).sub ((tendsto_kummerU a b hz0).mul
       ((((c1.sub hid).mul (hpow (fun c => -c) (by fun_prop))).mul h1).add
         ((hpow (fun c => 1 - c) (by fun_prop)).mul
           (((ca.sub hid).add c1).mul h2))))
@@ -1529,24 +1623,24 @@ lemma wronskian_shifted_regularized_confluentU_all (a b : ℂ) {z : ℂ} (hz : z
   refine tendsto_nhds_unique hL (hR.congr' ?_)
   filter_upwards [self_mem_nhdsWithin] with c hc
   rw [← key]
-  exact (wronskian_shifted_confluentU_of_mem a hc hz).symm
+  exact (wronskian_shifted_kummerU_of_mem a hc hz).symm
 
 @[dlmf 13.2.E36]
-theorem wronskian_shifted_regularized_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem wronskian_shifted_regularized_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
     wronskian (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w)
-      (confluentU a b) z =
+      (kummerU a b) z =
       -(z ^ (-b) * exp z) / Gamma (a - b + 1) := by
-  exact wronskian_shifted_regularized_confluentU_all a b hz
+  exact wronskian_shifted_regularized_kummerU_all a b hz
 
 /-- **DLMF 13.2.41 in regularized form**, valid for every `b`:
 `𝐌(a,b,z) = e^{∓πia}/Γ(b-a) U(a,b,z) + e^{±πi(b-a)}/Γ(a) e^z U(b-a,b,z e^{±πi})`. -/
-theorem regularizedHGFun_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem regularizedHGFun_eq_kummerU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (sign : Bool) (hsign : if sign then z.arg ≤ 0 else 0 < z.arg) :
     regularizedHGFun {a} {b} z =
-      exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * confluentU a b z +
+      exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * kummerU a b z +
         exp ((if sign then 1 else -1) * (b - a) * π * I) / Gamma a *
-          exp z * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
+          exp z * kummerU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
   have hz0 := slitPlane_ne_zero hz
   set ε : ℂ := if sign then 1 else -1 with hεdef
   have hε : ε = 1 ∨ ε = -1 := by cases sign <;> simp [hεdef]
@@ -1564,33 +1658,33 @@ theorem regularizedHGFun_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z 
   have hnz : -z ≠ 0 := neg_ne_zero.mpr hz0
   refine eq_of_continuousAt_of_integerComplement
     (f := fun c => regularizedHGFun {a} {c} z)
-    (g := fun c => exp (-ε * a * π * I) / Gamma (c - a) * confluentU a c z +
-      exp (ε * (c - a) * π * I) / Gamma a * exp z * confluentU (c - a) c (-z)) ?_ ?_ ?_
+    (g := fun c => exp (-ε * a * π * I) / Gamma (c - a) * kummerU a c z +
+      exp (ε * (c - a) * π * I) / Gamma a * exp z * kummerU (c - a) c (-z)) ?_ ?_ ?_
   · exact (continuous_regularizedConfluent.comp (by fun_prop :
       Continuous fun c : ℂ => (a, c, z))).continuousAt
   · simp only [div_eq_mul_inv]
     refine ContinuousAt.add (ContinuousAt.mul (continuousAt_const.mul
       (hiG.comp (by fun_prop : Continuous fun c : ℂ => c - a)).continuousAt)
-      (continuousAt_confluentU_comp continuousAt_const continuousAt_id hz0)) ?_
+      (continuousAt_kummerU_comp continuousAt_const continuousAt_id hz0)) ?_
     refine ContinuousAt.mul ((ContinuousAt.mul (by fun_prop) continuousAt_const).mul
-      continuousAt_const) (continuousAt_confluentU_comp (by fun_prop) continuousAt_id hnz)
+      continuousAt_const) (continuousAt_kummerU_comp (by fun_prop) continuousAt_id hnz)
   · intro c hc'
     have hcz := forall_of_mem_integerComplement hc'
     have hcn : ∀ k : ℕ, c ≠ -k := fun k h => hcz (-k) (by simp [h])
     rw [regularizedConfluent_eq_div_Gamma hcn]
-    exact confluentM_div_Gamma_connection_of_not_int a c hcz ε hε (hc _)
+    exact kummerM_div_Gamma_connection_of_not_int a c hcz ε hε (hc _)
 
 /-- DLMF's `U(b-a,b,z e^{±πi})` is represented by the principal value at `-z`, which is the
 `e^{+πi}` continuation for `ph z ≤ 0` and the `e^{-πi}` continuation for `ph z > 0`. -/
 @[dlmf 13.2.E41]
-theorem confluentM_eq_confluentU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerM_eq_kummerU_connection (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (sign : Bool) (hsign : if sign then z.arg ≤ 0 else 0 < z.arg) (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b z / Gamma b =
-      exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * confluentU a b z +
+    kummerM a b z / Gamma b =
+      exp (-(if sign then 1 else -1) * a * π * I) / Gamma (b - a) * kummerU a b z +
         exp ((if sign then 1 else -1) * (b - a) * π * I) / Gamma a *
-          exp z * confluentU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
+          exp z * kummerU (b - a) b (exp ((if sign then 1 else -1) * π * I) * z) := by
   rw [← regularizedConfluent_eq_div_Gamma hb]
-  exact regularizedHGFun_eq_confluentU_connection a b hz sign hsign
+  exact regularizedHGFun_eq_kummerU_connection a b hz sign hsign
 
 /-- Exponential form of a sine jump. -/
 lemma exp_sub_exp_neg_mul_I (t : ℂ) :
@@ -1618,12 +1712,12 @@ lemma exp_weighted_jump (a b u v : ℂ) :
     _ = _ := by simp only [exp_sub_exp_neg_mul_I]
 
 /-- The half-turn of U, with its branch recorded in the logarithmic argument. -/
-lemma confluentUOnLog_half_turn (a b : ℂ) {z : ℂ} (hz : z ≠ 0) (sign : Bool) :
-    confluentUOnLog a b (log z + (if sign then 1 else -1) * π * I) =
-      Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b (-z) -
+lemma kummerUOnLog_half_turn (a b : ℂ) {z : ℂ} (hz : z ≠ 0) (sign : Bool) :
+    kummerUOnLog a b (log z + (if sign then 1 else -1) * π * I) =
+      Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b (-z) -
         Gamma (b - 1) / Gamma a * z ^ (1 - b) *
           exp (-(if sign then 1 else -1) * b * π * I) *
-            confluentM (a - b + 1) (2 - b) (-z) := by
+            kummerM (a - b + 1) (2 - b) (-z) := by
   set s : ℂ := if sign then 1 else -1 with hs
   have he : exp (s * π * I) = -1 := by
     cases sign <;> simp [hs, exp_neg, exp_pi_mul_I]
@@ -1635,17 +1729,17 @@ lemma confluentUOnLog_half_turn (a b : ℂ) {z : ℂ} (hz : z ≠ 0) (sign : Boo
       log z * (1 - b) + (s * π * I + (-s * b * π * I)) by ring,
       exp_add, exp_add, he, cpow_def_of_ne_zero hz]
     ring
-  rw [confluentUOnLog, hz', hp]
+  rw [kummerUOnLog, hz', hp]
   ring
 
 /-- The jump of `U` across the negative axis, with both continuations `z e^{±πi}` taken on
-the logarithmic argument plane. `confluentUOnLog` represents `U` there for noninteger `b`. -/
+the logarithmic argument plane. `kummerUOnLog` represents `U` there for noninteger `b`. -/
 @[dlmf 13.2.E43]
-theorem confluentM_eq_confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerM_eq_kummerU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (hbi : ∀ k : ℤ, b ≠ k) (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
-    2 * π * I * exp (-z) / (Gamma b * Gamma (a - b + 1)) * confluentM (b - a) b z =
-      exp (b * π * I) * confluentUOnLog a b (log z + π * I) -
-        exp (-b * π * I) * confluentUOnLog a b (log z - π * I) := by
+    2 * π * I * exp (-z) / (Gamma b * Gamma (a - b + 1)) * kummerM (b - a) b z =
+      exp (b * π * I) * kummerUOnLog a b (log z + π * I) -
+        exp (-b * π * I) * kummerUOnLog a b (log z - π * I) := by
   have hz0 := slitPlane_ne_zero hz
   have hb : ∀ k : ℕ, b ≠ -(k : ℂ) := not_neg_nat_of_mem_integerComplement
     (mem_integerComplement_of_forall hbi)
@@ -1655,39 +1749,39 @@ theorem confluentM_eq_confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlan
     have h := Gamma_mul_Gamma_one_sub b
     apply (eq_div_iff hGb).mpr
     linear_combination (eq_div_iff hsin).mp h
-  have hp := confluentUOnLog_half_turn a b hz0 true
-  have hm := confluentUOnLog_half_turn a b hz0 false
+  have hp := kummerUOnLog_half_turn a b hz0 true
+  have hm := kummerUOnLog_half_turn a b hz0 false
   simp only [Bool.false_eq_true, ↓reduceIte, one_mul, neg_one_mul, neg_neg, neg_mul,
     ← sub_eq_add_neg] at hp hm
   rw [hp, hm]
   have ht := exp_sub_exp_neg_mul_I (π * b)
   rw [show (π : ℂ) * b * I = b * π * I by ring,
     show -(π * b) * I = -b * π * I by ring] at ht
-  have hM : confluentM a b (-z) = exp (-z) * confluentM (b - a) b z := by
-    rw [confluentM_kummer_transform hb, neg_neg]
+  have hM : kummerM a b (-z) = exp (-z) * kummerM (b - a) b z := by
+    rw [kummerM_kummer_transform hb, neg_neg]
   calc _ = 2 * I * (Gamma (1 - b) * sin (π * b)) / Gamma (a - b + 1) *
-      confluentM a b (-z) := by rw [hG, hM]; ring
+      kummerM a b (-z) := by rw [hG, hM]; ring
     _ = _ := by
       simp only [neg_mul] at ht ⊢
-      linear_combination -(Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b (-z)) * ht
+      linear_combination -(Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b (-z)) * ht
 
 /-- The U jump identity without nonpole assumptions on the first parameter. -/
-lemma confluentU_jump_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k : ℤ, b ≠ k) :
-    2 * π * I * exp (-z) / (Gamma a * Gamma (a - b + 1)) * confluentU (b - a) b z =
-      exp (a * π * I) * confluentUOnLog a b (log z + π * I) -
-        exp (-a * π * I) * confluentUOnLog a b (log z - π * I) := by
+lemma kummerU_jump_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k : ℤ, b ≠ k) :
+    2 * π * I * exp (-z) / (Gamma a * Gamma (a - b + 1)) * kummerU (b - a) b z =
+      exp (a * π * I) * kummerUOnLog a b (log z + π * I) -
+        exp (-a * π * I) * kummerUOnLog a b (log z - π * I) := by
   have hz0 := slitPlane_ne_zero hz
   have hb : ∀ k : ℕ, b ≠ -(k : ℂ) := not_neg_nat_of_mem_integerComplement
     (mem_integerComplement_of_forall hbi)
   have hB : ∀ k : ℕ, 2 - b ≠ -(k : ℂ) := fun k hk =>
     hbi (2 + k) (by push_cast; linear_combination -hk)
-  have hp := confluentUOnLog_half_turn a b hz0 true
-  have hm := confluentUOnLog_half_turn a b hz0 false
+  have hp := kummerUOnLog_half_turn a b hz0 true
+  have hm := kummerUOnLog_half_turn a b hz0 false
   simp only [Bool.false_eq_true, ↓reduceIte, one_mul, neg_one_mul, neg_neg, neg_mul,
     ← sub_eq_add_neg] at hp hm
   have hphase := exp_weighted_jump (a * π) (b * π)
-    (Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b (-z))
-    (Gamma (b - 1) / Gamma a * z ^ (1 - b) * confluentM (a - b + 1) (2 - b) (-z))
+    (Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b (-z))
+    (Gamma (b - 1) / Gamma a * z ^ (1 - b) * kummerM (a - b + 1) (2 - b) (-z))
   simp only [neg_mul] at hphase
   have hs1 : sin (a * π) = π / (Gamma a * Gamma (1 - a)) := by
     rw [mul_comm a, sin_pi_mul_eq_inv_Gamma]
@@ -1698,33 +1792,33 @@ lemma confluentU_jump_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : �
       sin_add_pi, show 1 - (a - b + 1) = b - a by ring] at h
     rw [neg_div]
     linear_combination -h
-  have hM : confluentM a b (-z) = exp (-z) * confluentM (b - a) b z := by
-    rw [confluentM_kummer_transform hb, neg_neg]
-  have hN : confluentM (a - b + 1) (2 - b) (-z) =
-      exp (-z) * confluentM (1 - a) (2 - b) z := by
-    rw [confluentM_kummer_transform hB, neg_neg]
+  have hM : kummerM a b (-z) = exp (-z) * kummerM (b - a) b z := by
+    rw [kummerM_kummer_transform hb, neg_neg]
+  have hN : kummerM (a - b + 1) (2 - b) (-z) =
+      exp (-z) * kummerM (1 - a) (2 - b) z := by
+    rw [kummerM_kummer_transform hB, neg_neg]
     congr 2; ring
-  rw [hp, hm, confluentU_eq_connection (b - a) b z hbi]
-  unfold confluentUConnection
+  rw [hp, hm, kummerU_eq_connection (b - a) b z hbi]
+  unfold kummerUConnection
   rw [show b - a - b + 1 = 1 - a by ring]
   symm
   calc
     _ = 2 * I * sin (a * π) *
-        (Gamma (1 - b) / Gamma (a - b + 1) * confluentM a b (-z)) -
+        (Gamma (1 - b) / Gamma (a - b + 1) * kummerM a b (-z)) -
       2 * I * sin (a * π - b * π) *
-        (Gamma (b - 1) / Gamma a * z ^ (1 - b) * confluentM (a - b + 1) (2 - b) (-z)) := by
+        (Gamma (b - 1) / Gamma a * z ^ (1 - b) * kummerM (a - b + 1) (2 - b) (-z)) := by
       simp only [neg_mul] at *
       linear_combination hphase
     _ = _ := by rw [hs1, hs2, hM, hN]; ring
 
 /-- The jump of `U` across the negative axis, with both continuations `z e^{±πi}` taken on
-the logarithmic argument plane. `confluentUOnLog` represents `U` there for noninteger `b`. -/
+the logarithmic argument plane. `kummerUOnLog` represents `U` there for noninteger `b`. -/
 @[dlmf 13.2.E44]
-theorem confluentU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k : ℤ, b ≠ k)
+theorem kummerU_jump (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k : ℤ, b ≠ k)
     (ha : ∀ k : ℕ, a ≠ -k) (hab : ∀ k : ℕ, a - b + 1 ≠ -k) :
-    2 * π * I * exp (-z) / (Gamma a * Gamma (a - b + 1)) * confluentU (b - a) b z =
-      exp (a * π * I) * confluentUOnLog a b (log z + π * I) -
-        exp (-a * π * I) * confluentUOnLog a b (log z - π * I) := by
-  exact confluentU_jump_all a b hz hbi
+    2 * π * I * exp (-z) / (Gamma a * Gamma (a - b + 1)) * kummerU (b - a) b z =
+      exp (a * π * I) * kummerUOnLog a b (log z + π * I) -
+        exp (-a * π * I) * kummerUOnLog a b (log z - π * I) := by
+  exact kummerU_jump_all a b hz hbi
 
 end AAR.Confluent

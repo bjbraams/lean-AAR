@@ -33,6 +33,7 @@ In each case the computation reduces to the contiguous relation
 
 open Complex
 open scoped Real
+open AAR.Bessel
 
 noncomputable section
 
@@ -238,8 +239,8 @@ theorem cylinderWave_polar (n : ℕ) {k : ℂ} (hk : k ≠ 0) (r φ : ℝ) :
       exact_mod_cast this
     push_cast at h' ⊢
     linear_combination (r : ℂ) ^ 2 * h'
-  rw [cylinderWave, hpol, hsq, besselJ, cpow_natCast, show (I * n * φ : ℂ) = n * (φ * I) by ring,
-    exp_nat_mul]
+  rw [cylinderWave, hpol, hsq, besselJ_eq_regularized, cpow_natCast,
+    show (I * n * φ : ℂ) = n * (φ * I) by ring, exp_nat_mul]
   rw [show -(k ^ 2) * (r : ℂ) ^ 2 / 4 = -((k * r) ^ 2 / 4) by ring]
   have h2 : (2 / k) ^ n * ((k * r) / 2) ^ n = (r : ℂ) ^ n := by
     rw [← mul_pow]; congr 1; field_simp
@@ -267,7 +268,8 @@ theorem sphericalWave_spherical (n : ℕ) {k : ℂ} {r : ℝ} (hkr : k * r ≠ 0
   have hw : (k * r) / 2 ≠ 0 := div_ne_zero hkr two_ne_zero
   have hinv : ((k * r) / 2) ^ (-((n : ℂ) + 1 / 2)) * ((k * r) / 2) ^ ((n : ℂ) + 1 / 2) = 1 := by
     rw [cpow_neg, inv_mul_cancel₀ (cpow_ne_zero_iff.mpr (Or.inl hw))]
-  rw [sphericalWave, hpol, hsq, besselJ, show (I * n * φ : ℂ) = n * (φ * I) by ring, exp_nat_mul,
+  rw [sphericalWave, hpol, hsq, besselJ_eq_regularized,
+    show (I * n * φ : ℂ) = n * (φ * I) by ring, exp_nat_mul,
     show (n : ℂ) + 1 / 2 + 1 = n + 3 / 2 by ring,
     show -(k ^ 2) * (r : ℂ) ^ 2 / 4 = -((k * r) ^ 2 / 4) by ring]
   rw [mul_pow]
@@ -284,7 +286,7 @@ theorem heatMode_pde (j t : ℝ) {r : ℝ} (hr : r ≠ 0) :
   set a : ℂ := -((j : ℂ) ^ 2) / 4
   have hJ : (fun r : ℝ => heatMode j r t) = fun r : ℝ =>
       (fun _ : ℝ => exp (-(j ^ 2 : ℂ) * t)) r * F01 1 (a * (r : ℂ) ^ 2 + 0) := by
-    funext s; simp only [heatMode, besselJ, a]; rw [cpow_zero]; ring_nf
+    funext s; simp only [heatMode, besselJ_eq_regularized, a]; rw [cpow_zero]; ring_nf
   have D2 := iteratedDeriv_two_mul_F01 (h := fun _ : ℝ => exp (-(j ^ 2 : ℂ) * t))
     (h1 := fun _ => 0) (h2 := fun _ => 0) (fun s => hasDerivAt_const s _)
     (fun s => hasDerivAt_const s _) 1 a 0 r
@@ -304,7 +306,7 @@ theorem heatMode_pde (j t : ℝ) {r : ℝ} (hr : r ≠ 0) :
       (a * (r : ℂ) ^ 2 + 0) * F01 (1 + 1 + 1) (a * (r : ℂ) ^ 2 + 0) :=
     regularized0F1_contiguous _ _
   have hJ0 : besselJ 0 (j * r) = F01 1 (a * (r : ℂ) ^ 2 + 0) := by
-    simp only [besselJ, a]; rw [cpow_zero]; ring_nf
+    simp only [besselJ_eq_regularized, a]; rw [cpow_zero]; ring_nf
   rw [hJ, D2, D1, Dt, hJ0]
   have hr' : (r : ℂ) ≠ 0 := ofReal_ne_zero.mpr hr
   generalize exp (-(j ^ 2 : ℂ) * t) = E

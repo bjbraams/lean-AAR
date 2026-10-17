@@ -20,6 +20,8 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 

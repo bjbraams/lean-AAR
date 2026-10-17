@@ -28,6 +28,8 @@ open scoped Real
 
 noncomputable section
 
+namespace AAR.Bessel
+
 /-- The Tricomi form of the Laplace integral for `K_ν`. -/
 theorem besselK_eq_integral_tricomi {ν z : ℂ} (hν : -1 / 2 < ν.re) (hz : 0 < z.re) :
     besselK ν z = (Real.sqrt π : ℂ) * (2 * z) ^ ν * exp (-z) / Gamma (ν + 1 / 2) *
@@ -37,8 +39,8 @@ theorem besselK_eq_integral_tricomi {ν z : ℂ} (hν : -1 / 2 < ν.re) (hz : 0 
   have h2z : 2 * z ≠ 0 := mul_ne_zero two_ne_zero (slitPlane_ne_zero hzs)
   have ha : 0 < (ν + 1 / 2).re := by simp; linarith
   have h2re : 0 < (2 * z).re := by simp; linarith
-  have hU := confluentU_besselK ν z hzs
-  rw [confluentU_laplace ha h2re] at hU
+  have hU := kummerU_besselK ν z hzs
+  rw [kummerU_laplace ha h2re] at hU
   have hexp : ν + 1 / 2 - 1 = ν - 1 / 2 := by ring
   have hexp' : 2 * ν + 1 - (ν + 1 / 2) - 1 = ν - 1 / 2 := by ring
   rw [hexp, hexp'] at hU
@@ -113,3 +115,5 @@ theorem besselK_eq_integral_Ioi_one {ν z : ℂ} (hν : -1 / 2 < ν.re) (hz : 0 
     norm_num
   rw [h4, h2z]
   ring
+
+end AAR.Bessel

@@ -11,6 +11,7 @@ public import AAR.QSeries.Pochhammer
 public import AAR.QSeries.QBinomial
 public import AAR.QSeries.QCalculus
 public import AAR.QSeries.QExponential
+public import AAR.QSeries.Saalschutz
 
 /-!
 # `q`-series (AAR Chapter 10)
@@ -24,4 +25,7 @@ has Gaussian `q`-binomial coefficients and Cauchy's finite `q`-binomial theorem 
 the `q`-derivative and the `q`-fundamental theorem for Jackson's integral (`QCalculus`),
 Heine's second and third transformations, the `q`-Gauss and `q`-Chu–Vandermonde summations
 (`Heine`), and Euler's two `q`-exponential identities (`QExponential`).
+
+`Saalschutz` proves the terminating `q`-Pfaff–Saalschütz sum for all `q`, as a polynomial
+identity and in the quotient form used for Bailey's lemma (`AAR.Bailey`).
 -/

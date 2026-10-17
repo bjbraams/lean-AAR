@@ -22,8 +22,11 @@ The recurrences, the derivative, the Bessel equation and the Wronskians then hol
 
 open Complex Filter Set
 open scoped Real Nat Topology
+open AAR.Confluent
 
 noncomputable section
+
+namespace AAR.Bessel
 
 /-! ### The `₀F₁` series in the parameter -/
 
@@ -107,7 +110,7 @@ theorem continuousOn_besselJ :
     ContinuousOn (fun p : ℂ × ℂ => besselJ p.1 p.2) (univ ×ˢ slitPlane) := by
   rintro ⟨ν, z⟩ ⟨-, hz⟩
   refine ContinuousAt.continuousWithinAt ?_
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   refine ContinuousAt.mul ?_ ?_
   · exact ContinuousAt.cpow (by fun_prop) (by fun_prop) (div_two_mem_slitPlane hz)
   · exact (continuous_regularized0F1.comp (by fun_prop :
@@ -117,7 +120,7 @@ theorem continuousOn_besselJ :
 theorem differentiable_besselJ_order {z : ℂ} (hz : z ≠ 0) :
     Differentiable ℂ fun ν : ℂ => besselJ ν z := by
   have hz2 : z / 2 ≠ 0 := div_ne_zero hz two_ne_zero
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   exact ((differentiable_id.const_cpow (Or.inl hz2))).mul
     ((differentiable_regularized0F1_param _).comp (differentiable_id.add_const 1))
 
@@ -405,7 +408,7 @@ lemma besselWronskianSeries_eq (ν w : ℂ) :
   have hconst := is_const_of_deriv_eq_zero (f := besselWronskianSeries ν)
     (fun w => (hΦ w).differentiableAt) (fun w => (hΦ w).deriv) w 0
   rw [hconst, besselWronskianSeries]
-  simp only [zero_mul, sub_zero, _root_.regularizedHGFun_zero, regularizedHGFunCoeff_empty,
+  simp only [zero_mul, sub_zero, AAR.Confluent.regularizedHGFun_zero, regularizedHGFunCoeff_empty,
     Nat.factorial_zero, Nat.cast_one, one_mul, Nat.cast_zero, add_zero, one_div]
   have h := AAR.Confluent.inv_Gamma_mul_Gamma_one_sub (-ν)
   rw [show 1 - -ν = ν + 1 by ring, mul_inv, mul_neg, sin_neg] at h
@@ -426,7 +429,7 @@ theorem wronskian_besselJ_neg (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   rw [hW]
   have hS := besselWronskianSeries_eq ν (-(z ^ 2 / 4))
   unfold besselWronskianSeries at hS
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   rw [show -ν - 1 + 1 = -ν by ring, show -ν + 1 = 1 - ν by ring, show ν + 1 + 1 = ν + 2 by ring]
   have hp1 : (z / 2) ^ ν * (z / 2) ^ (-ν - 1) = 2 / z := by
     rw [← cpow_add _ _ hz2, show ν + (-ν - 1) = -1 by ring, cpow_neg_one, inv_div]
@@ -478,35 +481,35 @@ theorem wronskian_besselJ_besselY (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
 
 /-- Hankel's function of the first kind, `H_ν^{(1)} = J_ν + i Y_ν` (DLMF 10.4.3). -/
 @[dlmf 10.4.E3]
-def besselH1 (ν z : ℂ) : ℂ := besselJ ν z + I * besselY ν z
+def hankelH1 (ν z : ℂ) : ℂ := besselJ ν z + I * besselY ν z
 
 /-- Hankel's function of the second kind, `H_ν^{(2)} = J_ν - i Y_ν` (DLMF 10.4.3). -/
 @[dlmf 10.4.E3]
-def besselH2 (ν z : ℂ) : ℂ := besselJ ν z - I * besselY ν z
+def hankelH2 (ν z : ℂ) : ℂ := besselJ ν z - I * besselY ν z
 
-lemma hasDerivAt_besselH1 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    HasDerivAt (besselH1 ν) ((ν / z) * besselH1 ν z - besselH1 (ν + 1) z) z := by
+lemma hasDerivAt_hankelH1 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    HasDerivAt (hankelH1 ν) ((ν / z) * hankelH1 ν z - hankelH1 (ν + 1) z) z := by
   have h := (hasDerivAt_besselJ (ν := ν) hz).add ((hasDerivAt_besselY ν hz).const_mul I)
   convert h using 1
-  · funext w; simp [besselH1]
-  · simp only [besselH1]; ring
+  · funext w; simp [hankelH1]
+  · simp only [hankelH1]; ring
 
-lemma hasDerivAt_besselH2 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    HasDerivAt (besselH2 ν) ((ν / z) * besselH2 ν z - besselH2 (ν + 1) z) z := by
+lemma hasDerivAt_hankelH2 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    HasDerivAt (hankelH2 ν) ((ν / z) * hankelH2 ν z - hankelH2 (ν + 1) z) z := by
   have h := (hasDerivAt_besselJ (ν := ν) hz).sub ((hasDerivAt_besselY ν hz).const_mul I)
   convert h using 1
-  · funext w; simp [besselH2]
-  · simp only [besselH2]; ring
+  · funext w; simp [hankelH2]
+  · simp only [hankelH2]; ring
 
 /-- **The Wronskian of the Hankel functions** (DLMF 10.5.5): `W{H^{(1)}, H^{(2)}} = -4i/(πz)`. -/
 @[dlmf 10.5.E5]
-theorem wronskian_besselH1_besselH2 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    besselH1 ν z * deriv (besselH2 ν) z - deriv (besselH1 ν) z * besselH2 ν z =
+theorem wronskian_hankelH1_hankelH2 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    hankelH1 ν z * deriv (hankelH2 ν) z - deriv (hankelH1 ν) z * hankelH2 ν z =
       -4 * I / (π * z) := by
   have hW := wronskian_besselJ_besselY ν hz
   rw [(hasDerivAt_besselY ν hz).deriv, (hasDerivAt_besselJ (ν := ν) hz).deriv] at hW
-  rw [(hasDerivAt_besselH1 ν hz).deriv, (hasDerivAt_besselH2 ν hz).deriv]
-  simp only [besselH1, besselH2]
+  rw [(hasDerivAt_hankelH1 ν hz).deriv, (hasDerivAt_hankelH2 ν hz).deriv]
+  simp only [hankelH1, hankelH2]
   linear_combination (-2 * I) * hW
 
 /-! ### The modified functions `I_ν` and `K_ν` -/
@@ -843,3 +846,5 @@ theorem wronskian_besselK_besselI (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   rw [(hasDerivAt_besselK ν hz).deriv, (hasDerivAt_besselI (ν := ν) hz).deriv,
     ← besselK_mul_besselI_succ_add ν hz]
   ring
+
+end AAR.Bessel

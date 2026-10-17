@@ -14,6 +14,14 @@ formulas use Mathlib's interval integration by parts. Watson's lemma uses the Ga
 `Real.integral_rpow_mul_exp_neg_mul_Ioi` and `isLittleO_rpow_exp_pos_mul_atTop`. The proof
 routes follow Temme, *Special Functions*, §§1.1–1.2 and Theorem 2.4.
 
+## Carlson's theorem from lean-codes (2026-10-16)
+
+`ToMathlib/Analysis/Complex/Carlson.lean` is an unmodified copy of the module of the same path
+in the companion project `lean-codes`. Its proof of Carlson's theorem follows Titchmarsh,
+*The Theory of Functions*, §5.81, and rests on Mathlib's Phragmén–Lindelöf principle
+(`PhragmenLindelof.eq_zero_on_right_half_plane_of_superexponential_decay`) and removable
+singularities.
+
 ## Gamma pass from Temme (2026-10-15)
 
 The proof routes for the Binet formulas, Prym's and the Cauchy–Saalschütz
@@ -75,7 +83,7 @@ Targets and proof routes follow D. Duverney, *An Introduction to Hypergeometric 
 ## Gap pass, Temme Chapters 8, 9, 11, 12 (2026-10-16)
 
 Legendre: Neumann's integral uses Mathlib's `HasDerivAt.clog_real` and the project's
-`legendre_orthogonality` and `legendreP_recurrence`. The integer Wronskian uses
+`legendre_orthogonality` and `legendrePolyP_recurrence`. The integer Wronskian uses
 `IsOpen.is_const_of_deriv_eq_zero`. Bessel zeros (Sturm comparison after Watson §15.6) use
 `strictMonoOn_of_deriv_pos`, `IsClosed.csInf_mem` and `intermediate_value_Icc'`. The continued fraction for
 `Γ(a,x)` uses Mathlib's `GenContFract` recurrences (`nums_recurrence`, `dens_recurrence`) and
@@ -96,10 +104,10 @@ form of the incomplete Beta function uses the project's Euler integral
 
 The proof routes follow N. M. Temme, *Special Functions* (Wiley, 1996), Chapters 8, 11 and 12,
 and the DLMF, Chapters 8, 14, 19, 20 and 22. The Legendre functions are built on the project's
-cut-plane continuation `gaussHGCut` and its contiguous relations, Gauss's second summation and
+cut-plane continuation `regularizedGaussHG` and its contiguous relations, Gauss's second summation and
 quadratic transformations, Pfaff's transformation, and Mathlib's `binomialSeries` /
 `ordinaryHypergeometric` API. The statistical functions bridge to and reuse TauCeti's
-`regularizedGamma`, `lowerIncompleteGamma_eq_integral`, `regularizedIncompleteBeta` and
+`regularizedGamma`, `lowerIncGamma_eq_integral`, `regularizedIncompleteBeta` and
 `sum_Icc_choose_mul_pow_eq_regularizedIncompleteBeta`, and Mathlib's `Complex.betaIntegral` API,
 `integral_cpow` and `MeasureTheory.integral_tsum_of_summable_integral_norm`. The elliptic functions
 use Mathlib's `NNReal.agm` and `agmSequences` lemmas, `jacobiTheta₂` with its functional equation,
@@ -109,8 +117,8 @@ sign, `HasDerivAt.of_local_left_inverse` and `StrictMono.orderIsoOfSurjective`.
 ## Bessel pass from Temme (2026-10-16)
 
 The proof routes follow N. M. Temme, *Special Functions* (Wiley, 1996), Chapter 9, and the
-DLMF, Chapter 10. `AAR/Bessel/MathlibBridge.lean` identifies the project's `besselJ` with Weiyi
-Wang's `Complex.besselJ` (`Mathlib.Analysis.SpecialFunctions.Bessel`) and reuses its parity,
+DLMF, Chapter 10. The project uses Weiyi Wang's `Complex.besselJ`
+(`Mathlib.Analysis.SpecialFunctions.Bessel`) as its `J_ν`, with its parity, analyticity,
 integer-order analyticity and value at `0`; entireness of the core series uses the Mathlib
 contributors' `analyticAt_regularizedHGFun_zero`. The integer-order limits use Mathlib's `dslope`
 and the project's parameter-continuity lemmas from `AAR/Confluent/BasicProperties.lean`. Bessel's
@@ -280,7 +288,7 @@ The affected module headers also credit the imported work.
   the real `erf` and `erfc` APIs, identified with AAR's complex functions on real inputs.
 - [Hermite Fourier transform](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/SpecialFunctions/Hermite/Function/Fourier/Basic.lean):
   `fourier_twoPiHermiteFunction` supplies the upstream eigenfunction theorem for
-  the now-proved `hermitePhys_fourier_eigenfunction` and `hermite_fourier_eigenfunction`.
+  the now-proved `hermitePolyH_fourier_eigenfunction` and `hermite_fourier_eigenfunction`.
   Local adapters account for the Fourier phase, dilation and polynomial normalization.
 - [Polynomial completeness](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/InnerProductSpace/PolynomialCompleteness.lean)
   and [weighted orthogonal bases](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/InnerProductSpace/WeightedOrthogonalBasis.lean):
@@ -300,3 +308,17 @@ The affected module headers also credit the imported work.
 Related real incomplete-gamma, Dirichlet and multivariate-Gamma developments are
 not replacements for AAR's general complex statements. Adoption should retain
 attribution in the affected module headers and at the point of use.
+
+## Dirichlet simplex integrals ported from lean-codes (2026-10-16)
+
+The modules `AAR/Gamma/Simplex/{PiSnoc,ProdSlices,Hyperplane,PochhammerIdentities,
+GammaPochhammer,BetaIntegral,MvBeta,MvBetaIntegral}.lean` are ports of the companion project
+`lean-codes` modules `StdSimplexMeasure/{PiSnoc,ProdSlices,FiniteDimensionalHyperplane}`,
+`Pochhammer/{Identities,Gamma,BetaIntegral}` and `Dirichlet/Beta/Complex/{Basic,Integral}`
+(same author). The proofs are unchanged; the declarations were moved from the Mathlib namespaces
+`Complex`, `Real`, `MeasureTheory` and `MeasurableEquiv` (and the root namespace) into
+`AAR.Gamma.Simplex`, with explicit `_root_` opens. DLMF 5.14.1–5.14.2 (`dirichlet_simplex`,
+`dirichlet_simplex_full`) are derived from `mvBetaIntegralOne_eq_mvBeta` and
+`mvBetaIntegral_eq_mvBeta`. The Glaisher–Kinkelin closed form 5.17.7 differentiates the Mathlib
+contributors' `riemannZeta_one_sub` and uses `Complex.hasDerivAt_Gamma_nat`
+(`Mathlib.NumberTheory.Harmonic.GammaDeriv`).

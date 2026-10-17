@@ -33,6 +33,8 @@ open scoped BigOperators
 
 noncomputable section
 
+namespace AAR.SphericalHarmonics
+
 /-- Laplacian on multivariate polynomials. -/
 def laplacianMv {n : ℕ} (p : MvPolynomial (Fin n) ℝ) : MvPolynomial (Fin n) ℝ :=
   ∑ i : Fin n, pderiv i (pderiv i p)
@@ -94,3 +96,5 @@ theorem harmonicHomogeneous_orthogonal {n k l : ℕ} {p q : MvPolynomial (Fin n)
     (hp : IsHarmonicHomogeneous k p) (hq : IsHarmonicHomogeneous l q) (hkl : k ≠ l) :
     sphericalHarmonicInner p q = 0 := by
   sorry
+
+end AAR.SphericalHarmonics

@@ -23,6 +23,8 @@ open Complex
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- Helper lemma for contiguous relations: `a (a+1)_n = (a+n) (a)_n`. -/
 lemma poch_succ_left_mul (a : ℂ) (n : ℕ) : a * poch (a + 1) n = (a + n) * poch a n := by
   rw [← poch_succ_left, poch_succ, mul_comm]
@@ -330,3 +332,5 @@ theorem contiguous_c {a b c z : ℂ} (hc : ∀ k : ℕ, c ≠ -k) (hz : ‖z‖ 
   rw [eq_comm] at hval
   convert hval using 1
   ring
+
+end AAR.Hypergeometric

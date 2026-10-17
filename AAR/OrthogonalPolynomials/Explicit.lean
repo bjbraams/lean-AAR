@@ -25,6 +25,8 @@ are stated and proved in `GegenbauerSeries.lean`.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
@@ -33,7 +35,7 @@ set_option autoImplicit false
 namespace AAR.OrthogonalPolynomials
 
 /-- Polynomial continuation of Laguerre in its parameter, including negative
-integers. The existing `laguerre` uses a totalized hypergeometric quotient and
+integers. The existing `laguerrePolyL` uses a totalized hypergeometric quotient and
 agrees with this definition only at regular denominator parameters. -/
 @[dlmf 18.5.E12]
 def laguerreExtended (α : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
@@ -42,8 +44,8 @@ def laguerreExtended (α : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
 
 @[dlmf 18.5.E12]
 theorem laguerreExtended_eq {α : ℂ} (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)) (n : ℕ) (x : ℂ) :
-    laguerreExtended α n x = laguerre α n x := by
-  rw [laguerre_eq_sum hα]
+    laguerreExtended α n x = laguerrePolyL α n x := by
+  rw [laguerrePolyL_eq_sum hα]
   unfold laguerreExtended
   apply Finset.sum_congr rfl
   intro k _
@@ -52,23 +54,23 @@ theorem laguerreExtended_eq {α : ℂ} (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)
 /-- Chebyshev polynomials of the third kind, in the DLMF normalization. -/
 @[dlmf 18.7.E5]
 def chebyshevV (n : ℕ) (x : ℂ) : ℂ :=
-  jacobiP (-1 / 2) (1 / 2) n x / jacobiP (-1 / 2) (1 / 2) n 1
+  jacobiPolyP (-1 / 2) (1 / 2) n x / jacobiPolyP (-1 / 2) (1 / 2) n 1
 
 /-- Chebyshev polynomials of the fourth kind, in the DLMF normalization. -/
 @[dlmf 18.7.E6]
 def chebyshevW (n : ℕ) (x : ℂ) : ℂ :=
-  (2 * n + 1) * jacobiP (1 / 2) (-1 / 2) n x / jacobiP (1 / 2) (-1 / 2) n 1
+  (2 * n + 1) * jacobiPolyP (1 / 2) (-1 / 2) n x / jacobiPolyP (1 / 2) (-1 / 2) n 1
 
 @[dlmf 18.5.E7]
 theorem jacobi_finite_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α β n x = ∑ k ∈ Finset.range (n + 1),
+    jacobiPolyP α β n x = ∑ k ∈ Finset.range (n + 1),
       poch (n + α + β + 1) k * poch (α + k + 1) (n - k) /
         ((k.factorial : ℂ) * (n - k).factorial) * ((x - 1) / 2) ^ k := by
   have hα' : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hn : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [ordinaryHypergeometric_eq_sum_neg_nat, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro k hk
@@ -103,7 +105,7 @@ lemma poch_neg_nat_mul_factorial {n k : ℕ} (hk : k ≤ n) :
 
 /-- 18.5.8 away from `x = -1`, via the terminating Pfaff transformation. -/
 lemma jacobi_binomial_sum_aux {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : ℂ} (hx : x ≠ -1) :
-    jacobiP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
+    jacobiPolyP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
       (poch (α + n - k + 1) k / k.factorial) *
       (poch (β + k + 1) (n - k) / (n - k).factorial) *
       (x - 1) ^ (n - k) * (x + 1) ^ k := by
@@ -112,7 +114,7 @@ lemma jacobi_binomial_sum_aux {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : �
     linarith)
   have hw : (1 - x) / 2 ≠ 1 := fun h => hx (by linear_combination -2 * h)
   have hx1 : x + 1 ≠ 0 := fun h => hx (by linear_combination h)
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [AAR.Hypergeometric.terminating_pfaff n hα' hw, ordinaryHypergeometric_eq_sum_neg_nat,
     Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
   rw [← Finset.sum_range_reflect]
@@ -150,12 +152,12 @@ lemma jacobi_binomial_sum_aux {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : �
 
 @[dlmf 18.5.E8]
 theorem jacobi_binomial_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
+    jacobiPolyP α β n x = ((2 : ℂ) ^ n)⁻¹ * ∑ k ∈ Finset.range (n + 1),
       (poch (α + n - k + 1) k / k.factorial) *
       (poch (β + k + 1) (n - k) / (n - k).factorial) *
       (x - 1) ^ (n - k) * (x + 1) ^ k := by
-  have hL : Continuous fun x => jacobiP α β n x := by
-    rw [show (fun x => jacobiP α β n x) = fun x => ∑ k ∈ Finset.range (n + 1),
+  have hL : Continuous fun x => jacobiPolyP α β n x := by
+    rw [show (fun x => jacobiPolyP α β n x) = fun x => ∑ k ∈ Finset.range (n + 1),
       poch (n + α + β + 1) k * poch (α + k + 1) (n - k) /
         ((k.factorial : ℂ) * (n - k).factorial) * ((x - 1) / 2) ^ k from
       funext (jacobi_finite_sum hα n)]
@@ -168,11 +170,11 @@ theorem jacobi_binomial_sum {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ)
     fun y hy => jacobi_binomial_sum_aux hα n hy) x
 
 /-- The finite sum for `H_n` at even degree `n = 2m`, via the confluent form 13.6.16. -/
-lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :
-    aeval x (hermitePhys (2 * m)) = ((2 * m) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
+lemma hermitePolyH_even_sum (m : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH (2 * m)) = ((2 * m) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
       (-1 : ℂ) ^ k * (2 * x) ^ (2 * m - 2 * k) / ((k ! : ℂ) * (2 * m - 2 * k) !) := by
-  have h := Confluent.hermitePhysEval_even_mul m x
-  rw [Confluent.hermitePhysEval_eq_aeval, confluentM_eq_sum_neg_nat] at h
+  have h := Confluent.hermitePolyHEval_even_mul m x
+  rw [Confluent.hermitePolyHEval_eq_aeval, kummerM_eq_sum_neg_nat] at h
   have hm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
   apply mul_right_cancel₀ hm
   rw [h]
@@ -184,7 +186,7 @@ lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :
   rw [show j + i + 1 - 1 - j = i by omega, show 2 * (j + i) - 2 * i = 2 * j by omega]
   have q := poch_neg_nat_mul_factorial (n := j + i) (k := j) (by omega)
   rw [show j + i - j = i by omega] at q
-  rw [_root_.poch_half j]
+  rw [AAR.OrthogonalPolynomials.poch_half j]
   have hi : (i ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr i.factorial_ne_zero
   have hj' : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
   have h2j : ((2 * j) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (2 * j).factorial_ne_zero
@@ -197,11 +199,11 @@ lemma hermitePhys_even_sum (m : ℕ) (x : ℂ) :
   simp only [pow_mul', neg_one_sq, one_pow, mul_one]
 
 /-- The finite sum for `H_n` at odd degree `n = 2m + 1`, via the confluent form 13.6.17. -/
-lemma hermitePhys_odd_sum (m : ℕ) (x : ℂ) :
-    aeval x (hermitePhys (2 * m + 1)) = ((2 * m + 1) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
+lemma hermitePolyH_odd_sum (m : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH (2 * m + 1)) = ((2 * m + 1) ! : ℂ) * ∑ k ∈ Finset.range (m + 1),
       (-1 : ℂ) ^ k * (2 * x) ^ (2 * m + 1 - 2 * k) / ((k ! : ℂ) * (2 * m + 1 - 2 * k) !) := by
-  have h := Confluent.hermitePhysEval_odd_mul m x
-  rw [Confluent.hermitePhysEval_eq_aeval, confluentM_eq_sum_neg_nat] at h
+  have h := Confluent.hermitePolyHEval_odd_mul m x
+  rw [Confluent.hermitePolyHEval_eq_aeval, kummerM_eq_sum_neg_nat] at h
   have hm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
   apply mul_right_cancel₀ hm
   rw [h]
@@ -213,7 +215,7 @@ lemma hermitePhys_odd_sum (m : ℕ) (x : ℂ) :
   rw [show j + i + 1 - 1 - j = i by omega, show 2 * (j + i) + 1 - 2 * i = 2 * j + 1 by omega]
   have q := poch_neg_nat_mul_factorial (n := j + i) (k := j) (by omega)
   rw [show j + i - j = i by omega] at q
-  rw [poch_three_halves_eq, _root_.poch_half j]
+  rw [poch_three_halves_eq, AAR.OrthogonalPolynomials.poch_half j]
   have hi : (i ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr i.factorial_ne_zero
   have hj' : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
   have h2j : ((2 * j) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (2 * j).factorial_ne_zero
@@ -230,27 +232,28 @@ lemma hermitePhys_odd_sum (m : ℕ) (x : ℂ) :
   linear_combination (((2 * (j + i) + 1) ! : ℂ) * (-1) ^ i * 2 * x * 2 ^ (2 * j) * x ^ (2 * j)) * e
 
 @[dlmf 18.5.E13]
-theorem hermitePhys_finite_sum (n : ℕ) (x : ℂ) :
-    aeval x (hermitePhys n) = (n.factorial : ℂ) * ∑ k ∈ Finset.range (n / 2 + 1),
+theorem hermitePolyH_finite_sum (n : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH n) = (n.factorial : ℂ) * ∑ k ∈ Finset.range (n / 2 + 1),
       (-1 : ℂ) ^ k * (2 * x) ^ (n - 2 * k) /
         ((k.factorial : ℂ) * (n - 2 * k).factorial) := by
   obtain ⟨m, rfl | rfl⟩ := Nat.even_or_odd' n
   · rw [show 2 * m / 2 = m by omega]
-    exact hermitePhys_even_sum m x
+    exact hermitePolyH_even_sum m x
   · rw [show (2 * m + 1) / 2 = m by omega]
-    exact hermitePhys_odd_sum m x
+    exact hermitePolyH_odd_sum m x
 
 @[dlmf 18.6.E1]
-theorem laguerre_at_zero (α : ℂ) (n : ℕ) : laguerre α n 0 = poch (α + 1) n / n.factorial := by
-  simp [laguerre]
+theorem laguerrePolyL_at_zero (α : ℂ) (n : ℕ) : laguerrePolyL α n 0 = poch (α + 1) n
+    / n.factorial := by
+  simp [laguerrePolyL]
 
 @[dlmf 18.6.T1]
 theorem jacobi_at_one {α β : ℂ} (hα : -1 < α.re) (n : ℕ) :
-    jacobiP α β n 1 = poch (α + 1) n / n.factorial := by
-  simp [jacobiP]
+    jacobiPolyP α β n 1 = poch (α + 1) n / n.factorial := by
+  simp [jacobiPolyP]
 
 private lemma jacobi_at_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) :
-    jacobiP α β n 1 ≠ 0 := by
+    jacobiPolyP α β n 1 ≠ 0 := by
   rw [jacobi_at_one hα]
   apply div_ne_zero
   · apply poch_ne_zero_of_not_neg_nat
@@ -260,14 +263,14 @@ private lemma jacobi_at_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) :
   · exact Nat.cast_ne_zero.mpr n.factorial_ne_zero
 
 @[dlmf 18.6.T1]
-theorem gegenbauer_at_one {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
-    gegenbauer lam n 1 = poch (2 * lam) n / n.factorial := by
-  simp [gegenbauer]
+theorem ultrasphPoly_at_one {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
+    ultrasphPoly lam n 1 = poch (2 * lam) n / n.factorial := by
+  simp [ultrasphPoly]
 
 @[dlmf 18.6.T1]
-theorem hermitePhys_reflection (n : ℕ) (x : ℂ) :
-    aeval (-x) (hermitePhys n) = (-1 : ℂ) ^ n * aeval x (hermitePhys n) := by
-  have hp (n : ℕ) : (hermitePhys n).comp (-X) = C ((-1 : ℤ) ^ n) * hermitePhys n := by
+theorem hermitePolyH_reflection (n : ℕ) (x : ℂ) :
+    aeval (-x) (hermitePolyH n) = (-1 : ℂ) ^ n * aeval x (hermitePolyH n) := by
+  have hp (n : ℕ) : (hermitePolyH n).comp (-X) = C ((-1 : ℤ) ^ n) * hermitePolyH n := by
     induction n with
     | zero => simp
     | succ n ih =>
@@ -276,21 +279,21 @@ theorem hermitePhys_reflection (n : ℕ) (x : ℂ) :
         neg_mul, one_mul] at hd
       have hd' := congrArg Neg.neg hd
       simp only [neg_neg] at hd'
-      simp only [hermitePhys_succ, sub_comp, mul_comp, ofNat_comp, X_comp, ih, hd',
+      simp only [hermitePolyH_succ, sub_comp, mul_comp, ofNat_comp, X_comp, ih, hd',
         pow_succ, map_mul, map_neg, map_one]
       ring
   have he := congrArg (aeval x : ℤ[X] → ℂ) (hp n)
   simpa [aeval_comp] using he
 
 @[dlmf 18.6.T1]
-theorem hermitePhys_even_at_zero (n : ℕ) :
-    (hermitePhys (2 * n)).eval 0 = (-1 : ℤ) ^ n * ((2 * n).factorial / n.factorial : ℕ) := by
+theorem hermitePolyH_even_at_zero (n : ℕ) :
+    (hermitePolyH (2 * n)).eval 0 = (-1 : ℤ) ^ n * ((2 * n).factorial / n.factorial : ℕ) := by
   induction n with
   | zero => simp
   | succ n ih =>
-    have hstep : (hermitePhys (2 * (n + 1))).eval 0 =
-        -(2 * (2 * n + 1)) * (hermitePhys (2 * n)).eval 0 := by
-      rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, hermitePhys_succ, hermitePhys_derivative]
+    have hstep : (hermitePolyH (2 * (n + 1))).eval 0 =
+        -(2 * (2 * n + 1)) * (hermitePolyH (2 * n)).eval 0 := by
+      rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, hermitePolyH_succ, hermitePolyH_derivative]
       simp only [eval_sub, eval_mul, eval_ofNat, eval_X, eval_C, mul_zero, zero_mul, zero_sub]
       push_cast
       ring
@@ -317,8 +320,9 @@ theorem chebyshevW_at_one (n : ℕ) : chebyshevW n 1 = 2 * n + 1 := by
   exact mul_div_cancel_right₀ _ (jacobi_at_one_ne_zero (by norm_num) n)
 
 @[dlmf 18.7.E9]
-theorem legendre_eq_gegenbauer (n : ℕ) (x : ℂ) : legendreP n x = gegenbauer (1 / 2) n x := by
-  norm_num [legendreP, jacobiP, gegenbauer]
+theorem legendre_eq_ultrasphPoly (n : ℕ) (x : ℂ) : legendrePolyP n x
+    = ultrasphPoly (1 / 2) n x := by
+  norm_num [legendrePolyP, jacobiPolyP, ultrasphPoly]
 
 /-- `4^n (1/2)_n n! = (2n)!`. -/
 lemma two_pow_mul_poch_half (n : ℕ) :
@@ -343,36 +347,38 @@ lemma two_pow_mul_poch_three_half (n : ℕ) :
     linear_combination (4 * (3 / 2 + (n : ℂ)) * ((n : ℂ) + 1)) * ih
 
 @[dlmf 18.7.E19]
-theorem hermitePhys_even_eq_laguerre (n : ℕ) (x : ℂ) :
-    aeval x (hermitePhys (2 * n)) = (-1 : ℂ) ^ n * 2 ^ (2 * n) * n.factorial * laguerre (-1 / 2) n (x ^ 2) := by
-  have h := AAR.Confluent.hermitePhysEval_even_mul n x
-  rw [AAR.Confluent.hermitePhysEval_eq_aeval] at h
+theorem hermitePolyH_even_eq_laguerrePolyL (n : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH (2 * n)) = (-1 : ℂ) ^ n * 2 ^ (2 * n) * n.factorial
+        * laguerrePolyL (-1 / 2) n (x ^ 2) := by
+  have h := AAR.Confluent.hermitePolyHEval_even_mul n x
+  rw [AAR.Confluent.hermitePolyHEval_eq_aeval] at h
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  have hL : laguerre (-1 / 2) n (x ^ 2) * n.factorial =
-      poch (1 / 2) n * confluentM (-(n : ℂ)) (1 / 2) (x ^ 2) := by
-    unfold laguerre
+  have hL : laguerrePolyL (-1 / 2) n (x ^ 2) * n.factorial =
+      poch (1 / 2) n * kummerM (-(n : ℂ)) (1 / 2) (x ^ 2) := by
+    unfold laguerrePolyL
     rw [show (-1 / 2 : ℂ) + 1 = 1 / 2 by norm_num]
     field_simp
   have hp := two_pow_mul_poch_half n
   apply mul_right_cancel₀ hf
   linear_combination h - ((-1 : ℂ) ^ n * 2 ^ (2 * n) * n.factorial) * hL -
-    ((-1 : ℂ) ^ n * confluentM (-(n : ℂ)) (1 / 2) (x ^ 2)) * hp
+    ((-1 : ℂ) ^ n * kummerM (-(n : ℂ)) (1 / 2) (x ^ 2)) * hp
 
 @[dlmf 18.7.E20]
-theorem hermitePhys_odd_eq_laguerre (n : ℕ) (x : ℂ) :
-    aeval x (hermitePhys (2 * n + 1)) = (-1 : ℂ) ^ n * 2 ^ (2 * n + 1) * n.factorial * x * laguerre (1 / 2) n (x ^ 2) := by
-  have h := AAR.Confluent.hermitePhysEval_odd_mul n x
-  rw [AAR.Confluent.hermitePhysEval_eq_aeval] at h
+theorem hermitePolyH_odd_eq_laguerrePolyL (n : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH (2 * n + 1)) = (-1 : ℂ) ^ n * 2 ^ (2 * n + 1) * n.factorial * x
+        * laguerrePolyL (1 / 2) n (x ^ 2) := by
+  have h := AAR.Confluent.hermitePolyHEval_odd_mul n x
+  rw [AAR.Confluent.hermitePolyHEval_eq_aeval] at h
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  have hL : laguerre (1 / 2) n (x ^ 2) * n.factorial =
-      poch (3 / 2) n * confluentM (-(n : ℂ)) (3 / 2) (x ^ 2) := by
-    unfold laguerre
+  have hL : laguerrePolyL (1 / 2) n (x ^ 2) * n.factorial =
+      poch (3 / 2) n * kummerM (-(n : ℂ)) (3 / 2) (x ^ 2) := by
+    unfold laguerrePolyL
     rw [show (1 / 2 : ℂ) + 1 = 3 / 2 by norm_num]
     field_simp
   have hp := two_pow_mul_poch_three_half n
   apply mul_right_cancel₀ hf
   linear_combination h - ((-1 : ℂ) ^ n * 2 ^ (2 * n + 1) * n.factorial * x) * hL -
-    ((-1 : ℂ) ^ n * 2 * x * confluentM (-(n : ℂ)) (3 / 2) (x ^ 2)) * hp
+    ((-1 : ℂ) ^ n * 2 * x * kummerM (-(n : ℂ)) (3 / 2) (x ^ 2)) * hp
 
 
 /-- The cosines of `k` times the Chebyshev–Gauss angles sum to zero unless `2M ∣ k`. -/

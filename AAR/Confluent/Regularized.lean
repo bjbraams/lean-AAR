@@ -256,7 +256,7 @@ theorem continuous_regularizedConfluent :
 
 /-- Off the poles of `Γ(b)`, `𝐌(a,b,z) = M(a,b,z)/Γ(b)`. -/
 lemma regularizedConfluent_eq_div_Gamma {a b : ℂ} (hb : ∀ k : ℕ, b ≠ -(k : ℂ)) (z : ℂ) :
-    regularizedHGFun {a} {b} z = confluentM a b z / Gamma b := by
-  rw [confluentM_eq_mul_regularizedHGFun hb, mul_div_cancel_left₀ _ (Gamma_ne_zero hb)]
+    regularizedHGFun {a} {b} z = kummerM a b z / Gamma b := by
+  rw [kummerM_eq_mul_regularizedHGFun hb, mul_div_cancel_left₀ _ (Gamma_ne_zero hb)]
 
 end AAR.Confluent

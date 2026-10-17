@@ -22,6 +22,8 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
@@ -967,14 +969,14 @@ theorem hahn_limit_krawtchouk {p : ℝ} (hp : 0 < p) (N n : ℕ) (x : ℂ) :
 
 @[dlmf 18.21.E5]
 theorem hahn_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (x : ℂ) :
-    Tendsto (fun N : ℕ => hahn α β N n (N * x)) atTop (𝓝 (jacobiP α β n (1 - 2 * x) / jacobiP α β n 1)) := by
+    Tendsto (fun N : ℕ => hahn α β N n (N * x)) atTop (𝓝 (jacobiPolyP α β n (1 - 2 * x) / jacobiPolyP α β n 1)) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   have hP1 : poch ((α : ℂ) + 1) n / (n ! : ℂ) ≠ 0 :=
     div_ne_zero (poch_ne_zero_of_not_neg_nat hα' n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-  have hJ : jacobiP α β n (1 - 2 * x) / jacobiP α β n 1 =
+  have hJ : jacobiPolyP α β n (1 - 2 * x) / jacobiPolyP α β n 1 =
       ∑ k ∈ Finset.range (n + 1), gaussHGCoeff (-(n : ℂ)) (n + α + β + 1) (α + 1) k * x ^ k := by
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show (1 - (1 - 2 * x)) / 2 = x by ring, sub_self, zero_div,
       ordinaryHypergeometric_zero, mul_one, mul_div_cancel_left₀ _ hP1,
       ordinaryHypergeometric_eq_sum_neg_nat]
@@ -1090,7 +1092,7 @@ theorem charlier_recurrence {a : ℂ} (ha : a ≠ 0) (n : ℕ) (x : ℂ) :
 
 @[dlmf 18.21.E9]
 theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
-    Tendsto (fun a : ℝ => (Real.sqrt (2 * a) : ℂ) ^ n * charlier a n ((Real.sqrt (2 * a) : ℂ) * x + a)) atTop (𝓝 ((-1 : ℂ) ^ n * aeval x (hermitePhys n))) := by
+    Tendsto (fun a : ℝ => (Real.sqrt (2 * a) : ℂ) ^ n * charlier a n ((Real.sqrt (2 * a) : ℂ) * x + a)) atTop (𝓝 ((-1 : ℂ) ^ n * aeval x (hermitePolyH n))) := by
   set f : ℕ → ℝ → ℂ := fun n a =>
     (Real.sqrt (2 * a) : ℂ) ^ n * charlier a n ((Real.sqrt (2 * a) : ℂ) * x + a) with hf
   -- the scaled recurrence coefficient `√(2a)/a`
@@ -1105,12 +1107,12 @@ theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
     have hsa : (0 : ℝ) < Real.sqrt a := Real.sqrt_pos.mpr ha
     field_simp
     rw [Real.sq_sqrt ha.le]
-  refine tendsto_of_three_term (f := f) (g := fun n => (-1 : ℂ) ^ n * aeval x (hermitePhys n))
+  refine tendsto_of_three_term (f := f) (g := fun n => (-1 : ℂ) ^ n * aeval x (hermitePolyH n))
     (A := fun n a => (n + 1 : ℂ) * ((Real.sqrt (2 * a) / a : ℝ) : ℂ) - 2 * x)
     (B := fun n _ => -2 * (n + 1 : ℂ)) (A' := fun _ => -2 * x) (B' := fun n => -2 * (n + 1 : ℂ))
     ?_ ?_ ?_ ?_ ?_ ?_ n
   · simp [hf, charlier, terminatingHG, poch_zero]
-  · have h1 : (aeval x (hermitePhys 1) : ℂ) = 2 * x := by simp [hermitePhys_succ, map_ofNat]
+  · have h1 : (aeval x (hermitePolyH 1) : ℂ) = 2 * x := by simp [hermitePolyH_succ, map_ofNat]
     simp only [pow_one, h1]
     refine tendsto_const_nhds.congr' ?_
     filter_upwards [eventually_gt_atTop 0] with a ha
@@ -1139,7 +1141,7 @@ theorem charlier_limit_hermite (n : ℕ) (x : ℂ) :
       (S * S ^ n * x * charlier (↑a) (n + 1) (S * x + ↑a) +
         S ^ n * (n + 1) * charlier (↑a) n (S * x + ↑a)) * hsq
   · intro n
-    rw [aeval_hermitePhys_succ_succ]
+    rw [aeval_hermitePolyH_succ_succ]
     ring
 
 
@@ -1180,15 +1182,15 @@ theorem hahn_limit_meixner {β c : ℝ} (hc : 0 < c) (hc1 : c < 1) (n : ℕ) (x 
     (poch (β : ℂ) k * k.factorial * poch (-(N : ℂ)) k)) * e
 
 @[dlmf 18.21.E8]
-theorem meixner_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
+theorem meixner_limit_laguerrePolyL {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
     Tendsto (fun c : ℝ => meixner (α + 1) c n (x / (1 - c : ℂ))) (𝓝[<] 1)
-      (𝓝 (laguerre α n x / laguerre α n 0)) := by
+      (𝓝 (laguerrePolyL α n x / laguerrePolyL α n 0)) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
   have hp : poch ((α : ℂ) + 1) n / n.factorial ≠ 0 :=
     div_ne_zero (poch_ne_zero_of_not_neg_nat hα' n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-  have hL : laguerre α n x / laguerre α n 0 = confluentM (-n) (α + 1) x := by
-    unfold laguerre
-    rw [confluentM_zero, mul_one, mul_div_cancel_left₀ _ hp]
+  have hL : laguerrePolyL α n x / laguerrePolyL α n 0 = kummerM (-n) (α + 1) x := by
+    unfold laguerrePolyL
+    rw [kummerM_zero, mul_one, mul_div_cancel_left₀ _ hp]
   have key : ∀ (c : ℝ), c ≠ 0 → c ≠ 1 → ∀ k : ℕ,
       poch (-(x / (1 - c : ℂ))) k * (1 - (c : ℂ)⁻¹) ^ k =
         ∏ i ∈ Finset.range k, ((x - i * (1 - c)) / c) := by
@@ -1201,7 +1203,7 @@ theorem meixner_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
       rw [poch_succ, Finset.prod_range_succ, ← ih, pow_succ]
       field_simp
       ring
-  rw [hL, confluentM_eq_sum_neg_nat]
+  rw [hL, kummerM_eq_sum_neg_nat]
   unfold meixner terminatingHG
   apply tendsto_finsetSum
   intro k _
@@ -1224,9 +1226,9 @@ theorem meixner_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
   ring
 
 @[dlmf 18.21.E12]
-theorem meixnerPollaczek_limit_laguerre {α : ℝ} (n : ℕ) (x : ℂ) :
+theorem meixnerPollaczek_limit_laguerrePolyL {α : ℝ} (n : ℕ) (x : ℂ) :
     Tendsto (fun phi : ℝ => meixnerPollaczek ((α + 1) / 2) phi n (-x / (2 * (phi : ℂ))))
-      (𝓝[>] 0) (𝓝 (laguerre α n x)) := by
+      (𝓝[>] 0) (𝓝 (laguerrePolyL α n x)) := by
   have hE0 : Tendsto (fun t : ℝ => 1 - cexp (-2 * I * t)) (𝓝[>] 0) (𝓝 0) := by
     have h : Tendsto (fun t : ℝ => 1 - cexp (-2 * I * t)) (𝓝 0)
         (𝓝 (1 - cexp (-2 * I * ((0 : ℝ) : ℂ)))) := Continuous.tendsto (by fun_prop) 0
@@ -1247,8 +1249,8 @@ theorem meixnerPollaczek_limit_laguerre {α : ℝ} (n : ℕ) (x : ℂ) :
     have h : Tendsto (fun t : ℝ => cexp (I * n * t)) (𝓝 0)
         (𝓝 (cexp (I * n * ((0 : ℝ) : ℂ)))) := Continuous.tendsto (by fun_prop) 0
     simpa using h.mono_left nhdsWithin_le_nhds
-  unfold meixnerPollaczek laguerre terminatingHG
-  rw [show 2 * (((α : ℂ) + 1) / 2) = α + 1 by ring, confluentM_eq_sum_neg_nat]
+  unfold meixnerPollaczek laguerrePolyL terminatingHG
+  rw [show 2 * (((α : ℂ) + 1) / 2) = α + 1 by ring, kummerM_eq_sum_neg_nat]
   have hpre : Tendsto (fun t : ℝ => poch ((α : ℂ) + 1) n / n ! * cexp (I * n * t)) (𝓝[>] 0)
       (𝓝 (poch ((α : ℂ) + 1) n / n !)) := by
     simpa using (tendsto_const_nhds (x := poch ((α : ℂ) + 1) n / n !)).mul hexp
@@ -1275,12 +1277,12 @@ theorem meixnerPollaczek_limit_laguerre {α : ℝ} (n : ℕ) (x : ℂ) :
 @[dlmf 18.21.E13]
 theorem meixnerPollaczek_limit_hermite (n : ℕ) (x : ℂ) :
     Tendsto (fun lam : ℝ => n.factorial * (Real.sqrt lam : ℂ)⁻¹ ^ n *
-      meixnerPollaczek lam (Real.pi / 2) n (x * Real.sqrt lam)) atTop (𝓝 (aeval x (hermitePhys n))) := by
+      meixnerPollaczek lam (Real.pi / 2) n (x * Real.sqrt lam)) atTop (𝓝 (aeval x (hermitePolyH n))) := by
   have hsc : sin ((Real.pi : ℂ) / 2) = 1 := Complex.sin_pi_div_two
   have hcc : cos ((Real.pi : ℂ) / 2) = 0 := Complex.cos_pi_div_two
   refine tendsto_of_three_term (f := fun n lam => (n ! : ℂ) * (Real.sqrt lam : ℂ)⁻¹ ^ n *
       meixnerPollaczek lam (Real.pi / 2) n (x * Real.sqrt lam))
-    (g := fun n => aeval x (hermitePhys n))
+    (g := fun n => aeval x (hermitePolyH n))
     (A := fun n _ => 2 * x) (B := fun n lam => -((n + 1) * (2 + n / (lam : ℂ))))
     (A' := fun n => 2 * x) (B' := fun n => -((n + 1) * 2)) ?_ ?_ ?_ ?_ ?_ ?_ n
   · simp [meixnerPollaczek, terminatingHG, poch_zero]
@@ -1289,7 +1291,7 @@ theorem meixnerPollaczek_limit_hermite (n : ℕ) (x : ℂ) :
     have hs : (Real.sqrt lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hl).ne'
     have hl' : (lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr hl.ne'
     rw [meixnerPollaczek_one hl', hsc, hcc]
-    simp only [hermitePhys_one, map_mul, aeval_X, map_ofNat, Nat.factorial_one, Nat.cast_one]
+    simp only [hermitePolyH_one, map_mul, aeval_X, map_ofNat, Nat.factorial_one, Nat.cast_one]
     field_simp
     ring
   · intro n; exact tendsto_const_nhds
@@ -1313,7 +1315,7 @@ theorem meixnerPollaczek_limit_hermite (n : ℕ) (x : ℂ) :
     field_simp
     linear_combination ((n ! : ℂ) * (Real.sqrt lam : ℂ) ^ (2 * n + 3)) * hr
   · intro n
-    rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+    rw [hermitePolyH_succ (n + 1), hermitePolyH_derivative]
     simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
     push_cast
     ring
@@ -1509,7 +1511,7 @@ theorem continuousHahn_central_difference {a b c d : ℂ} (hac : 0 < (a + c).re)
 theorem continuousHahn_generating_function {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) (x z : ℂ) :
     HasSum (fun n : ℕ => continuousHahn a b (star a) (star b) n x /
       (poch (a + star a) n * poch (b + star b) n) * z ^ n)
-      (confluentM (a + I * x) (a + star a) (-I * z) * confluentM (star b - I * x) (b + star b) (I * z)) := by
+      (kummerM (a + I * x) (a + star a) (-I * z) * kummerM (star b - I * x) (b + star b) (I * z)) := by
   sorry
 
 

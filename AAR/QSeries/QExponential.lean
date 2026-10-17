@@ -26,13 +26,6 @@ noncomputable section
 
 namespace AAR.QSeries
 
-/-- `(a;q)_{m+k} = (a;q)_m (aq^m;q)_k`. -/
-lemma qPochhammer_add (a q : ℂ) (m k : ℕ) :
-    qPochhammer a q (m + k) = qPochhammer a q m * qPochhammer (a * q ^ m) q k := by
-  induction k with
-  | zero => simp
-  | succ k ih => rw [← add_assoc, qPochhammer_succ, ih, qPochhammer_succ, pow_add]; ring
-
 /-- `|(q^{m+1};q)_k| ≤ exp(1/(1-|q|))`, uniformly in `m` and `k`. -/
 lemma norm_qPochhammer_le {q : ℂ} (hq : ‖q‖ < 1) (m k : ℕ) :
     ‖qPochhammer (q * q ^ m) q k‖ ≤ Real.exp (1 / (1 - ‖q‖)) := by

@@ -32,52 +32,56 @@ hypergeometric representations (AAR §§6.1–6.4, 6.10–6.11).
 
 open Complex Polynomial MeasureTheory intervalIntegral
 open scoped Real Nat
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
+namespace AAR.OrthogonalPolynomials
+
 /-- Physicists' Hermite polynomials, AAR §6.1: `H_{n+1} = 2x H_n - H_n'`. -/
-def hermitePhys : ℕ → ℤ[X]
+def hermitePolyH : ℕ → ℤ[X]
   | 0 => 1
-  | n + 1 => 2 * X * hermitePhys n - derivative (hermitePhys n)
+  | n + 1 => 2 * X * hermitePolyH n - derivative (hermitePolyH n)
 
 @[simp, dlmf 18.5.E18]
-theorem hermitePhys_zero : hermitePhys 0 = 1 := rfl
+theorem hermitePolyH_zero : hermitePolyH 0 = 1 := rfl
 
 @[simp]
-theorem hermitePhys_succ (n : ℕ) :
-    hermitePhys (n + 1) = 2 * X * hermitePhys n - derivative (hermitePhys n) :=
+theorem hermitePolyH_succ (n : ℕ) :
+    hermitePolyH (n + 1) = 2 * X * hermitePolyH n - derivative (hermitePolyH n) :=
   rfl
 
 @[dlmf 18.5.E18]
-theorem hermitePhys_one : hermitePhys 1 = 2 * X := by
-  simp [hermitePhys_succ, hermitePhys_zero]
+theorem hermitePolyH_one : hermitePolyH 1 = 2 * X := by
+  simp [hermitePolyH_succ, hermitePolyH_zero]
 
 @[dlmf 18.5.E18]
-theorem hermitePhys_two : hermitePhys 2 = 4 * X ^ 2 - 2 := by
-  simp [hermitePhys_succ, pow_two]
+theorem hermitePolyH_two : hermitePolyH 2 = 4 * X ^ 2 - 2 := by
+  simp [hermitePolyH_succ, pow_two]
   ring
 
 @[dlmf 18.9.E25]
-theorem hermitePhys_derivative (n : ℕ) :
-    derivative (hermitePhys (n + 1)) = C (2 * (n + 1) : ℤ) * hermitePhys n := by
+theorem hermitePolyH_derivative (n : ℕ) :
+    derivative (hermitePolyH (n + 1)) = C (2 * (n + 1) : ℤ) * hermitePolyH n := by
   induction n with
   | zero => simp
   | succ n ih =>
-    rw [show n + 1 + 1 = (n + 1) + 1 by omega, hermitePhys_succ (n + 1)]
+    rw [show n + 1 + 1 = (n + 1) + 1 by omega, hermitePolyH_succ (n + 1)]
     simp only [derivative_sub, derivative_mul, derivative_ofNat, derivative_X,
       zero_mul, zero_add, mul_one]
     rw [ih]
     simp only [derivative_mul, derivative_C, zero_mul, zero_add]
-    rw [hermitePhys_succ n]
+    rw [hermitePolyH_succ n]
     push_cast
     simp only [map_add, map_mul, map_natCast, map_ofNat, map_one]
     ring
 
 /-- The Hermite recurrence in evaluated form. -/
-lemma aeval_hermitePhys_succ_succ (x : ℂ) (n : ℕ) :
-    (aeval x (hermitePhys (n + 2)) : ℂ) =
-      2 * x * aeval x (hermitePhys (n + 1)) - 2 * (n + 1) * aeval x (hermitePhys n) := by
-  rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+lemma aeval_hermitePolyH_succ_succ (x : ℂ) (n : ℕ) :
+    (aeval x (hermitePolyH (n + 2)) : ℂ) =
+      2 * x * aeval x (hermitePolyH (n + 1)) - 2 * (n + 1) * aeval x (hermitePolyH n) := by
+  rw [hermitePolyH_succ (n + 1), hermitePolyH_derivative]
   simp only [map_sub, map_mul, aeval_X, aeval_C, map_ofNat]
   push_cast
   ring
@@ -85,10 +89,10 @@ lemma aeval_hermitePhys_succ_succ (x : ℂ) (n : ℕ) :
 /-- Relation to Mathlib's probabilists' Hermite polynomials:
 `H_n(x) = 2^{n/2} He_n(√2 x)`. -/
 @[dlmf 18.7.E11, dlmf 18.7.E12]
-theorem aeval_hermitePhys_eq_hermite (n : ℕ) (x : ℝ) :
-    aeval x (hermitePhys n) =
+theorem aeval_hermitePolyH_eq_hermite (n : ℕ) (x : ℝ) :
+    aeval x (hermitePolyH n) =
       (2 : ℝ) ^ (n / 2 : ℝ) * aeval (Real.sqrt 2 * x) (hermite n) := by
-  have hscale (n : ℕ) (x : ℝ) : aeval x (hermitePhys n) =
+  have hscale (n : ℕ) (x : ℝ) : aeval x (hermitePolyH n) =
       Real.sqrt 2 ^ n * aeval (Real.sqrt 2 * x) (hermite n) := by
     induction n generalizing x with
     | zero => simp
@@ -100,7 +104,7 @@ theorem aeval_hermitePhys_eq_hermite (n : ℕ) (x : ℝ) :
           ((hasDerivAt_id x).const_mul (Real.sqrt 2))
       rw [deriv_const_mul_field, hcomp.deriv, Polynomial.deriv_aeval] at hd
       simp only [mul_one] at hd
-      simp only [hermitePhys_succ, hermite_succ, map_sub, map_mul, map_ofNat, aeval_X,
+      simp only [hermitePolyH_succ, hermite_succ, map_sub, map_mul, map_ofNat, aeval_X,
         ih, hd, pow_succ]
       ring_nf
       norm_num [Real.sq_sqrt]
@@ -111,14 +115,14 @@ theorem aeval_hermitePhys_eq_hermite (n : ℕ) (x : ℝ) :
 
 /-- Rodrigues formula for physicists' Hermite polynomials, AAR §6.1. -/
 @[dlmf 18.5.T1]
-theorem deriv_gaussian_eq_hermitePhys (n : ℕ) (x : ℝ) :
+theorem deriv_gaussian_eq_hermitePolyH (n : ℕ) (x : ℝ) :
     deriv^[n] (fun y => Real.exp (-(y ^ 2))) x =
-      (-1 : ℝ) ^ n * aeval x (hermitePhys n) * Real.exp (-(x ^ 2)) := by
+      (-1 : ℝ) ^ n * aeval x (hermitePolyH n) * Real.exp (-(x ^ 2)) := by
   -- A direct adaptation of Mathlib's
   -- `Polynomial.deriv_gaussian_eq_hermite_mul_gaussian` to the physicists' normalization.
   rw [mul_assoc]
   induction n generalizing x with
-  | zero => simp [hermitePhys_zero]
+  | zero => simp [hermitePolyH_zero]
   | succ n ih =>
     replace ih : deriv^[n] _ = _ := funext ih
     have hgaussian : deriv (fun y : ℝ => Real.exp (-(y ^ 2))) x =
@@ -127,20 +131,20 @@ theorem deriv_gaussian_eq_hermitePhys (n : ℕ) (x : ℝ) :
       simp
       ring
     rw [Function.iterate_succ_apply', ih, deriv_const_mul_field, deriv_fun_mul,
-      pow_succ, hgaussian, hermitePhys_succ, map_sub, map_mul, map_mul, map_ofNat,
+      pow_succ, hgaussian, hermitePolyH_succ, map_sub, map_mul, map_mul, map_ofNat,
       aeval_X, Polynomial.deriv_aeval]
     · ring_nf
     · apply Polynomial.differentiable_aeval
     · fun_prop
 
 /-- Complex Rodrigues formula for physicists' Hermite polynomials. Helper lemma for
-`hermitePhys_generating_function`. -/
+`hermitePolyH_generating_function`. -/
 lemma iteratedDeriv_cexp_neg_sq (n : ℕ) (x : ℂ) :
     iteratedDeriv n (fun y : ℂ => exp (-(y ^ 2))) x =
-      (-1 : ℂ) ^ n * (aeval x (hermitePhys n) : ℂ) * exp (-(x ^ 2)) := by
+      (-1 : ℂ) ^ n * (aeval x (hermitePolyH n) : ℂ) * exp (-(x ^ 2)) := by
   rw [iteratedDeriv_eq_iterate, mul_assoc]
   induction n generalizing x with
-  | zero => simp [hermitePhys_zero]
+  | zero => simp [hermitePolyH_zero]
   | succ n ih =>
     replace ih : deriv^[n] _ = _ := funext ih
     have hgaussian : deriv (fun y : ℂ => exp (-(y ^ 2))) x =
@@ -149,15 +153,15 @@ lemma iteratedDeriv_cexp_neg_sq (n : ℕ) (x : ℂ) :
       simp [pow_two]
       ring
     rw [Function.iterate_succ_apply', ih, deriv_const_mul_field, deriv_fun_mul,
-      pow_succ, hgaussian, hermitePhys_succ, map_sub, map_mul, map_mul, map_ofNat,
+      pow_succ, hgaussian, hermitePolyH_succ, map_sub, map_mul, map_mul, map_ofNat,
       aeval_X, Polynomial.deriv_aeval]
     · ring_nf
     · apply Polynomial.differentiable_aeval
     · fun_prop
 
 /-- Generating function `∑ H_n(x) t^n / n! = exp(2xt - t²)` (AAR §6.1). -/
-theorem hasSum_hermitePhys_generating_function (x t : ℂ) :
-    HasSum (fun n : ℕ => (aeval x (hermitePhys n) : ℂ) * t ^ n / n !)
+theorem hasSum_hermitePolyH_generating_function (x t : ℂ) :
+    HasSum (fun n : ℕ => (aeval x (hermitePolyH n) : ℂ) * t ^ n / n !)
       (exp (2 * x * t - t ^ 2)) := by
   have hf : Differentiable ℂ (fun y : ℂ => exp (-(y ^ 2))) := by fun_prop
   have hne : exp (-(x ^ 2)) ≠ 0 := exp_ne_zero _
@@ -165,7 +169,7 @@ theorem hasSum_hermitePhys_generating_function (x t : ℂ) :
   have hterm : (fun n : ℕ =>
       (n ! : ℂ)⁻¹ • ((x - t) - x) ^ n •
         iteratedDeriv n (fun y : ℂ => exp (-(y ^ 2))) x) =
-      fun n => (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) := by
+      fun n => (aeval x (hermitePolyH n) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) := by
     funext n
     simp only [sub_sub_cancel_left, smul_eq_mul]
     rw [iteratedDeriv_cexp_neg_sq, neg_pow]
@@ -175,9 +179,9 @@ theorem hasSum_hermitePhys_generating_function (x t : ℂ) :
   rw [hterm] at hs
   have hs' := hs.mul_right (exp (-(x ^ 2)))⁻¹
   have hsimp : (fun n : ℕ =>
-      (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) *
+      (aeval x (hermitePolyH n) : ℂ) * t ^ n / n ! * exp (-(x ^ 2)) *
         (exp (-(x ^ 2)))⁻¹) =
-      fun n => (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! := by
+      fun n => (aeval x (hermitePolyH n) : ℂ) * t ^ n / n ! := by
     funext n
     field [hne]
   rw [hsimp] at hs'
@@ -190,35 +194,35 @@ theorem hasSum_hermitePhys_generating_function (x t : ℂ) :
 
 /-- Exponential generating function of the physicists' Hermite polynomials. -/
 @[dlmf 18.12.E15]
-theorem hermitePhys_generating_function (x t : ℂ) :
-    ∑' n : ℕ, (aeval x (hermitePhys n) : ℂ) * t ^ n / n ! =
+theorem hermitePolyH_generating_function (x t : ℂ) :
+    ∑' n : ℕ, (aeval x (hermitePolyH n) : ℂ) * t ^ n / n ! =
       exp (2 * x * t - t ^ 2) :=
-  (hasSum_hermitePhys_generating_function x t).tsum_eq
+  (hasSum_hermitePolyH_generating_function x t).tsum_eq
 
 /-- Hypergeometric realization of generalized Laguerre polynomials, AAR §6.2,
 for `α + 1` not a nonpositive integer:
 `L_n^{(α)}(x) = (α+1)_n / n! · ₁F₁(-n; α+1; x)`. -/
 @[dlmf 18.5.E12]
-def laguerre (α : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
-  poch (α + 1) n / n ! * confluentM (-n : ℂ) (α + 1) x
+def laguerrePolyL (α : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
+  poch (α + 1) n / n ! * kummerM (-n : ℂ) (α + 1) x
 
 @[simp, dlmf 18.5.E17, dlmf 18.5.E17_5]
-theorem laguerre_zero (α x : ℂ) : laguerre α 0 x = 1 := by
-  simp [laguerre, poch_zero, confluentM_of_zero_param]
+theorem laguerrePolyL_zero (α x : ℂ) : laguerrePolyL α 0 x = 1 := by
+  simp [laguerrePolyL, poch_zero, kummerM_of_zero_param]
 
 /-- The terminating expansion, with coefficients separated from the variable. -/
 @[dlmf 18.11.E2]
-lemma laguerre_eq_sum_coeff (α : ℂ) (n : ℕ) (x : ℂ) :
-    laguerre α n x = ∑ j ∈ Finset.range (n + 1),
-      (poch (α + 1) n / n.factorial * confluentHGCoeff (-(n : ℂ)) (α + 1) j) * x ^ j := by
-  unfold laguerre
-  rw [confluentM_eq_sum_neg_nat, Finset.mul_sum]
+lemma laguerrePolyL_eq_sum_coeff (α : ℂ) (n : ℕ) (x : ℂ) :
+    laguerrePolyL α n x = ∑ j ∈ Finset.range (n + 1),
+      (poch (α + 1) n / n.factorial * kummerMCoeff (-(n : ℂ)) (α + 1) j) * x ^ j := by
+  unfold laguerrePolyL
+  rw [kummerM_eq_sum_neg_nat, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro j _
   ring
 
 /-- Moments of the Laguerre weight are Gamma values; integrability is recorded as well. -/
-lemma laguerre_weight_moment {α : ℝ} (hα : -1 < α) (k : ℕ) :
+lemma laguerrePolyL_weight_moment {α : ℝ} (hα : -1 < α) (k : ℕ) :
     Integrable (fun x : ℝ => (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ)))
       (volume.restrict (Set.Ioi 0)) ∧
     (∫ x : ℝ in Set.Ioi 0, (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) =
@@ -239,27 +243,27 @@ lemma laguerre_weight_moment {α : ℝ} (hα : -1 < α) (k : ℕ) :
   rw [integral_congr_ae heq, Gamma_eq_integral hs, GammaIntegral]
 
 /-- Expand a weighted Laguerre monomial into finitely many weight moments. -/
-lemma laguerre_mul_monomial_eq_sum (α : ℂ) (n k : ℕ) (x : ℝ) :
-    laguerre α n x * (x : ℂ) ^ k * (x : ℂ) ^ α * exp (-(x : ℂ)) =
+lemma laguerrePolyL_mul_monomial_eq_sum (α : ℂ) (n k : ℕ) (x : ℝ) :
+    laguerrePolyL α n x * (x : ℂ) ^ k * (x : ℂ) ^ α * exp (-(x : ℂ)) =
       ∑ j ∈ Finset.range (n + 1),
-        (poch (α + 1) n / n.factorial * confluentHGCoeff (-(n : ℂ)) (α + 1) j) *
+        (poch (α + 1) n / n.factorial * kummerMCoeff (-(n : ℂ)) (α + 1) j) *
           ((x : ℂ) ^ (k + j) * (x : ℂ) ^ α * exp (-(x : ℂ))) := by
-  rw [laguerre_eq_sum_coeff]
+  rw [laguerrePolyL_eq_sum_coeff]
   simp only [Finset.sum_mul]
   apply Finset.sum_congr rfl
   intro j _
   rw [pow_add]
   ring
 
-lemma integrable_laguerre_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
-    Integrable (fun x : ℝ => laguerre α n x * (x : ℂ) ^ k *
+lemma integrable_laguerrePolyL_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
+    Integrable (fun x : ℝ => laguerrePolyL α n x * (x : ℂ) ^ k *
       (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) (volume.restrict (Set.Ioi 0)) := by
-  simp_rw [laguerre_mul_monomial_eq_sum]
-  exact integrable_finsetSum _ fun j _ => (laguerre_weight_moment hα (k + j)).1.const_mul _
+  simp_rw [laguerrePolyL_mul_monomial_eq_sum]
+  exact integrable_finsetSum _ fun j _ => (laguerrePolyL_weight_moment hα (k + j)).1.const_mul _
 
 /-- The Laguerre moments vanish below the polynomial's degree. -/
-lemma integral_laguerre_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
-    (∫ x : ℝ in Set.Ioi 0, laguerre α n x * (x : ℂ) ^ k *
+lemma integral_laguerrePolyL_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
+    (∫ x : ℝ in Set.Ioi 0, laguerrePolyL α n x * (x : ℂ) ^ k *
       (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) =
       Gamma ((α : ℂ) + k + 1) * poch (-(k : ℂ)) n / n.factorial := by
   have hc : ∀ j : ℕ, (α : ℂ) + 1 ≠ -j := not_neg_nat_of_re_pos (by
@@ -268,11 +272,11 @@ lemma integral_laguerre_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
     simp only [add_re, ofReal_re, natCast_re, one_re]
     have := Nat.cast_nonneg (α := ℝ) k
     linarith)
-  simp_rw [laguerre_mul_monomial_eq_sum]
-  rw [integral_finsetSum _ (fun j _ => (laguerre_weight_moment hα (k + j)).1.const_mul _)]
-  simp_rw [MeasureTheory.integral_const_mul, (laguerre_weight_moment hα _).2]
+  simp_rw [laguerrePolyL_mul_monomial_eq_sum]
+  rw [integral_finsetSum _ (fun j _ => (laguerrePolyL_weight_moment hα (k + j)).1.const_mul _)]
+  simp_rw [MeasureTheory.integral_const_mul, (laguerrePolyL_weight_moment hα _).2]
   have hterm (j : ℕ) :
-      (poch ((α : ℂ) + 1) n / n.factorial * confluentHGCoeff (-(n : ℂ)) (α + 1) j) *
+      (poch ((α : ℂ) + 1) n / n.factorial * kummerMCoeff (-(n : ℂ)) (α + 1) j) *
         Gamma ((α : ℂ) + (k + j : ℕ) + 1) =
       (poch ((α : ℂ) + 1) n / n.factorial * Gamma ((α : ℂ) + k + 1)) *
         gaussHGCoeff (-(n : ℂ)) ((α : ℂ) + k + 1) (α + 1) j := by
@@ -280,7 +284,7 @@ lemma integral_laguerre_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
     have hgm := (div_eq_iff (Gamma_ne_zero hs)).mp hg
     have harg : (α : ℂ) + (k + j : ℕ) + 1 = ((α : ℂ) + k + 1) + j := by push_cast; ring
     rw [harg, hgm]
-    unfold confluentHGCoeff gaussHGCoeff
+    unfold kummerMCoeff gaussHGCoeff
     ring
   simp_rw [hterm]
   rw [← Finset.mul_sum]
@@ -292,49 +296,49 @@ lemma integral_laguerre_mul_monomial {α : ℝ} (hα : -1 < α) (n k : ℕ) :
 
 /-- Orthogonality of Laguerre polynomials on `(0,∞)` with weight `x^α e^{-x}`. -/
 @[dlmf 18.3.T1]
-theorem laguerre_orthogonal {α : ℝ} {m n : ℕ} (hα : -1 < α) (hmn : m ≠ n) :
+theorem laguerrePolyL_orthogonal {α : ℝ} {m n : ℕ} (hα : -1 < α) (hmn : m ≠ n) :
     ∫ x : ℝ in Set.Ioi (0 : ℝ),
-        laguerre α m x * laguerre α n x * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ)) = 0 := by
+        laguerrePolyL α m x * laguerrePolyL α n x * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ)) = 0 := by
   have hlt (m n : ℕ) (hmn : m < n) :
-      (∫ x : ℝ in Set.Ioi 0, laguerre α m x * laguerre α n x *
+      (∫ x : ℝ in Set.Ioi 0, laguerrePolyL α m x * laguerrePolyL α n x *
         (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) = 0 := by
-    have heq : (fun x : ℝ => laguerre α m x * laguerre α n x *
+    have heq : (fun x : ℝ => laguerrePolyL α m x * laguerrePolyL α n x *
         (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) =
         fun x : ℝ => ∑ k ∈ Finset.range (m + 1),
-          (poch ((α : ℂ) + 1) m / m.factorial * confluentHGCoeff (-(m : ℂ)) (α + 1) k) *
-            (laguerre α n x * (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) := by
+          (poch ((α : ℂ) + 1) m / m.factorial * kummerMCoeff (-(m : ℂ)) (α + 1) k) *
+            (laguerrePolyL α n x * (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) := by
       funext x
-      rw [laguerre_eq_sum_coeff (α : ℂ) m]
+      rw [laguerrePolyL_eq_sum_coeff (α : ℂ) m]
       simp only [Finset.sum_mul]
       apply Finset.sum_congr rfl
       intro k _
       ring
     rw [heq, integral_finsetSum _ (fun k _ =>
-      (integrable_laguerre_mul_monomial hα n k).const_mul _)]
+      (integrable_laguerrePolyL_mul_monomial hα n k).const_mul _)]
     apply Finset.sum_eq_zero
     intro k hk
     have hkn : k < n := by have := Finset.mem_range.mp hk; omega
-    rw [MeasureTheory.integral_const_mul, integral_laguerre_mul_monomial hα,
+    rw [MeasureTheory.integral_const_mul, integral_laguerrePolyL_mul_monomial hα,
       poch_neg_nat_eq_zero hkn]
     simp
   rcases lt_or_gt_of_ne hmn with h | h
   · exact hlt m n h
   · calc
-      _ = ∫ x : ℝ in Set.Ioi 0, laguerre α n x * laguerre α m x *
+      _ = ∫ x : ℝ in Set.Ioi 0, laguerrePolyL α n x * laguerrePolyL α m x *
           (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ)) :=
         MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall fun x => by ring)
       _ = 0 := hlt n m h
 
-/-- Helper lemma for `laguerre_generating_function`: the explicit terminating sum
+/-- Helper lemma for `laguerrePolyL_generating_function`: the explicit terminating sum
 `L_n^{(α)}(x) = ∑_{k=0}^n (α+1+k)_{n-k} (-x)^k / ((n-k)! k!)`. -/
 @[dlmf 18.5.E12]
-lemma laguerre_eq_sum {α : ℂ} (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)) (n : ℕ) (x : ℂ) :
-    laguerre α n x =
+lemma laguerrePolyL_eq_sum {α : ℂ} (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)) (n : ℕ) (x : ℂ) :
+    laguerrePolyL α n x =
       ∑ k ∈ Finset.range (n + 1),
         poch (α + 1 + k) (n - k) / ((n - k).factorial * k.factorial : ℂ) * (-x) ^ k := by
   have hn : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  unfold laguerre
-  rw [confluentM_eq_sum_neg_nat, Finset.mul_sum]
+  unfold laguerrePolyL
+  rw [kummerM_eq_sum_neg_nat, Finset.mul_sum]
   refine Finset.sum_congr rfl fun k hk => ?_
   have hk' : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
   have hck := poch_ne_zero_of_not_neg_nat hα k
@@ -369,7 +373,7 @@ lemma hasSum_poch_real {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (a : ℝ) :
     Complex.hasSum_re hs
 
 /-- Absolute convergence of the double series obtained from Laguerre's terminating sum. -/
-lemma summable_laguerre_double (α x : ℂ) {t : ℂ} (ht : ‖t‖ < 1) :
+lemma summable_laguerrePolyL_double (α x : ℂ) {t : ℂ} (ht : ‖t‖ < 1) :
     Summable (fun km : ℕ × ℕ =>
       (poch (α + 1 + km.1) km.2 / km.2.factorial * t ^ km.2) *
         ((-x * t) ^ km.1 / km.1.factorial)) := by
@@ -413,13 +417,13 @@ lemma summable_laguerre_double (α x : ℂ) {t : ℂ} (ht : ‖t‖ < 1) :
 /-- Generating function
 `(1-t)^{-α-1} exp(-xt/(1-t)) = ∑ L_n^{(α)}(x) t^n` (AAR §6.2). -/
 @[dlmf 18.12.E13]
-theorem laguerre_generating_function {α x t : ℂ}
+theorem laguerrePolyL_generating_function {α x t : ℂ}
     (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)) (ht : ‖t‖ < 1) :
-    (1 - t) ^ (-α - 1) * exp (-x * t / (1 - t)) = ∑' n : ℕ, laguerre α n x * t ^ n := by
+    (1 - t) ^ (-α - 1) * exp (-x * t / (1 - t)) = ∑' n : ℕ, laguerrePolyL α n x * t ^ n := by
   let L : ℕ × ℕ → ℂ := fun km =>
     (poch (α + 1 + km.1) km.2 / km.2.factorial * t ^ km.2) *
       ((-x * t) ^ km.1 / km.1.factorial)
-  have hL : Summable L := summable_laguerre_double α x ht
+  have hL : Summable L := summable_laguerrePolyL_double α x ht
   have ht0 : 1 - t ≠ 0 := by
     intro h
     rw [← sub_eq_zero.mp h, norm_one] at ht
@@ -458,7 +462,7 @@ theorem laguerre_generating_function {α x t : ℂ}
   rw [← hsum, hdiag]
   apply tsum_congr
   intro n
-  rw [laguerre_eq_sum hα, Finset.sum_mul]
+  rw [laguerrePolyL_eq_sum hα, Finset.sum_mul]
   apply Finset.sum_congr rfl
   intro k hk
   have hk' : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
@@ -475,22 +479,22 @@ theorem laguerre_generating_function {α x t : ℂ}
 for `α + 1` not a nonpositive integer:
 `P_n^{(α,β)}(x) = (α+1)_n / n! · ₂F₁(-n, n+α+β+1; α+1; (1-x)/2)`. -/
 @[dlmf 18.5.E7]
-def jacobiP (α β : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
+def jacobiPolyP (α β : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
   poch (α + 1) n / n ! * ₂F₁ (-n : ℂ) (n + α + β + 1) (α + 1) ((1 - x) / 2)
 
 @[simp]
-theorem jacobiP_zero (α β x : ℂ) : jacobiP α β 0 x = 1 := by
-  simp [jacobiP, poch_zero, ordinaryHypergeometric_zero_left]
+theorem jacobiPolyP_zero (α β x : ℂ) : jacobiPolyP α β 0 x = 1 := by
+  simp [jacobiPolyP, poch_zero, ordinaryHypergeometric_zero_left]
 
 /-- Legendre polynomials as Jacobi polynomials with `α = β = 0`. -/
 @[dlmf 18.7.E9]
-def legendreP (n : ℕ) (x : ℂ) : ℂ :=
-  jacobiP 0 0 n x
+def legendrePolyP (n : ℕ) (x : ℂ) : ℂ :=
+  jacobiPolyP 0 0 n x
 
 @[dlmf 18.5.E16]
-theorem legendreP_zero (x : ℂ) : legendreP 0 x = 1 := by simp [legendreP]
+theorem legendrePolyP_zero (x : ℂ) : legendrePolyP 0 x = 1 := by simp [legendrePolyP]
 
-/-- Helper lemma for `aeval_shiftedLegendre_eq_legendreP`. -/
+/-- Helper lemma for `aeval_shiftedLegendre_eq_legendrePolyP`. -/
 lemma poch_nat_succ_eq_choose_mul_factorial (n k : ℕ) :
     poch ((n : ℂ) + 1) k = (n + k).choose n * k ! := by
   have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
@@ -511,14 +515,14 @@ coefficient is `(-1)^n C(2n,n)`. The standard shifted Legendre polynomial `P_n(2
 has leading coefficient `C(2n,n)` (DLMF 18.7.10). Consequently Mathlib's polynomial
 evaluates as `P_n(1-2x)` rather than `P_n(2x-1)`. -/
 @[dlmf 18.7.E10]
-theorem aeval_shiftedLegendre_eq_legendreP (n : ℕ) (x : ℂ) :
-    aeval x ((shiftedLegendre n).map (Int.castRingHom ℂ)) = legendreP n (1 - 2 * x) := by
+theorem aeval_shiftedLegendre_eq_legendrePolyP (n : ℕ) (x : ℂ) :
+    aeval x ((shiftedLegendre n).map (Int.castRingHom ℂ)) = legendrePolyP n (1 - 2 * x) := by
   have hmap : aeval x ((shiftedLegendre n).map (Int.castRingHom ℂ)) =
       aeval x (shiftedLegendre n) := by
     simp [aeval_def, eval₂_map]
-  have hjac : legendreP n (1 - 2 * x) =
+  have hjac : legendrePolyP n (1 - 2 * x) =
       ₂F₁ (-(n : ℂ)) ((n : ℂ) + 1) 1 x := by
-    unfold legendreP jacobiP
+    unfold legendrePolyP jacobiPolyP
     have harg : (1 - (1 - 2 * x)) / 2 = x := by ring
     have hpoch : poch (0 + 1) n / (n.factorial : ℂ) = 1 := by
       rw [zero_add, poch_nat_one, div_self (Nat.cast_ne_zero.mpr n.factorial_ne_zero)]
@@ -640,15 +644,15 @@ lemma jacobi_shifted_orthogonal {α β : ℝ} (hα : -1 < α) (hβ : -1 < β)
 
 /-- Orthogonality of Jacobi polynomials on `[-1,1]` with weight `(1-x)^α (1+x)^β`. -/
 @[dlmf 18.3.T1]
-theorem jacobiP_orthogonal {α β : ℝ} {m n : ℕ}
+theorem jacobiPolyP_orthogonal {α β : ℝ} {m n : ℕ}
     (hα : -1 < α) (hβ : -1 < β) (hmn : m ≠ n) :
     ∫ x : ℝ in (-1 : ℝ)..1,
-        jacobiP α β m x * jacobiP α β n x *
+        jacobiPolyP α β m x * jacobiPolyP α β n x *
           (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) = 0 := by
   have hlt (m n : ℕ) (hmn : m < n) :
-      (∫ x : ℝ in (-1 : ℝ)..1, jacobiP α β m x * jacobiP α β n x *
+      (∫ x : ℝ in (-1 : ℝ)..1, jacobiPolyP α β m x * jacobiPolyP α β n x *
         (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)) = 0 := by
-    let J : ℝ → ℂ := fun x => jacobiP α β m x * jacobiP α β n x *
+    let J : ℝ → ℂ := fun x => jacobiPolyP α β m x * jacobiPolyP α β n x *
       (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)
     let C : ℂ := (poch ((α : ℂ) + 1) m / m.factorial) *
       (poch ((α : ℂ) + 1) n / n.factorial) * (2 : ℂ) ^ (α : ℂ) * (2 : ℂ) ^ (β : ℂ)
@@ -671,7 +675,7 @@ theorem jacobiP_orthogonal {α β : ℝ} {m n : ℕ}
           (2 : ℂ) ^ (β : ℂ) * (1 - (t : ℂ)) ^ (β : ℂ) := by
         convert! mul_cpow_ofReal_nonneg (a := 2) (by norm_num)
           (sub_nonneg.mpr ht'.2) (β : ℂ) using 1 <;> push_cast <;> rfl
-      dsimp [J, jacobiP, C]
+      dsimp [J, jacobiPolyP, C]
       rw [harg, hleft, hright, hpowL, hpowR]
       ring
     rw [jacobi_shifted_orthogonal hα hβ hmn, mul_zero] at hi
@@ -683,7 +687,7 @@ theorem jacobiP_orthogonal {α β : ℝ} {m n : ℕ}
   rcases lt_or_gt_of_ne hmn with h | h
   · exact hlt m n h
   · calc
-      _ = ∫ x : ℝ in (-1 : ℝ)..1, jacobiP α β n x * jacobiP α β m x *
+      _ = ∫ x : ℝ in (-1 : ℝ)..1, jacobiPolyP α β n x * jacobiPolyP α β m x *
           (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) :=
         intervalIntegral.integral_congr fun x _ => by ring
       _ = 0 := hlt n m h
@@ -692,17 +696,17 @@ theorem jacobiP_orthogonal {α β : ℝ} {m n : ℕ}
 for `λ + 1/2` not a nonpositive integer:
 `C_n^{(λ)}(x) = (2λ)_n / n! · ₂F₁(-n, n+2λ; λ+1/2; (1-x)/2)`. -/
 @[dlmf 18.5.E9]
-def gegenbauer (lam : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
+def ultrasphPoly (lam : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
   poch (2 * lam) n / n ! * ₂F₁ (-n : ℂ) (n + 2 * lam) (lam + 1 / 2) ((1 - x) / 2)
 
 @[simp]
-theorem gegenbauer_zero (lam x : ℂ) : gegenbauer lam 0 x = 1 := by
-  simp [gegenbauer, poch_zero, ordinaryHypergeometric_zero_left]
+theorem ultrasphPoly_zero (lam x : ℂ) : ultrasphPoly lam 0 x = 1 := by
+  simp [ultrasphPoly, poch_zero, ordinaryHypergeometric_zero_left]
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`: `(2)_n / n! = n+1`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`: `(2)_n / n! = n+1`. -/
 @[dlmf 18.5.E11_4]
-lemma gegenbauer_one_eq (n : ℕ) (x : ℂ) :
-    gegenbauer (1 : ℂ) n x =
+lemma ultrasphPoly_param_one_eq (n : ℕ) (x : ℂ) :
+    ultrasphPoly (1 : ℂ) n x =
       (n + 1 : ℂ) * ₂F₁ (-(n : ℂ)) ((n : ℂ) + 2) (3 / 2) ((1 - x) / 2) := by
   have hne : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hs : poch (2 : ℂ) n / n.factorial = (n + 1 : ℂ) := by
@@ -718,12 +722,12 @@ lemma gegenbauer_one_eq (n : ℕ) (x : ℂ) :
     congr
     · ring
     · ring
-  simp only [gegenbauer]
+  simp only [ultrasphPoly]
   rw [hF, show (2 * (1 : ℂ)) = (2 : ℂ) by ring, hs]
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`. -/
-lemma gegenbauer_one_one (x : ℂ) : gegenbauer (1 : ℂ) 1 x = 2 * x := by
-  rw [gegenbauer_one_eq]
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`. -/
+lemma ultrasphPoly_one_one (x : ℂ) : ultrasphPoly (1 : ℂ) 1 x = 2 * x := by
+  rw [ultrasphPoly_param_one_eq]
   simp only [Nat.cast_one, one_add_one_eq_two]
   have h3 : (1 : ℂ) + 2 = 3 := by norm_num
   have hneg : (-1 : ℂ) = -(1 : ℕ) := by simp
@@ -737,7 +741,7 @@ lemma gegenbauer_one_one (x : ℂ) : gegenbauer (1 : ℂ) 1 x = 2 * x := by
   rw [h0, h1]
   ring
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`: `(1/2)_k = (2k)! / (4^k k!)`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`: `(1/2)_k = (2k)! / (4^k k!)`. -/
 lemma poch_half (k : ℕ) :
     poch (1 / 2 : ℂ) k = (2 * k).factorial / (4 ^ k * k.factorial : ℂ) := by
   induction k with
@@ -766,7 +770,7 @@ lemma poch_half (k : ℕ) :
       field [hk0, h2k, h4, hk1]
     exact this.symm
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`. -/
 lemma poch_three_halves_factorial (k : ℕ) :
     poch (3 / 2 : ℂ) k = (2 * k + 1).factorial / (4 ^ k * k.factorial : ℂ) := by
   have hk0 : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
@@ -782,8 +786,8 @@ lemma poch_three_halves_factorial (k : ℕ) :
   rw [hfac]
   field [hk0, h4, h2k]
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`: coefficient of `((1-x)/2)^k` in `C_n^{(1)}(x)`. -/
-lemma gegenbauer_one_coeff {n k : ℕ} (hk : k ≤ n) :
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`: coefficient of `((1-x)/2)^k` in `C_n^{(1)}(x)`. -/
+lemma ultrasphPoly_one_coeff {n k : ℕ} (hk : k ≤ n) :
     (n + 1 : ℂ) * gaussHGCoeff (-(n : ℂ)) ((n : ℂ) + 2) (3 / 2) k =
       (-1 : ℂ) ^ k * (4 : ℂ) ^ k * (n + k + 1).factorial /
         ((n - k).factorial * (2 * k + 1).factorial : ℂ) := by
@@ -822,22 +826,22 @@ lemma gegenbauer_one_coeff {n k : ℕ} (hk : k ≤ n) :
   rw [gaussHGCoeff_neg_nat, poch_three_halves_factorial, hpoch, hch, hnk', hfac]
   field [hk0, hn, hn1, hnk, h2k, h4]
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`. Closed form of the coefficients of `C_n^{(1)}`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`. Closed form of the coefficients of `C_n^{(1)}`. -/
 def gegenbauerB (n k : ℕ) : ℂ :=
   if k ≤ n then
     (-1 : ℂ) ^ k * (4 : ℂ) ^ k * (n + k + 1).factorial /
       ((n - k).factorial * (2 * k + 1).factorial : ℂ)
   else 0
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`. -/
 lemma gegenbauerB_eq (n k : ℕ) :
     gegenbauerB n k =
       (n + 1 : ℂ) * gaussHGCoeff (-(n : ℂ)) ((n : ℂ) + 2) (3 / 2) k := by
   by_cases h : k ≤ n
-  · simp [gegenbauerB, h, gegenbauer_one_coeff h]
+  · simp [gegenbauerB, h, ultrasphPoly_one_coeff h]
   · simp [gegenbauerB, h, gaussHGCoeff, poch_neg_nat_eq_zero (Nat.lt_of_not_ge h)]
 
-/-- Helper lemma for `eval_U_eq_gegenbauer`. -/
+/-- Helper lemma for `eval_U_eq_ultrasphPoly`. -/
 lemma gegenbauerB_zero (n : ℕ) : gegenbauerB n 0 = n + 1 := by
   simp [gegenbauerB]
   have hfac : ((n + 1).factorial : ℂ) = (n + 1) * n.factorial := by
@@ -872,9 +876,9 @@ lemma iterate_derivative_U_eq_gaussHGCoeff (n k : ℕ) :
 The Taylor expansion at one is identified coefficientwise using Mathlib's recurrence
 for the iterated derivatives of `U_n` and the Gauss coefficient recurrence. -/
 @[dlmf 18.7.E4]
-theorem eval_U_eq_gegenbauer (n : ℕ) (x : ℂ) :
-    (Polynomial.Chebyshev.U ℂ n).eval x = gegenbauer 1 n x := by
-  rw [gegenbauer_one_eq, ordinaryHypergeometric_eq_sum_neg_nat, Finset.mul_sum]
+theorem eval_U_eq_ultrasphPoly (n : ℕ) (x : ℂ) :
+    (Polynomial.Chebyshev.U ℂ n).eval x = ultrasphPoly 1 n x := by
+  rw [ultrasphPoly_param_one_eq, ordinaryHypergeometric_eq_sum_neg_nat, Finset.mul_sum]
   rw [← Polynomial.taylor_eval_sub 1 (Polynomial.Chebyshev.U ℂ n) x,
     Polynomial.eval_eq_sum_range, Polynomial.natDegree_taylor,
     Polynomial.Chebyshev.natDegree_U_natCast]
@@ -903,12 +907,12 @@ theorem eval_U_eq_gegenbauer (n : ℕ) (x : ℂ) :
 /-- Relation of Gegenbauer to Jacobi (AAR §6.11). Requires `(λ+1/2)_n ≠ 0` so that the
 Jacobi representation is defined. -/
 @[dlmf 18.7.E1]
-theorem gegenbauer_eq_jacobiP {lam : ℂ} (n : ℕ) (x : ℂ)
+theorem ultrasphPoly_eq_jacobiPolyP {lam : ℂ} (n : ℕ) (x : ℂ)
     (h : poch (lam + 1 / 2) n ≠ 0) :
-    gegenbauer lam n x =
+    ultrasphPoly lam n x =
       poch (2 * lam) n / poch (lam + 1 / 2) n *
-        jacobiP (lam - 1 / 2) (lam - 1 / 2) n x := by
-  unfold gegenbauer jacobiP
+        jacobiPolyP (lam - 1 / 2) (lam - 1 / 2) n x := by
+  unfold ultrasphPoly jacobiPolyP
   have hα : (lam - 1 / 2) + 1 = lam + 1 / 2 := by ring
   have hb : (n : ℂ) + (lam - 1 / 2) + (lam - 1 / 2) + 1 = n + 2 * lam := by ring
   simp_rw [hα, hb]
@@ -921,9 +925,9 @@ def jacobiMeasure (α β : ℝ) : Measure ℝ :=
 
 /-- Completeness of Jacobi polynomials in `L²((-1,1),(1-x)^α(1+x)^β)` (AAR §6.5). -/
 @[dlmf 18.18.i]
-theorem jacobiP_complete {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {f : ℝ → ℂ}
+theorem jacobiPolyP_complete {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {f : ℝ → ℂ}
     (hf : MemLp f 2 (jacobiMeasure α β))
-    (hcoeff : ∀ n : ℕ, ∫ x, f x * jacobiP α β n x ∂jacobiMeasure α β = 0) :
+    (hcoeff : ∀ n : ℕ, ∫ x, f x * jacobiPolyP α β n x ∂jacobiMeasure α β = 0) :
     ∀ᵐ x : ℝ, x ∈ Set.Ioo (-1 : ℝ) 1 → f x = 0 := by
   sorry
 
@@ -962,3 +966,5 @@ lemma poch_add_binomial (u v : ℂ) (n : ℕ) :
   have hm2 : ((-1 : ℂ) ^ m) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
   linear_combination (-(((k + m).choose k : ℂ) * poch u m * poch v k)) * hm2 +
     (-(((k + m).choose k : ℂ) * poch u m * poch v k * ((-1 : ℂ) ^ m) ^ 2)) * h2
+
+end AAR.OrthogonalPolynomials

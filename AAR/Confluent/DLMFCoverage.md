@@ -23,9 +23,9 @@ in `Basic.lean` or `Whittaker.lean`. No AAR source statement was changed.
 
 ## Interpretation and domain restrictions
 
-- `confluentM` is the totalized series. Nonpositive integer denominators are
+- `kummerM` is the totalized series. Nonpositive integer denominators are
   excluded by standing hypotheses `∀ k : ℕ, b ≠ -k`, matching AAR §2.1.
-- `confluentU` is the Gamma connection formula, polar at integer `b`. Integer-`b`
+- `kummerU` is the Gamma connection formula, polar at integer `b`. Integer-`b`
   logarithmic cases are recorded as limits or explicit series.
 - Complex powers use principal branches. Slit-plane hypotheses specify those
   branches. Several formulas are acquired on convenient real rays (`x > 0`) or
@@ -47,23 +47,23 @@ In `Mathlib/Analysis/SpecialFunctions/RegularizedHypergeometric.lean`:
 - Empty-denominator series supplies `{}_2F_0` in [13.6.21](https://dlmf.nist.gov/13.6.E21).
 
 Mathlib has no named Kummer `M`, Tricomi `U`, Whittaker pair, incomplete gamma,
-or error function. Project definitions `errorFn`, `lowerIncompleteGamma`,
-`erfcFn`, and `GammaInc` are used in §13.6 and §13.18.
+or error function. Project definitions `erf`, `lowerIncGamma`,
+`erfc`, and `upperIncGamma` are used in §13.6 and §13.18.
 
 ## Existing tagged project results
 
 | Equation | Existing declaration |
 | --- | --- |
-| 13.2.E1 | `confluentM_ode` |
-| 13.2.E2 | `confluentM` |
-| 13.2.E4 | `confluentM_eq_mul_regularizedHGFun` |
-| 13.2.E39 | `confluentM_kummer_transform` |
-| 13.3.E15 | `deriv_confluentM_regular` in `OrthogonalPolynomials/Differential.lean`; restated in `Recurrence.lean` |
-| 13.4.E1 | `confluentM_eq_euler_integral` (the `M` form); regularized form in `IntegralRepresentations.lean` |
-| 13.6.E1 | `confluentM_self` |
-| 13.6.E3 | `confluentM_of_zero_param`; `U` form in `Relations.lean` |
-| 13.6.E5 | `lowerIncompleteGamma` |
-| 13.6.E7 | `errorFn` |
+| 13.2.E1 | `kummerM_ode` |
+| 13.2.E2 | `kummerM` |
+| 13.2.E4 | `kummerM_eq_mul_regularizedHGFun` |
+| 13.2.E39 | `kummerM_kummer_transform` |
+| 13.3.E15 | `deriv_kummerM_regular` in `OrthogonalPolynomials/Differential.lean`; restated in `Recurrence.lean` |
+| 13.4.E1 | `kummerM_eq_euler_integral` (the `M` form); regularized form in `IntegralRepresentations.lean` |
+| 13.6.E1 | `kummerM_self` |
+| 13.6.E3 | `kummerM_of_zero_param`; `U` form in `Relations.lean` |
+| 13.6.E5 | `lowerIncGamma` |
+| 13.6.E7 | `erf` |
 | 13.14.E1 | `whittakerM_ode`, `whittakerW_ode` |
 | 13.14.E2 | `whittakerM` |
 | 13.14.E33 | `whittakerW` |

@@ -87,7 +87,7 @@ lemma differentiable_besselJCore (μ : ℂ) : Differentiable ℂ (besselJCore μ
 lemma besselJ_ofReal_mul {μ : ℂ} {c t : ℝ} :
     besselJ μ (c * t) =
       (((c * t / 2 : ℝ)) : ℂ) ^ μ * besselJCore μ ((c : ℂ) ^ 2 * (t : ℂ) ^ 2) := by
-  rw [besselJ, besselJCore]
+  rw [besselJ_eq_regularized, besselJCore]
   push_cast
   ring_nf
 

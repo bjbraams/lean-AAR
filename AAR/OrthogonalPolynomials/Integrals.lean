@@ -16,6 +16,7 @@ public import AAR.Gamma.IntegralRepresentations
 public import AAR.Gamma.BetaFunction
 public import AAR.Confluent.IntegralRepresentations
 public import AAR.Hypergeometric.IntegralRepresentations
+public import AAR.Hypergeometric.Saalschutz
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 public import TauCeti.Analysis.SpecialFunctions.Hermite.Orthogonality
@@ -63,6 +64,9 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
+open AAR.Bessel
 
 noncomputable section
 
@@ -84,66 +88,66 @@ lemma integrable_eval_mul_exp_neg_sq (q : ℝ[X]) :
   exact TauCeti.integrable_eval_mul_exp_neg_sq q
 
 /-- Physicists' Hermite polynomials as real polynomials. -/
-abbrev hermitePhysR (n : ℕ) : ℝ[X] := (hermitePhys n).map (Int.castRingHom ℝ)
+abbrev hermitePolyHR (n : ℕ) : ℝ[X] := (hermitePolyH n).map (Int.castRingHom ℝ)
 
-lemma aeval_hermitePhys_eq_eval (n : ℕ) (x : ℝ) :
-    (aeval x (hermitePhys n) : ℝ) = (hermitePhysR n).eval x := by
-  rw [aeval_def, hermitePhysR, eval_map]
+lemma aeval_hermitePolyH_eq_eval (n : ℕ) (x : ℝ) :
+    (aeval x (hermitePolyH n) : ℝ) = (hermitePolyHR n).eval x := by
+  rw [aeval_def, hermitePolyHR, eval_map]
   congr 1
 
-lemma hermitePhysR_succ (n : ℕ) :
-    hermitePhysR (n + 1) = 2 * X * hermitePhysR n - derivative (hermitePhysR n) := by
-  simp [hermitePhysR, Polynomial.map_sub, Polynomial.map_mul, derivative_map]
+lemma hermitePolyHR_succ (n : ℕ) :
+    hermitePolyHR (n + 1) = 2 * X * hermitePolyHR n - derivative (hermitePolyHR n) := by
+  simp [hermitePolyHR, Polynomial.map_sub, Polynomial.map_mul, derivative_map]
 
 lemma hasDerivAt_hermite_gauss (n : ℕ) (x : ℝ) :
-    HasDerivAt (fun y => (hermitePhysR n).eval y * Real.exp (-(y ^ 2)))
-      (-((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2)))) x := by
+    HasDerivAt (fun y => (hermitePolyHR n).eval y * Real.exp (-(y ^ 2)))
+      (-((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2)))) x := by
   have hg : HasDerivAt (fun y : ℝ => Real.exp (-(y ^ 2))) (Real.exp (-(x ^ 2)) * (-(2 * x))) x := by
     have := ((hasDerivAt_pow 2 x).neg).exp
     simpa using this
-  have h := ((hermitePhysR n).hasDerivAt x).mul hg
+  have h := ((hermitePolyHR n).hasDerivAt x).mul hg
   convert h using 1
-  rw [hermitePhysR_succ, eval_sub, eval_mul, eval_mul, eval_X]
+  rw [hermitePolyHR_succ, eval_sub, eval_mul, eval_mul, eval_X]
   simp
   ring
 
 /-- Repeated integration by parts against the Hermite–Gaussian. -/
 lemma integral_eval_mul_hermite_gauss (n : ℕ) :
-    ∀ q : ℝ[X], ∫ x : ℝ, q.eval x * ((hermitePhysR n).eval x * Real.exp (-(x ^ 2))) =
+    ∀ q : ℝ[X], ∫ x : ℝ, q.eval x * ((hermitePolyHR n).eval x * Real.exp (-(x ^ 2))) =
       ∫ x : ℝ, (derivative^[n] q).eval x * Real.exp (-(x ^ 2)) := by
   induction n with
-  | zero => intro q; simp [hermitePhysR]
+  | zero => intro q; simp [hermitePolyHR]
   | succ n ih =>
     intro q
     have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable
       (u := fun x => q.eval x) (u' := fun x => (derivative q).eval x)
-      (v := fun x => (hermitePhysR n).eval x * Real.exp (-(x ^ 2)))
-      (v' := fun x => -((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))))
+      (v := fun x => (hermitePolyHR n).eval x * Real.exp (-(x ^ 2)))
+      (v' := fun x => -((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2))))
       (fun x _ => q.hasDerivAt x) (fun x _ => hasDerivAt_hermite_gauss n x)
       (by
-        have := (integrable_eval_mul_exp_neg_sq (q * hermitePhysR (n + 1))).neg
+        have := (integrable_eval_mul_exp_neg_sq (q * hermitePolyHR (n + 1))).neg
         refine this.congr (Eventually.of_forall fun x => ?_)
         simp only [Pi.mul_apply, eval_mul, Pi.neg_apply]; ring)
       (by
-        have := integrable_eval_mul_exp_neg_sq (derivative q * hermitePhysR n)
+        have := integrable_eval_mul_exp_neg_sq (derivative q * hermitePolyHR n)
         refine this.congr (Eventually.of_forall fun x => ?_)
         simp only [Pi.mul_apply, eval_mul]; ring)
       (by
-        have := integrable_eval_mul_exp_neg_sq (q * hermitePhysR n)
+        have := integrable_eval_mul_exp_neg_sq (q * hermitePolyHR n)
         refine this.congr (Eventually.of_forall fun x => ?_)
         simp only [Pi.mul_apply, eval_mul]; ring)
-    have h1 : ∫ x : ℝ, q.eval x * ((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) =
-        -∫ x : ℝ, q.eval x * -((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) := by
+    have h1 : ∫ x : ℝ, q.eval x * ((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2))) =
+        -∫ x : ℝ, q.eval x * -((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2))) := by
       rw [← integral_neg]; congr 1; funext x; ring
     rw [h1, hibp, neg_neg, ih, Function.iterate_succ_apply]
 
-lemma hermitePhysR_natDegree_coeff (n : ℕ) :
-    (hermitePhysR n).natDegree ≤ n ∧ (hermitePhysR n).coeff n = 2 ^ n := by
+lemma hermitePolyHR_natDegree_coeff (n : ℕ) :
+    (hermitePolyHR n).natDegree ≤ n ∧ (hermitePolyHR n).coeff n = 2 ^ n := by
   induction n with
-  | zero => simp [hermitePhysR]
+  | zero => simp [hermitePolyHR]
   | succ n ih =>
     obtain ⟨hd, hc⟩ := ih
-    rw [hermitePhysR_succ]
+    rw [hermitePolyHR_succ]
     constructor
     · refine (natDegree_sub_le _ _).trans (max_le ?_ ?_)
       · refine (natDegree_mul_le).trans ?_
@@ -235,10 +239,10 @@ lemma intervalIntegrable_jacobi_weight {α β : ℝ} (hα : -1 < α) (hβ : -1 <
 
 /-- Integrability of Jacobi polynomial products against their weight. -/
 lemma intervalIntegrable_jacobi_product {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (m n : ℕ) :
-    IntervalIntegrable (fun t : ℝ => jacobiP α β m t * jacobiP α β n t *
+    IntervalIntegrable (fun t : ℝ => jacobiPolyP α β m t * jacobiPolyP α β n t *
       (1 - (t : ℂ)) ^ (α : ℂ) * (1 + (t : ℂ)) ^ (β : ℂ)) volume (-1) 1 := by
-  have hP (k : ℕ) : Continuous (fun t : ℝ => jacobiP α β k t) :=
-    (continuous_iff_continuousAt.mpr fun z => (analyticAt_jacobiP α β k z).continuousAt).comp
+  have hP (k : ℕ) : Continuous (fun t : ℝ => jacobiPolyP α β k t) :=
+    (continuous_iff_continuousAt.mpr fun z => (analyticAt_jacobiPolyP α β k z).continuousAt).comp
       continuous_ofReal
   convert (intervalIntegrable_jacobi_weight hα hβ).continuousOn_mul
     ((hP m).mul (hP n)).continuousOn using 1
@@ -248,16 +252,16 @@ lemma intervalIntegrable_jacobi_product {α β : ℝ} (hα : -1 < α) (hβ : -1 
 
 /-- Integration by parts reduces a Jacobi squared norm to a shifted norm. -/
 lemma jacobi_norm_shift {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
-    4 * (n + 1 : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, jacobiP α β (n + 1) t ^ 2 *
+    4 * (n + 1 : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, jacobiPolyP α β (n + 1) t ^ 2 *
       (1 - (t : ℂ)) ^ (α : ℂ) * (1 + (t : ℂ)) ^ (β : ℂ)) =
-    (n + α + β + 2 : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, jacobiP (α + 1) (β + 1) n t ^ 2 *
+    (n + α + β + 2 : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, jacobiPolyP (α + 1) (β + 1) n t ^ 2 *
       (1 - (t : ℂ)) ^ (α + 1 : ℂ) * (1 + (t : ℂ)) ^ (β + 1 : ℂ)) := by
   let w (a b : ℝ) (t : ℝ) : ℂ := (1 - (t : ℂ)) ^ (a : ℂ) * (1 + (t : ℂ)) ^ (b : ℂ)
-  let g (t : ℝ) : ℂ := w (α + 1) (β + 1) t * jacobiP (α + 1) (β + 1) n t
-  let H (t : ℝ) : ℂ := g t * jacobiP α β (n + 1) t
-  let f (a b : ℝ) (k : ℕ) (t : ℝ) : ℂ := jacobiP a b k t ^ 2 * w a b t
-  have hP (a b : ℝ) (k : ℕ) : Continuous (fun t : ℝ => jacobiP a b k t) :=
-    (continuous_iff_continuousAt.mpr fun z => (analyticAt_jacobiP a b k z).continuousAt).comp
+  let g (t : ℝ) : ℂ := w (α + 1) (β + 1) t * jacobiPolyP (α + 1) (β + 1) n t
+  let H (t : ℝ) : ℂ := g t * jacobiPolyP α β (n + 1) t
+  let f (a b : ℝ) (k : ℕ) (t : ℝ) : ℂ := jacobiPolyP a b k t ^ 2 * w a b t
+  have hP (a b : ℝ) (k : ℕ) : Continuous (fun t : ℝ => jacobiPolyP a b k t) :=
+    (continuous_iff_continuousAt.mpr fun z => (analyticAt_jacobiPolyP a b k z).continuousAt).comp
       continuous_ofReal
   have hw : ContinuousOn (w (α + 1) (β + 1)) (Set.Icc (-1) 1) := by
     intro t ht
@@ -283,16 +287,18 @@ lemma jacobi_norm_shift {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) 
       (c := ((α + 1 : ℝ) : ℂ)) h1).comp_ofReal)
     have hB := ((((hasDerivAt_id' (t : ℂ)).const_add 1).cpow_const
       (c := ((β + 1 : ℝ) : ℂ)) h2).comp_ofReal)
-    have hJ := (analyticAt_jacobiP ((α + 1 : ℝ) : ℂ) ((β + 1 : ℝ) : ℂ) n (t : ℂ)).differentiableAt.hasDerivAt.comp_ofReal
+    have hJ := (analyticAt_jacobiPolyP ((α + 1 : ℝ) : ℂ) ((β + 1 : ℝ) : ℂ) n
+        (t : ℂ)).differentiableAt.hasDerivAt.comp_ofReal
     have hg : DifferentiableAt ℝ g t := by
       simpa only [g, w, ofReal_add, ofReal_one, Function.comp_apply, Pi.mul_def] using
         ((hA.mul hB).mul hJ).differentiableAt
     have he := jacobi_weighted_derivative (α := α + 1) (β := β + 1)
       (by linarith) (by linarith) n ht
     simp only [ofReal_add, ofReal_one, add_sub_cancel_right, add_sub_cancel_right] at he
-    have he' : deriv g t = -2 * (n + 1 : ℂ) * w α β t * jacobiP α β (n + 1) t := by
+    have he' : deriv g t = -2 * (n + 1 : ℂ) * w α β t * jacobiPolyP α β (n + 1) t := by
       simpa only [g, w, ofReal_add, ofReal_one, mul_assoc] using he
-    have hJ' := (analyticAt_jacobiP (α : ℂ) β (n + 1) (t : ℂ)).differentiableAt.hasDerivAt.comp_ofReal
+    have hJ' :=
+        (analyticAt_jacobiPolyP (α : ℂ) β (n + 1) (t : ℂ)).differentiableAt.hasDerivAt.comp_ofReal
     rw [jacobi_derivative hα] at hJ'
     have h := hg.hasDerivAt.mul hJ'
     rw [he'] at h
@@ -346,13 +352,13 @@ lemma integral_jacobi_weight {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) :
 
 /-- Jacobi squared norms at all degrees, with a denominator regular at degree zero. -/
 lemma jacobi_norm_all {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
-    (∫ t : ℝ in (-1 : ℝ)..1, jacobiP α β n t ^ 2 *
+    (∫ t : ℝ in (-1 : ℝ)..1, jacobiPolyP α β n t ^ 2 *
       (1 - (t : ℂ)) ^ (α : ℂ) * (1 + (t : ℂ)) ^ (β : ℂ)) =
       (2 : ℂ) ^ ((α : ℂ) + β + 1) * Gamma ((α : ℂ) + n + 1) * Gamma ((β : ℂ) + n + 1) *
         poch ((α : ℂ) + β + n + 1) n /
           (n.factorial * Gamma ((α : ℂ) + β + 2 * n + 2)) := by
   induction n generalizing α β with
-  | zero => simpa only [jacobiP_zero, one_pow, one_mul, Nat.cast_zero, add_zero, mul_zero,
+  | zero => simpa only [jacobiPolyP_zero, one_pow, one_mul, Nat.cast_zero, add_zero, mul_zero,
       poch_zero, mul_one, Nat.factorial_zero, Nat.cast_one, mul_div_assoc, mul_assoc] using integral_jacobi_weight hα hβ
   | succ n ih =>
     have h := jacobi_norm_shift hα hβ n
@@ -386,7 +392,7 @@ lemma jacobi_norm_all {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
 
 @[dlmf 18.3.T1]
 theorem jacobi_norm {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, jacobiP α β (n + 1) x ^ 2 *
+    ∫ x : ℝ in (-1 : ℝ)..1, jacobiPolyP α β (n + 1) x ^ 2 *
       (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) =
       (2 : ℂ) ^ ((α : ℂ) + β + 1) * Gamma (n + (α : ℂ) + 2) * Gamma (n + (β : ℂ) + 2) /
       ((2 * n + α + β + 3) * (n + 1).factorial * Gamma (n + (α : ℂ) + β + 2)) := by
@@ -418,23 +424,23 @@ theorem jacobi_norm {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
 
 /-- The squared Laguerre norm for the weight `x^α exp (-x)` on the positive ray. -/
 @[dlmf 18.3.T1]
-theorem laguerre_norm {α : ℝ} (hα : -1 < α) (n : ℕ) :
-    ∫ x : ℝ in Set.Ioi 0, laguerre α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+theorem laguerrePolyL_norm {α : ℝ} (hα : -1 < α) (n : ℕ) :
+    ∫ x : ℝ in Set.Ioi 0, laguerrePolyL α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (n + (α : ℂ) + 1) / n.factorial := by
-  have heq : (fun x : ℝ => laguerre α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ)) =
+  have heq : (fun x : ℝ => laguerrePolyL α n x ^ 2 * exp (-x) * (x : ℂ) ^ (α : ℂ)) =
       fun x : ℝ => ∑ k ∈ Finset.range (n + 1),
-        (poch ((α : ℂ) + 1) n / n.factorial * confluentHGCoeff (-(n : ℂ)) (α + 1) k) *
-          (laguerre α n x * (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) := by
+        (poch ((α : ℂ) + 1) n / n.factorial * kummerMCoeff (-(n : ℂ)) (α + 1) k) *
+          (laguerrePolyL α n x * (x : ℂ) ^ k * (x : ℂ) ^ (α : ℂ) * exp (-(x : ℂ))) := by
     funext x
     rw [pow_two]
-    conv_lhs => arg 1; arg 1; arg 1; rw [laguerre_eq_sum_coeff (α : ℂ) n]
+    conv_lhs => arg 1; arg 1; arg 1; rw [laguerrePolyL_eq_sum_coeff (α : ℂ) n]
     simp only [Finset.sum_mul]
     apply Finset.sum_congr rfl
     intro k _
     ring
   rw [heq, integral_finsetSum _ (fun k _ =>
-    (integrable_laguerre_mul_monomial hα n k).const_mul _)]
-  simp_rw [MeasureTheory.integral_const_mul, integral_laguerre_mul_monomial hα]
+    (integrable_laguerrePolyL_mul_monomial hα n k).const_mul _)]
+  simp_rw [MeasureTheory.integral_const_mul, integral_laguerrePolyL_mul_monomial hα]
   rw [Finset.sum_eq_single n]
   · have hc : ∀ j : ℕ, (α : ℂ) + 1 ≠ -j := not_neg_nat_of_re_pos (by
       simp only [add_re, ofReal_re, one_re]; linarith)
@@ -455,24 +461,25 @@ theorem laguerre_norm {α : ℝ} (hα : -1 < α) (n : ℕ) :
   · simp
 
 @[dlmf 18.3.T1]
-theorem hermitePhys_orthogonality (m n : ℕ) :
-    ∫ x : ℝ, (aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) * Real.exp (-(x ^ 2)) =
+theorem hermitePolyH_orthogonality (m n : ℕ) :
+    ∫ x : ℝ, (aeval x (hermitePolyH m) : ℝ) * aeval x (hermitePolyH n) * Real.exp (-(x ^ 2)) =
       if m = n then Real.sqrt Real.pi * 2 ^ n * n.factorial else 0 := by
-  have key : ∀ a b : ℕ, ∫ x : ℝ, (aeval x (hermitePhys a) : ℝ) * aeval x (hermitePhys b) *
-      Real.exp (-(x ^ 2)) = ∫ x : ℝ, (derivative^[b] (hermitePhysR a)).eval x *
+  have key : ∀ a b : ℕ, ∫ x : ℝ, (aeval x (hermitePolyH a) : ℝ) * aeval x (hermitePolyH b) *
+      Real.exp (-(x ^ 2)) = ∫ x : ℝ, (derivative^[b] (hermitePolyHR a)).eval x *
         Real.exp (-(x ^ 2)) := fun a b => by
     rw [← integral_eval_mul_hermite_gauss b]
     congr 1; funext x
-    rw [aeval_hermitePhys_eq_eval, aeval_hermitePhys_eq_eval]; ring
-  have hzero : ∀ a b : ℕ, a < b → ∫ x : ℝ, (aeval x (hermitePhys a) : ℝ) * aeval x (hermitePhys b) *
+    rw [aeval_hermitePolyH_eq_eval, aeval_hermitePolyH_eq_eval]; ring
+  have hzero : ∀ a b : ℕ, a < b → ∫ x : ℝ,
+      (aeval x (hermitePolyH a) : ℝ) * aeval x (hermitePolyH b) *
       Real.exp (-(x ^ 2)) = 0 := fun a b hab => by
-    rw [key, iterate_derivative_eq_zero ((hermitePhysR_natDegree_coeff a).1.trans_lt hab)]
+    rw [key, iterate_derivative_eq_zero ((hermitePolyHR_natDegree_coeff a).1.trans_lt hab)]
     simp
   split_ifs with hmn
   · subst hmn
     rw [key]
-    obtain ⟨hd, hc⟩ := hermitePhysR_natDegree_coeff m
-    have hconst : derivative^[m] (hermitePhysR m) = C ((m ! : ℝ) * 2 ^ m) := by
+    obtain ⟨hd, hc⟩ := hermitePolyHR_natDegree_coeff m
+    have hconst : derivative^[m] (hermitePolyHR m) = C ((m ! : ℝ) * 2 ^ m) := by
       rw [eq_C_of_natDegree_le_zero ((natDegree_iterate_derivative _ _).trans (by omega)),
         coeff_iterate_derivative, zero_add, Nat.descFactorial_self, hc, nsmul_eq_mul]
     simp only [hconst, eval_C]
@@ -493,23 +500,23 @@ theorem hermite_orthogonality (m n : ℕ) :
 
 @[dlmf 18.3.T1]
 theorem legendre_orthogonality (m n : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, legendreP m x * legendreP n x =
+    ∫ x : ℝ in (-1 : ℝ)..1, legendrePolyP m x * legendrePolyP n x =
       if m = n then 2 / (2 * (n : ℂ) + 1) else 0 := by
-  let K : ℕ → ℕ → ℂ := fun i j => ∫ x : ℝ in (-1 : ℝ)..1, legendreP i x * legendreP j x
+  let K : ℕ → ℕ → ℂ := fun i j => ∫ x : ℝ in (-1 : ℝ)..1, legendrePolyP i x * legendrePolyP j x
   let J : ℕ → ℕ → ℂ := fun i j => ∫ x : ℝ in (-1 : ℝ)..1,
-    (x : ℂ) * legendreP i x * legendreP j x
-  have hL (i : ℕ) : Continuous (fun x : ℝ => legendreP i x) :=
+    (x : ℂ) * legendrePolyP i x * legendrePolyP j x
+  have hL (i : ℕ) : Continuous (fun x : ℝ => legendrePolyP i x) :=
     (continuous_iff_continuousAt.mpr fun z =>
-      ((analyticOnNhd_jacobiP 0 0 i) z (Set.mem_univ z)).continuousAt).comp continuous_ofReal
+      ((analyticOnNhd_jacobiPolyP 0 0 i) z (Set.mem_univ z)).continuousAt).comp continuous_ofReal
   have hK (i j : ℕ) : IntervalIntegrable
-      (fun x : ℝ => legendreP i x * legendreP j x) volume (-1) 1 :=
+      (fun x : ℝ => legendrePolyP i x * legendrePolyP j x) volume (-1) 1 :=
     ((hL i).mul (hL j)).intervalIntegrable _ _
   have hJ (i j : ℕ) : IntervalIntegrable
-      (fun x : ℝ => (x : ℂ) * legendreP i x * legendreP j x) volume (-1) 1 :=
+      (fun x : ℝ => (x : ℂ) * legendrePolyP i x * legendrePolyP j x) volume (-1) 1 :=
     ((continuous_ofReal.mul (hL i)).mul (hL j)).intervalIntegrable _ _
   have hzero (i j : ℕ) (hij : i ≠ j) : K i j = 0 := by
-    simpa only [K, legendreP, ofReal_zero, cpow_zero, mul_one] using
-      jacobiP_orthogonal (α := 0) (β := 0) (by norm_num) (by norm_num) hij
+    simpa only [K, legendrePolyP, ofReal_zero, cpow_zero, mul_one] using
+      jacobiPolyP_orthogonal (α := 0) (β := 0) (by norm_num) (by norm_num) hij
   have hR (i j : ℕ) : (i + 2 : ℂ) * K (i + 2) j =
       (2 * i + 3 : ℂ) * J (i + 1) j - (i + 1 : ℂ) * K i j := by
     dsimp [K, J]
@@ -518,18 +525,18 @@ theorem legendre_orthogonality (m n : ℕ) :
       ← intervalIntegral.integral_sub ((hJ (i + 1) j).const_mul _) ((hK i j).const_mul _)]
     apply intervalIntegral.integral_congr
     intro x _
-    linear_combination legendreP j x * legendreP_recurrence i x
+    linear_combination legendrePolyP j x * legendrePolyP_recurrence i x
   have hJsym (i j : ℕ) : J i j = J j i :=
     intervalIntegral.integral_congr fun x _ => by ring
   have hnorm : ∀ i : ℕ, K i i = 2 / (2 * (i : ℂ) + 1) := by
     intro i
     induction i using Nat.twoStepInduction with
-    | zero => norm_num [K, legendreP_zero]
+    | zero => norm_num [K, legendrePolyP_zero]
     | one =>
       have h := hR 0 0
       rw [hzero 2 0 (by omega)] at h
-      have h00 : K 0 0 = 2 := by norm_num [K, legendreP_zero]
-      have h10 : J 1 0 = K 1 1 := by simp [J, K, legendreP_zero]
+      have h00 : K 0 0 = 2 := by norm_num [K, legendrePolyP_zero]
+      have h10 : J 1 0 = K 1 1 := by simp [J, K, legendrePolyP_zero]
       rw [h00, h10] at h
       norm_num at h ⊢
       linear_combination -h / 3
@@ -566,7 +573,7 @@ theorem legendre_orthogonality (m n : ℕ) :
   · exact hzero m n hmn
 
 /-- Duplication converts the symmetric Jacobi normalization to the Gegenbauer one. -/
-private lemma gegenbauer_norm_constant {lam : ℝ} (hlam : 0 < lam) :
+private lemma ultrasphPoly_norm_constant {lam : ℝ} (hlam : 0 < lam) :
     (2 : ℂ) ^ (2 * (lam : ℂ)) * Gamma ((lam : ℂ) + 1 / 2) ^ 2 / Gamma (2 * (lam : ℂ)) ^ 2 =
       2 * (2 : ℂ) ^ (1 - 2 * (lam : ℂ)) * Real.pi / Gamma (lam : ℂ) ^ 2 := by
   have hG : Gamma (lam : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos hlam
@@ -586,24 +593,25 @@ private lemma gegenbauer_norm_constant {lam : ℝ} (hlam : 0 < lam) :
   exact hp'
 
 /-- Gegenbauer squared norms, including degree zero. -/
-lemma gegenbauer_norm {lam : ℝ} (hlam : 0 < lam) (n : ℕ) :
-    (∫ t : ℝ in (-1 : ℝ)..1, gegenbauer lam n t ^ 2 *
+lemma ultrasphPoly_norm {lam : ℝ} (hlam : 0 < lam) (n : ℕ) :
+    (∫ t : ℝ in (-1 : ℝ)..1, ultrasphPoly lam n t ^ 2 *
       (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2)) =
       (2 : ℂ) ^ (1 - 2 * (lam : ℂ)) * Real.pi * Gamma (n + 2 * (lam : ℂ)) /
         ((n + lam) * Gamma (lam : ℂ) ^ 2 * n.factorial) := by
   have ha : -1 < lam - 1 / 2 := by linarith
   have hpoch (k : ℕ) : poch ((lam : ℂ) + 1 / 2) k ≠ 0 :=
     poch_ne_zero_of_re_pos (by simp; linarith) k
-  have he : (∫ t : ℝ in (-1 : ℝ)..1, gegenbauer lam n t ^ 2 *
+  have he : (∫ t : ℝ in (-1 : ℝ)..1, ultrasphPoly lam n t ^ 2 *
       (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2)) =
       (poch (2 * (lam : ℂ)) n / poch ((lam : ℂ) + 1 / 2) n) ^ 2 *
-        (∫ t : ℝ in (-1 : ℝ)..1, jacobiP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) n t ^ 2 *
+        (∫ t : ℝ in (-1 : ℝ)..1,
+            jacobiPolyP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) n t ^ 2 *
           (1 - (t : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) * (1 + (t : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ)) := by
     rw [← intervalIntegral.integral_const_mul]
     apply intervalIntegral.integral_congr_Ioo_of_le (by norm_num)
     intro t ht
     dsimp only
-    rw [gegenbauer_eq_jacobiP n _ (hpoch n), mul_pow]
+    rw [ultrasphPoly_eq_jacobiPolyP n _ (hpoch n), mul_pow]
     have hp := mul_cpow_ofReal_nonneg (show 0 ≤ 1 - t by linarith [ht.2])
       (show 0 ≤ 1 + t by linarith [ht.1]) ((lam : ℂ) - 1 / 2)
     push_cast at hp ⊢
@@ -638,7 +646,7 @@ lemma gegenbauer_norm {lam : ℝ} (hlam : 0 < lam) (n : ℕ) :
       have hp : 0 < (2 * (lam : ℂ) + (2 * n : ℕ)).re := by
         simp; have := (Nat.cast_nonneg n : (0 : ℝ) ≤ n); linarith
       intro h; rw [h] at hp; simp at hp)]
-  have hconst := gegenbauer_norm_constant hlam
+  have hconst := ultrasphPoly_norm_constant hlam
   have halgebra : (Gamma (2 * (lam : ℂ) + n) / Gamma (2 * (lam : ℂ)) /
       (Gamma ((lam : ℂ) + 1 / 2 + n) / Gamma ((lam : ℂ) + 1 / 2))) ^ 2 *
         ((2 : ℂ) ^ (2 * (lam : ℂ)) * Gamma ((lam : ℂ) + 1 / 2 + n) *
@@ -659,36 +667,36 @@ lemma gegenbauer_norm {lam : ℝ} (hlam : 0 < lam) (n : ℕ) :
   field_simp
 
 @[dlmf 18.3.T1]
-theorem gegenbauer_orthogonality {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, gegenbauer lam m x * gegenbauer lam n x *
+theorem ultrasphPoly_orthogonality {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, ultrasphPoly lam m x * ultrasphPoly lam n x *
       (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2) =
       if m = n then (2 : ℂ) ^ (1 - 2 * (lam : ℂ)) * Real.pi * Gamma (n + 2 * (lam : ℂ)) /
         ((n + lam) * Gamma (lam : ℂ) ^ 2 * n.factorial) else 0 := by
   split_ifs with hmn
   · subst m
-    simpa only [pow_two] using gegenbauer_norm hlam n
+    simpa only [pow_two] using ultrasphPoly_norm hlam n
   · have ha : -1 < lam - 1 / 2 := by linarith
     have hpoch (k : ℕ) : poch ((lam : ℂ) + 1 / 2) k ≠ 0 :=
       poch_ne_zero_of_re_pos (by simp; linarith) k
-    have he : (∫ x : ℝ in (-1 : ℝ)..1, gegenbauer lam m x * gegenbauer lam n x *
+    have he : (∫ x : ℝ in (-1 : ℝ)..1, ultrasphPoly lam m x * ultrasphPoly lam n x *
         (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2)) =
         (poch (2 * (lam : ℂ)) m / poch ((lam : ℂ) + 1 / 2) m *
           (poch (2 * (lam : ℂ)) n / poch ((lam : ℂ) + 1 / 2) n)) *
-          (∫ t : ℝ in (-1 : ℝ)..1, jacobiP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m t *
-            jacobiP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) n t *
+          (∫ t : ℝ in (-1 : ℝ)..1, jacobiPolyP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m t *
+            jacobiPolyP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) n t *
             (1 - (t : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) * (1 + (t : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ)) := by
       rw [← intervalIntegral.integral_const_mul]
       apply intervalIntegral.integral_congr_Ioo_of_le (by norm_num)
       intro t ht
       dsimp only
-      rw [gegenbauer_eq_jacobiP m _ (hpoch m), gegenbauer_eq_jacobiP n _ (hpoch n)]
+      rw [ultrasphPoly_eq_jacobiPolyP m _ (hpoch m), ultrasphPoly_eq_jacobiPolyP n _ (hpoch n)]
       have hp := mul_cpow_ofReal_nonneg (show 0 ≤ 1 - t by linarith [ht.2])
         (show 0 ≤ 1 + t by linarith [ht.1]) ((lam : ℂ) - 1 / 2)
       push_cast at hp ⊢
       rw [show (1 - (t : ℂ)) * (1 + t) = 1 - (t : ℂ) ^ 2 by ring] at hp
       rw [hp]
       ring
-    rw [he, jacobiP_orthogonal ha ha hmn, mul_zero]
+    rw [he, jacobiPolyP_orthogonal ha ha hmn, mul_zero]
 
 /-- Repeated differentiation of the Jacobi weight, using the proved weighted
 derivative identity on the open interval. -/
@@ -697,7 +705,7 @@ lemma iteratedDeriv_jacobi_weight {α β : ℝ} (hα : -1 < α) (hβ : -1 < β)
     iteratedDeriv n (fun t : ℝ => (1 - (t : ℂ)) ^ (α + n : ℂ) *
       (1 + (t : ℂ)) ^ (β + n : ℂ)) x =
         (-2 : ℂ) ^ n * n.factorial * (1 - (x : ℂ)) ^ (α : ℂ) *
-          (1 + (x : ℂ)) ^ (β : ℂ) * jacobiP α β n x := by
+          (1 + (x : ℂ)) ^ (β : ℂ) * jacobiPolyP α β n x := by
   induction n generalizing α β x with
   | zero => simp
   | succ n ih =>
@@ -705,7 +713,7 @@ lemma iteratedDeriv_jacobi_weight {α β : ℝ} (hα : -1 < α) (hβ : -1 < β)
         (1 + (t : ℂ)) ^ ((β : ℂ) + ((n + 1 : ℕ) : ℂ))) =ᶠ[𝓝 x]
         (fun t : ℝ => ((-2 : ℂ) ^ n * n.factorial) *
           ((1 - (t : ℂ)) ^ (α + 1 : ℂ) * (1 + (t : ℂ)) ^ (β + 1 : ℂ) *
-            jacobiP (α + 1) (β + 1) n t)) := by
+            jacobiPolyP (α + 1) (β + 1) n t)) := by
       filter_upwards [isOpen_Ioo.mem_nhds hx] with t ht
       have h := ih (α := α + 1) (β := β + 1) (by linarith) (by linarith) ht
       push_cast at h
@@ -723,15 +731,15 @@ lemma iteratedDeriv_jacobi_weight {α β : ℝ} (hα : -1 < α) (hβ : -1 < β)
     ring
 
 /-- Repeated differentiation of the Laguerre weight on the positive half-line. -/
-lemma iteratedDeriv_laguerre_weight {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
+lemma iteratedDeriv_laguerrePolyL_weight {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
     iteratedDeriv n (fun t : ℝ => exp (-(t : ℂ)) * (t : ℂ) ^ (α + n : ℂ)) x =
-      (n.factorial : ℂ) * exp (-(x : ℂ)) * (x : ℂ) ^ (α : ℂ) * laguerre α n x := by
+      (n.factorial : ℂ) * exp (-(x : ℂ)) * (x : ℂ) ^ (α : ℂ) * laguerrePolyL α n x := by
   induction n generalizing α x with
   | zero => simp
   | succ n ih =>
     have heq : iteratedDeriv n (fun t : ℝ => exp (-(t : ℂ)) * (t : ℂ) ^ ((α : ℂ) + ((n + 1 : ℕ) : ℂ)))
         =ᶠ[𝓝 x] (fun t : ℝ => (n.factorial : ℂ) *
-          (exp (-(t : ℂ)) * (t : ℂ) ^ (α + 1 : ℂ) * laguerre (α + 1) n t)) := by
+          (exp (-(t : ℂ)) * (t : ℂ) ^ (α + 1 : ℂ) * laguerrePolyL (α + 1) n t)) := by
       filter_upwards [Ioi_mem_nhds hx] with t ht
       have h := ih (α := α + 1) (by linarith) ht
       push_cast at h
@@ -739,7 +747,7 @@ lemma iteratedDeriv_laguerre_weight {α : ℝ} (hα : -1 < α) (n : ℕ) {x : �
       rw [show (α : ℂ) + ((n : ℂ) + 1) = (α : ℂ) + 1 + n by ring]
       simpa only [mul_assoc] using h
     rw [iteratedDeriv_succ, heq.deriv_eq, deriv_const_mul_field]
-    have hD := laguerre_weighted_derivative (by linarith : 0 < α + 1) n hx
+    have hD := laguerrePolyL_weighted_derivative (by linarith : 0 < α + 1) n hx
     push_cast at hD
     rw [hD]
     simp only [Nat.factorial_succ, Nat.cast_add, Nat.cast_one, Nat.cast_mul,
@@ -749,7 +757,7 @@ lemma iteratedDeriv_laguerre_weight {α : ℝ} (hα : -1 < α) (n : ℕ) {x : �
 @[dlmf 18.5.E5]
 theorem jacobi_rodrigues {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ)
     {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    jacobiP α β n x = (deriv^[n] (fun t : ℝ => (1 - t) ^ (α + n) * (1 + t) ^ (β + n)) x : ℝ) /
+    jacobiPolyP α β n x = (deriv^[n] (fun t : ℝ => (1 - t) ^ (α + n) * (1 + t) ^ (β + n)) x : ℝ) /
       ((-2 : ℂ) ^ n * n.factorial * (1 - x : ℂ) ^ (α : ℂ) * (1 + x : ℂ) ^ (β : ℂ)) := by
   let f : ℝ → ℝ := fun t => (1 - t) ^ (α + n) * (1 + t) ^ (β + n)
   have hf : ContDiffAt ℝ n f x := by
@@ -773,8 +781,8 @@ theorem jacobi_rodrigues {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ)
 
 
 @[dlmf 18.5.E5]
-theorem laguerre_rodrigues {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
-    laguerre α n x = (Real.exp x * x ^ (-α) *
+theorem laguerrePolyL_rodrigues {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
+    laguerrePolyL α n x = (Real.exp x * x ^ (-α) *
       deriv^[n] (fun t : ℝ => Real.exp (-t) * t ^ (n + α)) x / n.factorial : ℝ) := by
   let f : ℝ → ℝ := fun t => Real.exp (-t) * t ^ (n + α)
   have hf : ContDiffAt ℝ n f x :=
@@ -789,7 +797,7 @@ theorem laguerre_rodrigues {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 
     congr 2
     ring
   have hd := heq.iteratedDeriv_eq n
-  rw [iteratedDeriv_smul_const hf, iteratedDeriv_laguerre_weight hα n hx,
+  rw [iteratedDeriv_smul_const hf, iteratedDeriv_laguerrePolyL_weight hα n hx,
     Complex.real_smul, mul_one, iteratedDeriv_eq_iterate] at hd
   push_cast
   rw [hd, ofReal_cpow hx.le, ofReal_neg, exp_neg, cpow_neg]
@@ -800,16 +808,16 @@ theorem laguerre_rodrigues {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 
 /-- **Rodrigues' formula for Gegenbauer polynomials** (DLMF 18.5.5, Temme §6.3): for `λ > -1/2`
 and `-1 < x < 1`,
 `C_n^λ(x) = (2λ)_n / ((-2)ⁿ n! (λ+1/2)_n) · (1-x²)^{1/2-λ} dⁿ/dxⁿ (1-x²)^{n+λ-1/2}`. -/
-theorem gegenbauer_rodrigues {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) {x : ℝ}
+theorem ultrasphPoly_rodrigues {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) {x : ℝ}
     (hx : x ∈ Set.Ioo (-1) 1) :
-    gegenbauer lam n x = poch (2 * lam) n / ((-2 : ℂ) ^ n * n.factorial * poch (lam + 1 / 2) n) *
+    ultrasphPoly lam n x = poch (2 * lam) n / ((-2 : ℂ) ^ n * n.factorial * poch (lam + 1 / 2) n) *
       ((1 - x ^ 2) ^ (1 / 2 - lam) *
         deriv^[n] (fun t : ℝ => (1 - t ^ 2) ^ (n + lam - 1 / 2)) x : ℝ) := by
   have hα : -1 < lam - 1 / 2 := by linarith
   have hp : poch ((lam : ℂ) + 1 / 2) n ≠ 0 := poch_ne_zero_of_not_neg_nat
     (not_neg_nat_of_re_pos (by simp; linarith)) n
   have hJ := jacobi_rodrigues hα hα n hx
-  rw [gegenbauer_eq_jacobiP n x hp]
+  rw [ultrasphPoly_eq_jacobiPolyP n x hp]
   push_cast at hJ ⊢
   rw [hJ]
   -- the two weights agree near `x`
@@ -841,10 +849,10 @@ theorem gegenbauer_rodrigues {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) {x : �
 /-- **Rodrigues' formula for Legendre polynomials** (DLMF 18.5.5, Temme (6.20)):
 `P_n(x) = (2ⁿ n!)⁻¹ dⁿ/dxⁿ (x² - 1)ⁿ` for `-1 < x < 1`. -/
 theorem legendre_rodrigues (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    legendreP n x = ((2 ^ n * n.factorial : ℝ)⁻¹ *
+    legendrePolyP n x = ((2 ^ n * n.factorial : ℝ)⁻¹ *
       deriv^[n] (fun t : ℝ => (t ^ 2 - 1) ^ n) x : ℝ) := by
-  have h := gegenbauer_rodrigues (lam := 1 / 2) (by norm_num) n hx
-  rw [show ((1 / 2 : ℝ) : ℂ) = 1 / 2 by norm_num, ← legendre_eq_gegenbauer] at h
+  have h := ultrasphPoly_rodrigues (lam := 1 / 2) (by norm_num) n hx
+  rw [show ((1 / 2 : ℝ) : ℂ) = 1 / 2 by norm_num, ← legendre_eq_ultrasphPoly] at h
   rw [h]
   have hfun : (fun t : ℝ => (1 - t ^ 2) ^ ((n : ℝ) + 1 / 2 - 1 / 2)) =
       fun t : ℝ => (-1) ^ n * (t ^ 2 - 1) ^ n := by
@@ -867,7 +875,7 @@ theorem legendre_rodrigues (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
 
 @[dlmf 18.10.E2]
 theorem legendre_dirichlet_mehler (n : ℕ) {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
-    legendreP n (Real.cos θ) = (Real.sqrt 2 / Real.pi *
+    legendrePolyP n (Real.cos θ) = (Real.sqrt 2 / Real.pi *
       ∫ phi : ℝ in (0 : ℝ)..θ, Real.cos ((n + 1 / 2) * phi) / Real.sqrt (Real.cos phi - Real.cos θ) : ℝ) := by
   sorry
 
@@ -987,8 +995,8 @@ lemma gegenbauerLaplace_recurrence {lam : ℝ} (hlam : 0 < lam) (θ : ℝ) (n : 
   linear_combination h0
 
 @[dlmf 18.10.E4]
-theorem gegenbauer_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ : ℝ) :
-    gegenbauer lam n (Real.cos θ) / gegenbauer lam n 1 =
+theorem ultrasphPoly_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ : ℝ) :
+    ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 =
       Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) *
         ∫ phi : ℝ in (0 : ℝ)..Real.pi, (Real.cos θ + I * Real.sin θ * Real.cos phi) ^ n *
           (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ) := by
@@ -1000,7 +1008,7 @@ theorem gegenbauer_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ :
   have hK0 : K ≠ 0 := Complex.ofReal_ne_zero.mpr (by positivity)
   have hlamC : 0 < (lam : ℂ).re := by simpa using hlam
   -- the normalized polynomials
-  set R : ℕ → ℂ := fun n => gegenbauer lam n (Real.cos θ) / gegenbauer lam n 1 with hR
+  set R : ℕ → ℂ := fun n => ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 with hR
   have hbase0 : gegenbauerLaplace lam θ 0 = K := by
     simp only [gegenbauerLaplace, pow_zero, one_mul, hK]
     rw [intervalIntegral.integral_ofReal, hρint]
@@ -1041,12 +1049,12 @@ theorem gegenbauer_laplace_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ :
     induction n with
     | zero =>
       refine ⟨?_, ?_⟩
-      · rw [hbase0]; simp [hR, gegenbauer_zero]
-      · rw [hbase1]; simp only [hR, zero_add, gegenbauer_normalized_one hlamC]; ring
+      · rw [hbase0]; simp [hR, ultrasphPoly_zero]
+      · rw [hbase1]; simp only [hR, zero_add, ultrasphPoly_normalized_one hlamC]; ring
     | succ n ih =>
       refine ⟨ih.2, ?_⟩
       have hr := gegenbauerLaplace_recurrence hlam θ n
-      have hP := gegenbauer_normalized_recurrence hlamC n (Real.cos θ)
+      have hP := ultrasphPoly_normalized_recurrence hlamC n (Real.cos θ)
       rw [ih.1, ih.2] at hr
       have hn : (n + 1 + 2 * lam : ℂ) ≠ 0 := by
         intro h; have := congrArg Complex.re h; simp at this; linarith
@@ -1123,11 +1131,11 @@ lemma legendreLaplace_recurrence (θ : ℝ) (n : ℕ) :
 
 @[dlmf 18.10.E5]
 theorem legendre_laplace_integral (n : ℕ) (θ : ℝ) :
-    legendreP n (Real.cos θ) = (Real.pi : ℂ)⁻¹ *
+    legendrePolyP n (Real.cos θ) = (Real.pi : ℂ)⁻¹ *
       ∫ phi : ℝ in (0 : ℝ)..Real.pi, (Real.cos θ + I * Real.sin θ * Real.cos phi) ^ n := by
   have hπ : (π : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
-  suffices h : ∀ n : ℕ, legendreLaplace θ n = π * legendreP n (Real.cos θ) ∧
-      legendreLaplace θ (n + 1) = π * legendreP (n + 1) (Real.cos θ) by
+  suffices h : ∀ n : ℕ, legendreLaplace θ n = π * legendrePolyP n (Real.cos θ) ∧
+      legendreLaplace θ (n + 1) = π * legendrePolyP (n + 1) (Real.cos θ) by
     rw [show (∫ t : ℝ in (0 : ℝ)..Real.pi, ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) ^ n)
       = legendreLaplace θ n from rfl, (h n).1]
     field_simp
@@ -1135,8 +1143,8 @@ theorem legendre_laplace_integral (n : ℕ) (θ : ℝ) :
   induction n with
   | zero =>
     refine ⟨?_, ?_⟩
-    · simp [legendreLaplace, legendreP_zero]
-    · simp only [legendreLaplace, zero_add, pow_one, legendreP_one]
+    · simp [legendreLaplace, legendrePolyP_zero]
+    · simp only [legendreLaplace, zero_add, pow_one, legendrePolyP_one]
       rw [intervalIntegral.integral_add intervalIntegrable_const
         ((by fun_prop : Continuous fun t : ℝ => I * (Real.sin θ : ℂ) * Real.cos t
           ).intervalIntegrable 0 π), intervalIntegral.integral_const_mul,
@@ -1146,7 +1154,7 @@ theorem legendre_laplace_integral (n : ℕ) (θ : ℝ) :
   | succ n ih =>
     refine ⟨ih.2, ?_⟩
     have hr := legendreLaplace_recurrence θ n
-    have hP := legendreP_recurrence n (Real.cos θ)
+    have hP := legendrePolyP_recurrence n (Real.cos θ)
     rw [ih.1, ih.2] at hr
     have hn : (n + 2 : ℂ) ≠ 0 := by norm_cast
     apply mul_left_cancel₀ hn
@@ -1202,33 +1210,38 @@ lemma integrable_eval_mul_cexp_gauss (q : ℝ[X]) (z : ℂ) :
 
 /-- Repeated integration by parts against `e^{-xz}`. -/
 lemma integral_cexp_mul_hermite_gauss (z : ℂ) (n : ℕ) :
-    ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+    ∫ x : ℝ, cexp (-x * z) * (((hermitePolyHR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
       (-z) ^ n * ∫ x : ℝ, cexp (-x * z) * ((Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
   induction n with
-  | zero => simp [hermitePhysR]
+  | zero => simp [hermitePolyHR]
   | succ n ih =>
     have hu : ∀ x : ℝ, HasDerivAt (fun y : ℝ => cexp (-y * z)) (cexp (-x * z) * (-z)) x := by
       intro x
       have := ((hasDerivAt_id (x : ℂ)).neg.mul_const z).cexp.comp_ofReal (z := x)
       simpa using this
-    have hv : ∀ x : ℝ, HasDerivAt (fun y : ℝ => (((hermitePhysR n).eval y * Real.exp (-(y ^ 2)) : ℝ) : ℂ))
-        (-((((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ)) x := by
+    have hv : ∀ x : ℝ,
+        HasDerivAt (fun y : ℝ => (((hermitePolyHR n).eval y * Real.exp (-(y ^ 2)) : ℝ) : ℂ))
+        (-((((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ)) x := by
       intro x
       have := (hasDerivAt_hermite_gauss n x).ofReal_comp
       simpa using this
     have hibp := integral_mul_deriv_eq_deriv_mul_of_integrable
       (fun x _ => hu x) (fun x _ => hv x)
-      ((integrable_eval_mul_cexp_gauss (hermitePhysR (n + 1)) z).neg.congr
+      ((integrable_eval_mul_cexp_gauss (hermitePolyHR (n + 1)) z).neg.congr
         (Eventually.of_forall fun x => by simp only [Pi.mul_apply, Pi.neg_apply]; ring))
-      (((integrable_eval_mul_cexp_gauss (hermitePhysR n) z).const_mul (-z)).congr
+      (((integrable_eval_mul_cexp_gauss (hermitePolyHR n) z).const_mul (-z)).congr
         (Eventually.of_forall fun x => by simp only [Pi.mul_apply]; ring))
-      (integrable_eval_mul_cexp_gauss (hermitePhysR n) z)
-    have h1 : ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
-        -∫ x : ℝ, cexp (-x * z) * -((((hermitePhysR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ) := by
+      (integrable_eval_mul_cexp_gauss (hermitePolyHR n) z)
+    have h1 : ∫ x : ℝ,
+        cexp (-x * z) * (((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+        -∫ x : ℝ, cexp (-x * z)
+            * -((((hermitePolyHR (n + 1)).eval x * Real.exp (-(x ^ 2))) : ℝ) : ℂ) := by
       rw [← integral_neg]; congr 1; funext x; ring
     rw [h1, hibp, neg_neg]
-    have h2 : ∫ x : ℝ, cexp (-x * z) * (-z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
-        -z * ∫ x : ℝ, cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
+    have h2 : ∫ x : ℝ,
+        cexp (-x * z) * (-z) * (((hermitePolyHR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) =
+        -z * ∫ x : ℝ,
+            cexp (-x * z) * (((hermitePolyHR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := by
       rw [← integral_const_mul]; congr 1; funext x; ring
     rw [h2, ih, pow_succ]
     ring
@@ -1249,13 +1262,13 @@ lemma integral_cexp_gauss (z : ℂ) :
 
 /-- The Laplace transform of `Hₙ e^{-x²}`. -/
 lemma hermite_laplace_aux (n : ℕ) (z : ℂ) :
-    ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
+    ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (-(x : ℂ) ^ 2) =
       Real.sqrt Real.pi * (-z) ^ n * exp (z ^ 2 / 4) := by
-  have heq : ∀ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
-      cexp (-x * z) * (((hermitePhysR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := fun x => by
-    have : (aeval (x : ℂ) (hermitePhys n) : ℂ) = (((hermitePhysR n).eval x : ℝ) : ℂ) := by
-      rw [← aeval_hermitePhys_eq_eval]
-      exact aeval_algebraMap_apply ℂ x (hermitePhys n)
+  have heq : ∀ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (-(x : ℂ) ^ 2) =
+      cexp (-x * z) * (((hermitePolyHR n).eval x * Real.exp (-(x ^ 2)) : ℝ) : ℂ) := fun x => by
+    have : (aeval (x : ℂ) (hermitePolyH n) : ℂ) = (((hermitePolyHR n).eval x : ℝ) : ℂ) := by
+      rw [← aeval_hermitePolyH_eq_eval]
+      exact aeval_algebraMap_apply ℂ x (hermitePolyH n)
     rw [this, ofReal_mul, ofReal_exp]; push_cast; ring
   simp_rw [heq]
   rw [integral_cexp_mul_hermite_gauss, integral_cexp_gauss]
@@ -1313,8 +1326,8 @@ lemma integral_t_mul_add_I_pow (x : ℂ) (n : ℕ) :
     simp only [Pi.mul_apply]; push_cast; ring
 
 @[dlmf 18.10.E7]
-theorem hermitePhys_laplace_integral (n : ℕ) (x : ℂ) :
-    aeval x (hermitePhys n) = (2 : ℂ) ^ n / Real.sqrt Real.pi *
+theorem hermitePolyH_laplace_integral (n : ℕ) (x : ℂ) :
+    aeval x (hermitePolyH n) = (2 : ℂ) ^ n / Real.sqrt Real.pi *
       ∫ t : ℝ, (x + I * t) ^ n * Real.exp (-(t ^ 2)) := by
   set F : ℕ → ℂ := fun n => ∫ t : ℝ, (x + I * t) ^ n * ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) with hF
   have hπ : (Real.sqrt Real.pi : ℂ) ≠ 0 :=
@@ -1353,13 +1366,13 @@ theorem hermitePhys_laplace_integral (n : ℕ) (x : ℂ) :
       ((Real.exp (-(t ^ 2)) : ℝ) : ℂ)) = I ^ 2 * (((n : ℂ) + 1) / 2) * ∫ t : ℝ, (x + I * t) ^ n *
       ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) by ring, I_sq]
     ring
-  have key : ∀ n : ℕ, (2 : ℂ) ^ n * F n = Real.sqrt Real.pi * aeval x (hermitePhys n) := by
+  have key : ∀ n : ℕ, (2 : ℂ) ^ n * F n = Real.sqrt Real.pi * aeval x (hermitePolyH n) := by
     intro n
     induction n using Nat.twoStepInduction with
     | zero => simp [hF0]
-    | one => rw [hF1, hermitePhys_one, map_mul, aeval_X, map_ofNat]; ring
+    | one => rw [hF1, hermitePolyH_one, map_mul, aeval_X, map_ofNat]; ring
     | more n ih0 ih1 =>
-      rw [hrec, aeval_hermitePhys_succ_succ]
+      rw [hrec, aeval_hermitePolyH_succ_succ]
       linear_combination 2 * x * ih1 - 2 * ((n : ℂ) + 1) * ih0
   have hn := key n
   simp only [hF] at hn
@@ -1461,8 +1474,8 @@ lemma integral_K_one (x : ℝ) :
   ring
 
 @[dlmf 18.10.E10]
-theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
-    (aeval (x : ℂ) (hermitePhys n) : ℂ) = (-2 * I) ^ n * exp ((x : ℂ) ^ 2) / Real.sqrt Real.pi *
+theorem hermitePolyH_fourier_integral (n : ℕ) (x : ℝ) :
+    (aeval (x : ℂ) (hermitePolyH n) : ℂ) = (-2 * I) ^ n * exp ((x : ℂ) ^ 2) / Real.sqrt Real.pi *
       ∫ t : ℝ, Real.exp (-(t ^ 2)) * (t : ℂ) ^ n * exp (2 * I * x * t) := by
   set K : ℕ → ℂ := fun n => ∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n *
     cexp (2 * I * x * t) with hK
@@ -1470,7 +1483,7 @@ theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
     ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
   have hE : cexp ((x : ℂ) ^ 2) * cexp (-(x : ℂ) ^ 2) = 1 := by rw [← Complex.exp_add]; simp
   have key : ∀ n : ℕ, (-2 * I) ^ n * cexp ((x : ℂ) ^ 2) / Real.sqrt Real.pi * K n =
-      aeval (x : ℂ) (hermitePhys n) := by
+      aeval (x : ℂ) (hermitePolyH n) := by
     intro n
     induction n using Nat.twoStepInduction with
     | zero =>
@@ -1480,13 +1493,13 @@ theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
       simp [hE]
     | one =>
       simp only [hK]
-      rw [integral_K_one, integral_K_zero, hermitePhys_one, map_mul, aeval_X, map_ofNat]
+      rw [integral_K_one, integral_K_zero, hermitePolyH_one, map_mul, aeval_X, map_ofNat]
       generalize (Real.sqrt Real.pi : ℂ) = sp at hπ ⊢
       field_simp
       linear_combination (-(x : ℂ) * I ^ 2) * hE + (-(x : ℂ)) * I_sq
     | more n ih0 ih1 =>
       simp only [hK] at ih0 ih1 ⊢
-      rw [integral_K_succ_succ, aeval_hermitePhys_succ_succ, ← ih0, ← ih1]
+      rw [integral_K_succ_succ, aeval_hermitePolyH_succ_succ, ← ih0, ← ih1]
       generalize (∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ (n + 1) *
         cexp (2 * I * x * t)) = A
       generalize (∫ t : ℝ, ((Real.exp (-(t ^ 2)) : ℝ) : ℂ) * (t : ℂ) ^ n *
@@ -1501,15 +1514,15 @@ theorem hermitePhys_fourier_integral (n : ℕ) (x : ℝ) :
 
 /-- An interval antiderivative of the physicists’ Hermite polynomial. -/
 @[dlmf 18.17.E3]
-theorem hermitePhys_integral (n : ℕ) (x : ℝ) :
-    ∫ y : ℝ in (0 : ℝ)..x, (aeval y (hermitePhys n) : ℝ) =
-      (aeval x (hermitePhys (n + 1)) - aeval (0 : ℝ) (hermitePhys (n + 1))) / (2 * (n + 1)) := by
-  have hd (t : ℝ) : HasDerivAt (fun y : ℝ => aeval y (hermitePhys (n + 1)))
-      (2 * (n + 1) * aeval t (hermitePhys n)) t := by
-    have h := (hermitePhys (n + 1)).hasDerivAt_aeval t
-    rw [hermitePhys_derivative] at h
+theorem hermitePolyH_integral (n : ℕ) (x : ℝ) :
+    ∫ y : ℝ in (0 : ℝ)..x, (aeval y (hermitePolyH n) : ℝ) =
+      (aeval x (hermitePolyH (n + 1)) - aeval (0 : ℝ) (hermitePolyH (n + 1))) / (2 * (n + 1)) := by
+  have hd (t : ℝ) : HasDerivAt (fun y : ℝ => aeval y (hermitePolyH (n + 1)))
+      (2 * (n + 1) * aeval t (hermitePolyH n)) t := by
+    have h := (hermitePolyH (n + 1)).hasDerivAt_aeval t
+    rw [hermitePolyH_derivative] at h
     simpa only [map_mul, aeval_C, map_ofNat, map_add, map_natCast, map_one] using h
-  have hi : IntervalIntegrable (fun t : ℝ => 2 * (n + 1) * aeval t (hermitePhys n))
+  have hi : IntervalIntegrable (fun t : ℝ => 2 * (n + 1) * aeval t (hermitePolyH n))
       volume 0 x := (by fun_prop : Continuous _).intervalIntegrable _ _
   have h := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hd t) hi
   rw [intervalIntegral.integral_const_mul] at h
@@ -1518,21 +1531,21 @@ theorem hermitePhys_integral (n : ℕ) (x : ℝ) :
 
 /-- An interval antiderivative of a Gaussian-weighted physicists’ Hermite polynomial. -/
 @[dlmf 18.17.E4]
-theorem hermitePhys_weighted_integral (n : ℕ) (x : ℝ) :
-    ∫ y : ℝ in (0 : ℝ)..x, Real.exp (-(y ^ 2)) * (aeval y (hermitePhys (n + 1)) : ℝ) =
-      aeval (0 : ℝ) (hermitePhys n) - Real.exp (-(x ^ 2)) * aeval x (hermitePhys n) := by
-  let g : ℝ → ℝ := fun t => Real.exp (-(t ^ 2)) * aeval t (hermitePhys n)
+theorem hermitePolyH_weighted_integral (n : ℕ) (x : ℝ) :
+    ∫ y : ℝ in (0 : ℝ)..x, Real.exp (-(y ^ 2)) * (aeval y (hermitePolyH (n + 1)) : ℝ) =
+      aeval (0 : ℝ) (hermitePolyH n) - Real.exp (-(x ^ 2)) * aeval x (hermitePolyH n) := by
+  let g : ℝ → ℝ := fun t => Real.exp (-(t ^ 2)) * aeval t (hermitePolyH n)
   have hd (t : ℝ) : HasDerivAt (fun y => -g y)
-      (Real.exp (-(t ^ 2)) * aeval t (hermitePhys (n + 1))) t := by
+      (Real.exp (-(t ^ 2)) * aeval t (hermitePolyH (n + 1))) t := by
     have hg : DifferentiableAt ℝ g t :=
       (by fun_prop : DifferentiableAt ℝ (fun t : ℝ => Real.exp (-(t ^ 2))) t).mul
-        ((hermitePhys n).hasDerivAt_aeval t).differentiableAt
+        ((hermitePolyH n).hasDerivAt_aeval t).differentiableAt
     have ht := hg.hasDerivAt.neg
     change HasDerivAt (fun y => -g y) (-deriv g t) t at ht
-    simpa only [g, AAR.OrthogonalPolynomials.hermitePhys_weighted_derivative, neg_mul, neg_neg]
+    simpa only [g, AAR.OrthogonalPolynomials.hermitePolyH_weighted_derivative, neg_mul, neg_neg]
       using ht
   have hi : IntervalIntegrable
-      (fun y : ℝ => Real.exp (-(y ^ 2)) * (aeval y (hermitePhys (n + 1)) : ℝ)) volume 0 x :=
+      (fun y : ℝ => Real.exp (-(y ^ 2)) * (aeval y (hermitePolyH (n + 1)) : ℝ)) volume 0 x :=
     (by fun_prop : Continuous _).intervalIntegrable _ _
   have h := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hd t) hi
   simpa only [g, zero_pow (by decide : 2 ≠ 0), neg_zero, Real.exp_zero, one_mul,
@@ -1540,15 +1553,15 @@ theorem hermitePhys_weighted_integral (n : ℕ) (x : ℝ) :
 
 @[dlmf 18.17.E6]
 theorem legendre_product_integral (n : ℕ) (θ ψ : ℝ) :
-    legendreP n (Real.cos θ) * legendreP n (Real.cos ψ) = (Real.pi : ℂ)⁻¹ *
-      ∫ phi : ℝ in (0 : ℝ)..Real.pi, legendreP n
+    legendrePolyP n (Real.cos θ) * legendrePolyP n (Real.cos ψ) = (Real.pi : ℂ)⁻¹ *
+      ∫ phi : ℝ in (0 : ℝ)..Real.pi, legendrePolyP n
         (Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi) := by
   sorry
 
 /-- Gamma normalization converts Laguerre polynomials into the regularized Kummer
 function. This uses Mathlib's Gamma/Pochhammer relation at regular parameters. -/
-lemma laguerre_div_Gamma_eq_regularized {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℂ) :
-    laguerre α n y / Gamma ((α : ℂ) + n + 1) =
+lemma laguerrePolyL_div_Gamma_eq_regularized {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℂ) :
+    laguerrePolyL α n y / Gamma ((α : ℂ) + n + 1) =
       regularizedHGFun {(-(n : ℂ))} {(α : ℂ) + 1} y / (n.factorial : ℂ) := by
   have hp : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) :=
     not_neg_nat_of_re_pos (by simp; linarith)
@@ -1556,13 +1569,14 @@ lemma laguerre_div_Gamma_eq_regularized {α : ℝ} (hα : -1 < α) (n : ℕ) (y 
     have h := Gamma_add_nat_div_Gamma_eq (n := n) ((α : ℂ) + 1) hp
     rw [show (α : ℂ) + n + 1 = (α : ℂ) + 1 + n by ring]
     exact (div_eq_iff (Gamma_ne_zero hp)).mp h
-  rw [laguerre, confluentM_eq_mul_regularizedHGFun hp, hG]
+  rw [laguerrePolyL, kummerM_eq_mul_regularizedHGFun hp, hG]
   field [Gamma_ne_zero hp, poch_ne_zero_of_not_neg_nat hp n]
 
 @[dlmf 18.17.E14]
-theorem laguerre_fractional_integral {α μ x : ℝ} (hα : -1 < α) (hμ : 0 < μ) (hx : 0 < x) (n : ℕ) :
-    (x : ℂ) ^ ((α : ℂ) + μ) * laguerre (α + μ) n x / Gamma (α + μ + n + 1 : ℂ) =
-      ∫ y : ℝ in (0 : ℝ)..x, (y : ℂ) ^ (α : ℂ) * laguerre α n y / Gamma (α + n + 1 : ℂ) *
+theorem laguerrePolyL_fractional_integral {α μ x : ℝ} (hα : -1 < α) (hμ : 0 < μ) (hx : 0 < x)
+    (n : ℕ) :
+    (x : ℂ) ^ ((α : ℂ) + μ) * laguerrePolyL (α + μ) n x / Gamma (α + μ + n + 1 : ℂ) =
+      ∫ y : ℝ in (0 : ℝ)..x, (y : ℂ) ^ (α : ℂ) * laguerrePolyL α n y / Gamma (α + n + 1 : ℂ) *
         (x - y : ℂ) ^ ((μ : ℂ) - 1) / Gamma (μ : ℂ) := by
   let f : ℝ → ℂ := fun y => (y : ℂ) ^ (α : ℂ) *
     regularizedHGFun {(-(n : ℂ))} {(α : ℂ) + 1} y *
@@ -1606,54 +1620,55 @@ theorem laguerre_fractional_integral {α μ x : ℝ} (hα : -1 < α) (hμ : 0 < 
   change regularizedHGFun {(-(n : ℂ))} {(α : ℂ) + μ + 1} x =
     1 / Gamma (μ : ℂ) * ∫ t : ℝ in (0 : ℝ)..1, g t at hR
   have hrhs : (∫ y : ℝ in (0 : ℝ)..x,
-      (y : ℂ) ^ (α : ℂ) * laguerre α n y / Gamma (α + n + 1 : ℂ) *
+      (y : ℂ) ^ (α : ℂ) * laguerrePolyL α n y / Gamma (α + n + 1 : ℂ) *
         (x - y : ℂ) ^ ((μ : ℂ) - 1) / Gamma (μ : ℂ)) =
       (∫ y : ℝ in (0 : ℝ)..x, f y) / ((n.factorial : ℂ) * Gamma (μ : ℂ)) := by
     rw [← intervalIntegral.integral_div]
     apply intervalIntegral.integral_congr
     intro y _
     dsimp only
-    rw [show (y : ℂ) ^ (α : ℂ) * laguerre α n y / Gamma (α + n + 1 : ℂ) =
-      (y : ℂ) ^ (α : ℂ) * (laguerre α n y / Gamma (α + n + 1 : ℂ)) by ring,
-      laguerre_div_Gamma_eq_regularized hα]
+    rw [show (y : ℂ) ^ (α : ℂ) * laguerrePolyL α n y / Gamma (α + n + 1 : ℂ) =
+      (y : ℂ) ^ (α : ℂ) * (laguerrePolyL α n y / Gamma (α + n + 1 : ℂ)) by ring,
+      laguerrePolyL_div_Gamma_eq_regularized hα]
     dsimp [f]
     push_cast
     ring
-  have hL := laguerre_div_Gamma_eq_regularized (by linarith : -1 < α + μ) n (x : ℂ)
+  have hL := laguerrePolyL_div_Gamma_eq_regularized (by linarith : -1 < α + μ) n (x : ℂ)
   push_cast at hL
-  rw [hrhs, hscale, show (x : ℂ) ^ ((α : ℂ) + μ) * laguerre (α + μ) n x /
+  rw [hrhs, hscale, show (x : ℂ) ^ ((α : ℂ) + μ) * laguerrePolyL (α + μ) n x /
       Gamma (α + μ + n + 1 : ℂ) = (x : ℂ) ^ ((α : ℂ) + μ) *
-      (laguerre (α + μ) n x / Gamma (α + μ + n + 1 : ℂ)) by ring,
+      (laguerrePolyL (α + μ) n x / Gamma (α + μ + n + 1 : ℂ)) by ring,
     hL]
   push_cast
   rw [hR]
   ring
 
 @[dlmf 18.17.E15]
-theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ : 0 < μ) (hx : 0 ≤ x) (n : ℕ) :
-    exp (-x) * laguerre α n x = ∫ y : ℝ in Set.Ioi x,
-      exp (-y) * laguerre (α + μ) n y * (y - x : ℂ) ^ ((μ : ℂ) - 1) / Gamma (μ : ℂ) := by
+theorem laguerrePolyL_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ : 0 < μ) (hx : 0 ≤ x)
+    (n : ℕ) :
+    exp (-x) * laguerrePolyL α n x = ∫ y : ℝ in Set.Ioi x,
+      exp (-y) * laguerrePolyL (α + μ) n y * (y - x : ℂ) ^ ((μ : ℂ) - 1) / Gamma (μ : ℂ) := by
   have hβ : -1 < μ - 1 := by linarith
   have hp (a : ℝ) (ha : -1 < a) : ∀ k : ℕ, (a : ℂ) + 1 ≠ -(k : ℂ) :=
     not_neg_nat_of_re_pos (by simp; linarith)
   have hΓ : Gamma (μ : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using hμ)
-  have hadd (y : ℝ) : laguerre (α + μ) n ((x : ℂ) + y) =
-      ∑ k ∈ Finset.range (n + 1), laguerre α k x * laguerre (μ - 1) (n - k) y := by
-    have h := laguerre_addition (α : ℂ) ((μ - 1 : ℝ) : ℂ) x y n
+  have hadd (y : ℝ) : laguerrePolyL (α + μ) n ((x : ℂ) + y) =
+      ∑ k ∈ Finset.range (n + 1), laguerrePolyL α k x * laguerrePolyL (μ - 1) (n - k) y := by
+    have h := laguerrePolyL_addition (α : ℂ) ((μ - 1 : ℝ) : ℂ) x y n
     have hparam : (α : ℂ) + ((μ - 1 : ℝ) : ℂ) + 1 = ((α + μ : ℝ) : ℂ) := by
       push_cast
       ring
     rw [hparam, laguerreExtended_eq (hp (α + μ) (by linarith))] at h
     simp only [laguerreExtended_eq (hp α hα), laguerreExtended_eq (hp (μ - 1) hβ)] at h
     simpa only [ofReal_add, ofReal_sub, ofReal_one] using h
-  let f : ℕ → ℝ → ℂ := fun k y => laguerre (μ - 1) k y *
+  let f : ℕ → ℝ → ℂ := fun k y => laguerrePolyL (μ - 1) k y *
     (y : ℂ) ^ ((μ : ℂ) - 1) * exp (-(y : ℂ))
   have hint (k : ℕ) : IntegrableOn (f k) (Set.Ioi 0) := by
-    have h := integrable_laguerre_mul_monomial hβ k 0
+    have h := integrable_laguerrePolyL_mul_monomial hβ k 0
     simpa only [IntegrableOn, f, pow_zero, mul_one, ofReal_sub, ofReal_one] using h
   have hmoment (k : ℕ) : (∫ y : ℝ in Set.Ioi 0, f k y) =
       if k = 0 then Gamma (μ : ℂ) else 0 := by
-    have h := integral_laguerre_mul_monomial hβ k 0
+    have h := integral_laguerrePolyL_mul_monomial hβ k 0
     simp only [pow_zero, mul_one, ofReal_sub, ofReal_one, Nat.cast_zero, neg_zero,
       add_zero, sub_add_cancel] at h
     change (∫ y : ℝ in Set.Ioi 0, f k y) = _ at h
@@ -1661,7 +1676,7 @@ theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ :
     cases k with
     | zero => simp [poch_zero]
     | succ k => simp [poch_succ, poch_zero]
-  let F : ℝ → ℂ := fun y => exp (-(y : ℂ)) * laguerre (α + μ) n y *
+  let F : ℝ → ℂ := fun y => exp (-(y : ℂ)) * laguerrePolyL (α + μ) n y *
     ((y : ℂ) - x) ^ ((μ : ℂ) - 1) / Gamma (μ : ℂ)
   have hshift := (measurePreserving_add_left (volume : Measure ℝ) x).setIntegral_preimage_emb
     (MeasurableEquiv.addLeft x).measurableEmbedding F (Set.Ioi x)
@@ -1669,10 +1684,10 @@ theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ :
     ext y
     simp
   rw [hpre] at hshift
-  change exp (-x) * laguerre α n x = ∫ y : ℝ in Set.Ioi x, F y
+  change exp (-x) * laguerrePolyL α n x = ∫ y : ℝ in Set.Ioi x, F y
   rw [← hshift]
   have heq (y : ℝ) : F (x + y) = exp (-x) / Gamma (μ : ℂ) *
-      ∑ k ∈ Finset.range (n + 1), laguerre α k x * f (n - k) y := by
+      ∑ k ∈ Finset.range (n + 1), laguerrePolyL α k x * f (n - k) y := by
     dsimp [F, f]
     rw [ofReal_add, add_sub_cancel_left, neg_add, exp_add, hadd]
     simp only [Finset.mul_sum, Finset.sum_mul, Finset.sum_div]
@@ -1680,7 +1695,7 @@ theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ :
     intro k _
     ring
   rw [setIntegral_congr_fun measurableSet_Ioi (fun y _ => heq y), integral_const_mul,
-    integral_finsetSum _ (fun k _ => (hint (n - k)).const_mul (laguerre α k x))]
+    integral_finsetSum _ (fun k _ => (hint (n - k)).const_mul (laguerrePolyL α k x))]
   simp only [integral_const_mul, hmoment]
   rw [Finset.sum_eq_single n]
   · simp only [Nat.sub_self, ↓reduceIte]
@@ -1691,12 +1706,12 @@ theorem laguerre_fractional_tail_integral {α μ x : ℝ} (hα : -1 < α) (hμ :
   · simp
 
 @[dlmf 18.17.E21_2]
-theorem hermitePhys_fourier_transform (n : ℕ) (y : ℝ) :
-    (∫ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y)) /
+theorem hermitePolyH_fourier_transform (n : ℕ) (y : ℝ) :
+    (∫ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (I * x * y)) /
       Real.sqrt Real.pi = I ^ n * exp (-(y : ℂ) ^ 2 / 4) * (y : ℂ) ^ n := by
   have h := hermite_laplace_aux n (-I * y)
-  have heq : ∀ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y) =
-      exp (-x * (-I * y)) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) := fun x => by
+  have heq : ∀ x : ℝ, exp (-(x : ℂ) ^ 2) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (I * x * y) =
+      exp (-x * (-I * y)) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (-(x : ℂ) ^ 2) := fun x => by
     rw [show -(x : ℂ) * (-I * y) = I * x * y by ring]; ring
   simp_rw [heq]
   rw [h]
@@ -1754,11 +1769,11 @@ private lemma ofReal_aeval_int (p : ℤ[X]) (x : ℝ) :
   exact (aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x p).symm
 
 /-- The physicists' Hermite envelope differs from TauCeti's function by a constant. -/
-lemma hermitePhys_envelope (n : ℕ) (x : ℝ) :
-    exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) =
+lemma hermitePolyH_envelope (n : ℕ) (x : ℝ) :
+    exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) =
       ((2 : ℝ) ^ (n / 2 : ℝ) * Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi) : ℝ) *
         (TauCeti.hermiteFunction n x : ℂ) := by
-  rw [← ofReal_aeval_int, aeval_hermitePhys_eq_hermite, TauCeti.hermiteFunction_def]
+  rw [← ofReal_aeval_int, aeval_hermitePolyH_eq_hermite, TauCeti.hermiteFunction_def]
   have hc : Real.sqrt ((n.factorial : ℝ) * Real.sqrt Real.pi) ≠ 0 :=
     TauCeti.sqrt_factorial_mul_sqrt_pi_ne_zero n
   have he : exp (-(x : ℂ) ^ 2 / 2) = (Real.exp (-(x ^ 2 / 2)) : ℂ) := by
@@ -1788,13 +1803,14 @@ lemma hermite_envelope (n : ℕ) (x : ℝ) :
   rw [mul_div_cancel_right₀ _ (ofReal_ne_zero.mpr hc)]
 
 @[dlmf 18.17.E21_3]
-theorem hermitePhys_fourier_eigenfunction (n : ℕ) (y : ℝ) :
-    (∫ x : ℝ, exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (I * x * y)) /
-      Real.sqrt (2 * Real.pi) = I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n) := by
+theorem hermitePolyH_fourier_eigenfunction (n : ℕ) (y : ℝ) :
+    (∫ x : ℝ, exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (I * x * y)) /
+      Real.sqrt (2 * Real.pi) = I ^ n * exp (-(y : ℂ) ^ 2 / 2)
+          * aeval (y : ℂ) (hermitePolyH n) := by
   have hs : (Real.sqrt (2 * Real.pi) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
-  rw [show I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n) =
-    I ^ n * (exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePhys n)) by ring]
-  simp_rw [hermitePhys_envelope]
+  rw [show I ^ n * exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePolyH n) =
+    I ^ n * (exp (-(y : ℂ) ^ 2 / 2) * aeval (y : ℂ) (hermitePolyH n)) by ring]
+  simp_rw [hermitePolyH_envelope]
   simp_rw [mul_assoc, mul_comm (↑(TauCeti.hermiteFunction n _) : ℂ) (exp _)]
   rw [integral_const_mul]
   simp_rw [← mul_assoc I]
@@ -1850,8 +1866,8 @@ lemma Gamma_add_nat_eq_poch_mul {a : ℂ} (ha : 0 < a.re) (m : ℕ) :
     ring
 
 /-- The Laplace transform of `e^{-x} x^α L_n^{(α)}(x)`. -/
-lemma laguerre_laplace_aux {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
-    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+lemma laguerrePolyL_laplace_aux {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
+    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerrePolyL α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (α + n + 1 : ℂ) * z ^ n / (n.factorial * (z + 1) ^ (α + n + 1 : ℂ)) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
@@ -1860,12 +1876,12 @@ lemma laguerre_laplace_aux {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : 
   have hs : ∀ k : ℕ, 0 < ((α : ℂ) + k + 1).re := fun k => by
     simp; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   -- termwise form of the integrand
-  have hterm : ∀ x : ℝ, 0 < x → exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+  have hterm : ∀ x : ℝ, 0 < x → exp (-x * z) * laguerrePolyL α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       ∑ k ∈ Finset.range (n + 1), poch (α + 1 + k) (n - k) / ((n - k).factorial * k.factorial : ℂ) *
         (-1) ^ k * ((x : ℂ) ^ (((α : ℂ) + k + 1) - 1) * cexp (-((z + 1) * x))) := by
     intro x hx
     have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
-    rw [laguerre_eq_sum hα', Finset.mul_sum, Finset.sum_mul, Finset.sum_mul]
+    rw [laguerrePolyL_eq_sum hα', Finset.mul_sum, Finset.sum_mul, Finset.sum_mul]
     refine Finset.sum_congr rfl fun k _ => ?_
     have hc : (x : ℂ) ^ (((α : ℂ) + k + 1) - 1) = (x : ℂ) ^ (α : ℂ) * (x : ℂ) ^ k := by
       rw [show ((α : ℂ) + k + 1) - 1 = (α : ℂ) + k by ring, cpow_add _ _ hx0, cpow_natCast]
@@ -1907,10 +1923,10 @@ lemma laguerre_laplace_aux {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : 
   ring
 
 @[dlmf 18.17.E28_5]
-theorem laguerre_fourier_transform {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℝ) :
-    ∫ x : ℝ in Set.Ioi 0, exp (-x) * (x : ℂ) ^ (α : ℂ) * laguerre α n x * exp (I * x * y) =
+theorem laguerrePolyL_fourier_transform {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℝ) :
+    ∫ x : ℝ in Set.Ioi 0, exp (-x) * (x : ℂ) ^ (α : ℂ) * laguerrePolyL α n x * exp (I * x * y) =
       Gamma (α + n + 1 : ℂ) * (-I * y) ^ n / (n.factorial * (1 - I * y) ^ (α + n + 1 : ℂ)) := by
-  have h := laguerre_laplace_aux hα n (z := -I * y) (by simp)
+  have h := laguerrePolyL_laplace_aux hα n (z := -I * y) (by simp)
   rw [show -I * (y : ℂ) + 1 = 1 - I * y by ring] at h
   rw [← h]
   congr 1; funext x
@@ -1918,34 +1934,299 @@ theorem laguerre_fourier_transform {α : ℝ} (hα : -1 < α) (n : ℕ) (y : ℝ
   ring
 
 @[dlmf 18.17.E35]
-theorem hermitePhys_laplace_transform (n : ℕ) (z : ℂ) :
-    ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePhys n) : ℂ) * exp (-(x : ℂ) ^ 2) =
+theorem hermitePolyH_laplace_transform (n : ℕ) (z : ℂ) :
+    ∫ x : ℝ, exp (-x * z) * (aeval (x : ℂ) (hermitePolyH n) : ℂ) * exp (-(x : ℂ) ^ 2) =
       Real.sqrt Real.pi * (-z) ^ n * exp (z ^ 2 / 4) := by
   exact hermite_laplace_aux n z
 
+/-- Complex-exponent version of `integral_jacobi_weight`. -/
+lemma integral_jacobi_weight_cpow {a b : ℂ} (ha : -1 < a.re) (hb : -1 < b.re) :
+    (∫ t : ℝ in (-1 : ℝ)..1, (1 - (t : ℂ)) ^ a * (1 + (t : ℂ)) ^ b) =
+      (2 : ℂ) ^ (a + b + 1) * (Gamma (a + 1) * Gamma (b + 1) / Gamma (a + b + 2)) := by
+  have he := intervalIntegral.integral_comp_add_right
+    (fun t : ℝ => (t : ℂ) ^ b * ((2 : ℂ) - t) ^ a) 1
+    (a := (-1 : ℝ)) (b := 1)
+  norm_num only [neg_add_cancel, one_add_one_eq_two] at he
+  have hm := integral_cpow_mul_sub_cpow (a := b) (b := a) hb ha
+    (by norm_num : (0 : ℝ) < 2)
+  norm_num only [ofReal_ofNat] at hm
+  rw [hm] at he
+  calc
+    _ = ∫ t : ℝ in (-1 : ℝ)..1, ((t + 1 : ℝ) : ℂ) ^ b *
+        ((2 : ℂ) - ((t + 1 : ℝ) : ℂ)) ^ a := by
+      apply intervalIntegral.integral_congr
+      intro t _
+      dsimp only
+      push_cast
+      rw [show (2 : ℂ) - ((t : ℂ) + 1) = 1 - t by ring, add_comm (t : ℂ) 1]
+      ring
+    _ = _ := by rw [he, add_comm b a, mul_comm (Gamma (b + 1))]
+
+/-- Complex-exponent version of `intervalIntegrable_jacobi_weight`. -/
+lemma intervalIntegrable_jacobi_weight_cpow {a b : ℂ} (ha : -1 < a.re) (hb : -1 < b.re) :
+    IntervalIntegrable (fun t : ℝ => (1 - (t : ℂ)) ^ a * (1 + (t : ℂ)) ^ b) volume (-1) 1 := by
+  have hi := (intervalIntegrable_cpow_mul_sub_cpow (a := b) (b := a)
+    hb ha (show (0 : ℝ) < 2 by norm_num)).comp_add_right 1
+  norm_num only [zero_sub, sub_self, sub_add_cancel] at hi
+  convert hi using 1
+  · ext t
+    push_cast
+    rw [show (2 : ℂ) - ((t : ℂ) + 1) = 1 - t by ring]
+    rw [add_comm (t : ℂ) 1]
+    ring
+
+
 @[dlmf 18.17.E36]
 theorem jacobi_mellin_transform {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ (z - 1) * (1 + (x : ℂ)) ^ (β : ℂ) * jacobiP α β n x =
+    ∫ x : ℝ in (-1 : ℝ)..1,
+        (1 - (x : ℂ)) ^ (z - 1) * (1 + (x : ℂ)) ^ (β : ℂ) * jacobiPolyP α β n x =
       (2 : ℂ) ^ ((β : ℂ) + z) * Gamma z * Gamma (1 + (β : ℂ) + n) * poch (1 + α - z) n /
       (n.factorial * Gamma (1 + β + z + n)) := by
-  sorry
+  set a : ℂ := (n : ℂ) + α + β + 1 with ha
+  set c : ℂ := (α : ℂ) + 1 with hc
+  set C : ℕ → ℂ := fun k => poch c n / n ! * gaussHGCoeff (-(n : ℂ)) a c k / 2 ^ k with hC
+  have hexp : Set.EqOn
+      (fun x : ℝ => (1 - (x : ℂ)) ^ (z - 1) * (1 + (x : ℂ)) ^ (β : ℂ) * jacobiPolyP α β n x)
+      (fun x : ℝ => ∑ k ∈ Finset.range (n + 1),
+        C k * ((1 - (x : ℂ)) ^ (z - 1 + k) * (1 + (x : ℂ)) ^ (β : ℂ))) (Set.Ioo (-1) 1) := by
+    intro x hx
+    have h1 : (1 - (x : ℂ)) ≠ 0 := by
+      rw [← ofReal_one, ← ofReal_sub]; exact ofReal_ne_zero.mpr (by linarith [hx.2])
+    simp only [jacobiPolyP, ordinaryHypergeometric_eq_sum_neg_nat, Finset.mul_sum, hC]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [cpow_add _ _ h1, cpow_natCast, div_pow, ← hc, ← ha]
+    have h2 : (2 : ℂ) ^ k ≠ 0 := pow_ne_zero _ two_ne_zero
+    field_simp
+  have hint (k : ℕ) : IntervalIntegrable
+      (fun x : ℝ => C k * ((1 - (x : ℂ)) ^ (z - 1 + k) * (1 + (x : ℂ)) ^ (β : ℂ)))
+      volume (-1) 1 :=
+    (intervalIntegrable_jacobi_weight_cpow (a := z - 1 + k) (b := (β : ℂ))
+      (by simp; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]) (by simpa using hβ)).const_mul _
+  rw [intervalIntegral.integral_congr_Ioo_of_le (by norm_num) hexp,
+    intervalIntegral.integral_finsetSum fun k _ => hint k]
+  simp only [intervalIntegral.integral_const_mul]
+  have hzb : 0 < (z + β + 1).re := by simp; linarith
+  have hc0 : 0 < c.re := by simp [hc]; linarith
+  have hb1 : 0 < ((β : ℂ) + 1).re := by simp; linarith
+  have hsum : 1 + a + z - c - n = z + β + 1 := by simp only [ha, hc]; ring
+  set K : ℂ := poch c n / n ! * (2 : ℂ) ^ (z + β) * Gamma z * Gamma ((β : ℂ) + 1) /
+    Gamma (z + β + 1) with hK
+  have hterm : ∀ k ∈ Finset.range (n + 1),
+      C k * ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ (z - 1 + k) * (1 + (x : ℂ)) ^ (β : ℂ) =
+      K * (poch (-(n : ℂ)) k * poch a k * poch z k /
+        (poch c k * poch (1 + a + z - c - n) k * k !)) := by
+    intro k _
+    rw [integral_jacobi_weight_cpow (by simp; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)])
+      (by simpa using hβ)]
+    rw [show z - 1 + k + 1 = z + k by ring, show z - 1 + k + β + 2 = (z + β + 1) + k by ring,
+      Gamma_add_nat_eq_poch_mul hz, Gamma_add_nat_eq_poch_mul hzb,
+      show z - 1 + k + β + 1 = (z + β) + k by ring, cpow_add _ _ two_ne_zero, cpow_natCast,
+      hsum]
+    have h1 : poch (z + β + 1) k ≠ 0 := poch_ne_zero_of_re_pos hzb k
+    have h2 : poch c k ≠ 0 := poch_ne_zero_of_re_pos hc0 k
+    have h3 : Gamma (z + β + 1) ≠ 0 := Gamma_ne_zero_of_re_pos hzb
+    have h4 : (2 : ℂ) ^ k ≠ 0 := pow_ne_zero _ two_ne_zero
+    have h5 : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    simp only [hC, hK, gaussHGCoeff]
+    field_simp
+  have hcn : ∀ k : ℕ, c ≠ -k := fun k h => by
+    have := congrArg re h; simp [hc] at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hd : poch (1 + a + z - c - n) n ≠ 0 := by rw [hsum]; exact poch_ne_zero_of_re_pos hzb n
+  rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum, pfaff_saalschutz n hcn hd]
+  rw [show c - a - z = -((n : ℂ) + β + z) by simp only [ha, hc]; ring,
+    show c - a = -((n : ℂ) + β) by simp only [ha, hc]; ring,
+    AAR.Gamma.poch_neg_eq, AAR.Gamma.poch_neg_eq,
+    show (n : ℂ) + β - n + 1 = β + 1 by ring, show (n : ℂ) + β + z - n + 1 = z + β + 1 by ring,
+    show c - z = 1 + α - z by simp only [hc]; ring,
+    show (1 : ℂ) + β + n = (β + 1) + n by ring, show (1 : ℂ) + β + z + n = (z + β + 1) + n by ring,
+    Gamma_add_nat_eq_poch_mul hb1, Gamma_add_nat_eq_poch_mul hzb]
+  have h1 : poch (z + β + 1) n ≠ 0 := poch_ne_zero_of_re_pos hzb n
+  have h2 : poch c n ≠ 0 := poch_ne_zero_of_re_pos hc0 n
+  have h3 : Gamma (z + β + 1) ≠ 0 := Gamma_ne_zero_of_re_pos hzb
+  have h5 : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have h6 : ((-1 : ℂ) ^ n) ≠ 0 := pow_ne_zero _ (by norm_num)
+  simp only [hK]
+  rw [add_comm (β : ℂ) z]
+  field_simp
+
+/-- The substitution `s = 1 - 2x²` on `(0, 1)`, with no regularity assumption on `F`. -/
+lemma integral_mul_comp_one_sub_two_sq (F : ℝ → ℂ) :
+    (∫ x : ℝ in (0 : ℝ)..1, (x : ℂ) * F (1 - 2 * x ^ 2)) =
+      (1 / 4 : ℂ) * ∫ s : ℝ in (-1 : ℝ)..1, F s := by
+  have himg : (fun x : ℝ => 1 - 2 * x ^ 2) '' Set.Ioo 0 1 = Set.Ioo (-1) 1 := by
+    ext s
+    constructor
+    · rintro ⟨x, ⟨hx0, hx1⟩, rfl⟩
+      constructor <;> nlinarith
+    · rintro ⟨hs0, hs1⟩
+      refine ⟨Real.sqrt ((1 - s) / 2), ⟨Real.sqrt_pos.mpr (by linarith), ?_⟩, ?_⟩
+      · rw [Real.sqrt_lt' one_pos]; linarith
+      · show 1 - 2 * Real.sqrt ((1 - s) / 2) ^ 2 = s
+        rw [Real.sq_sqrt (by linarith)]; ring
+  have hderiv : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (fun x : ℝ => 1 - 2 * x ^ 2) (-(4 * x)) (Set.Ioo 0 1) x := by
+    intro x _
+    have := ((hasDerivAt_pow 2 x).const_mul 2).const_sub 1
+    convert this.hasDerivWithinAt using 1
+    push_cast; ring
+  have hinj : Set.InjOn (fun x : ℝ => 1 - 2 * x ^ 2) (Set.Ioo 0 1) := by
+    intro x hx y hy hxy
+    have h2 : x ^ 2 = y ^ 2 := by simp only at hxy; linarith
+    exact (pow_left_inj₀ hx.1.le hy.1.le two_ne_zero).mp h2
+  have he := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioo hderiv hinj F
+  rw [himg] at he
+  rw [intervalIntegral.integral_of_le (by norm_num), intervalIntegral.integral_of_le (by norm_num),
+    integral_Ioc_eq_integral_Ioo, integral_Ioc_eq_integral_Ioo, he, ← integral_const_mul]
+  refine setIntegral_congr_fun measurableSet_Ioo fun x hx => ?_
+  rw [abs_neg, abs_of_pos (by linarith [hx.1]), Complex.real_smul]
+  push_cast
+  ring
+
+
+/-- The substitution `s = 1 - 2x²` turns `(1-x²)^μ x^v` on `(0, 1)` into a Jacobi weight. -/
+lemma integral_one_sub_sq_cpow_mul_cpow (μ v : ℂ) (G : ℝ → ℂ) :
+    (∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ μ * (x : ℂ) ^ v * G (1 - 2 * x ^ 2)) =
+      (1 / 4 : ℂ) * (2 : ℂ) ^ (-(μ + (v - 1) / 2)) * ∫ s : ℝ in (-1 : ℝ)..1,
+        (1 - (s : ℂ)) ^ ((v - 1) / 2) * (1 + (s : ℂ)) ^ μ * G s := by
+  set w : ℂ := (v - 1) / 2 with hw
+  rw [mul_assoc, ← intervalIntegral.integral_const_mul, ← integral_mul_comp_one_sub_two_sq]
+  refine intervalIntegral.integral_congr_Ioo_of_le (by norm_num) fun x hx => ?_
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.1.ne'
+  have hA : ((2 : ℂ) * (1 - (x : ℂ) ^ 2)) ^ μ = (2 : ℂ) ^ μ * (1 - (x : ℂ) ^ 2) ^ μ := by
+    have := mul_cpow_ofReal_nonneg (show (0 : ℝ) ≤ 2 by norm_num)
+      (show (0 : ℝ) ≤ 1 - x ^ 2 by nlinarith [hx.1, hx.2]) μ
+    push_cast at this; exact this
+  have hB : ((2 : ℂ) * (x : ℂ) ^ 2) ^ w = (2 : ℂ) ^ w * ((x : ℂ) ^ 2) ^ w := by
+    have := mul_cpow_ofReal_nonneg (show (0 : ℝ) ≤ 2 by norm_num) (sq_nonneg x) w
+    push_cast at this; exact this
+  have hC : ((x : ℂ) ^ 2) ^ w = (x : ℂ) ^ (2 * w) := by
+    rw [cpow_mul _ (by rw [← ofReal_log hx.1.le]; simp; positivity)
+      (by rw [← ofReal_log hx.1.le]; simp; positivity), cpow_two]
+  have hD : (x : ℂ) ^ v = (x : ℂ) * (x : ℂ) ^ (2 * w) := by
+    rw [hw, show 2 * ((v - 1) / 2) = v - 1 by ring, cpow_sub _ _ hx0, cpow_one]
+    field_simp
+  have h2 : (2 : ℂ) ^ (-(μ + w)) * (2 : ℂ) ^ w * (2 : ℂ) ^ μ = 1 := by
+    rw [cpow_neg, cpow_add _ _ two_ne_zero]
+    have : (2 : ℂ) ^ μ * (2 : ℂ) ^ w ≠ 0 := mul_ne_zero (cpow_ne_zero_iff.mpr (Or.inl two_ne_zero))
+      (cpow_ne_zero_iff.mpr (Or.inl two_ne_zero))
+    field_simp
+  push_cast
+  rw [show (1 : ℂ) - (1 - 2 * (x : ℂ) ^ 2) = 2 * (x : ℂ) ^ 2 by ring,
+    show (1 : ℂ) + (1 - 2 * (x : ℂ) ^ 2) = 2 * (1 - (x : ℂ) ^ 2) by ring, hA, hB, hC, hD]
+  linear_combination -(x : ℂ) * (x : ℂ) ^ (2 * w) * (1 - (x : ℂ) ^ 2) ^ μ *
+    G (1 - 2 * x ^ 2) * h2
+
 
 @[dlmf 18.17.E38]
 theorem legendre_even_mellin_transform {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
-    ∫ x : ℝ in (0 : ℝ)..1, legendreP (2 * n) x * (x : ℂ) ^ (z - 1) =
+    ∫ x : ℝ in (0 : ℝ)..1, legendrePolyP (2 * n) x * (x : ℂ) ^ (z - 1) =
       (-1 : ℂ) ^ n * poch (1 / 2 - z / 2) n / (2 * poch (z / 2) (n + 1)) := by
-  sorry
+  have hrw : ∀ x : ℝ, legendrePolyP (2 * n) x * (x : ℂ) ^ (z - 1) =
+      (1 - (x : ℂ) ^ 2) ^ (0 : ℂ) * (x : ℂ) ^ (z - 1) *
+        ((-1 : ℂ) ^ n *
+          jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n ((1 - 2 * x ^ 2 : ℝ) : ℂ)) := by
+    intro x
+    have hp : poch (1 / 2 : ℂ) n ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) n
+    rw [cpow_zero, one_mul, legendre_eq_ultrasphPoly,
+      ultrasphPoly_quadratic_even (by norm_num : -1 / 2 < (1 / 2 : ℂ).re),
+      show 2 * (x : ℂ) ^ 2 - 1 = -((1 - 2 * x ^ 2 : ℝ) : ℂ) by push_cast; ring,
+      jacobi_reflection (by norm_num) (by norm_num), div_self hp]
+    push_cast
+    ring_nf
+  rw [intervalIntegral.integral_congr (fun x _ => hrw x),
+    integral_one_sub_sq_cpow_mul_cpow 0 (z - 1)
+      (fun s => (-1 : ℂ) ^ n * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s)]
+  have hz2 : 0 < (z / 2).re := by simp; linarith
+  have hJ := jacobi_mellin_transform (α := -1 / 2) (β := 0) (by norm_num) (by norm_num) hz2 n
+  have hint : (∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ ((z - 1 - 1) / 2) * (1 + (s : ℂ)) ^ (0 : ℂ) *
+      ((-1 : ℂ) ^ n * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s)) =
+      (-1 : ℂ) ^ n * ∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ (z / 2 - 1) *
+        (1 + (s : ℂ)) ^ ((0 : ℝ) : ℂ) * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun s _ => ?_
+    simp only [ofReal_zero]
+    rw [show (z - 1 - 1) / 2 = z / 2 - 1 by ring]
+    ring
+  rw [hint, hJ]
+  have hG : Gamma (1 + ((0 : ℝ) : ℂ) + z / 2 + n) = poch (z / 2) (n + 1) * Gamma (z / 2) := by
+    rw [← Gamma_add_nat_eq_poch_mul hz2]; push_cast; ring_nf
+  have hG1 : Gamma (1 + ((0 : ℝ) : ℂ) + n) = n ! := by
+    rw [show 1 + ((0 : ℝ) : ℂ) + n = (n : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
+  have h2 : (2 : ℂ) ^ (-((0 : ℂ) + (z - 1 - 1) / 2)) * (2 : ℂ) ^ (((0 : ℝ) : ℂ) + z / 2) = 2 := by
+    rw [← cpow_add _ _ two_ne_zero, show -((0 : ℂ) + (z - 1 - 1) / 2) + (((0 : ℝ) : ℂ) + z / 2) = 1
+      by push_cast; ring, cpow_one]
+  rw [hG, hG1]
+  have hp : poch (z / 2) (n + 1) ≠ 0 := poch_ne_zero_of_re_pos hz2 _
+  have hg : Gamma (z / 2) ≠ 0 := Gamma_ne_zero_of_re_pos hz2
+  have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  rw [show (1 : ℂ) + ((-1 / 2 : ℝ) : ℂ) - z / 2 = 1 / 2 - z / 2 by push_cast; ring]
+  generalize (2 : ℂ) ^ (-((0 : ℂ) + (z - 1 - 1) / 2)) = P at h2 ⊢
+  generalize (2 : ℂ) ^ (((0 : ℝ) : ℂ) + z / 2) = Q at h2 ⊢
+  generalize poch (1 / 2 - z / 2) n = R
+  field_simp
+  linear_combination 2 * R * h2
 
 @[dlmf 18.17.E39]
 theorem legendre_odd_mellin_transform {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
-    ∫ x : ℝ in (0 : ℝ)..1, legendreP (2 * n + 1) x * (x : ℂ) ^ (z - 1) =
+    ∫ x : ℝ in (0 : ℝ)..1, legendrePolyP (2 * n + 1) x * (x : ℂ) ^ (z - 1) =
       (-1 : ℂ) ^ n * poch (1 - z / 2) n / (2 * poch (1 / 2 + z / 2) (n + 1)) := by
-  sorry
+  have hz0 : z ≠ 0 := fun h => by simp [h] at hz
+  have hrw : Set.EqOn (fun x : ℝ => legendrePolyP (2 * n + 1) x * (x : ℂ) ^ (z - 1))
+      (fun x : ℝ => (1 - (x : ℂ) ^ 2) ^ (0 : ℂ) * (x : ℂ) ^ z *
+        ((-1 : ℂ) ^ n * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n ((1 - 2 * x ^ 2 : ℝ) : ℂ)))
+      (Set.Ioo 0 1) := by
+    intro x hx
+    have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.1.ne'
+    have hp : poch (1 / 2 : ℂ) (n + 1) ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) _
+    simp only
+    rw [cpow_zero, one_mul, legendre_eq_ultrasphPoly,
+      ultrasphPoly_quadratic_odd (by norm_num : -1 / 2 < (1 / 2 : ℂ).re),
+      show 2 * (x : ℂ) ^ 2 - 1 = -((1 - 2 * x ^ 2 : ℝ) : ℂ) by push_cast; ring,
+      jacobi_reflection (by norm_num) (by norm_num), div_self hp,
+      show z = (z - 1) + 1 by ring, cpow_add _ _ hx0, cpow_one, show z - 1 + 1 - 1 = z - 1 by ring]
+    push_cast
+    ring_nf
+  rw [intervalIntegral.integral_congr_Ioo_of_le (by norm_num) hrw,
+    integral_one_sub_sq_cpow_mul_cpow 0 z
+      (fun s => (-1 : ℂ) ^ n * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s)]
+  have hw : 0 < (1 / 2 + z / 2).re := by simp; linarith
+  have hJ := jacobi_mellin_transform (α := 1 / 2) (β := 0) (by norm_num) (by norm_num) hw n
+  have hint : (∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ ((z - 1) / 2) * (1 + (s : ℂ)) ^ (0 : ℂ) *
+      ((-1 : ℂ) ^ n * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s)) =
+      (-1 : ℂ) ^ n * ∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ (1 / 2 + z / 2 - 1) *
+        (1 + (s : ℂ)) ^ ((0 : ℝ) : ℂ) * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((0 : ℝ) : ℂ) n s := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun s _ => ?_
+    simp only [ofReal_zero]
+    rw [show (z - 1) / 2 = 1 / 2 + z / 2 - 1 by ring]
+    ring
+  rw [hint, hJ]
+  have hG : Gamma (1 + ((0 : ℝ) : ℂ) + (1 / 2 + z / 2) + n) =
+      poch (1 / 2 + z / 2) (n + 1) * Gamma (1 / 2 + z / 2) := by
+    rw [← Gamma_add_nat_eq_poch_mul hw]; push_cast; ring_nf
+  have hG1 : Gamma (1 + ((0 : ℝ) : ℂ) + n) = n ! := by
+    rw [show 1 + ((0 : ℝ) : ℂ) + n = (n : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
+  have h2 : (2 : ℂ) ^ (-((0 : ℂ) + (z - 1) / 2)) * (2 : ℂ) ^ (((0 : ℝ) : ℂ) + (1 / 2 + z / 2)) =
+      2 := by
+    rw [← cpow_add _ _ two_ne_zero, show -((0 : ℂ) + (z - 1) / 2) +
+      (((0 : ℝ) : ℂ) + (1 / 2 + z / 2)) = 1 by push_cast; ring, cpow_one]
+  rw [hG, hG1]
+  have hp : poch (1 / 2 + z / 2) (n + 1) ≠ 0 := poch_ne_zero_of_re_pos hw _
+  have hg : Gamma (1 / 2 + z / 2) ≠ 0 := Gamma_ne_zero_of_re_pos hw
+  have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  rw [show (1 : ℂ) + ((1 / 2 : ℝ) : ℂ) - (1 / 2 + z / 2) = 1 - z / 2 by push_cast; ring]
+  generalize (2 : ℂ) ^ (-((0 : ℂ) + (z - 1) / 2)) = P at h2 ⊢
+  generalize (2 : ℂ) ^ (((0 : ℝ) : ℂ) + (1 / 2 + z / 2)) = Q at h2 ⊢
+  generalize poch (1 - z / 2) n = R
+  generalize Gamma (1 / 2 + z / 2) = A at hg ⊢
+  generalize poch (1 / 2 + z / 2) (n + 1) = B at hp ⊢
+  field_simp
+  linear_combination 2 * R * h2
 
 @[dlmf 18.17.E44]
 theorem legendre_singular_integral (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    ∫ t : ℝ in (-1 : ℝ)..1, (legendreP n x - legendreP n t) / (|x - t| : ℝ) =
-      2 * (∑ k ∈ Finset.range n, ((k + 1 : ℂ)⁻¹)) * legendreP n x := by
+    ∫ t : ℝ in (-1 : ℝ)..1, (legendrePolyP n x - legendrePolyP n t) / (|x - t| : ℝ) =
+      2 * (∑ k ∈ Finset.range n, ((k + 1 : ℂ)⁻¹)) * legendrePolyP n x := by
   sorry
 
 /-- Vandermonde convolution applied to an arbitrary finite coefficient sequence. -/
@@ -1972,16 +2253,16 @@ private lemma binomial_double_sum (m n : ℕ) (f : ℕ → ℂ) :
   simpa only [sum_monomial_index, zero_mul] using h
 
 /-- Finite Gamma-normalized expansion of the Laguerre polynomial divided by its value at zero. -/
-lemma laguerre_normalized_sum {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    laguerre α n x / laguerre α n 0 =
+lemma laguerrePolyL_normalized_sum {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    laguerrePolyL α n x / laguerrePolyL α n 0 =
       Gamma (α + 1) * ∑ i ∈ Finset.range (n + 1),
         (n.choose i : ℂ) * (-x) ^ i / Gamma (α + 1 + i) := by
   have ha : 0 < (α + 1).re := by simp; linarith
   have hc := not_neg_nat_of_re_pos ha
   have hp : poch (α + 1) n / (n.factorial : ℂ) ≠ 0 :=
     div_ne_zero (poch_ne_zero_of_not_neg_nat hc n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-  rw [laguerre_at_zero, laguerre, mul_div_cancel_left₀ _ hp,
-    confluentM_eq_sum_neg_nat, Finset.mul_sum]
+  rw [laguerrePolyL_at_zero, laguerrePolyL, mul_div_cancel_left₀ _ hp,
+    kummerM_eq_sum_neg_nat, Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   have hpi := poch_ne_zero_of_not_neg_nat hc i
   have hgi := Gamma_ne_zero_of_re_pos (show 0 < (α + 1 + i).re by
@@ -1997,23 +2278,24 @@ lemma laguerre_normalized_sum {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) 
   ring
 
 /-- Power expansion of a normalized Laguerre polynomial with its endpoint weight. -/
-lemma laguerre_normalized_weight_sum {α : ℂ} (hα : -1 < α.re)
+lemma laguerrePolyL_normalized_weight_sum {α : ℂ} (hα : -1 < α.re)
     (n : ℕ) {t : ℝ} (ht : 0 < t) :
-    (t : ℂ) ^ α * laguerre α n t / laguerre α n 0 =
+    (t : ℂ) ^ α * laguerrePolyL α n t / laguerrePolyL α n 0 =
       Gamma (α + 1) * ∑ i ∈ Finset.range (n + 1),
         (n.choose i : ℂ) * (-1) ^ i / Gamma (α + 1 + i) * (t : ℂ) ^ (α + i) := by
-  rw [mul_div_assoc, laguerre_normalized_sum hα, ← mul_assoc, Finset.mul_sum,
+  rw [mul_div_assoc, laguerrePolyL_normalized_sum hα, ← mul_assoc, Finset.mul_sum,
     Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [cpow_add _ _ (ofReal_ne_zero.mpr ht.ne'), cpow_natCast, neg_pow]
   ring
 
 @[dlmf 18.17.E47]
-theorem laguerre_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx : 0 < x) (m n : ℕ) :
-    ∫ t : ℝ in (0 : ℝ)..x, (t : ℂ) ^ (α : ℂ) * laguerre α m t / laguerre α m 0 *
-      (x - t : ℂ) ^ (β : ℂ) * laguerre β n (x - t) / laguerre β n 0 =
+theorem laguerrePolyL_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx : 0 < x) (m n : ℕ) :
+    ∫ t : ℝ in (0 : ℝ)..x, (t : ℂ) ^ (α : ℂ) * laguerrePolyL α m t / laguerrePolyL α m 0 *
+      (x - t : ℂ) ^ (β : ℂ) * laguerrePolyL β n (x - t) / laguerrePolyL β n 0 =
       Gamma (α + 1 : ℂ) * Gamma (β + 1 : ℂ) / Gamma (α + β + 2 : ℂ) *
-      (x : ℂ) ^ (α + β + 1 : ℂ) * laguerre (α + β + 1) (m + n) x / laguerre (α + β + 1) (m + n) 0 := by
+      (x : ℂ) ^ (α + β + 1 : ℂ) * laguerrePolyL (α + β + 1) (m + n) x
+          / laguerrePolyL (α + β + 1) (m + n) 0 := by
   have ha : -1 < (α : ℂ).re := hα
   have hb : -1 < (β : ℂ).re := hβ
   have hc : -1 < ((α + β + 1 : ℝ) : ℂ).re := by simp; linarith
@@ -2047,8 +2329,8 @@ theorem laguerre_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx
         (α : ℂ) + β + 2 + (i + j : ℕ) by push_cast; ring]
     rw [neg_pow (x : ℂ)]
     field_simp
-  have he : (∫ t : ℝ in (0 : ℝ)..x, (t : ℂ) ^ (α : ℂ) * laguerre α m t / laguerre α m 0 *
-      (x - t : ℂ) ^ (β : ℂ) * laguerre β n (x - t) / laguerre β n 0) =
+  have he : (∫ t : ℝ in (0 : ℝ)..x, (t : ℂ) ^ (α : ℂ) * laguerrePolyL α m t / laguerrePolyL α m 0 *
+      (x - t : ℂ) ^ (β : ℂ) * laguerrePolyL β n (x - t) / laguerrePolyL β n 0) =
       Gamma ((α : ℂ) + 1) * Gamma ((β : ℂ) + 1) *
         ∫ t : ℝ in (0 : ℝ)..x, ∑ i ∈ Finset.range (m + 1), ∑ j ∈ Finset.range (n + 1), F i j t := by
     rw [← intervalIntegral.integral_const_mul]
@@ -2057,11 +2339,12 @@ theorem laguerre_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx
     dsimp only
     rw [← ofReal_sub x t]
     have ht' : 0 < x - t := sub_pos.mpr ht.2
-    rw [show (t : ℂ) ^ (α : ℂ) * laguerre α m t / laguerre α m 0 *
-        ((x - t : ℝ) : ℂ) ^ (β : ℂ) * laguerre β n ((x - t : ℝ) : ℂ) / laguerre β n 0 =
-        ((t : ℂ) ^ (α : ℂ) * laguerre α m t / laguerre α m 0) *
-        (((x - t : ℝ) : ℂ) ^ (β : ℂ) * laguerre β n ((x - t : ℝ) : ℂ) / laguerre β n 0) by ring,
-      laguerre_normalized_weight_sum ha m ht.1, laguerre_normalized_weight_sum hb n ht']
+    rw [show (t : ℂ) ^ (α : ℂ) * laguerrePolyL α m t / laguerrePolyL α m 0 *
+        ((x - t : ℝ) : ℂ) ^ (β : ℂ) * laguerrePolyL β n ((x - t : ℝ) : ℂ) / laguerrePolyL β n 0 =
+        ((t : ℂ) ^ (α : ℂ) * laguerrePolyL α m t / laguerrePolyL α m 0) *
+        (((x - t : ℝ) : ℂ) ^ (β : ℂ) * laguerrePolyL β n ((x - t : ℝ) : ℂ) / laguerrePolyL β n 0) by
+            ring,
+      laguerrePolyL_normalized_weight_sum ha m ht.1, laguerrePolyL_normalized_weight_sum hb n ht']
     simp only [Finset.mul_sum, Finset.sum_mul, F, ofReal_sub, pow_add]
     rw [Finset.sum_comm]
     apply Finset.sum_congr rfl
@@ -2086,7 +2369,7 @@ theorem laguerre_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx
   rw [hbin]
   have hgc : Gamma ((α : ℂ) + β + 2) ≠ 0 :=
     Gamma_ne_zero_of_re_pos (by simp; linarith)
-  have hn := laguerre_normalized_sum hc (m + n) (x : ℂ)
+  have hn := laguerrePolyL_normalized_sum hc (m + n) (x : ℂ)
   push_cast at hn
   rw [show (α : ℂ) + β + 1 + 1 = (α : ℂ) + β + 2 by ring] at hn
   simp only [div_eq_mul_inv, mul_assoc] at hn
@@ -2094,16 +2377,16 @@ theorem laguerre_convolution {α β x : ℝ} (hα : -1 < α) (hβ : -1 < β) (hx
   field_simp
 
 @[dlmf 18.17.E48]
-theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
-    ∫ y : ℝ, (aeval y (hermitePhys m) : ℝ) * Real.exp (-(y ^ 2)) *
-      aeval (x - y) (hermitePhys n) * Real.exp (-((x - y) ^ 2)) =
+theorem hermitePolyH_convolution (m n : ℕ) (x : ℝ) :
+    ∫ y : ℝ, (aeval y (hermitePolyH m) : ℝ) * Real.exp (-(y ^ 2)) *
+      aeval (x - y) (hermitePolyH n) * Real.exp (-((x - y) ^ 2)) =
       Real.sqrt Real.pi * (2 : ℝ) ^ (-((m : ℝ) + n + 1) / 2) *
-      aeval (x / Real.sqrt 2) (hermitePhys (m + n)) * Real.exp (-(x ^ 2) / 2) := by
-  let g (j : ℕ) (t : ℝ) := (aeval t (hermitePhys j) : ℝ) * Real.exp (-(t ^ 2))
+      aeval (x / Real.sqrt 2) (hermitePolyH (m + n)) * Real.exp (-(x ^ 2) / 2) := by
+  let g (j : ℕ) (t : ℝ) := (aeval t (hermitePolyH j) : ℝ) * Real.exp (-(t ^ 2))
   have hg (j : ℕ) (t : ℝ) : HasDerivAt (g j) (-g (j + 1) t) t := by
-    simpa only [g, aeval_hermitePhys_eq_eval] using hasDerivAt_hermite_gauss j t
+    simpa only [g, aeval_hermitePolyH_eq_eval] using hasDerivAt_hermite_gauss j t
   have hi (j k : ℕ) : Integrable (fun t => g j t * g k (x - t)) := by
-    let q := hermitePhysR j * (hermitePhysR k).comp (C x - X)
+    let q := hermitePolyHR j * (hermitePolyHR k).comp (C x - X)
     have he := (integrable_eval_mul_exp_neg_sq q).mul_bdd
       (by fun_prop : Continuous (fun t : ℝ => Real.exp (-((x - t) ^ 2)))).aestronglyMeasurable
       (Eventually.of_forall fun t => show ‖Real.exp (-((x - t) ^ 2))‖ ≤ (1 : ℝ) by
@@ -2112,7 +2395,7 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
     apply he.congr
     filter_upwards [] with t
     simp only [q, g, eval_mul, eval_comp, eval_sub, eval_C, eval_X,
-      aeval_hermitePhys_eq_eval]
+      aeval_hermitePolyH_eq_eval]
     ring
   have htransfer (j k : ℕ) : (∫ t, g (j + 1) t * g k (x - t)) =
       ∫ t, g j t * g (k + 1) (x - t) := by
@@ -2134,27 +2417,27 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
   have hs2 : s ^ 2 = 2 := by simp [s]
   have hr : 0 < r := inv_pos.mpr hs
   have hab : r ^ 2 + (-r) ^ 2 = 1 := by dsimp [r]; field_simp; nlinarith
-  have hmoment (k : ℕ) : (∫ u : ℝ, (aeval (r * v - r * u) (hermitePhys k) : ℝ) *
-      Real.exp (-(u ^ 2))) = r ^ k * aeval v (hermitePhys k) * Real.sqrt π := by
-    have hfun (u : ℝ) : (aeval (r * v - r * u) (hermitePhys k) : ℝ) * Real.exp (-(u ^ 2)) =
+  have hmoment (k : ℕ) : (∫ u : ℝ, (aeval (r * v - r * u) (hermitePolyH k) : ℝ) *
+      Real.exp (-(u ^ 2))) = r ^ k * aeval v (hermitePolyH k) * Real.sqrt π := by
+    have hfun (u : ℝ) : (aeval (r * v - r * u) (hermitePolyH k) : ℝ) * Real.exp (-(u ^ 2)) =
         ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) * r ^ i * (-r) ^ (k - i) *
-          aeval v (hermitePhys i) * (aeval u (hermitePhys (k - i)) * Real.exp (-(u ^ 2))) := by
+          aeval v (hermitePolyH i) * (aeval u (hermitePolyH (k - i)) * Real.exp (-(u ^ 2))) := by
       rw [show r * v - r * u = r * v + (-r) * u by ring,
-        hermitePhys_addition r (-r) v u hab, Finset.sum_mul]
+        hermitePolyH_addition r (-r) v u hab, Finset.sum_mul]
       apply Finset.sum_congr rfl
       intro i _
       ring
     simp_rw [hfun]
     rw [integral_finsetSum _ (fun i _ => by
-      simpa only [aeval_hermitePhys_eq_eval] using
-        ((integrable_eval_mul_exp_neg_sq (hermitePhysR (k - i))).const_mul
-          ((k.choose i : ℝ) * r ^ i * (-r) ^ (k - i) * aeval v (hermitePhys i))))]
+      simpa only [aeval_hermitePolyH_eq_eval] using
+        ((integrable_eval_mul_exp_neg_sq (hermitePolyHR (k - i))).const_mul
+          ((k.choose i : ℝ) * r ^ i * (-r) ^ (k - i) * aeval v (hermitePolyH i))))]
     simp_rw [integral_const_mul]
-    have hm (i : ℕ) : (∫ u : ℝ, (aeval u (hermitePhys i) : ℝ) * Real.exp (-(u ^ 2))) =
+    have hm (i : ℕ) : (∫ u : ℝ, (aeval u (hermitePolyH i) : ℝ) * Real.exp (-(u ^ 2))) =
         if i = 0 then Real.sqrt π else 0 := by
       by_cases hi : i = 0
-      · subst i; simpa using hermitePhys_orthogonality 0 0
-      · simpa [hi, Ne.symm hi] using hermitePhys_orthogonality 0 i
+      · subst i; simpa using hermitePolyH_orthogonality 0 0
+      · simpa [hi, Ne.symm hi] using hermitePolyH_orthogonality 0 i
     simp_rw [hm]
     rw [Finset.sum_eq_single k]
     · simp
@@ -2164,13 +2447,13 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
     · simp
   have hbase (k : ℕ) : (∫ t, g 0 t * g k (x - t)) =
       Real.sqrt π * (2 : ℝ) ^ (-((k : ℝ) + 1) / 2) *
-        aeval v (hermitePhys k) * Real.exp (-(x ^ 2) / 2) := by
+        aeval v (hermitePolyH k) * Real.exp (-(x ^ 2) / 2) := by
     let F : ℝ → ℝ := fun t => g 0 t * g k (x - t)
     have hchange : (∫ u : ℝ, F (r * u + x / 2)) = s * ∫ t : ℝ, F t := by
       have he := Measure.integral_comp_mul_left (fun t => F (t + x / 2)) r
       simpa only [integral_add_right_eq_self, r, inv_inv, abs_of_pos hs, smul_eq_mul] using he
     have hfun (u : ℝ) : F (r * u + x / 2) = Real.exp (-(x ^ 2) / 2) *
-        ((aeval (r * v - r * u) (hermitePhys k) : ℝ) * Real.exp (-(u ^ 2))) := by
+        ((aeval (r * v - r * u) (hermitePolyH k) : ℝ) * Real.exp (-(u ^ 2))) := by
       have hx : x - (r * u + x / 2) = r * v - r * u := by
         dsimp [r, v]
         field_simp [hs.ne']
@@ -2178,7 +2461,7 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
         simp [hs2]
         ring
       dsimp only [F, g]
-      simp only [hermitePhys_zero, map_one, one_mul]
+      simp only [hermitePolyH_zero, map_one, one_mul]
       rw [hx]
       have he : Real.exp (-((r * u + x / 2) ^ 2)) * Real.exp (-((r * v - r * u) ^ 2)) =
           Real.exp (-(x ^ 2) / 2) * Real.exp (-(u ^ 2)) := by
@@ -2190,7 +2473,7 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
         simp [hs2, show s ^ 3 = 2 * s by rw [pow_succ, hs2],
           show s ^ 4 = 4 by rw [show s ^ 4 = (s ^ 2) ^ 2 by ring, hs2]; norm_num]
         ring
-      linear_combination (aeval (r * v - r * u) (hermitePhys k) : ℝ) * he
+      linear_combination (aeval (r * v - r * u) (hermitePolyH k) : ℝ) * he
     simp_rw [hfun] at hchange
     rw [integral_const_mul, hmoment] at hchange
     have hpow : r ^ k / s = (2 : ℝ) ^ (-((k : ℝ) + 1) / 2) := by
@@ -2209,38 +2492,38 @@ theorem hermitePhys_convolution (m n : ℕ) (x : ℝ) :
   simpa only [g, v, s, Nat.cast_add, mul_assoc] using he
 
 @[dlmf 18.17.E49]
-theorem hermitePhys_triple_integral (a b c : ℕ) :
-    ∫ x : ℝ, (aeval x (hermitePhys (a + b)) : ℝ) * aeval x (hermitePhys (b + c)) *
-      aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2)) =
+theorem hermitePolyH_triple_integral (a b c : ℕ) :
+    ∫ x : ℝ, (aeval x (hermitePolyH (a + b)) : ℝ) * aeval x (hermitePolyH (b + c)) *
+      aeval x (hermitePolyH (c + a)) * Real.exp (-(x ^ 2)) =
       2 ^ (a + b + c) * (a + b).factorial * (b + c).factorial * (c + a).factorial *
       Real.sqrt Real.pi / ((a.factorial : ℝ) * b.factorial * c.factorial) := by
   have hl (m n : ℕ) (x : ℝ) :
-      (aeval x (hermitePhys m) : ℝ) * aeval x (hermitePhys n) =
+      (aeval x (hermitePolyH m) : ℝ) * aeval x (hermitePolyH n) =
         ∑ k ∈ Finset.range (min m n + 1), (m.choose k : ℝ) * n.choose k * 2 ^ k * k.factorial *
-          aeval x (hermitePhys (m + n - 2 * k)) := by
-    have h := hermitePhys_linearization m n (x : ℂ)
-    have castH (j : ℕ) : (aeval (x : ℂ) (hermitePhys j) : ℂ) =
-        ((aeval x (hermitePhys j) : ℝ) : ℂ) :=
-      aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x (hermitePhys j)
+          aeval x (hermitePolyH (m + n - 2 * k)) := by
+    have h := hermitePolyH_linearization m n (x : ℂ)
+    have castH (j : ℕ) : (aeval (x : ℂ) (hermitePolyH j) : ℂ) =
+        ((aeval x (hermitePolyH j) : ℝ) : ℂ) :=
+      aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x (hermitePolyH j)
     simp_rw [castH] at h
     exact_mod_cast h
   have hi (k : ℕ) : Integrable (fun x : ℝ =>
-      (aeval x (hermitePhys (a + b + (b + c) - 2 * k)) : ℝ) *
-        aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) := by
-    simp_rw [aeval_hermitePhys_eq_eval, ← eval_mul]
+      (aeval x (hermitePolyH (a + b + (b + c) - 2 * k)) : ℝ) *
+        aeval x (hermitePolyH (c + a)) * Real.exp (-(x ^ 2))) := by
+    simp_rw [aeval_hermitePolyH_eq_eval, ← eval_mul]
     exact integrable_eval_mul_exp_neg_sq _
-  have heq : (fun x : ℝ => (aeval x (hermitePhys (a + b)) : ℝ) *
-      aeval x (hermitePhys (b + c)) * aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) =
+  have heq : (fun x : ℝ => (aeval x (hermitePolyH (a + b)) : ℝ) *
+      aeval x (hermitePolyH (b + c)) * aeval x (hermitePolyH (c + a)) * Real.exp (-(x ^ 2))) =
       fun x => ∑ k ∈ Finset.range (min (a + b) (b + c) + 1),
         ((a + b).choose k : ℝ) * (b + c).choose k * 2 ^ k * k.factorial *
-          ((aeval x (hermitePhys (a + b + (b + c) - 2 * k)) : ℝ) *
-            aeval x (hermitePhys (c + a)) * Real.exp (-(x ^ 2))) := by
+          ((aeval x (hermitePolyH (a + b + (b + c) - 2 * k)) : ℝ) *
+            aeval x (hermitePolyH (c + a)) * Real.exp (-(x ^ 2))) := by
     funext x
     rw [hl, Finset.sum_mul, Finset.sum_mul]
     apply Finset.sum_congr rfl
     intro k _; ring
   rw [heq, integral_finsetSum _ (fun k _ => (hi k).const_mul _)]
-  simp_rw [integral_const_mul, hermitePhys_orthogonality]
+  simp_rw [integral_const_mul, hermitePolyH_orthogonality]
   rw [Finset.sum_eq_single b]
   · rw [if_pos (by omega : a + b + (b + c) - 2 * b = c + a),
       Nat.cast_choose ℝ (by omega : b ≤ a + b), Nat.cast_choose ℝ (by omega : b ≤ b + c)]
@@ -2264,12 +2547,12 @@ theorem hermitePhys_triple_integral (a b c : ℕ) :
 @[dlmf 18.17.E1]
 theorem jacobi_weighted_integral {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
     2 * (n + 1 : ℂ) * (∫ y : ℝ in (0 : ℝ)..x, (1 - (y : ℂ)) ^ (α : ℂ) *
-      (1 + (y : ℂ)) ^ (β : ℂ) * jacobiP α β (n + 1) y) =
-      jacobiP (α + 1) (β + 1) n 0 - (1 - (x : ℂ)) ^ (α + 1 : ℂ) *
-        (1 + (x : ℂ)) ^ (β + 1 : ℂ) * jacobiP (α + 1) (β + 1) n x := by
+      (1 + (y : ℂ)) ^ (β : ℂ) * jacobiPolyP α β (n + 1) y) =
+      jacobiPolyP (α + 1) (β + 1) n 0 - (1 - (x : ℂ)) ^ (α + 1 : ℂ) *
+        (1 + (x : ℂ)) ^ (β + 1 : ℂ) * jacobiPolyP (α + 1) (β + 1) n x := by
   have hreg (a b : ℝ) (m : ℕ) (t : ℝ) (ht : t ∈ Set.Ioo (-1) 1) :
       DifferentiableAt ℝ (fun y : ℝ => (1 - (y : ℂ)) ^ (a : ℂ) *
-        (1 + (y : ℂ)) ^ (b : ℂ) * jacobiP a b m y) t := by
+        (1 + (y : ℂ)) ^ (b : ℂ) * jacobiPolyP a b m y) t := by
     have h1 : (1 - (t : ℂ)) ∈ slitPlane := by
       rw [show (1 - (t : ℂ)) = ((1 - t : ℝ) : ℂ) by push_cast; ring]
       exact Complex.ofReal_mem_slitPlane.mpr (by linarith [ht.2])
@@ -2278,15 +2561,16 @@ theorem jacobi_weighted_integral {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (
       exact Complex.ofReal_mem_slitPlane.mpr (by linarith [ht.1])
     exact (((((hasDerivAt_id' (t : ℂ)).const_sub 1).cpow_const h1).comp_ofReal).mul
       ((((hasDerivAt_id' (t : ℂ)).const_add 1).cpow_const h2).comp_ofReal)).differentiableAt.mul
-      (((analyticOnNhd_jacobiP a b m) t (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal).differentiableAt
+      (((analyticOnNhd_jacobiPolyP a b m) t
+          (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal).differentiableAt
   have hmem (t : ℝ) (ht : t ∈ Set.uIcc 0 x) : t ∈ Set.Ioo (-1) 1 := by
     rcases Set.mem_uIcc.mp ht with ht | ht <;> constructor <;>
       linarith [ht.1, ht.2, hx.1, hx.2]
   let g : ℝ → ℂ := fun y => (1 - (y : ℂ)) ^ (α + 1 : ℂ) *
-    (1 + (y : ℂ)) ^ (β + 1 : ℂ) * jacobiP (α + 1) (β + 1) n y
+    (1 + (y : ℂ)) ^ (β + 1 : ℂ) * jacobiPolyP (α + 1) (β + 1) n y
   have hd (t : ℝ) (ht : t ∈ Set.uIcc 0 x) : HasDerivAt (fun y => -g y)
       (2 * (n + 1 : ℂ) * ((1 - (t : ℂ)) ^ (α : ℂ) *
-        (1 + (t : ℂ)) ^ (β : ℂ) * jacobiP α β (n + 1) t)) t := by
+        (1 + (t : ℂ)) ^ (β : ℂ) * jacobiPolyP α β (n + 1) t)) t := by
     have hg : DifferentiableAt ℝ g t := by
       simpa only [g, ofReal_add, ofReal_one] using hreg (α + 1) (β + 1) n t (hmem t ht)
     have hh := hg.hasDerivAt.neg
@@ -2298,7 +2582,7 @@ theorem jacobi_weighted_integral {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (
     convert hh using 1; ring
   have hi : IntervalIntegrable (fun y : ℝ => 2 * (n + 1 : ℂ) *
       ((1 - (y : ℂ)) ^ (α : ℂ) * (1 + (y : ℂ)) ^ (β : ℂ) *
-        jacobiP α β (n + 1) y)) volume 0 x := by
+        jacobiPolyP α β (n + 1) y)) volume 0 x := by
     apply ContinuousOn.intervalIntegrable
     intro t ht
     exact (continuousAt_const.mul (hreg α β (n + 1) t (hmem t ht)).continuousAt).continuousWithinAt
@@ -2307,48 +2591,50 @@ theorem jacobi_weighted_integral {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (
   simpa [g, sub_eq_add_neg, add_comm] using hh
 
 @[dlmf 18.17.E2]
-theorem laguerre_unweighted_convolution (m n : ℕ) (x : ℝ) :
-    ∫ y : ℝ in (0 : ℝ)..x, laguerre 0 m y * laguerre 0 n (x - y) =
-      laguerre 0 (m + n) x - laguerre 0 (m + n + 1) x := by
-  let A : ℕ → ℝ → ℂ := fun j y => laguerre 0 j y - laguerre 0 (j + 1) y
-  let D : ℕ → ℝ → ℂ := fun j y => -deriv (laguerre 0 j) ((x : ℂ) - y)
+theorem laguerrePolyL_unweighted_convolution (m n : ℕ) (x : ℝ) :
+    ∫ y : ℝ in (0 : ℝ)..x, laguerrePolyL 0 m y * laguerrePolyL 0 n (x - y) =
+      laguerrePolyL 0 (m + n) x - laguerrePolyL 0 (m + n + 1) x := by
+  let A : ℕ → ℝ → ℂ := fun j y => laguerrePolyL 0 j y - laguerrePolyL 0 (j + 1) y
+  let D : ℕ → ℝ → ℂ := fun j y => -deriv (laguerrePolyL 0 j) ((x : ℂ) - y)
   let C : ℕ → ℕ → ℂ := fun i j => ∫ y : ℝ in (0 : ℝ)..x,
-    laguerre 0 i y * laguerre 0 j ((x : ℂ) - y)
-  have hL (a : ℂ) (ha : -1 < a.re) (j : ℕ) : Continuous (laguerre a j) :=
-    continuous_iff_continuousAt.mpr fun y => (analyticAt_laguerre ha j y).continuousAt
-  have hdL (j : ℕ) (y : ℝ) : HasDerivAt (fun t : ℝ => laguerre 0 j t)
-      (deriv (laguerre 0 j) y) y :=
-    ((analyticAt_laguerre (by norm_num) j (y : ℂ)).differentiableAt.hasDerivAt).comp_ofReal
-  have hA (j : ℕ) (y : ℝ) : HasDerivAt (A j) (laguerre 0 j y) y := by
+    laguerrePolyL 0 i y * laguerrePolyL 0 j ((x : ℂ) - y)
+  have hL (a : ℂ) (ha : -1 < a.re) (j : ℕ) : Continuous (laguerrePolyL a j) :=
+    continuous_iff_continuousAt.mpr fun y => (analyticAt_laguerrePolyL ha j y).continuousAt
+  have hdL (j : ℕ) (y : ℝ) : HasDerivAt (fun t : ℝ => laguerrePolyL 0 j t)
+      (deriv (laguerrePolyL 0 j) y) y :=
+    ((analyticAt_laguerrePolyL (by norm_num) j (y : ℂ)).differentiableAt.hasDerivAt).comp_ofReal
+  have hA (j : ℕ) (y : ℝ) : HasDerivAt (A j) (laguerrePolyL 0 j y) y := by
     have h := (hdL j y).sub (hdL (j + 1) y)
     convert h using 1
-    linear_combination (laguerre_deriv_succ_sub (α := 0) (by norm_num) j y)
+    linear_combination (laguerrePolyL_deriv_succ_sub (α := 0) (by norm_num) j y)
   have hAcont (j : ℕ) : Continuous (A j) :=
     ((hL 0 (by norm_num) j).comp continuous_ofReal).sub
       ((hL 0 (by norm_num) (j + 1)).comp continuous_ofReal)
   have hDcont (j : ℕ) : Continuous (D j) := by
     cases j with
     | zero =>
-      have h0 : laguerre 0 0 = fun _ => 1 := funext fun y => laguerre_zero 0 y
+      have h0 : laguerrePolyL 0 0 = fun _ => 1 := funext fun y => laguerrePolyL_zero 0 y
       simp only [D, h0, deriv_const, neg_zero]
       exact continuous_const
     | succ j =>
-      have hder : deriv (laguerre 0 (j + 1)) = fun y => -laguerre 1 j y :=
-        funext fun y => by simpa using laguerre_derivative (α := 0) (by norm_num) j y
+      have hder : deriv (laguerrePolyL 0 (j + 1)) = fun y => -laguerrePolyL 1 j y :=
+        funext fun y => by simpa using laguerrePolyL_derivative (α := 0) (by norm_num) j y
       simp only [D, hder, neg_neg]
       exact (hL 1 (by norm_num) j).comp (continuous_const.sub continuous_ofReal)
-  have hzero (j : ℕ) : laguerre 0 j 0 = 1 := by
-    simp [laguerre_at_zero, poch, ascPochhammer_eval_one, Nat.factorial_ne_zero]
+  have hzero (j : ℕ) : laguerrePolyL 0 j 0 = 1 := by
+    simp [laguerrePolyL_at_zero, poch, ascPochhammer_eval_one, Nat.factorial_ne_zero]
   have hIBP (i j : ℕ) : C i j = A i x - ∫ y : ℝ in (0 : ℝ)..x, D j y * A i y := by
-    have hu (y : ℝ) : HasDerivAt (fun t : ℝ => laguerre 0 j ((x : ℂ) - t)) (D j y) y := by
-      have h := (analyticAt_laguerre (α := 0) (by norm_num) j ((x : ℂ) - y)).differentiableAt.hasDerivAt
+    have hu (y : ℝ) : HasDerivAt (fun t : ℝ => laguerrePolyL 0 j ((x : ℂ) - t)) (D j y) y := by
+      have h := (analyticAt_laguerrePolyL (α := 0) (by norm_num) j
+          ((x : ℂ) - y)).differentiableAt.hasDerivAt
       have hc := (h.comp (y : ℂ) ((hasDerivAt_id (y : ℂ)).const_sub (x : ℂ))).comp_ofReal
       simpa only [D, Function.comp_apply, mul_neg, mul_one] using hc
     have h := intervalIntegral.integral_mul_deriv_eq_deriv_mul
       (a := (0 : ℝ)) (b := x) (fun y _ => hu y) (fun y _ => hA i y)
       ((hDcont j).intervalIntegrable _ _)
       (((hL 0 (by norm_num) i).comp continuous_ofReal).intervalIntegrable _ _)
-    have hleft : (∫ y : ℝ in (0 : ℝ)..x, laguerre 0 j ((x : ℂ) - y) * laguerre 0 i y) = C i j := by
+    have hleft : (∫ y : ℝ in (0 : ℝ)..x, laguerrePolyL 0 j ((x : ℂ) - y) * laguerrePolyL 0 i y)
+        = C i j := by
       apply intervalIntegral.integral_congr
       intro y _
       dsimp [C]
@@ -2356,31 +2642,31 @@ theorem laguerre_unweighted_convolution (m n : ℕ) (x : ℝ) :
     rw [hleft] at h
     simpa [A, hzero] using h
   have hstep (i j : ℕ) : C i (j + 1) = C (i + 1) j := by
-    have hD (y : ℝ) : D (j + 1) y = D j y + laguerre 0 j ((x : ℂ) - y) := by
+    have hD (y : ℝ) : D (j + 1) y = D j y + laguerrePolyL 0 j ((x : ℂ) - y) := by
       dsimp [D]
-      linear_combination -(laguerre_deriv_succ_sub (α := 0) (by norm_num) j ((x : ℂ) - y))
+      linear_combination -(laguerrePolyL_deriv_succ_sub (α := 0) (by norm_num) j ((x : ℂ) - y))
     have hsplit : (∫ y : ℝ in (0 : ℝ)..x, D (j + 1) y * A i y) =
         (∫ y : ℝ in (0 : ℝ)..x, D j y * A i y) + C i j - C (i + 1) j := by
       have heq : (fun y => D (j + 1) y * A i y) = fun y => D j y * A i y +
-          laguerre 0 i y * laguerre 0 j ((x : ℂ) - y) -
-          laguerre 0 (i + 1) y * laguerre 0 j ((x : ℂ) - y) := by
+          laguerrePolyL 0 i y * laguerrePolyL 0 j ((x : ℂ) - y) -
+          laguerrePolyL 0 (i + 1) y * laguerrePolyL 0 j ((x : ℂ) - y) := by
         funext y
         rw [hD]
         dsimp [A]
         ring
       have hprod (k : ℕ) : Continuous (fun y : ℝ =>
-          laguerre 0 k y * laguerre 0 j ((x : ℂ) - y)) :=
+          laguerrePolyL 0 k y * laguerrePolyL 0 j ((x : ℂ) - y)) :=
         ((hL 0 (by norm_num) k).comp continuous_ofReal).mul
           ((hL 0 (by norm_num) j).comp (continuous_const.sub continuous_ofReal))
       have hDA : Continuous (fun y => D j y * A i y) := (hDcont j).mul (hAcont i)
       rw [heq, intervalIntegral.integral_sub
-        (f := fun y => D j y * A i y + laguerre 0 i y * laguerre 0 j ((x : ℂ) - y))
-        (g := fun y => laguerre 0 (i + 1) y * laguerre 0 j ((x : ℂ) - y))
+        (f := fun y => D j y * A i y + laguerrePolyL 0 i y * laguerrePolyL 0 j ((x : ℂ) - y))
+        (g := fun y => laguerrePolyL 0 (i + 1) y * laguerrePolyL 0 j ((x : ℂ) - y))
         ((hDA.add (hprod i)).intervalIntegrable _ _)
         ((hprod (i + 1)).intervalIntegrable _ _),
         intervalIntegral.integral_add
           (f := fun y => D j y * A i y)
-          (g := fun y => laguerre 0 i y * laguerre 0 j ((x : ℂ) - y))
+          (g := fun y => laguerrePolyL 0 i y * laguerrePolyL 0 j ((x : ℂ) - y))
           (hDA.intervalIntegrable _ _)
           ((hprod i).intervalIntegrable _ _)]
     rw [hIBP, hsplit, hIBP i j]
@@ -2397,23 +2683,23 @@ theorem laguerre_unweighted_convolution (m n : ℕ) (x : ℝ) :
   exact hconv m n
 
 @[dlmf 18.17.E5]
-theorem gegenbauer_product_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ ψ : ℝ) :
-    gegenbauer lam n (Real.cos θ) / gegenbauer lam n 1 *
-      (gegenbauer lam n (Real.cos ψ) / gegenbauer lam n 1) =
+theorem ultrasphPoly_product_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ ψ : ℝ) :
+    ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 *
+      (ultrasphPoly lam n (Real.cos ψ) / ultrasphPoly lam n 1) =
       Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) *
-      ∫ phi : ℝ in (0 : ℝ)..Real.pi, gegenbauer lam n
-        (Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi) / gegenbauer lam n 1 *
+      ∫ phi : ℝ in (0 : ℝ)..Real.pi, ultrasphPoly lam n
+        (Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi) / ultrasphPoly lam n 1 *
           (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ) := by
   sorry
 
 @[dlmf 18.17.E9]
 theorem jacobi_fractional_integral {α β μ : ℝ} (hα : -1 < α) (hβ : -1 < β) (hμ : 0 < μ)
     (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    (1 - (x : ℂ)) ^ (α + μ : ℂ) * jacobiP (α + μ) (β - μ) n x / Gamma (α + μ + n + 1 : ℂ) =
-      ∫ y : ℝ in x..1, (1 - (y : ℂ)) ^ (α : ℂ) * jacobiP α β n y / Gamma (α + n + 1 : ℂ) *
+    (1 - (x : ℂ)) ^ (α + μ : ℂ) * jacobiPolyP (α + μ) (β - μ) n x / Gamma (α + μ + n + 1 : ℂ) =
+      ∫ y : ℝ in x..1, (1 - (y : ℂ)) ^ (α : ℂ) * jacobiPolyP α β n y / Gamma (α + n + 1 : ℂ) *
         ((y - x : ℂ) ^ (μ - 1 : ℂ) / Gamma (μ : ℂ)) := by
   have hnorm (a b : ℝ) (ha : -1 < a) (y : ℂ) :
-      jacobiP a b n y / Gamma ((a : ℂ) + n + 1) =
+      jacobiPolyP a b n y / Gamma ((a : ℂ) + n + 1) =
         regularizedGaussHGFun (-(n : ℂ))
           (n + (a : ℂ) + b + 1) ((a : ℂ) + 1) ((1 - y) / 2) / n.factorial := by
     have hp : ∀ k : ℕ, (a : ℂ) + 1 ≠ -(k : ℂ) :=
@@ -2422,7 +2708,7 @@ theorem jacobi_fractional_integral {α β μ : ℝ} (hα : -1 < α) (hβ : -1 < 
       rw [show (a : ℂ) + n + 1 = (a : ℂ) + 1 + n by ring]
       exact (div_eq_iff (Gamma_ne_zero hp)).mp
         (Gamma_add_nat_div_Gamma_eq (n := n) ((a : ℂ) + 1) hp)
-    rw [jacobiP, AAR.Hypergeometric.regularizedGaussHGFun_eq_div_Gamma hp, hG]
+    rw [jacobiPolyP, AAR.Hypergeometric.regularizedGaussHGFun_eq_div_Gamma hp, hG]
     field [Gamma_ne_zero hp, poch_ne_zero_of_not_neg_nat hp n]
   let R : ℂ → ℂ := regularizedGaussHGFun (-(n : ℂ))
     (n + (α : ℂ) + β + 1) ((α : ℂ) + 1)
@@ -2473,15 +2759,15 @@ theorem jacobi_fractional_integral {α β μ : ℝ} (hα : -1 < α) (hβ : -1 < 
   change regularizedGaussHGFun (-(n : ℂ))
     (n + (α : ℂ) + β + 1) ((α : ℂ) + μ + 1) ((1 - x) / 2) =
       1 / Gamma (μ : ℂ) * ∫ t : ℝ in (0 : ℝ)..1, g t at hR
-  have hrhs : (∫ y : ℝ in x..1, (1 - (y : ℂ)) ^ (α : ℂ) * jacobiP α β n y /
+  have hrhs : (∫ y : ℝ in x..1, (1 - (y : ℂ)) ^ (α : ℂ) * jacobiPolyP α β n y /
       Gamma (α + n + 1 : ℂ) * ((y - x : ℂ) ^ (μ - 1 : ℂ) / Gamma (μ : ℂ))) =
       (∫ y : ℝ in x..1, f y) / ((n.factorial : ℂ) * Gamma (μ : ℂ)) := by
     rw [← intervalIntegral.integral_div]
     apply intervalIntegral.integral_congr
     intro y _
     dsimp only
-    rw [show (1 - (y : ℂ)) ^ (α : ℂ) * jacobiP α β n y / Gamma (α + n + 1 : ℂ) =
-      (1 - (y : ℂ)) ^ (α : ℂ) * (jacobiP α β n y / Gamma (α + n + 1 : ℂ)) by ring,
+    rw [show (1 - (y : ℂ)) ^ (α : ℂ) * jacobiPolyP α β n y / Gamma (α + n + 1 : ℂ) =
+      (1 - (y : ℂ)) ^ (α : ℂ) * (jacobiPolyP α β n y / Gamma (α + n + 1 : ℂ)) by ring,
       hnorm α β hα]
     dsimp [f, R]
     push_cast
@@ -2489,23 +2775,312 @@ theorem jacobi_fractional_integral {α β μ : ℝ} (hα : -1 < α) (hβ : -1 < 
   have hL := hnorm (α + μ) (β - μ) (by linarith) x
   push_cast at hL
   rw [show (n : ℂ) + ((α : ℂ) + μ) + ((β : ℂ) - μ) + 1 = n + (α : ℂ) + β + 1 by ring] at hL
-  rw [hrhs, hscale, show (1 - (x : ℂ)) ^ (α + μ : ℂ) * jacobiP (α + μ) (β - μ) n x /
+  rw [hrhs, hscale, show (1 - (x : ℂ)) ^ (α + μ : ℂ) * jacobiPolyP (α + μ) (β - μ) n x /
       Gamma (α + μ + n + 1 : ℂ) = (1 - (x : ℂ)) ^ (α + μ : ℂ) *
-      (jacobiP (α + μ) (β - μ) n x / Gamma (α + μ + n + 1 : ℂ)) by ring, hL, hR]
+      (jacobiPolyP (α + μ) (β - μ) n x / Gamma (α + μ + n + 1 : ℂ)) by ring, hL, hR]
   push_cast
   ring
 
+/-- The moments `∫ (1 + x)^m (1 - x)^α (1 + x)^β P_n^{(α,β)}(x) dx`, from the Mellin transform
+and the reflection `x ↦ -x`. -/
+lemma jacobi_moment {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n m : ℕ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, ((x : ℂ) + 1) ^ m *
+        (jacobiPolyP α β n x * (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)) =
+      (-1 : ℂ) ^ n * ((2 : ℂ) ^ ((α : ℂ) + (β + m + 1)) * Gamma (β + m + 1) *
+        Gamma (1 + (α : ℂ) + n) * poch (-(m : ℂ)) n /
+        (n.factorial * Gamma (1 + α + (β + m + 1) + n))) := by
+  have hz : 0 < ((β : ℂ) + m + 1).re := by
+    simp; linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
+  have hM := jacobi_mellin_transform hβ hα hz n
+  rw [show (1 : ℂ) + β - (β + m + 1) = -(m : ℂ) by ring] at hM
+  have hneg := intervalIntegral.integral_comp_neg (a := (-1 : ℝ)) (b := 1)
+    (fun x : ℝ => ((x : ℂ) + 1) ^ m *
+      (jacobiPolyP α β n x * (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)))
+  norm_num only [neg_neg] at hneg
+  rw [← hM, ← hneg, ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr_Ioo_of_le (by norm_num) fun t ht => ?_
+  have h1 : (1 - (t : ℂ)) ≠ 0 := by
+    rw [← ofReal_one, ← ofReal_sub]; exact ofReal_ne_zero.mpr (by linarith [ht.2])
+  have hr := jacobi_reflection (α := (α : ℂ)) (β := (β : ℂ)) (by simpa using hα)
+    (by simpa using hβ) n (t : ℂ)
+  push_cast
+  rw [hr, show (β : ℂ) + m + 1 - 1 = β + m by ring, cpow_add _ _ h1, cpow_natCast,
+    show -(t : ℂ) + 1 = 1 - t by ring, show (1 : ℂ) - -t = 1 + t by ring]
+  rw [show (1 : ℂ) + -t = 1 - t by ring]
+  ring
+
+
+/-- Termwise integration of `e^{-(x+1)z}` against an integrable function on `[-1, 1]`. -/
+lemma hasSum_integral_exp_neg_add_one_mul {w : ℝ → ℂ}
+    (hw : IntervalIntegrable w volume (-1) 1) (z : ℂ) :
+    HasSum (fun m : ℕ => ∫ x : ℝ in (-1 : ℝ)..1, (-z) ^ m / m ! * (((x : ℂ) + 1) ^ m * w x))
+      (∫ x : ℝ in (-1 : ℝ)..1, exp (-((x : ℂ) + 1) * z) * w x) := by
+  have hwm : AEStronglyMeasurable w (volume.restrict (Set.uIoc (-1 : ℝ) 1)) := by
+    rw [Set.uIoc_of_le (show (-1 : ℝ) ≤ 1 by norm_num)]; exact hw.1.aestronglyMeasurable
+  refine intervalIntegral.hasSum_integral_of_dominated_convergence
+    (fun m x => (2 * ‖z‖) ^ m / m ! * ‖w x‖)
+    (fun m => (((by fun_prop : Continuous fun x : ℝ => (-z) ^ m / (m ! : ℂ) *
+      ((x : ℂ) + 1) ^ m)).aestronglyMeasurable.mul hwm).congr
+      (Eventually.of_forall fun x => by simp only [Pi.mul_apply]; ring))
+    (fun m => ?_)
+    (Eventually.of_forall fun x _ => (Real.summable_pow_div_factorial (2 * ‖z‖)).mul_right _)
+    ?_
+    (Eventually.of_forall fun x _ => ?_)
+  · refine Eventually.of_forall fun x hx => ?_
+    rw [Set.uIoc_of_le (show (-1 : ℝ) ≤ 1 by norm_num)] at hx
+    have hx1 : ‖(x : ℂ) + 1‖ ≤ 2 := by
+      rw [← ofReal_one, ← ofReal_add, norm_real, Real.norm_eq_abs,
+        abs_of_nonneg (by linarith [hx.1])]
+      linarith [hx.2]
+    rw [norm_mul, norm_mul, norm_div, norm_pow, norm_pow, norm_neg, Complex.norm_natCast,
+      mul_pow]
+    have hw0 : 0 ≤ ‖w x‖ := norm_nonneg _
+    have hp : ‖(x : ℂ) + 1‖ ^ m ≤ 2 ^ m := pow_le_pow_left₀ (norm_nonneg _) hx1 m
+    have hf : (0 : ℝ) < m ! := by exact_mod_cast m.factorial_pos
+    rw [div_mul_eq_mul_div, div_mul_eq_mul_div]
+    refine div_le_div_of_nonneg_right ?_ hf.le
+    calc ‖z‖ ^ m * (‖(x : ℂ) + 1‖ ^ m * ‖w x‖) ≤ ‖z‖ ^ m * (2 ^ m * ‖w x‖) := by gcongr
+      _ = 2 ^ m * ‖z‖ ^ m * ‖w x‖ := by ring
+  · have h : (fun x => ∑' m : ℕ, (2 * ‖z‖) ^ m / m ! * ‖w x‖) =
+        fun x => Real.exp (2 * ‖z‖) * ‖w x‖ := by
+      funext x
+      rw [tsum_mul_right, Real.exp_eq_exp_ℝ,
+        ← (NormedSpace.expSeries_div_hasSum_exp (𝔸 := ℝ) (2 * ‖z‖)).tsum_eq]
+    rw [h]
+    exact hw.norm.const_mul _
+  · have h := (NormedSpace.expSeries_div_hasSum_exp (-((x : ℂ) + 1) * z)).mul_right (w x)
+    rw [← Complex.exp_eq_exp_ℂ] at h
+    convert h using 1
+    funext m
+    rw [show -((x : ℂ) + 1) * z = -z * ((x : ℂ) + 1) by ring, mul_pow]
+    ring
+
+
+/-- DLMF 18.17.33 in the form used by the Fourier transforms below. -/
+lemma jacobi_laplace_aux {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (z : ℂ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, exp (-((x : ℂ) + 1) * z) *
+        (jacobiPolyP α β n x * (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)) =
+      (-1 : ℂ) ^ n * (2 : ℂ) ^ ((α : ℂ) + β + n + 1) * Gamma ((α : ℂ) + n + 1) *
+      Gamma ((β : ℂ) + n + 1) / (Gamma ((α : ℂ) + β + 2 * n + 2) * n.factorial) *
+      z ^ n * kummerM ((β : ℂ) + n + 1) ((α : ℂ) + β + 2 * n + 2) (-2 * z) := by
+  set w : ℝ → ℂ := fun x =>
+    jacobiPolyP α β n x * (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) with hwdef
+  have hP : Continuous fun x : ℝ => jacobiPolyP α β n (x : ℂ) :=
+    ((analyticOnNhd_jacobiPolyP (α : ℂ) β n).continuousOn.comp_continuous
+      continuous_ofReal (fun _ => Set.mem_univ _))
+  have hw : IntervalIntegrable w volume (-1) 1 := by
+    have h := (intervalIntegrable_jacobi_weight_cpow (a := (α : ℂ)) (b := (β : ℂ))
+      (by simpa using hα) (by simpa using hβ)).continuousOn_mul hP.continuousOn
+    exact h.congr fun x _ => by simp only [hwdef]; ring
+  have hS := hasSum_integral_exp_neg_add_one_mul hw z
+  set s : ℕ → ℂ := fun m =>
+    ∫ x : ℝ in (-1 : ℝ)..1, (-z) ^ m / m ! * (((x : ℂ) + 1) ^ m * w x) with hsdef
+  have hs (m : ℕ) : s m = (-z) ^ m / m ! * ((-1 : ℂ) ^ n *
+      ((2 : ℂ) ^ ((α : ℂ) + (β + m + 1)) * Gamma (β + m + 1) *
+        Gamma (1 + (α : ℂ) + n) * poch (-(m : ℂ)) n /
+        (n.factorial * Gamma (1 + α + (β + m + 1) + n)))) := by
+    simp only [hsdef, hwdef, intervalIntegral.integral_const_mul]
+    rw [jacobi_moment hα hβ n m]
+  have hzero : ∑ i ∈ Finset.range n, s i = 0 :=
+    Finset.sum_eq_zero fun i hi => by
+      rw [hs, poch_neg_nat_eq_zero (Finset.mem_range.mp hi)]; simp
+  have hshift := (hasSum_nat_add_iff' n).mpr hS
+  rw [hzero, sub_zero] at hshift
+  set c : ℂ := (α : ℂ) + β + 2 * n + 2 with hcdef
+  have hc0 : 0 < c.re := by
+    simp [hcdef]; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have hcn : ∀ k : ℕ, c ≠ -k := fun k h => by
+    have := congrArg re h; simp at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), hc0]
+  have hb0 : 0 < ((β : ℂ) + n + 1).re := by
+    simp; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have hK := ((hasFPowerSeriesOnBall_kummerM (a := (β : ℂ) + n + 1) hcn).hasSum_mul_pow
+    (z := -2 * z) (by simp)).mul_left
+    ((-1 : ℂ) ^ n * (2 : ℂ) ^ ((α : ℂ) + β + n + 1) * Gamma ((α : ℂ) + n + 1) *
+      Gamma ((β : ℂ) + n + 1) / (Gamma c * n.factorial) * z ^ n)
+  have hK' : HasSum (fun k => s (k + n))
+      ((-1 : ℂ) ^ n * (2 : ℂ) ^ ((α : ℂ) + β + n + 1) * Gamma ((α : ℂ) + n + 1) *
+        Gamma ((β : ℂ) + n + 1) / (Gamma c * n.factorial) * z ^ n *
+        kummerM ((β : ℂ) + n + 1) c (-2 * z)) := by
+    convert hK using 1
+    funext k
+    rw [hs, AAR.Gamma.poch_neg_nat_eq (k + n) n]
+    simp only [show n ≤ k + n by omega, ↓reduceIte, Nat.add_sub_cancel]
+    rw [show (β : ℂ) + ((k + n : ℕ) : ℂ) + 1 = ((β : ℂ) + n + 1) + k by push_cast; ring,
+      show (1 : ℂ) + α + (((β : ℂ) + n + 1) + k) + n = c + k by simp only [hcdef]; ring,
+      show (α : ℂ) + (((β : ℂ) + n + 1) + k) = ((α : ℂ) + β + n + 1) + k by ring,
+      show (1 : ℂ) + α + n = (α : ℂ) + n + 1 by ring,
+      Gamma_add_nat_eq_poch_mul hb0, Gamma_add_nat_eq_poch_mul hc0,
+      cpow_add _ _ two_ne_zero, cpow_natCast, pow_add, neg_pow z, neg_pow z, mul_pow,
+      neg_pow (2 : ℂ)]
+    have h1 : poch ((β : ℂ) + n + 1) k ≠ 0 := poch_ne_zero_of_re_pos hb0 k
+    have h2 : poch c k ≠ 0 := poch_ne_zero_of_re_pos hc0 k
+    have h3 : Gamma c ≠ 0 := Gamma_ne_zero_of_re_pos hc0
+    have h4 : ((k + n).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h5 : (k.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have h6 : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    have he : ((-1 : ℂ) ^ n) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; norm_num
+    simp only [kummerMCoeff]
+    field_simp
+    rw [he]
+    ring
+  rw [hshift.unique hK', hcdef]
+
+/-- DLMF 18.17.16, stated here so that the Gegenbauer transforms below can use it. -/
+lemma jacobi_fourier_aux {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (y : ℝ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) *
+      jacobiPolyP α β n x * exp (I * x * y) =
+      (I * y) ^ n * exp (I * y) / n.factorial * (2 : ℂ) ^ (n + α + β + 1 : ℂ) *
+        Gamma (n + α + 1 : ℂ) * Gamma (n + β + 1 : ℂ) / Gamma (2 * n + α + β + 2 : ℂ) *
+        kummerM (n + α + 1) (2 * n + α + β + 2) (-2 * I * y) := by
+  have h := jacobi_laplace_aux hα hβ n (-I * y)
+  have hint : ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) *
+      jacobiPolyP α β n x * exp (I * x * y) =
+      exp (-(I * y)) * ∫ x : ℝ in (-1 : ℝ)..1, exp (-((x : ℂ) + 1) * (-I * y)) *
+        (jacobiPolyP α β n x * (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ)) := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun x _ => ?_
+    have he : exp (-((x : ℂ) + 1) * (-I * y)) = exp (I * y) * exp (I * x * y) := by
+      rw [← Complex.exp_add]; ring_nf
+    simp only [he]
+    have h1 : exp (-(I * y)) * exp (I * y) = 1 := by rw [← Complex.exp_add]; simp
+    linear_combination (-(1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) *
+      jacobiPolyP α β n x * exp (I * x * y)) * h1
+  set c : ℂ := (α : ℂ) + β + 2 * n + 2 with hcdef
+  have hc0 : 0 < c.re := by
+    simp [hcdef]; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have hcn : ∀ k : ℕ, c ≠ -k := fun k h => by
+    have := congrArg re h; simp at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), hc0]
+  rw [hint, h, kummerM_kummer_transform hcn,
+    show c - ((β : ℂ) + n + 1) = n + α + 1 by simp only [hcdef]; ring,
+    show -(-2 * (-I * (y : ℂ))) = -2 * I * y by ring,
+    show c = 2 * n + α + β + 2 by simp only [hcdef]; ring,
+    show (α : ℂ) + β + n + 1 = n + α + β + 1 by ring,
+    show (α : ℂ) + n + 1 = n + α + 1 by ring, show (β : ℂ) + n + 1 = n + β + 1 by ring]
+  have he : exp (-(I * y)) * exp (-2 * (-I * y)) = exp (I * y) := by
+    rw [← Complex.exp_add]; ring_nf
+  have hn : (-1 : ℂ) ^ n * (-I * y) ^ n = (I * y) ^ n := by
+    rw [← mul_pow]; ring_nf
+  linear_combination (exp (-(I * y)) * (2 : ℂ) ^ ((n : ℂ) + α + β + 1) *
+    Gamma ((n : ℂ) + α + 1) * Gamma ((n : ℂ) + β + 1) / (Gamma (2 * n + α + β + 2) * n !) *
+    kummerM ((n : ℂ) + α + 1) (2 * n + α + β + 2) (-2 * I * y) * exp (-2 * (-I * y))) * hn +
+    ((2 : ℂ) ^ ((n : ℂ) + α + β + 1) * Gamma ((n : ℂ) + α + 1) * Gamma ((n : ℂ) + β + 1) /
+      (Gamma (2 * n + α + β + 2) * n !) * (I * y) ^ n *
+      kummerM ((n : ℂ) + α + 1) (2 * n + α + β + 2) (-2 * I * y)) * he
+
 @[dlmf 18.17.E16_5]
-theorem gegenbauer_fourier_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
+theorem ultrasphPoly_fourier_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
     ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
-      gegenbauer lam n x * exp (I * x * y) =
+      ultrasphPoly lam n x * exp (I * x * y) =
       2 * Real.pi * I ^ n * Gamma (n + 2 * (lam : ℂ)) * besselJ (n + (lam : ℂ)) y /
         (n.factorial * Gamma (lam : ℂ) * (2 * y : ℂ) ^ (lam : ℂ)) := by
-  sorry
+  have ha : -1 < lam - 1 / 2 := by linarith
+  have hJ := jacobi_fourier_aux ha ha n y
+  have hpoch : poch ((lam : ℂ) + 1 / 2) n ≠ 0 :=
+    poch_ne_zero_of_re_pos (by simp; linarith) n
+  have hint : ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam n x * exp (I * x * y) =
+      poch (2 * (lam : ℂ)) n / poch ((lam : ℂ) + 1 / 2) n *
+        ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) *
+          (1 + (x : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) *
+          jacobiPolyP ((lam - 1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) n x * exp (I * x * y) := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr_Ioo_of_le (by norm_num) fun x hx => ?_
+    have h1 : (1 - (x : ℂ) ^ 2) = ((1 - x : ℝ) : ℂ) * ((1 + x : ℝ) : ℂ) := by push_cast; ring
+    rw [h1, mul_cpow_ofReal_nonneg (by linarith [hx.2]) (by linarith [hx.1]),
+      ultrasphPoly_eq_jacobiPolyP n _ hpoch]
+    push_cast
+    ring
+  rw [hint, hJ]
+  push_cast
+  set ν : ℂ := (n : ℂ) + lam with hν
+  have hl0 : 0 < ((lam : ℂ) + 1 / 2).re := by simp; linarith
+  have hν1 : 0 < (ν + 1).re := by simp [hν]; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have hνk : ∀ k : ℕ, ν + 1 ≠ -k := fun k h => by
+    have := congrArg re h; simp [hν] at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), (Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have h2ν : ∀ k : ℕ, 2 * ν + 1 ≠ -k := fun k h => by
+    have := congrArg re h; simp [hν] at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k), (Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  rw [show (n : ℂ) + ((lam : ℂ) - 1 / 2) + 1 = ν + 1 / 2 by simp only [hν]; ring,
+    show 2 * (n : ℂ) + ((lam : ℂ) - 1 / 2) + ((lam : ℂ) - 1 / 2) + 2 = 2 * ν + 1 by
+      simp only [hν]; ring,
+    kummerM_kummer_transform h2ν,
+    show 2 * ν + 1 - (ν + 1 / 2) = ν + 1 / 2 by ring, show -(-2 * I * (y : ℂ)) = 2 * I * y by ring,
+    besselJ_eq_kummerM hνk h2ν]
+  -- Gamma functions
+  set T : ℂ := (2 : ℂ) ^ (lam : ℂ) with hT
+  set Y : ℂ := (y : ℂ) ^ (lam : ℂ) with hY
+  have hT0 : T ≠ 0 := by simp [hT]
+  have hY0 : Y ≠ 0 := by
+    simp [hY, cpow_eq_zero_iff, ofReal_ne_zero.mpr hy.ne']
+  have hsq : ((√π : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr Real.pi_pos)
+  have hpi : ((π : ℝ) : ℂ) = ((√π : ℝ) : ℂ) ^ 2 := by
+    rw [← ofReal_pow, Real.sq_sqrt Real.pi_pos.le]
+  have hnu : ν + 1 / 2 = ((lam : ℂ) + 1 / 2) + n := by simp only [hν]; ring
+  have hG1 : Gamma (ν + 1 / 2) = poch ((lam : ℂ) + 1 / 2) n * Gamma ((lam : ℂ) + 1 / 2) := by
+    rw [hnu, Gamma_add_nat_eq_poch_mul hl0]
+  have hl2 : 0 < (2 * (lam : ℂ)).re := by simp; linarith
+  have hG2 : Gamma ((n : ℂ) + 2 * lam) = poch (2 * (lam : ℂ)) n * Gamma (2 * (lam : ℂ)) := by
+    rw [add_comm, Gamma_add_nat_eq_poch_mul hl2]
+  have hd1 := Complex.Gamma_mul_Gamma_add_half (lam : ℂ)
+  have hd2 := Complex.Gamma_mul_Gamma_add_half (ν + 1 / 2)
+  rw [show ν + 1 / 2 + 1 / 2 = ν + 1 by ring, show 2 * (ν + 1 / 2) = 2 * ν + 1 by ring,
+    hG1] at hd2
+  have hc1 : (2 : ℂ) ^ (1 - 2 * (lam : ℂ)) * T ^ 2 = 2 := by
+    rw [hT, sq, ← mul_assoc, ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero,
+      show 1 - 2 * (lam : ℂ) + lam + lam = 1 by ring, cpow_one]
+  have hc2 : (2 : ℂ) ^ (1 - (2 * ν + 1)) * ((2 : ℂ) ^ n) ^ 2 * T ^ 2 = 1 := by
+    rw [hT, sq, sq, ← cpow_natCast, ← mul_assoc, ← mul_assoc,
+      ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero,
+      ← cpow_add _ _ two_ne_zero, show 1 - (2 * ν + 1) + n + n + lam + lam = 0 by
+        simp only [hν]; ring, cpow_zero]
+  have hc3 : (2 : ℂ) ^ ((n : ℂ) + ((lam : ℂ) - 1 / 2) + ((lam : ℂ) - 1 / 2) + 1) =
+      (2 : ℂ) ^ n * T ^ 2 := by
+    rw [hT, sq, ← cpow_natCast, ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero]
+    ring_nf
+  have hy2 : ((y : ℂ) / 2) ^ ν = ((y : ℂ) / 2) ^ n * (((y : ℂ) / 2) ^ (lam : ℂ)) := by
+    rw [hν, cpow_add _ _ (by simp [hy.ne']), cpow_natCast]
+  have hyT : ((y : ℂ) / 2) ^ (lam : ℂ) * T = Y := by
+    have h := mul_cpow_ofReal_nonneg (a := y / 2) (b := 2) (by positivity) (by norm_num)
+      (lam : ℂ)
+    rw [show ((y / 2 : ℝ) : ℂ) * ((2 : ℝ) : ℂ) = (y : ℂ) by push_cast; ring] at h
+    rw [hT, hY, h]
+    push_cast; ring
+  have h2y : (2 * (y : ℂ)) ^ (lam : ℂ) = T * Y := by
+    rw [hT, hY, show (2 : ℂ) = ((2 : ℝ) : ℂ) by norm_num,
+      mul_cpow_ofReal_nonneg (by norm_num) hy.le]
+  have hT2 : T ^ 2 ≠ 0 := pow_ne_zero 2 hT0
+  have hA : (2 : ℂ) ^ (1 - 2 * (lam : ℂ)) = 2 / T ^ 2 := eq_div_of_mul_eq hT2 hc1
+  have hn2 : ((2 : ℂ) ^ n) ^ 2 * T ^ 2 ≠ 0 := mul_ne_zero (by simp) hT2
+  have hB : (2 : ℂ) ^ (1 - (2 * ν + 1)) = 1 / (((2 : ℂ) ^ n) ^ 2 * T ^ 2) :=
+    eq_div_of_mul_eq hn2 (by rw [← mul_assoc]; exact hc2)
+  have hG3 : Gamma (2 * (lam : ℂ)) =
+      Gamma (lam : ℂ) * Gamma ((lam : ℂ) + 1 / 2) * T ^ 2 / (2 * ((√π : ℝ) : ℂ)) := by
+    rw [hd1, hA]; field_simp
+  have hG5 : Gamma (2 * ν + 1) = poch ((lam : ℂ) + 1 / 2) n * Gamma ((lam : ℂ) + 1 / 2) *
+      Gamma (ν + 1) * (((2 : ℂ) ^ n) ^ 2 * T ^ 2) / ((√π : ℝ) : ℂ) := by
+    rw [hd2, hB]; field_simp
+  have hyT' : ((y : ℂ) / 2) ^ (lam : ℂ) = Y / T := eq_div_of_mul_eq hT0 hyT
+  have hE0 : exp (I * y) ≠ 0 := Complex.exp_ne_zero _
+  have hE1 : exp (-2 * I * y) = ((exp (I * y)) ^ 2)⁻¹ := by
+    rw [← Complex.exp_nat_mul, ← Complex.exp_neg]; ring_nf
+  have hE2 : exp (-I * y) = (exp (I * y))⁻¹ := by
+    rw [← Complex.exp_neg]; ring_nf
+  have hg1 : Gamma (lam : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using hlam)
+  have hg2 : Gamma ((lam : ℂ) + 1 / 2) ≠ 0 := Gamma_ne_zero_of_re_pos hl0
+  have hg4 : Gamma (ν + 1) ≠ 0 := Gamma_ne_zero_of_re_pos hν1
+  have hfac : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hy0 : (y : ℂ) ≠ 0 := ofReal_ne_zero.mpr hy.ne'
+  rw [hG5, hG2, hG3, hG1, hc3, hy2, h2y, hyT', hE1, hE2, hpi, mul_pow, div_pow]
+  set Hp := poch ((lam : ℂ) + 1 / 2) n with hHp
+  set Gp := poch (2 * (lam : ℂ)) n with hGp
+  field_simp
 
 @[dlmf 18.17.E21]
 theorem legendre_bessel_square_integral (n : ℕ) (y : ℝ) :
-    ∫ x : ℝ in (0 : ℝ)..1, legendreP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y) =
+    ∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y) =
       Real.pi / 2 * besselJ (n + 1 / 2 : ℂ) ((y : ℂ) / 2) ^ 2 := by
   sorry
 
@@ -2732,23 +3307,23 @@ lemma hermite_linearization (m n : ℕ) (x : ℝ) :
   let s := Real.sqrt 2
   have hs : 0 < s := by dsimp [s]; positivity
   have hs2 : s ^ 2 = 2 := by simp [s]
-  have hscale (j : ℕ) : (aeval (x / s) (hermitePhys j) : ℝ) =
+  have hscale (j : ℕ) : (aeval (x / s) (hermitePolyH j) : ℝ) =
       s ^ j * aeval x (hermite j) := by
-    rw [aeval_hermitePhys_eq_hermite]
+    rw [aeval_hermitePolyH_eq_hermite]
     have hpow : (2 : ℝ) ^ (j / 2 : ℝ) = s ^ j := by
       rw [show s = (2 : ℝ) ^ (1 / 2 : ℝ) by dsimp [s]; rw [Real.sqrt_eq_rpow],
         ← Real.rpow_natCast, ← Real.rpow_mul (by norm_num : (0 : ℝ) ≤ 2)]
       congr 1
       ring
     rw [hpow, show Real.sqrt 2 * (x / s) = x by dsimp [s]; field_simp]
-  have hcast (j : ℕ) : (aeval ((x / s : ℝ) : ℂ) (hermitePhys j) : ℂ) =
-      ((aeval (x / s) (hermitePhys j) : ℝ) : ℂ) :=
-    aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) (x / s) (hermitePhys j)
-  have hc := hermitePhys_linearization m n ((x / s : ℝ) : ℂ)
+  have hcast (j : ℕ) : (aeval ((x / s : ℝ) : ℂ) (hermitePolyH j) : ℂ) =
+      ((aeval (x / s) (hermitePolyH j) : ℝ) : ℂ) :=
+    aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) (x / s) (hermitePolyH j)
+  have hc := hermitePolyH_linearization m n ((x / s : ℝ) : ℂ)
   simp_rw [hcast] at hc
-  have hr : (aeval (x / s) (hermitePhys m) : ℝ) * aeval (x / s) (hermitePhys n) =
+  have hr : (aeval (x / s) (hermitePolyH m) : ℝ) * aeval (x / s) (hermitePolyH n) =
       ∑ k ∈ Finset.range (min m n + 1), (m.choose k : ℝ) * n.choose k * 2 ^ k * k.factorial *
-        aeval (x / s) (hermitePhys (m + n - 2 * k)) := by exact_mod_cast hc
+        aeval (x / s) (hermitePolyH (m + n - 2 * k)) := by exact_mod_cast hc
   simp_rw [hscale] at hr
   have hpow (k : ℕ) (hk : k ∈ Finset.range (min m n + 1)) :
       (2 : ℝ) ^ k * s ^ (m + n - 2 * k) = s ^ (m + n) := by
@@ -2768,13 +3343,13 @@ lemma hermite_linearization (m n : ℕ) (x : ℝ) :
         (aeval x (hermite (m + n - 2 * k)) : ℝ) * this
 
 /-- The finite contraction sum in a Hermite transform is a Laguerre polynomial. -/
-lemma hermite_laguerre_sum (n l : ℕ) (u : ℂ) :
+lemma hermite_laguerrePolyL_sum (n l : ℕ) (u : ℂ) :
     ∑ k ∈ Finset.range (n + 1), (n.choose k : ℂ) * (n + l).choose k * k.factorial *
       (-1 : ℂ) ^ (n - k) * u ^ (2 * (n - k) + l) =
-      n.factorial * u ^ l * laguerre l n (u ^ 2) := by
+      n.factorial * u ^ l * laguerrePolyL l n (u ^ 2) := by
   have hl : ∀ k : ℕ, (l : ℂ) + 1 ≠ -k :=
     not_neg_nat_of_re_pos (by simp; positivity)
-  rw [laguerre_eq_sum hl, Finset.mul_sum, ← Finset.sum_range_reflect]
+  rw [laguerrePolyL_eq_sum hl, Finset.mul_sum, ← Finset.sum_range_reflect]
   apply Finset.sum_congr rfl
   intro j hj
   have hjn : j ≤ n := by have := Finset.mem_range.mp hj; omega
@@ -2814,7 +3389,7 @@ theorem hermite_product_cosine_transform (m n : ℕ) (y : ℝ) :
     ∫ x : ℝ in Set.Ioi 0, exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermite n) : ℂ) *
       aeval (x : ℂ) (hermite (n + 2 * m)) * Real.cos (x * y) =
       (-1 : ℂ) ^ m * Real.sqrt (Real.pi / 2) * n.factorial * (y : ℂ) ^ (2 * m) *
-        exp (-(y : ℂ) ^ 2 / 2) * laguerre (2 * m) n ((y : ℂ) ^ 2) := by
+        exp (-(y : ℂ) ^ 2 / 2) * laguerrePolyL (2 * m) n ((y : ℂ) ^ 2) := by
   have hcast (j : ℕ) (x : ℝ) : (aeval (x : ℂ) (hermite j) : ℂ) =
       ((aeval x (hermite j) : ℝ) : ℂ) :=
     aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x (hermite j)
@@ -2869,7 +3444,7 @@ theorem hermite_product_cosine_transform (m n : ℕ) (y : ℝ) :
     push_cast
     ring
   rw [he]
-  have hsum := hermite_laguerre_sum n (2 * m) (y : ℂ)
+  have hsum := hermite_laguerrePolyL_sum n (2 * m) (y : ℂ)
   calc
     _ = ((-1 : ℂ) ^ m * Real.sqrt (Real.pi / 2) * exp (-(y : ℂ) ^ 2 / 2)) *
         ∑ k ∈ Finset.range (n + 1), (n.choose k : ℂ) * (n + 2 * m).choose k * k.factorial *
@@ -2892,7 +3467,7 @@ theorem hermite_product_sine_transform (m n : ℕ) (y : ℝ) :
     ∫ x : ℝ in Set.Ioi 0, exp (-(x : ℂ) ^ 2 / 2) * (aeval (x : ℂ) (hermite n) : ℂ) *
       aeval (x : ℂ) (hermite (n + 2 * m + 1)) * Real.sin (x * y) =
       (-1 : ℂ) ^ m * Real.sqrt (Real.pi / 2) * n.factorial * (y : ℂ) ^ (2 * m + 1) *
-        exp (-(y : ℂ) ^ 2 / 2) * laguerre (2 * m + 1) n ((y : ℂ) ^ 2) := by
+        exp (-(y : ℂ) ^ 2 / 2) * laguerrePolyL (2 * m + 1) n ((y : ℂ) ^ 2) := by
   have hcast (j : ℕ) (x : ℝ) : (aeval (x : ℂ) (hermite j) : ℂ) =
       ((aeval x (hermite j) : ℝ) : ℂ) :=
     aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) x (hermite j)
@@ -2947,7 +3522,7 @@ theorem hermite_product_sine_transform (m n : ℕ) (y : ℝ) :
     push_cast
     ring
   rw [he]
-  have hsum := hermite_laguerre_sum n (2 * m + 1) (y : ℂ)
+  have hsum := hermite_laguerrePolyL_sum n (2 * m + 1) (y : ℂ)
   calc
     _ = ((-1 : ℂ) ^ m * Real.sqrt (Real.pi / 2) * exp (-(y : ℂ) ^ 2 / 2)) *
         ∑ k ∈ Finset.range (n + 1), (n.choose k : ℂ) * (n + 2 * m + 1).choose k * k.factorial *
@@ -2967,17 +3542,19 @@ theorem hermite_product_sine_transform (m n : ℕ) (y : ℝ) :
 
 @[dlmf 18.17.E33]
 theorem jacobi_laplace_transform {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (z : ℂ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, exp (-((x : ℂ) + 1) * z) * jacobiP α β n x *
+    ∫ x : ℝ in (-1 : ℝ)..1, exp (-((x : ℂ) + 1) * z) * jacobiPolyP α β n x *
       (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) =
       (-1 : ℂ) ^ n * (2 : ℂ) ^ (α + β + n + 1 : ℂ) * Gamma (α + n + 1 : ℂ) *
       Gamma (β + n + 1 : ℂ) / (Gamma (α + β + 2 * n + 2 : ℂ) * n.factorial) *
-      z ^ n * confluentM (β + n + 1 : ℂ) (α + β + 2 * n + 2 : ℂ) (-2 * z) := by
-  sorry
+      z ^ n * kummerM (β + n + 1 : ℂ) (α + β + 2 * n + 2 : ℂ) (-2 * z) := by
+  convert jacobi_laplace_aux hα hβ n z using 1
+  exact intervalIntegral.integral_congr fun x _ => by ring
 
 @[dlmf 18.17.E34_5]
-theorem laguerre_product_laplace_transform {α : ℝ} (hα : -1 < α) (m n : ℕ) {z : ℂ}
+theorem laguerrePolyL_product_laplace_transform {α : ℝ} (hα : -1 < α) (m n : ℕ) {z : ℂ}
     (hz : -1 < z.re) (hz0 : z ≠ 0) :
-    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerre α m x * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+    ∫ x : ℝ in Set.Ioi 0,
+        exp (-x * z) * laguerrePolyL α m x * laguerrePolyL α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (α + m + 1 : ℂ) * Gamma (α + n + 1 : ℂ) /
       (Gamma (α + 1 : ℂ) * m.factorial * n.factorial) * z ^ (m + n) /
       (z + 1) ^ (α + m + n + 1 : ℂ) * ₂F₁ (-(m : ℂ)) (-(n : ℂ)) (α + 1 : ℂ) (z⁻¹ ^ 2) := by
@@ -3000,9 +3577,9 @@ theorem hermite_mellin_laplace_transform {a : ℝ} (ha : 0 < a) {z : ℂ} (hz : 
 
 
 @[dlmf 18.10.E1]
-theorem gegenbauer_dirichlet_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ)
+theorem ultrasphPoly_dirichlet_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ)
     {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
-    gegenbauer lam n (Real.cos θ) / gegenbauer lam n 1 =
+    ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 =
       (2 : ℂ) ^ (lam : ℂ) * Gamma (lam + 1 / 2 : ℂ) /
         (Real.sqrt Real.pi * Gamma (lam : ℂ)) * (Real.sin θ : ℂ) ^ (1 - 2 * lam : ℂ) *
       ∫ phi : ℝ in (0 : ℝ)..θ, (Real.cos ((n + lam) * phi) : ℂ) *
@@ -3012,7 +3589,7 @@ theorem gegenbauer_dirichlet_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ)
 @[dlmf 18.10.E3]
 theorem jacobi_double_laplace_integral {α β : ℝ} (hαβ : β < α) (hβ : -1 / 2 < β)
     (n : ℕ) (θ : ℝ) :
-    jacobiP α β n (Real.cos θ) / jacobiP α β n 1 =
+    jacobiPolyP α β n (Real.cos θ) / jacobiPolyP α β n 1 =
       2 * Gamma (α + 1 : ℂ) / (Real.sqrt Real.pi * Gamma (α - β : ℂ) * Gamma (β + 1 / 2 : ℂ)) *
       ∫ r : ℝ in (0 : ℝ)..1, ∫ phi : ℝ in (0 : ℝ)..Real.pi,
         ((Real.cos (θ / 2) : ℂ) ^ 2 - r ^ 2 * (Real.sin (θ / 2) : ℂ) ^ 2 +
@@ -3022,8 +3599,8 @@ theorem jacobi_double_laplace_integral {α β : ℝ} (hαβ : β < α) (hβ : -1
   sorry
 
 @[dlmf 18.10.E6]
-theorem laguerre_double_laplace_integral {α : ℝ} (hα : -1 / 2 < α) (n : ℕ) (x : ℝ) :
-    laguerre α n ((x : ℂ) ^ 2) =
+theorem laguerrePolyL_double_laplace_integral {α : ℝ} (hα : -1 / 2 < α) (n : ℕ) (x : ℝ) :
+    laguerrePolyL α n ((x : ℂ) ^ 2) =
       2 * (-1 : ℂ) ^ n / (Real.sqrt Real.pi * Gamma (α + 1 / 2 : ℂ) * n.factorial) *
       ∫ r : ℝ in Set.Ioi 0, ∫ phi : ℝ in (0 : ℝ)..Real.pi,
         ((x : ℂ) ^ 2 - r ^ 2 + 2 * I * x * r * Real.cos phi) ^ n * exp (-(r : ℂ) ^ 2) *
@@ -3031,8 +3608,8 @@ theorem laguerre_double_laplace_integral {α : ℝ} (hα : -1 / 2 < α) (n : ℕ
   sorry
 
 @[dlmf 18.10.E9]
-theorem laguerre_bessel_integral {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
-    laguerre α n x = exp (x : ℂ) * (x : ℂ) ^ (-α / 2 : ℂ) / n.factorial *
+theorem laguerrePolyL_bessel_integral {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
+    laguerrePolyL α n x = exp (x : ℂ) * (x : ℂ) ^ (-α / 2 : ℂ) / n.factorial *
       ∫ t : ℝ in Set.Ioi 0, exp (-t : ℂ) * (t : ℂ) ^ (n + α / 2 : ℂ) *
         besselJ α (2 * Real.sqrt (x * t)) := by
   sorry
@@ -3040,64 +3617,430 @@ theorem laguerre_bessel_integral {α : ℝ} (hα : -1 < α) (n : ℕ) {x : ℝ} 
 @[dlmf 18.17.E16]
 theorem jacobi_fourier_transform {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (y : ℝ) :
     ∫ x : ℝ in (-1 : ℝ)..1, (1 - (x : ℂ)) ^ (α : ℂ) * (1 + (x : ℂ)) ^ (β : ℂ) *
-      jacobiP α β n x * exp (I * x * y) =
+      jacobiPolyP α β n x * exp (I * x * y) =
       (I * y) ^ n * exp (I * y) / n.factorial * (2 : ℂ) ^ (n + α + β + 1 : ℂ) *
         Gamma (n + α + 1 : ℂ) * Gamma (n + β + 1 : ℂ) / Gamma (2 * n + α + β + 2 : ℂ) *
-        confluentM (n + α + 1) (2 * n + α + β + 2) (-2 * I * y) := by
-  sorry
+        kummerM (n + α + 1) (2 * n + α + β + 2) (-2 * I * y) := by
+  exact jacobi_fourier_aux hα hβ n y
+
+/-- For `g` even, the Fourier integral over `[-1, 1]` is twice the cosine integral over `[0, 1]`. -/
+lemma integral_mul_exp_of_even {g : ℝ → ℂ} (hg : IntervalIntegrable g volume (-1) 1)
+    (hev : ∀ x, g (-x) = g x) (y : ℝ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, g x * exp (I * x * y) =
+      2 * ∫ x : ℝ in (0 : ℝ)..1, g x * Real.cos (x * y) := by
+  have hs1 : Set.uIcc (-1 : ℝ) 0 ⊆ Set.uIcc (-1) 1 := by
+    rw [Set.uIcc_of_le (by norm_num), Set.uIcc_of_le (by norm_num)]
+    exact Set.Icc_subset_Icc le_rfl (by norm_num)
+  have hs2 : Set.uIcc (0 : ℝ) 1 ⊆ Set.uIcc (-1) 1 := by
+    rw [Set.uIcc_of_le (by norm_num), Set.uIcc_of_le (by norm_num)]
+    exact Set.Icc_subset_Icc (by norm_num) le_rfl
+  have h1 : IntervalIntegrable g volume (-1) 0 := hg.mono_set hs1
+  have h2 : IntervalIntegrable g volume 0 1 := hg.mono_set hs2
+  have hc {a b : ℝ} {f : ℝ → ℂ} (h : IntervalIntegrable g volume a b) (hf : Continuous f) :
+      IntervalIntegrable (fun x => g x * f x) volume a b := h.mul_continuousOn hf.continuousOn
+  rw [← intervalIntegral.integral_add_adjacent_intervals (b := 0)
+    (hc h1 (by fun_prop)) (hc h2 (by fun_prop))]
+  have hneg := intervalIntegral.integral_comp_neg (a := 0) (b := 1)
+    (fun x : ℝ => g x * exp (I * x * y))
+  norm_num only [neg_zero] at hneg
+  simp only [hev, ofReal_neg] at hneg
+  rw [← hneg, ← intervalIntegral.integral_add
+    (hc (f := fun x : ℝ => exp (I * -(x : ℂ) * y)) h2 (by fun_prop))
+    (hc (f := fun x : ℝ => exp (I * (x : ℂ) * y)) h2 (by fun_prop)),
+    ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun x _ => ?_
+  push_cast
+  rw [show I * (-(x : ℂ)) * y = -(x * y) * I by ring, show I * (x : ℂ) * y = (x * y) * I by ring]
+  linear_combination (-g x) * Complex.two_cos ((x : ℂ) * y)
+
+/-- For `g` odd, the Fourier integral over `[-1, 1]` is `2i` times the sine integral over
+`[0, 1]`. -/
+lemma integral_mul_exp_of_odd {g : ℝ → ℂ} (hg : IntervalIntegrable g volume (-1) 1)
+    (hodd : ∀ x, g (-x) = -g x) (y : ℝ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, g x * exp (I * x * y) =
+      2 * I * ∫ x : ℝ in (0 : ℝ)..1, g x * Real.sin (x * y) := by
+  have hs1 : Set.uIcc (-1 : ℝ) 0 ⊆ Set.uIcc (-1) 1 := by
+    rw [Set.uIcc_of_le (by norm_num), Set.uIcc_of_le (by norm_num)]
+    exact Set.Icc_subset_Icc le_rfl (by norm_num)
+  have hs2 : Set.uIcc (0 : ℝ) 1 ⊆ Set.uIcc (-1) 1 := by
+    rw [Set.uIcc_of_le (by norm_num), Set.uIcc_of_le (by norm_num)]
+    exact Set.Icc_subset_Icc (by norm_num) le_rfl
+  have h1 : IntervalIntegrable g volume (-1) 0 := hg.mono_set hs1
+  have h2 : IntervalIntegrable g volume 0 1 := hg.mono_set hs2
+  have hc {a b : ℝ} {f : ℝ → ℂ} (h : IntervalIntegrable g volume a b) (hf : Continuous f) :
+      IntervalIntegrable (fun x => g x * f x) volume a b := h.mul_continuousOn hf.continuousOn
+  rw [← intervalIntegral.integral_add_adjacent_intervals (b := 0)
+    (hc h1 (by fun_prop)) (hc h2 (by fun_prop))]
+  have hneg := intervalIntegral.integral_comp_neg (a := 0) (b := 1)
+    (fun x : ℝ => g x * exp (I * x * y))
+  norm_num only [neg_zero] at hneg
+  simp only [hodd, ofReal_neg, neg_mul, ← mul_neg] at hneg
+  rw [← hneg, ← intervalIntegral.integral_add
+    (hc (f := fun x : ℝ => -exp (I * -(x : ℂ) * y)) h2 (by fun_prop))
+    (hc (f := fun x : ℝ => exp (I * (x : ℂ) * y)) h2 (by fun_prop)),
+    ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun x _ => ?_
+  push_cast
+  rw [show I * (-(x : ℂ)) * y = -(x * y) * I by ring, show I * (x : ℂ) * y = (x * y) * I by ring]
+  linear_combination (-(g x * I)) * Complex.two_sin ((x : ℂ) * y) +
+    (-(g x) * (exp (-(x * y) * I) - exp ((x * y) * I))) * I_sq
+
+/-- The Gegenbauer weight times a continuous function is integrable on `[-1, 1]`. -/
+lemma intervalIntegrable_ultrasph_weight_mul {lam : ℝ} (hlam : 0 < lam) (N : ℕ) :
+    IntervalIntegrable (fun x : ℝ => (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam N x) volume (-1) 1 := by
+  have hw := intervalIntegrable_jacobi_weight_cpow (a := (lam : ℂ) - 1 / 2)
+    (b := (lam : ℂ) - 1 / 2) (by simp; linarith) (by simp; linarith)
+  have hC : Continuous fun x : ℝ => ultrasphPoly lam N (x : ℂ) :=
+    ((analyticOnNhd_ultrasphPoly (lam : ℂ) N).continuousOn.comp_continuous
+      continuous_ofReal (fun _ => Set.mem_univ _))
+  refine (hw.mul_continuousOn hC.continuousOn).congr fun x hx => ?_
+  rw [Set.uIoc_of_le (by norm_num)] at hx
+  have h1 : (1 - (x : ℂ) ^ 2) = ((1 - x : ℝ) : ℂ) * ((1 + x : ℝ) : ℂ) := by push_cast; ring
+  rw [h1, mul_cpow_ofReal_nonneg (by linarith [hx.2]) (by linarith [hx.1])]
+  push_cast; ring
 
 @[dlmf 18.17.E17]
-theorem gegenbauer_even_cosine_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
+theorem ultrasphPoly_even_cosine_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
     ∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
-      gegenbauer lam (2 * n) x * Real.cos (x * y) =
+      ultrasphPoly lam (2 * n) x * Real.cos (x * y) =
       (-1 : ℂ) ^ n * Real.pi * Gamma (2 * n + 2 * lam : ℂ) * besselJ (lam + 2 * n) y /
         ((2 * n).factorial * Gamma (lam : ℂ) * (2 * y : ℂ) ^ (lam : ℂ)) := by
-  sorry
+  have hev : ∀ x : ℝ, (1 - ((-x : ℝ) : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam (2 * n) ((-x : ℝ) : ℂ) =
+      (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) * ultrasphPoly lam (2 * n) x := by
+    intro x
+    rw [ofReal_neg, ultrasphPoly_reflection (by simp; linarith), pow_mul]
+    norm_num
+  have h := integral_mul_exp_of_even (intervalIntegrable_ultrasph_weight_mul hlam (2 * n))
+    hev y
+  rw [ultrasphPoly_fourier_transform hlam (2 * n) hy] at h
+  apply mul_left_cancel₀ (two_ne_zero : (2 : ℂ) ≠ 0)
+  rw [← h, pow_mul, I_sq]
+  push_cast
+  rw [add_comm (lam : ℂ) (2 * n)]
+  ring
 
 @[dlmf 18.17.E18]
-theorem gegenbauer_odd_sine_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
+theorem ultrasphPoly_odd_sine_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y : ℝ} (hy : 0 < y) :
     ∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
-      gegenbauer lam (2 * n + 1) x * Real.sin (x * y) =
+      ultrasphPoly lam (2 * n + 1) x * Real.sin (x * y) =
       (-1 : ℂ) ^ n * Real.pi * Gamma (2 * n + 2 * lam + 1 : ℂ) * besselJ (2 * n + lam + 1) y /
         ((2 * n + 1).factorial * Gamma (lam : ℂ) * (2 * y : ℂ) ^ (lam : ℂ)) := by
-  sorry
+  have hodd : ∀ x : ℝ, (1 - ((-x : ℝ) : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam (2 * n + 1) ((-x : ℝ) : ℂ) =
+      -((1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) * ultrasphPoly lam (2 * n + 1) x) := by
+    intro x
+    rw [ofReal_neg, ultrasphPoly_reflection (by simp; linarith),
+      show ((-1 : ℂ)) ^ (2 * n + 1) = -1 by rw [pow_succ, pow_mul]; norm_num, neg_sq]
+    ring
+  have h := integral_mul_exp_of_odd (intervalIntegrable_ultrasph_weight_mul hlam (2 * n + 1))
+    hodd y
+  rw [ultrasphPoly_fourier_transform hlam (2 * n + 1) hy] at h
+  apply mul_left_cancel₀ (mul_ne_zero two_ne_zero I_ne_zero : (2 : ℂ) * I ≠ 0)
+  rw [← h, pow_succ, pow_mul, I_sq]
+  push_cast
+  rw [show (2 * n + 1 : ℂ) + lam = 2 * n + lam + 1 by ring,
+    show (2 * n + 1 : ℂ) + 2 * lam = 2 * n + 2 * lam + 1 by ring]
+  ring
 
 @[dlmf 18.17.E19]
 theorem legendre_fourier_transform (n : ℕ) {y : ℝ} (hy : 0 < y) :
-    ∫ x : ℝ in (-1 : ℝ)..1, legendreP n x * exp (I * x * y) =
+    ∫ x : ℝ in (-1 : ℝ)..1, legendrePolyP n x * exp (I * x * y) =
       I ^ n * Real.sqrt (2 * Real.pi / y) * besselJ (n + 1 / 2 : ℂ) y := by
-  sorry
+  have h := ultrasphPoly_fourier_transform (lam := 1 / 2) (by norm_num) n hy
+  push_cast at h
+  norm_num only [sub_self, cpow_zero, one_mul, mul_one] at h
+  simp only [legendre_eq_ultrasphPoly]
+  rw [h, Complex.Gamma_nat_eq_factorial, Complex.Gamma_one_half_eq]
+  have hs : ((π : ℂ)) ^ (1 / 2 : ℂ) = ((√π : ℝ) : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]; norm_num
+  have hr : (2 * (y : ℂ)) ^ (1 / 2 : ℂ) = ((√(2 * y) : ℝ) : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow (by positivity)]; norm_num
+  have key : √(2 * π / y) * (√π * √(2 * y)) = 2 * π := by
+    rw [← Real.sqrt_mul (by positivity), ← Real.sqrt_mul (by positivity),
+      show 2 * π / y * (π * (2 * y)) = (2 * π) ^ 2 by field_simp,
+      Real.sqrt_sq (by positivity)]
+  have keyC := congrArg (fun r : ℝ => (r : ℂ)) key
+  push_cast at keyC
+  have h1 : ((√π : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr Real.pi_pos)
+  have h2 : ((√(2 * y) : ℝ) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr (by positivity))
+  have h3 : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  rw [hs, hr]
+  set J := besselJ ((n : ℂ) + 1 / 2) (y : ℂ) with hJ
+  field_simp
+  linear_combination (-J) * keyC
 
 @[dlmf 18.17.E34]
-theorem laguerre_laplace_transform {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
-    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerre α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
+theorem laguerrePolyL_laplace_transform {α : ℝ} (hα : -1 < α) (n : ℕ) {z : ℂ} (hz : -1 < z.re) :
+    ∫ x : ℝ in Set.Ioi 0, exp (-x * z) * laguerrePolyL α n x * exp (-x) * (x : ℂ) ^ (α : ℂ) =
       Gamma (α + n + 1 : ℂ) * z ^ n / (n.factorial * (z + 1) ^ (α + n + 1 : ℂ)) := by
-  exact laguerre_laplace_aux hα n hz
+  exact laguerrePolyL_laplace_aux hα n hz
+
+/-- `1/Γ(y) = (y)_m/Γ(y+m)` for every `y` and every `m`, including poles. -/
+lemma inv_Gamma_eq_poch_mul_inv_Gamma_add (m : ℕ) (y : ℂ) :
+    (Gamma y)⁻¹ = poch y m * (Gamma (y + m))⁻¹ := by
+  cases m with
+  | zero => simp [poch_zero]
+  | succ p => exact inv_Gamma_eq_poch_mul p y
+
+lemma ultrasphPoly_mellin_transform_even {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re)
+    (m : ℕ) :
+    ∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam (2 * m) x * (x : ℂ) ^ (z - 1) =
+      Real.pi * (2 : ℂ) ^ (1 - 2 * lam - z) * Gamma (((2 * m : ℕ) : ℂ) + 2 * lam : ℂ) * Gamma z /
+        ((2 * m).factorial * Gamma (lam : ℂ) *
+          Gamma (1 / 2 + ((2 * m : ℕ) : ℂ) / 2 + lam + z / 2) *
+          Gamma (1 / 2 + z / 2 - ((2 * m : ℕ) : ℂ) / 2)) := by
+  set K0 : ℂ := poch (lam : ℂ) m / poch (1 / 2) m * (-1 : ℂ) ^ m with hK0
+  have hrw : ∀ x : ℝ, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) * ultrasphPoly lam (2 * m) x *
+      (x : ℂ) ^ (z - 1) = (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2) * (x : ℂ) ^ (z - 1) *
+        (K0 * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m
+          ((1 - 2 * x ^ 2 : ℝ) : ℂ)) := by
+    intro x
+    rw [ultrasphPoly_quadratic_even (by simp; linarith),
+      show 2 * (x : ℂ) ^ 2 - 1 = -((1 - 2 * x ^ 2 : ℝ) : ℂ) by push_cast; ring,
+      jacobi_reflection (by simp; linarith) (by norm_num), hK0]
+    push_cast
+    ring_nf
+  rw [intervalIntegral.integral_congr (fun x _ => hrw x),
+    integral_one_sub_sq_cpow_mul_cpow ((lam : ℂ) - 1 / 2) (z - 1)
+      (fun s => K0 * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s)]
+  have hz2 : 0 < (z / 2).re := by simp; linarith
+  have hJ := jacobi_mellin_transform (α := -1 / 2) (β := lam - 1 / 2) (by norm_num)
+    (by linarith) hz2 m
+  have hint : (∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ ((z - 1 - 1) / 2) *
+      (1 + (s : ℂ)) ^ ((lam : ℂ) - 1 / 2) *
+      (K0 * jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s)) =
+      K0 * ∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ (z / 2 - 1) *
+        (1 + (s : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) *
+        jacobiPolyP ((-1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun s _ => ?_
+    rw [show (z - 1 - 1) / 2 = z / 2 - 1 by ring]
+    push_cast
+    ring
+  rw [hint, hJ]
+  have hl : (0 : ℝ) < (lam : ℂ).re := by simpa using hlam
+  rw [show (1 : ℂ) + ((lam - 1 / 2 : ℝ) : ℂ) + z / 2 + m = lam + 1 / 2 + z / 2 + m by
+      push_cast; ring,
+    show (1 / 2 : ℂ) + ((2 * m : ℕ) : ℂ) / 2 + lam + z / 2 = lam + 1 / 2 + z / 2 + m by
+      push_cast; ring,
+    show (1 : ℂ) + ((lam - 1 / 2 : ℝ) : ℂ) + m = (m + lam) + 1 / 2 by push_cast; ring,
+    show ((2 * m : ℕ) : ℂ) + 2 * lam = 2 * (m + lam) by push_cast; ring,
+    show (1 / 2 : ℂ) + z / 2 - ((2 * m : ℕ) : ℂ) / 2 = 1 / 2 + z / 2 - m by push_cast; ring,
+    show (1 : ℂ) + ((-1 / 2 : ℝ) : ℂ) - z / 2 = 1 / 2 - z / 2 by push_cast; ring]
+  -- the reciprocal of `Γ(1/2 + z/2 - m)`, valid also at poles
+  have hE : (Gamma (1 / 2 + z / 2 - m))⁻¹ =
+      (-1 : ℂ) ^ m * poch (1 / 2 - z / 2) m * (Gamma (1 / 2 + z / 2))⁻¹ := by
+    have h := AAR.Gamma.poch_neg_eq ((m : ℂ) - 1 / 2 - z / 2) m
+    rw [show -((m : ℂ) - 1 / 2 - z / 2) = 1 / 2 + z / 2 - m by ring,
+      show (m : ℂ) - 1 / 2 - z / 2 - m + 1 = 1 / 2 - z / 2 by ring] at h
+    rw [inv_Gamma_eq_poch_mul_inv_Gamma_add m, h, show 1 / 2 + z / 2 - (m : ℂ) + m = 1 / 2 + z / 2
+      by ring]
+  have F1 := Complex.Gamma_mul_Gamma_add_half (z / 2)
+  rw [show 2 * (z / 2) = z by ring, show z / 2 + 1 / 2 = 1 / 2 + z / 2 by ring] at F1
+  have F2 := Complex.Gamma_mul_Gamma_add_half ((m : ℂ) + lam)
+  have F3 : Gamma ((m : ℂ) + lam) = poch (lam : ℂ) m * Gamma lam := by
+    rw [add_comm, Gamma_add_nat_eq_poch_mul hl]
+  have F4 := two_pow_mul_poch_half m
+  have hpi : (Real.pi : ℂ) = (Real.sqrt Real.pi : ℂ) * (Real.sqrt Real.pi : ℂ) := by
+    rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+  have hV : (2 : ℂ) ^ (1 - 2 * (lam : ℂ) - z) * 2 =
+      (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam)) * (2 : ℂ) ^ (1 - z) * (2 : ℂ) ^ (2 * m) := by
+    rw [← cpow_natCast, ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero,
+      show 1 - 2 * ((m : ℂ) + lam) + (1 - z) + ((2 * m : ℕ) : ℂ) = (1 - 2 * lam - z) + 1 by
+        push_cast; ring, cpow_add _ _ two_ne_zero, cpow_one]
+  have hPQ : (2 : ℂ) ^ (-((lam : ℂ) - 1 / 2 + (z - 1 - 1) / 2)) *
+      (2 : ℂ) ^ (((lam - 1 / 2 : ℝ) : ℂ) + z / 2) = 2 := by
+    rw [← cpow_add _ _ two_ne_zero, show -((lam : ℂ) - 1 / 2 + (z - 1 - 1) / 2) +
+      (((lam - 1 / 2 : ℝ) : ℂ) + z / 2) = 1 by push_cast; ring, cpow_one]
+  have hW : Gamma (1 / 2 + z / 2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+  have hD : Gamma (lam + 1 / 2 + z / 2 + m) ≠ 0 :=
+    Gamma_ne_zero_of_re_pos (by simp; linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)])
+  have hGl : Gamma (lam : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos hl
+  have hph : poch (1 / 2 : ℂ) m ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) m
+  have hfm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+  have hS : (Real.sqrt Real.pi : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hT : (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam)) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hU : (2 : ℂ) ^ (1 - z) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hF : (2 : ℂ) ^ (2 * m) ≠ 0 := pow_ne_zero _ two_ne_zero
+  rw [hpi, div_mul_eq_div_div _ _ (Gamma (1 / 2 + z / 2 - (m : ℂ))),
+    div_eq_mul_inv _ (Gamma (1 / 2 + z / 2 - (m : ℂ))), hE, ← F4]
+  simp only [hK0]
+  generalize (2 : ℂ) ^ (-((lam : ℂ) - 1 / 2 + (z - 1 - 1) / 2)) = P at hPQ ⊢
+  generalize (2 : ℂ) ^ (((lam - 1 / 2 : ℝ) : ℂ) + z / 2) = Q at hPQ ⊢
+  generalize (2 : ℂ) ^ (1 - 2 * (lam : ℂ) - z) = V at hV ⊢
+  generalize (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam)) = T at hV hT F2 ⊢
+  generalize (2 : ℂ) ^ (1 - z) = U at hV hU F1 ⊢
+  generalize (2 : ℂ) ^ (2 * m) = F at hV hF ⊢
+  generalize (Real.sqrt Real.pi : ℂ) = S at hS F1 F2 ⊢
+  generalize Gamma (1 / 2 + z / 2) = W at hW F1 ⊢
+  generalize Gamma (z / 2) = Gz2 at F1 ⊢
+  generalize Gamma z = Gz at F1 ⊢
+  generalize Gamma (2 * ((m : ℂ) + lam)) = G2 at F2 ⊢
+  generalize Gamma ((m : ℂ) + lam) = Gml at F2 F3 ⊢
+  generalize Gamma ((m : ℂ) + lam + 1 / 2) = Gmlh at F2 ⊢
+  generalize Gamma (lam + 1 / 2 + z / 2 + m) = D at hD ⊢
+  generalize Gamma (lam : ℂ) = Gl at hGl F3 ⊢
+  generalize poch (1 / 2 : ℂ) m = ph at hph ⊢
+  generalize poch (lam : ℂ) m = pl at F3 ⊢
+  generalize poch (1 / 2 - z / 2) m = R
+  generalize (m ! : ℂ) = fm at hfm ⊢
+  have hG2 : G2 = Gml * Gmlh / (T * S) := by field_simp; linear_combination -F2
+  have hGz : Gz = Gz2 * W / (U * S) := by field_simp; linear_combination -F1
+  have hV' : V = T * U * F / 2 := by field_simp; linear_combination hV
+  rw [hG2, hGz, hV', F3]
+  field_simp
+  linear_combination 2 * pl * Gz2 * Gmlh * R * hPQ
+
+
+lemma ultrasphPoly_mellin_transform_odd {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re)
+    (m : ℕ) :
+    ∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam (2 * m + 1) x * (x : ℂ) ^ (z - 1) =
+      Real.pi * (2 : ℂ) ^ (1 - 2 * lam - z) * Gamma (((2 * m + 1 : ℕ) : ℂ) + 2 * lam : ℂ) *
+        Gamma z / ((2 * m + 1).factorial * Gamma (lam : ℂ) *
+          Gamma (1 / 2 + ((2 * m + 1 : ℕ) : ℂ) / 2 + lam + z / 2) *
+          Gamma (1 / 2 + z / 2 - ((2 * m + 1 : ℕ) : ℂ) / 2)) := by
+  set K1 : ℂ := poch (lam : ℂ) (m + 1) / poch (1 / 2) (m + 1) * (-1 : ℂ) ^ m with hK1
+  have hrw : Set.EqOn (fun x : ℝ => (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
+      ultrasphPoly lam (2 * m + 1) x * (x : ℂ) ^ (z - 1))
+      (fun x : ℝ => (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2) * (x : ℂ) ^ z *
+        (K1 * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m
+          ((1 - 2 * x ^ 2 : ℝ) : ℂ))) (Set.Ioo 0 1) := by
+    intro x hx
+    have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.1.ne'
+    simp only
+    rw [ultrasphPoly_quadratic_odd (by simp; linarith),
+      show 2 * (x : ℂ) ^ 2 - 1 = -((1 - 2 * x ^ 2 : ℝ) : ℂ) by push_cast; ring,
+      jacobi_reflection (by simp; linarith) (by norm_num), hK1,
+      show z = (z - 1) + 1 by ring, cpow_add _ _ hx0, cpow_one,
+      show z - 1 + 1 - 1 = z - 1 by ring]
+    push_cast
+    ring_nf
+  rw [intervalIntegral.integral_congr_Ioo_of_le (by norm_num) hrw,
+    integral_one_sub_sq_cpow_mul_cpow ((lam : ℂ) - 1 / 2) z
+      (fun s => K1 * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s)]
+  have hw : 0 < (1 / 2 + z / 2).re := by simp; linarith
+  have hJ := jacobi_mellin_transform (α := 1 / 2) (β := lam - 1 / 2) (by norm_num)
+    (by linarith) hw m
+  have hint : (∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ ((z - 1) / 2) *
+      (1 + (s : ℂ)) ^ ((lam : ℂ) - 1 / 2) *
+      (K1 * jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s)) =
+      K1 * ∫ s : ℝ in (-1 : ℝ)..1, (1 - (s : ℂ)) ^ (1 / 2 + z / 2 - 1) *
+        (1 + (s : ℂ)) ^ ((lam - 1 / 2 : ℝ) : ℂ) *
+        jacobiPolyP ((1 / 2 : ℝ) : ℂ) ((lam - 1 / 2 : ℝ) : ℂ) m s := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun s _ => ?_
+    rw [show (z - 1) / 2 = 1 / 2 + z / 2 - 1 by ring]
+    push_cast
+    ring
+  rw [hint, hJ]
+  have hl : (0 : ℝ) < (lam : ℂ).re := by simpa using hlam
+  rw [show (1 : ℂ) + ((lam - 1 / 2 : ℝ) : ℂ) + (1 / 2 + z / 2) + m = lam + 1 + z / 2 + m by
+      push_cast; ring,
+    show (1 / 2 : ℂ) + ((2 * m + 1 : ℕ) : ℂ) / 2 + lam + z / 2 = lam + 1 + z / 2 + m by
+      push_cast; ring,
+    show (1 : ℂ) + ((lam - 1 / 2 : ℝ) : ℂ) + m = (m + lam) + 1 / 2 by push_cast; ring,
+    show ((2 * m + 1 : ℕ) : ℂ) + 2 * lam = 2 * ((m + lam) + 1 / 2) by push_cast; ring,
+    show (1 / 2 : ℂ) + z / 2 - ((2 * m + 1 : ℕ) : ℂ) / 2 = z / 2 - m by push_cast; ring,
+    show (1 : ℂ) + ((1 / 2 : ℝ) : ℂ) - (1 / 2 + z / 2) = 1 - z / 2 by push_cast; ring]
+  have hE : (Gamma (z / 2 - m))⁻¹ =
+      (-1 : ℂ) ^ m * poch (1 - z / 2) m * (Gamma (z / 2))⁻¹ := by
+    have h := AAR.Gamma.poch_neg_eq ((m : ℂ) - z / 2) m
+    rw [show -((m : ℂ) - z / 2) = z / 2 - m by ring,
+      show (m : ℂ) - z / 2 - m + 1 = 1 - z / 2 by ring] at h
+    rw [inv_Gamma_eq_poch_mul_inv_Gamma_add m, h, show z / 2 - (m : ℂ) + m = z / 2 by ring]
+  have F1 := Complex.Gamma_mul_Gamma_add_half (z / 2)
+  rw [show 2 * (z / 2) = z by ring, show z / 2 + 1 / 2 = 1 / 2 + z / 2 by ring] at F1
+  have F2 := Complex.Gamma_mul_Gamma_add_half ((m : ℂ) + lam + 1 / 2)
+  rw [show (m : ℂ) + lam + 1 / 2 + 1 / 2 = lam + (m + 1 : ℕ) by push_cast; ring] at F2
+  have F3 : Gamma ((lam : ℂ) + (m + 1 : ℕ)) = poch (lam : ℂ) (m + 1) * Gamma lam :=
+    Gamma_add_nat_eq_poch_mul hl (m + 1)
+  have F4 : (2 : ℂ) ^ (2 * m + 1) * poch (1 / 2) (m + 1) * m ! = (2 * m + 1).factorial := by
+    rw [Nat.factorial_succ, Nat.cast_mul, ← two_pow_mul_poch_half m, poch_succ, pow_succ]
+    push_cast
+    ring
+  have hpi : (Real.pi : ℂ) = (Real.sqrt Real.pi : ℂ) * (Real.sqrt Real.pi : ℂ) := by
+    rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+  have hV : (2 : ℂ) ^ (1 - 2 * (lam : ℂ) - z) * 2 =
+      (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam + 1 / 2)) * (2 : ℂ) ^ (1 - z) * (2 : ℂ) ^ (2 * m + 1) := by
+    rw [← cpow_natCast, ← cpow_add _ _ two_ne_zero, ← cpow_add _ _ two_ne_zero,
+      show 1 - 2 * ((m : ℂ) + lam + 1 / 2) + (1 - z) + ((2 * m + 1 : ℕ) : ℂ) =
+        (1 - 2 * lam - z) + 1 by push_cast; ring, cpow_add _ _ two_ne_zero, cpow_one]
+  have hPQ : (2 : ℂ) ^ (-((lam : ℂ) - 1 / 2 + (z - 1) / 2)) *
+      (2 : ℂ) ^ (((lam - 1 / 2 : ℝ) : ℂ) + (1 / 2 + z / 2)) = 2 := by
+    rw [← cpow_add _ _ two_ne_zero, show -((lam : ℂ) - 1 / 2 + (z - 1) / 2) +
+      (((lam - 1 / 2 : ℝ) : ℂ) + (1 / 2 + z / 2)) = 1 by push_cast; ring, cpow_one]
+  have hz2 : Gamma (z / 2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+  have hD : Gamma (lam + 1 + z / 2 + m) ≠ 0 :=
+    Gamma_ne_zero_of_re_pos (by simp; linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)])
+  have hGl : Gamma (lam : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos hl
+  have hph : poch (1 / 2 : ℂ) (m + 1) ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) _
+  have hfm : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr m.factorial_ne_zero
+  have hS : (Real.sqrt Real.pi : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hT : (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam + 1 / 2)) ≠ 0 :=
+    cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hU : (2 : ℂ) ^ (1 - z) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hF : (2 : ℂ) ^ (2 * m + 1) ≠ 0 := pow_ne_zero _ two_ne_zero
+  rw [hpi, div_mul_eq_div_div _ _ (Gamma (z / 2 - (m : ℂ))),
+    div_eq_mul_inv _ (Gamma (z / 2 - (m : ℂ))), hE, ← F4]
+  simp only [hK1]
+  generalize (2 : ℂ) ^ (-((lam : ℂ) - 1 / 2 + (z - 1) / 2)) = P at hPQ ⊢
+  generalize (2 : ℂ) ^ (((lam - 1 / 2 : ℝ) : ℂ) + (1 / 2 + z / 2)) = Q at hPQ ⊢
+  generalize (2 : ℂ) ^ (1 - 2 * (lam : ℂ) - z) = V at hV ⊢
+  generalize (2 : ℂ) ^ (1 - 2 * ((m : ℂ) + lam + 1 / 2)) = T at hV hT F2 ⊢
+  generalize (2 : ℂ) ^ (1 - z) = U at hV hU F1 ⊢
+  generalize (2 : ℂ) ^ (2 * m + 1) = F at hV hF ⊢
+  generalize (Real.sqrt Real.pi : ℂ) = S at hS F1 F2 ⊢
+  generalize Gamma (1 / 2 + z / 2) = W at F1 ⊢
+  generalize Gamma (z / 2) = Gz2 at hz2 F1 ⊢
+  generalize Gamma z = Gz at F1 ⊢
+  generalize Gamma (2 * ((m : ℂ) + lam + 1 / 2)) = G2 at F2 ⊢
+  generalize Gamma ((lam : ℂ) + (m + 1 : ℕ)) = Gml1 at F2 F3 ⊢
+  generalize Gamma ((m : ℂ) + lam + 1 / 2) = Gmlh at F2 ⊢
+  generalize Gamma (lam + 1 + z / 2 + m) = D at hD ⊢
+  generalize Gamma (lam : ℂ) = Gl at hGl F3 ⊢
+  generalize poch (1 / 2 : ℂ) (m + 1) = ph at hph ⊢
+  generalize poch (lam : ℂ) (m + 1) = pl at F3 ⊢
+  generalize poch (1 - z / 2) m = R
+  generalize (m ! : ℂ) = fm at hfm ⊢
+  have hG2 : G2 = Gmlh * Gml1 / (T * S) := by field_simp; linear_combination -F2
+  have hGz : Gz = Gz2 * W / (U * S) := by field_simp; linear_combination -F1
+  have hV' : V = T * U * F / 2 := by field_simp; linear_combination hV
+  rw [hG2, hGz, hV', F3]
+  field_simp
+  linear_combination 2 * pl * W * Gmlh * R * hPQ
+
 
 @[dlmf 18.17.E37]
-theorem gegenbauer_mellin_transform {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
+theorem ultrasphPoly_mellin_transform {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
     ∫ x : ℝ in (0 : ℝ)..1, (1 - (x : ℂ) ^ 2) ^ (lam - 1 / 2 : ℂ) *
-      gegenbauer lam n x * (x : ℂ) ^ (z - 1) =
+      ultrasphPoly lam n x * (x : ℂ) ^ (z - 1) =
       Real.pi * (2 : ℂ) ^ (1 - 2 * lam - z) * Gamma (n + 2 * lam : ℂ) * Gamma z /
         (n.factorial * Gamma (lam : ℂ) * Gamma (1 / 2 + n / 2 + lam + z / 2) *
           Gamma (1 / 2 + z / 2 - n / 2)) := by
-  sorry
+  rcases Nat.even_or_odd' n with ⟨m, rfl | rfl⟩
+  · exact ultrasphPoly_mellin_transform_even hlam hz m
+  · exact ultrasphPoly_mellin_transform_odd hlam hz m
 
 /-- Finite-sum version, including parameters where the displayed hypergeometric quotient
 has removable singularities. -/
 @[dlmf 18.17.E40]
-theorem laguerre_mellin_laplace_transform {a : ℝ} (ha : 0 < a) {α : ℂ} (hα : -1 < α.re)
+theorem laguerrePolyL_mellin_laplace_transform {a : ℝ} (ha : 0 < a) {α : ℂ} (hα : -1 < α.re)
     (b : ℂ) {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
-    ∫ x : ℝ in Set.Ioi 0, exp (-a * x) * laguerre α n (b * x) * (x : ℂ) ^ (z - 1) =
+    ∫ x : ℝ in Set.Ioi 0, exp (-a * x) * laguerrePolyL α n (b * x) * (x : ℂ) ^ (z - 1) =
       ∑ k ∈ Finset.range (n + 1), poch (α + k + 1) (n - k) * (-b) ^ k /
         ((n - k).factorial * (k.factorial : ℂ)) * Gamma (z + k) / (a : ℂ) ^ (z + k) := by
   have hα' : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) :=
     not_neg_nat_of_re_pos (by simp only [add_re, one_re]; linarith)
-  have heq (x : ℝ) : laguerre α n (b * x) =
+  have heq (x : ℝ) : laguerrePolyL α n (b * x) =
       ∑ k ∈ Finset.range (n + 1),
         (poch (α + k + 1) (n - k) * (-b) ^ k / ((n - k).factorial * (k.factorial : ℂ))) *
           (x : ℂ) ^ k := by
-    rw [laguerre_eq_sum hα']
+    rw [laguerrePolyL_eq_sum hα']
     apply Finset.sum_congr rfl
     intro k _
     rw [show -(b * (x : ℂ)) = -b * x by ring, mul_pow]

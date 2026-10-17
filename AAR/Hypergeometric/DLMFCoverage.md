@@ -126,7 +126,7 @@ theorems and the supporting function definitions, as distinguished in the source
 | [15.4.E22](https://dlmf.nist.gov/15.4.E22) | New: [`imaginary_excess_limit`](AnalyticProperties.lean) |
 | [15.4.E23](https://dlmf.nist.gov/15.4.E23) | Existing: [`tendsto_ordinaryHypergeometric_nhdsWithin_one`](Continuation.lean) |
 | [15.4.E24](https://dlmf.nist.gov/15.4.E24) | Existing: [`chu_vandermonde`](EulerIntegral.lean) |
-| [15.4.E25](https://dlmf.nist.gov/15.4.E25) | Existing: [`dougall_bilateral`](Identities.lean) |
+| [15.4.E25](https://dlmf.nist.gov/15.4.E25) | Proved: [`dougall_bilateral`](Identities.lean) |
 | [15.4.E26](https://dlmf.nist.gov/15.4.E26) | Existing: [`kummer_theorem`](Identities.lean) |
 | [15.4.E27](https://dlmf.nist.gov/15.4.E27) | New: [`half_argument_digamma`](Elementary.lean); New: [`alternating_digamma`](Elementary.lean) |
 | [15.4.E28](https://dlmf.nist.gov/15.4.E28) | New: [`gauss_second_summation`](Elementary.lean) |

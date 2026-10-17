@@ -25,6 +25,8 @@ to Young diagrams.
 
 open Nat
 
+namespace AAR.Partitions
+
 /-- The partition function `p(n)`. -/
 abbrev partitionFunction (n : ℕ) : ℕ :=
   Fintype.card (Partition n)
@@ -53,4 +55,4 @@ theorem ramanujan_mod_seven (n : ℕ) : 7 ∣ partitionFunction (7 * n + 5) := b
 theorem ramanujan_mod_eleven (n : ℕ) : 11 ∣ partitionFunction (11 * n + 6) := by
   sorry
 
-
+end AAR.Partitions

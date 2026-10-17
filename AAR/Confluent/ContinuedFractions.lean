@@ -58,14 +58,14 @@ def kummerUContinuedFraction (a b z : ℂ) : GenContFract ℂ where
 theorem kummerM_continued_fraction_limit {a b x : ℝ} (ha : 0 < a) (hb : 0 < b)
     (hba : a < b) (hx : 0 < x) (hx1 : x < 1) :
     Tendsto (kummerMContinuedFraction a b x).convs atTop
-      (𝓝 (confluentM a b x / confluentM (a + 1) (b + 1) x)) := by
+      (𝓝 (kummerM a b x / kummerM (a + 1) (b + 1) x)) := by
   sorry
 
 @[dlmf 13.5.E3]
 theorem kummerU_continued_fraction_limit {a b x : ℝ} (ha : 0 < a) (hb : 1 < b)
     (hx : 0 < x) :
     Tendsto (kummerUContinuedFraction a b x).convs atTop
-      (𝓝 (confluentU a b x / confluentU a (b - 1) x)) := by
+      (𝓝 (kummerU a b x / kummerU a (b - 1) x)) := by
   sorry
 
 /-- Coefficients `u_n` in DLMF 13.17.2. -/

@@ -35,8 +35,8 @@ namespace AAR.Confluent
 along the punctured parameter neighborhood to the entire regularized function.
 The puncture is essential: the totalized quotient has value zero at the pole. -/
 @[dlmf 13.2.E5]
-theorem tendsto_confluentM_div_Gamma_at_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
-    Tendsto (fun b : ℂ => confluentM a b z / Gamma b) (𝓝[≠] (-(n : ℂ)))
+theorem tendsto_kummerM_div_Gamma_at_neg_nat (a : ℂ) (n : ℕ) (z : ℂ) :
+    Tendsto (fun b : ℂ => kummerM a b z / Gamma b) (𝓝[≠] (-(n : ℂ)))
       (𝓝 (regularizedHGFun {a} {(-(n : ℂ))} z)) := by
   have ht : Tendsto (fun b => regularizedHGFun {a} {b} z) (𝓝[≠] (-(n : ℂ)))
       (𝓝 (regularizedHGFun {a} {(-(n : ℂ))} z)) :=
@@ -62,7 +62,7 @@ theorem iteratedDeriv_regularizedConfluent (a b : ℂ) (n : ℕ) (z : ℂ) :
 
 /-! ### Regularized contiguous relations (all parameters) -/
 
-/-- 13.3.1 (`confluentM_contiguous_a`) for the regularized function, valid for all parameters. -/
+/-- 13.3.1 (`kummerM_contiguous_a`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_a (a b z : ℂ) :
     (b - a) * regularizedHGFun {a - 1} {b} z + (2 * a - b + z) * regularizedHGFun {a} {b} z - a * regularizedHGFun {a + 1} {b} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat (f := fun b => (b - a) * regularizedHGFun {a - 1} {b} z + (2 * a - b + z) * regularizedHGFun {a} {b} z - a * regularizedHGFun {a + 1} {b} z)
@@ -73,12 +73,12 @@ theorem regularizedConfluent_contiguous_a (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_a (a := a) (z := z) hb
+  have h := kummerM_contiguous_a (a := a) (z := z) hb
   simp only [regularizedConfluent_eq_div_Gamma hb]
   field_simp
   linear_combination h
 
-/-- 13.3.2 (`confluentM_contiguous_b`) for the regularized function, valid for all parameters. -/
+/-- 13.3.2 (`kummerM_contiguous_b`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_b (a b z : ℂ) :
     regularizedHGFun {a} {b - 1} z + (1 - b - z) * regularizedHGFun {a} {b} z + z * (b - a) * regularizedHGFun {a} {b + 1} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat_sub_one (f := fun b => regularizedHGFun {a} {b - 1} z + (1 - b - z) * regularizedHGFun {a} {b} z + z * (b - a) * regularizedHGFun {a} {b + 1} z)
@@ -95,12 +95,12 @@ theorem regularizedConfluent_contiguous_b (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_b (a := a) (z := z) hbm
+  have h := kummerM_contiguous_b (a := a) (z := z) hbm
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hbm, regularizedConfluent_eq_div_Gamma hb1, hΓ1, hΓm]
   field_simp
   linear_combination h
 
-/-- 13.3.3 (`confluentM_contiguous_a_b`) for the regularized function, valid for all parameters. -/
+/-- 13.3.3 (`kummerM_contiguous_a_b`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_a_b (a b z : ℂ) :
     (a - b + 1) * regularizedHGFun {a} {b} z - a * regularizedHGFun {a + 1} {b} z + regularizedHGFun {a} {b - 1} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat_sub_one (f := fun b => (a - b + 1) * regularizedHGFun {a} {b} z - a * regularizedHGFun {a + 1} {b} z + regularizedHGFun {a} {b - 1} z)
@@ -117,12 +117,12 @@ theorem regularizedConfluent_contiguous_a_b (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_a_b (a := a) (z := z) hbm
+  have h := kummerM_contiguous_a_b (a := a) (z := z) hbm
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hbm, hΓm]
   field_simp
   linear_combination h
 
-/-- 13.3.4 (`confluentM_contiguous_shift_a`) for the regularized function, valid for all parameters. -/
+/-- 13.3.4 (`kummerM_contiguous_shift_a`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_shift_a (a b z : ℂ) :
     regularizedHGFun {a} {b} z - regularizedHGFun {a - 1} {b} z - z * regularizedHGFun {a} {b + 1} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat (f := fun b => regularizedHGFun {a} {b} z - regularizedHGFun {a - 1} {b} z - z * regularizedHGFun {a} {b + 1} z)
@@ -133,12 +133,12 @@ theorem regularizedConfluent_contiguous_shift_a (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_shift_a (a := a) (z := z) hb
+  have h := kummerM_contiguous_shift_a (a := a) (z := z) hb
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb1, hΓ1]
   field_simp
   linear_combination h
 
-/-- 13.3.5 (`confluentM_contiguous_mixed`) for the regularized function, valid for all parameters. -/
+/-- 13.3.5 (`kummerM_contiguous_mixed`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_mixed (a b z : ℂ) :
     (a + z) * regularizedHGFun {a} {b} z + z * (a - b) * regularizedHGFun {a} {b + 1} z - a * regularizedHGFun {a + 1} {b} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat (f := fun b => (a + z) * regularizedHGFun {a} {b} z + z * (a - b) * regularizedHGFun {a} {b + 1} z - a * regularizedHGFun {a + 1} {b} z)
@@ -149,12 +149,12 @@ theorem regularizedConfluent_contiguous_mixed (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_mixed (a := a) (z := z) hb
+  have h := kummerM_contiguous_mixed (a := a) (z := z) hb
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb1, hΓ1]
   field_simp
   linear_combination h
 
-/-- 13.3.6 (`confluentM_contiguous_down`) for the regularized function, valid for all parameters. -/
+/-- 13.3.6 (`kummerM_contiguous_down`) for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_down (a b z : ℂ) :
     (a - 1 + z) * regularizedHGFun {a} {b} z + (b - a) * regularizedHGFun {a - 1} {b} z - regularizedHGFun {a} {b - 1} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat_sub_one (f := fun b => (a - 1 + z) * regularizedHGFun {a} {b} z + (b - a) * regularizedHGFun {a - 1} {b} z - regularizedHGFun {a} {b - 1} z)
@@ -171,12 +171,12 @@ theorem regularizedConfluent_contiguous_down (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_down (a := a) (z := z) hbm
+  have h := kummerM_contiguous_down (a := a) (z := z) hbm
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hbm, hΓm]
   field_simp
   linear_combination h
 
-/-- `confluentM_contiguous_shift_b_succ` for the regularized function, valid for all parameters. -/
+/-- `kummerM_contiguous_shift_b_succ` for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_shift_b_succ (a b z : ℂ) :
     a * regularizedHGFun {a + 1} {b + 1} z = (a - b) * regularizedHGFun {a} {b + 1} z + regularizedHGFun {a} {b} z := by
   have key := eq_of_eqOn_not_neg_nat (f := fun b => a * regularizedHGFun {a + 1} {b + 1} z)
@@ -187,12 +187,12 @@ theorem regularizedConfluent_contiguous_shift_b_succ (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_shift_b_succ (a := a) (z := z) hb
+  have h := kummerM_contiguous_shift_b_succ (a := a) (z := z) hb
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb1, hΓ1]
   field_simp
   linear_combination h
 
-/-- `confluentM_contiguous_mixed_b_pred` for the regularized function, valid for all parameters. -/
+/-- `kummerM_contiguous_mixed_b_pred` for the regularized function, valid for all parameters. -/
 theorem regularizedConfluent_contiguous_mixed_b_pred (a b z : ℂ) :
     (b - 1) * regularizedHGFun {a} {b} z - regularizedHGFun {a} {b - 1} z + a * z * regularizedHGFun {a + 1} {b + 1} z = 0 := by
   have key := eq_of_eqOn_not_neg_nat_sub_one (f := fun b => (b - 1) * regularizedHGFun {a} {b} z - regularizedHGFun {a} {b - 1} z + a * z * regularizedHGFun {a + 1} {b + 1} z)
@@ -209,12 +209,12 @@ theorem regularizedConfluent_contiguous_mixed_b_pred (a b z : ℂ) :
   have hb0 : b ≠ 0 := by simpa using hb 0
   have hΓ0 : Gamma b ≠ 0 := Gamma_ne_zero hb
   have hΓ1 : Gamma (b + 1) = b * Gamma b := Gamma_add_one b hb0
-  have h := confluentM_contiguous_mixed_b_pred (a := a) (z := z) hbm
+  have h := kummerM_contiguous_mixed_b_pred (a := a) (z := z) hbm
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hbm, regularizedConfluent_eq_div_Gamma hb1, hΓ1, hΓm]
   field_simp
   linear_combination h
 
-/-- 13.3.13 (`confluentM_ode_contiguous`) for the regularized function, valid for all
+/-- 13.3.13 (`kummerM_ode_contiguous`) for the regularized function, valid for all
 parameters. -/
 theorem regularizedConfluent_ode_contiguous (a b z : ℂ) :
     (a + 1) * z * regularizedHGFun {a + 2} {b + 2} z + (b - z) * regularizedHGFun {a + 1} {b + 1} z -
@@ -233,7 +233,7 @@ theorem regularizedConfluent_ode_contiguous (a b z : ℂ) :
   have hΓ2 : Gamma (b + 2) = (b + 1) * Gamma (b + 1) := by
     have := Gamma_add_one (b + 1) hb10
     rwa [show b + 1 + 1 = b + 2 by ring] at this
-  have h := confluentM_ode_contiguous (a := a) (z := z) hb
+  have h := kummerM_ode_contiguous (a := a) (z := z) hb
   simp only [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb1, regularizedConfluent_eq_div_Gamma hb2, hΓ2, hΓ1]
   field_simp
   linear_combination h
@@ -247,7 +247,7 @@ theorem regularizedConfluent_kummer_transform (a b z : ℂ) :
     (by intro b _; fun_prop) ?_
   · exact congrFun key b
   intro b hb
-  rw [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb, confluentM_kummer_transform hb]
+  rw [regularizedConfluent_eq_div_Gamma hb, regularizedConfluent_eq_div_Gamma hb, kummerM_kummer_transform hb]
   ring
 
 end AAR.Confluent

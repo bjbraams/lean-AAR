@@ -22,8 +22,11 @@ with matrix coefficients of `SU(2)`.
 
 open Complex Matrix MeasureTheory intervalIntegral
 open scoped Real
+open AAR.OrthogonalPolynomials
 
 noncomputable section
+
+namespace AAR.SphericalHarmonics
 
 /-- AAR Theorem 9.6.3, (9.6.6), p. 456, specialized to three dimensions:
 `(2k+1)/(4π) P_k(x·y) = ∑_m S_m(x) S_m(y)` for an orthonormal family of `2k+1`
@@ -35,7 +38,7 @@ theorem spherical_addition {k : ℕ}
     (horth : ∀ i j, sphericalHarmonicInner (S i) (S j) = if i = j then 1 else 0)
     (x y : Fin 3 → ℝ)
     (hx : ∑ i, x i ^ 2 = 1) (hy : ∑ i, y i ^ 2 = 1) :
-    (2 * k + 1 : ℂ) / (4 * π) * legendreP k (∑ i, x i * y i : ℝ) =
+    (2 * k + 1 : ℂ) / (4 * π) * legendrePolyP k (∑ i, x i * y i : ℝ) =
       ∑ m : Fin (2 * k + 1),
         (MvPolynomial.eval x (S m) : ℂ) * (MvPolynomial.eval y (S m) : ℂ) := by
   sorry
@@ -48,23 +51,23 @@ theorem funk_hecke {k : ℕ} {f : ℝ → ℂ}
     (∫ y : Metric.sphere (0 : EuclideanSpace ℝ (Fin 3)) 1,
       f (∑ i, x.val i * y.val i) * (MvPolynomial.eval (fun i => y.val i) S : ℂ)
         ∂(volume : Measure (EuclideanSpace ℝ (Fin 3))).toSphere) =
-      (2 * π : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, f t * legendreP k t) *
+      (2 * π : ℂ) * (∫ t : ℝ in (-1 : ℝ)..1, f t * legendrePolyP k t) *
         (MvPolynomial.eval (fun i => x.val i) S : ℂ) := by
   sorry
 
 /-- Gegenbauer addition theorem, AAR (9.8.5'), for `λ > 1/2`. -/
-theorem gegenbauer_addition {lam : ℝ} (hlam : 1 / 2 < lam)
+theorem ultrasphPoly_addition {lam : ℝ} (hlam : 1 / 2 < lam)
     (n : ℕ) (theta phi psi : ℝ) :
-    gegenbauer lam n
+    ultrasphPoly lam n
         (Real.cos theta * Real.cos phi +
           Real.sin theta * Real.sin phi * Real.cos psi) =
       ∑ j ∈ Finset.range (n + 1),
         (Gamma (2 * lam - 1) * 4 ^ j * (n - j).factorial *
           Gamma (j + (lam : ℂ)) ^ 2 * (2 * j + 2 * (lam : ℂ) - 1) /
             (Gamma (lam : ℂ) ^ 2 * Gamma (j + n + 2 * (lam : ℂ)))) *
-        (Real.sin theta : ℂ) ^ j * gegenbauer (j + (lam : ℂ)) (n - j) (Real.cos theta) *
-        (Real.sin phi : ℂ) ^ j * gegenbauer (j + (lam : ℂ)) (n - j) (Real.cos phi) *
-        gegenbauer ((lam : ℂ) - 1 / 2) j (Real.cos psi) := by
+        (Real.sin theta : ℂ) ^ j * ultrasphPoly (j + (lam : ℂ)) (n - j) (Real.cos theta) *
+        (Real.sin phi : ℂ) ^ j * ultrasphPoly (j + (lam : ℂ)) (n - j) (Real.cos phi) *
+        ultrasphPoly ((lam : ℂ) - 1 / 2) j (Real.cos psi) := by
   sorry
 
 /-- Poisson kernel of the unit ball in `ℝⁿ` (AAR §9.9), before division by sphere area.
@@ -98,3 +101,5 @@ theorem su2_covers_so3 :
     ∃ Φ : SU2 →* specialOrthogonalGroup (Fin 3) ℝ, Function.Surjective Φ ∧
       (∀ g, Φ g = 1 ↔ g = 1 ∨ g.1 = (-1 : Matrix (Fin 2) (Fin 2) ℂ)) := by
   sorry
+
+end AAR.SphericalHarmonics

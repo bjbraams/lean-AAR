@@ -25,37 +25,40 @@ ordinary multiplication of the complex argument by `exp (2πi)` would lose that 
 
 open Complex Filter
 open scoped Real Topology
+open AAR.Hypergeometric
 
 noncomputable section
+
+namespace AAR.Confluent
 
 /-- Whittaker's `M_{κ,μ}(z)`. -/
 @[dlmf 13.14.E2]
 def whittakerM (κ μ z : ℂ) : ℂ :=
-  exp (-z / 2) * z ^ (μ + 1 / 2) * confluentM (μ - κ + 1 / 2) (1 + 2 * μ) z
+  exp (-z / 2) * z ^ (μ + 1 / 2) * kummerM (μ - κ + 1 / 2) (1 + 2 * μ) z
 
 /-- Whittaker's principal-branch W, defined through the continued Tricomi function. -/
 @[dlmf 13.14.E3]
 def whittakerW (κ μ z : ℂ) : ℂ :=
-  exp (-z / 2) * z ^ (1 / 2 + μ) * confluentU (1 / 2 + μ - κ) (1 + 2 * μ) z
+  exp (-z / 2) * z ^ (1 / 2 + μ) * kummerU (1 / 2 + μ - κ) (1 + 2 * μ) z
 
 /-- A half-integer Whittaker specialization whose former raw Gamma formula vanished. -/
 lemma whittakerW_half_zero (z : ℂ) :
     whittakerW (1 / 2) 0 z = exp (-z / 2) * z ^ (1 / 2 : ℂ) := by
-  norm_num [whittakerW, confluentU_zero]
+  norm_num [whittakerW, kummerU_zero]
 
 /-- An elementary Whittaker W specialization, also detecting a missing parameter
 bound in the Bessel-K integral representation. -/
 lemma whittakerW_zero_half {z : ℂ} (hz : z ≠ 0) :
     whittakerW 0 (1 / 2) z = exp (-z / 2) := by
-  have hU := AAR.Confluent.confluentU_kummer_transform_all 1 2 hz
-  norm_num [confluentU_zero] at hU
+  have hU := AAR.Confluent.kummerU_kummer_transform_all 1 2 hz
+  norm_num [kummerU_zero] at hU
   norm_num [whittakerW, hU, cpow_neg_one]
   field [hz]
 
 /-- Whittaker's M on the logarithmic argument plane, which records full turns around zero. -/
 def whittakerMOnLog (κ μ w : ℂ) : ℂ :=
   exp (-exp w / 2) * exp ((μ + 1 / 2) * w) *
-    confluentM (μ - κ + 1 / 2) (1 + 2 * μ) (exp w)
+    kummerM (μ - κ + 1 / 2) (1 + 2 * μ) (exp w)
 
 /-- Whittaker's W connection formula on the logarithmic argument plane.
 It represents W when `2 * μ` is not an integer. -/
@@ -82,10 +85,10 @@ theorem whittakerM_ode {κ μ z : ℂ} (hz : z ∈ slitPlane)
     iteratedDeriv 2 (whittakerM κ μ) z +
       (-1 / 4 + κ / z + (1 / 4 - μ ^ 2) / z ^ 2) * whittakerM κ μ z = 0 := by
   let r := μ + 1 / 2
-  let y := confluentM (μ - κ + 1 / 2) (1 + 2 * μ)
+  let y := kummerM (μ - κ + 1 / 2) (1 + 2 * μ)
   let g := fun w : ℂ => exp (-w / 2) * w ^ r
   let q := fun w : ℂ => r / w - 1 / 2
-  have hf := hasFPowerSeriesOnBall_confluentM (a := μ - κ + 1 / 2) hμ
+  have hf := hasFPowerSeriesOnBall_kummerM (a := μ - κ + 1 / 2) hμ
   have hy (w : ℂ) : HasDerivAt y (deriv y w) w :=
     (hf.analyticAt_of_mem (y := w) (by simp)).differentiableAt.hasDerivAt
   have hy' : HasDerivAt (deriv y) (iteratedDeriv 2 y z) z := by
@@ -109,7 +112,7 @@ theorem whittakerM_ode {κ μ z : ℂ} (hz : z ∈ slitPlane)
   have hsecond := (hg z hz).mul (hy'.add (hq.mul (hy z)))
   rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero,
     heq.deriv_eq, hsecond.deriv]
-  have hode := confluentM_ode (a := μ - κ + 1 / 2) hμ (slitPlane_ne_zero hz)
+  have hode := kummerM_ode (a := μ - κ + 1 / 2) hμ (slitPlane_ne_zero hz)
   change z * iteratedDeriv 2 y z + (1 + 2 * μ - z) * deriv y z -
     (μ - κ + 1 / 2) * y z = 0 at hode
   change _ + _ * (g z * y z) = 0
@@ -125,7 +128,7 @@ lemma analyticAt_whittakerM {κ μ z : ℂ} (hz : z ∈ slitPlane)
   · apply AnalyticAt.mul
     · fun_prop
     · exact analyticAt_id.cpow analyticAt_const hz
-  · exact (hasFPowerSeriesOnBall_confluentM (a := μ - κ + 1 / 2) hμ).analyticAt_of_mem
+  · exact (hasFPowerSeriesOnBall_kummerM (a := μ - κ + 1 / 2) hμ).analyticAt_of_mem
       (by simp)
 
 /-- The generic connection formula for W; the integer case uses continuation. -/
@@ -141,8 +144,8 @@ lemma whittakerW_eq_connection {κ μ z : ℂ} (hz : z ∈ slitPlane)
     push_cast
     linear_combination hk
   unfold whittakerW
-  rw [confluentU_eq_connection _ _ _ hb]
-  unfold confluentUConnection whittakerM
+  rw [kummerU_eq_connection _ _ _ hb]
+  unfold kummerUConnection whittakerM
   symm
   have hz0 := slitPlane_ne_zero hz
   have h1b : (1 : ℂ) - (1 + 2 * μ) = -2 * μ := by ring
@@ -160,13 +163,13 @@ lemma whittakerW_eq_connection {κ μ z : ℂ} (hz : z ∈ slitPlane)
   have hswap :
       exp (-z / 2) * z ^ (1 / 2 + μ) *
           (Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * z ^ (-2 * μ) *
-            confluentM (1 / 2 - μ - κ) (1 - 2 * μ) z) =
+            kummerM (1 / 2 - μ - κ) (1 - 2 * μ) z) =
         Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) *
-          (exp (-z / 2) * z ^ (1 / 2 - μ) * confluentM (1 / 2 - μ - κ) (1 - 2 * μ) z) := by
+          (exp (-z / 2) * z ^ (1 / 2 - μ) * kummerM (1 / 2 - μ - κ) (1 - 2 * μ) z) := by
     calc
       _ = Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * exp (-z / 2) *
             (z ^ (1 / 2 + μ) * z ^ (-2 * μ)) *
-            confluentM (1 / 2 - μ - κ) (1 - 2 * μ) z := by ring
+            kummerM (1 / 2 - μ - κ) (1 - 2 * μ) z := by ring
       _ = _ := by rw [hpow]; ring
   rw [hswap]
   ring_nf
@@ -203,19 +206,18 @@ theorem whittakerW_ode {κ μ z : ℂ} (hz : z ∈ slitPlane)
     Gamma (-2 * μ) / Gamma (1 / 2 - μ - κ) * hp +
       Gamma (2 * μ) / Gamma (1 / 2 + μ - κ) * hn
 
-namespace AAR.Confluent
 
 /-- The definition of W through the continued Tricomi function. -/
 @[dlmf 13.14.E3]
-theorem whittakerW_eq_confluentU {κ μ z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerW_eq_kummerU {κ μ z : ℂ} (hz : z ∈ slitPlane) :
     whittakerW κ μ z =
-      exp (-z / 2) * z ^ (1 / 2 + μ) * confluentU (1 / 2 + μ - κ) (1 + 2 * μ) z := by
+      exp (-z / 2) * z ^ (1 / 2 + μ) * kummerU (1 / 2 + μ - κ) (1 + 2 * μ) z := by
   rfl
 
 @[dlmf 13.14.E4]
-theorem confluentM_eq_whittakerM {a b z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerM_eq_whittakerM {a b z : ℂ} (hz : z ∈ slitPlane)
     (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b z =
+    kummerM a b z =
       exp (z / 2) * z ^ (-b / 2) * whittakerM (b / 2 - a) (b / 2 - 1 / 2) z := by
   unfold whittakerM
   have hz0 := slitPlane_ne_zero hz
@@ -232,18 +234,18 @@ theorem confluentM_eq_whittakerM {a b z : ℂ} (hz : z ∈ slitPlane)
     convert exp_zero using 2
     ring
   calc
-    confluentM a b z
-        = (exp (z / 2) * exp (-z / 2)) * (z ^ (-b / 2) * z ^ (b / 2)) * confluentM a b z := by
+    kummerM a b z
+        = (exp (z / 2) * exp (-z / 2)) * (z ^ (-b / 2) * z ^ (b / 2)) * kummerM a b z := by
           rw [hexp, hpow]; ring
     _ = exp (z / 2) * z ^ (-b / 2) *
-          (exp (-z / 2) * z ^ (b / 2) * confluentM a b z) := by ring
+          (exp (-z / 2) * z ^ (b / 2) * kummerM a b z) := by ring
 
 @[dlmf 13.14.E5]
-theorem confluentU_eq_whittakerW {a b z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a b z =
+theorem kummerU_eq_whittakerW {a b z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a b z =
       exp (z / 2) * z ^ (-b / 2) * whittakerW (b / 2 - a) (b / 2 - 1 / 2) z := by
   have hz0 := slitPlane_ne_zero hz
-  have hW := whittakerW_eq_confluentU (κ := b / 2 - a) (μ := b / 2 - 1 / 2) hz
+  have hW := whittakerW_eq_kummerU (κ := b / 2 - a) (μ := b / 2 - 1 / 2) hz
   have hμ : (1 / 2 + (b / 2 - 1 / 2) - (b / 2 - a) : ℂ) = a := by ring
   have hb' : (1 + 2 * (b / 2 - 1 / 2) : ℂ) = b := by ring
   have hr : (1 / 2 + (b / 2 - 1 / 2) : ℂ) = b / 2 := by ring
@@ -257,11 +259,11 @@ theorem confluentU_eq_whittakerW {a b z : ℂ} (hz : z ∈ slitPlane) :
     convert exp_zero using 2
     ring
   calc
-    confluentU a b z
-        = (exp (z / 2) * exp (-z / 2)) * (z ^ (-b / 2) * z ^ (b / 2)) * confluentU a b z := by
+    kummerU a b z
+        = (exp (z / 2) * exp (-z / 2)) * (z ^ (-b / 2) * z ^ (b / 2)) * kummerU a b z := by
           rw [hexp, hpow]; ring
     _ = exp (z / 2) * z ^ (-b / 2) *
-          (exp (-z / 2) * z ^ (b / 2) * confluentU a b z) := by ring
+          (exp (-z / 2) * z ^ (b / 2) * kummerU a b z) := by ring
     _ = exp (z / 2) * z ^ (-b / 2) * whittakerW (b / 2 - a) (b / 2 - 1 / 2) z := by
           rw [hW]
 
@@ -308,12 +310,12 @@ theorem tendsto_whittakerM_div_Gamma (κ : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ 
     rw [ha, hb]
     linear_combination exp (-z / 2) *
       (poch (-(n : ℂ) / 2 - κ) (n + 1) / (n + 1).factorial) *
-      confluentM ((n + 1 : ℂ) / 2 - κ + 1 / 2) (1 + 2 * ((n + 1 : ℂ) / 2)) z * hp
+      kummerM ((n + 1 : ℂ) / 2 - κ + 1 / 2) (1 + 2 * ((n + 1 : ℂ) / 2)) z * hp
   rw [hval] at ht
   apply ht.congr'
   filter_upwards [htB.eventually (AAR.Hypergeometric.eventually_nhdsWithin_ne_neg_nat n)]
     with μ hμ
-  rw [whittakerM, confluentM_eq_mul_regularizedHGFun hμ]
+  rw [whittakerM, kummerM_eq_mul_regularizedHGFun hμ]
   rw [show 2 * μ + 1 = 1 + 2 * μ by ring]
   field [Gamma_ne_zero hμ]
 
@@ -343,7 +345,7 @@ theorem whittakerM_neg_argument {κ μ z : ℂ} (hz : z ∈ slitPlane) (sign : B
     congr 1
     ring
   unfold whittakerMOnLog whittakerM
-  rw [he, hp, confluentM_kummer_transform hμ, neg_neg,
+  rw [he, hp, kummerM_kummer_transform hμ, neg_neg,
     show 1 + 2 * μ - (μ - κ + 1 / 2) = μ - -κ + 1 / 2 by ring]
   have hexp : exp (-(-z) / 2) * exp (-z) = exp (-z / 2) := by rw [← exp_add]; ring_nf
   rw [← hexp]
@@ -406,11 +408,11 @@ theorem isBigO_whittakerM_at_zero {κ μ : ℂ} (hμ : ∀ k : ℕ, 2 * μ ≠ -
       (fun z => whittakerM κ μ z - z ^ (μ + 1 / 2))
       (fun z => z ^ (μ + 3 / 2)) := by
   have hb : ∀ k : ℕ, 1 + 2 * μ ≠ -k := fun k h => hμ k (by linear_combination h)
-  set f : ℂ → ℂ := fun z => exp (-z / 2) * confluentM (μ - κ + 1 / 2) (1 + 2 * μ) z with hf
+  set f : ℂ → ℂ := fun z => exp (-z / 2) * kummerM (μ - κ + 1 / 2) (1 + 2 * μ) z with hf
   have hd : DifferentiableAt ℂ f 0 :=
     (by fun_prop : DifferentiableAt ℂ (fun z : ℂ => exp (-z / 2)) 0).mul
-      ((analyticOnNhd_confluentM (a := μ - κ + 1 / 2) hb) 0 (Set.mem_univ _)).differentiableAt
-  have hf0 : f 0 = 1 := by simp [hf, confluentM_zero]
+      ((analyticOnNhd_kummerM (a := μ - κ + 1 / 2) hb) 0 (Set.mem_univ _)).differentiableAt
+  have hf0 : f 0 = 1 := by simp [hf, kummerM_zero]
   have h1 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => f z - 1) id :=
     ((hd.isBigO_sub).congr (fun z => by rw [hf0]) (fun z => by simp)).mono nhdsWithin_le_nhds
   refine ((Asymptotics.isBigO_refl (fun z : ℂ => z ^ (μ + 1 / 2)) (𝓝[≠] (0 : ℂ))).mul h1).congr'
@@ -448,15 +450,15 @@ lemma whittaker_prefactor_sq (μ z : ℂ) :
 /-- Whittaker W as prefactor times Tricomi U. -/
 lemma whittakerW_eq_prefactor_mul (κ μ : ℂ) :
     whittakerW κ μ = fun w => (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-      confluentU (μ + 1 / 2 - κ) (1 + 2 * μ) w := by
+      kummerU (μ + 1 / 2 - κ) (1 + 2 * μ) w := by
   funext w
   unfold whittakerW
   rw [show (1 / 2 : ℂ) + μ = μ + 1 / 2 by ring]
 
 /-- `U(a,b,·)` is differentiable at every point of the slit plane. -/
-lemma differentiableAt_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    DifferentiableAt ℂ (confluentU a b) z :=
-  (differentiableOn_confluentU a b).differentiableAt (isOpen_slitPlane.mem_nhds hz)
+lemma differentiableAt_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    DifferentiableAt ℂ (kummerU a b) z :=
+  (differentiableOn_kummerU a b).differentiableAt (isOpen_slitPlane.mem_nhds hz)
 
 @[dlmf 13.14.E25]
 theorem wronskian_whittakerM {κ μ z : ℂ} (hz : z ∈ slitPlane)
@@ -466,9 +468,9 @@ theorem wronskian_whittakerM {κ μ z : ℂ} (hz : z ∈ slitPlane)
   set b := 1 + 2 * μ
   have hB : ∀ k : ℕ, 2 - b ≠ -k := fun k h => hμ' k (by rw [← h]; ring)
   have h1 : whittakerM κ μ = fun w => (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-      confluentM (μ - κ + 1 / 2) b w := rfl
+      kummerM (μ - κ + 1 / 2) b w := rfl
   have h2 : ∀ w ∈ slitPlane, whittakerM κ (-μ) w = (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-      (w ^ (1 - b) * confluentM (μ - κ + 1 / 2 - b + 1) (2 - b) w) := by
+      (w ^ (1 - b) * kummerM (μ - κ + 1 / 2 - b + 1) (2 - b) w) := by
     intro w hw
     unfold whittakerM
     have hp : w ^ (-μ + 1 / 2) = w ^ (μ + 1 / 2) * w ^ (1 - b) := by
@@ -477,16 +479,16 @@ theorem wronskian_whittakerM {κ μ z : ℂ} (hz : z ∈ slitPlane)
       show 1 + 2 * -μ = 2 - b by ring, hp]
     ring
   have heq : whittakerM κ (-μ) =ᶠ[𝓝 z] fun w => (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-      (w ^ (1 - b) * confluentM (μ - κ + 1 / 2 - b + 1) (2 - b) w) := by
+      (w ^ (1 - b) * kummerM (μ - κ + 1 / 2 - b + 1) (2 - b) w) := by
     filter_upwards [isOpen_slitPlane.mem_nhds hz] with w hw using h2 w hw
-  have hu := ((analyticOnNhd_confluentM (a := μ - κ + 1 / 2) hμ) z (Set.mem_univ _)).differentiableAt
-  have hv := ((analyticOnNhd_confluentM (a := μ - κ + 1 / 2 - b + 1) hB) z
+  have hu := ((analyticOnNhd_kummerM (a := μ - κ + 1 / 2) hμ) z (Set.mem_univ _)).differentiableAt
+  have hv := ((analyticOnNhd_kummerM (a := μ - κ + 1 / 2 - b + 1) hB) z
     (Set.mem_univ _)).differentiableAt
-  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - b) * confluentM (μ - κ + 1 / 2 - b + 1) (2 - b) w) z :=
+  have hy : DifferentiableAt ℂ (fun w => w ^ (1 - b) * kummerM (μ - κ + 1 / 2 - b + 1) (2 - b) w) z :=
     ((hasDerivAt_id z).cpow_const (c := 1 - b) hz).differentiableAt.mul hv
   have hW : wronskian (whittakerM κ μ) (whittakerM κ (-μ)) z =
       wronskian (whittakerM κ μ) (fun w => (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-        (w ^ (1 - b) * confluentM (μ - κ + 1 / 2 - b + 1) (2 - b) w)) z := by
+        (w ^ (1 - b) * kummerM (μ - κ + 1 / 2 - b + 1) (2 - b) w)) z := by
     unfold wronskian
     rw [heq.deriv_eq, heq.eq_of_nhds]
   rw [hW, h1, wronskian_mul_left (differentiableAt_whittaker_prefactor μ hz) hu hy,
@@ -503,27 +505,27 @@ theorem wronskian_whittakerM_W {κ μ z : ℂ} (hz : z ∈ slitPlane)
     wronskian (whittakerM κ μ) (whittakerW κ μ) z =
       -Gamma (1 + 2 * μ) / Gamma (1 / 2 + μ - κ) := by
   have hz0 := slitPlane_ne_zero hz
-  have hM : confluentM (μ - κ + 1 / 2) (1 + 2 * μ) = fun w =>
+  have hM : kummerM (μ - κ + 1 / 2) (1 + 2 * μ) = fun w =>
       Gamma (1 + 2 * μ) * regularizedHGFun {μ + 1 / 2 - κ} {1 + 2 * μ} w := by
     funext w
     rw [regularizedConfluent_eq_div_Gamma hμ, show μ + 1 / 2 - κ = μ - κ + 1 / 2 by ring,
       mul_div_cancel₀ _ (Gamma_ne_zero hμ)]
   have h1 : whittakerM κ μ = fun w => (exp (-w / 2) * w ^ (μ + 1 / 2)) *
-      confluentM (μ - κ + 1 / 2) (1 + 2 * μ) w := rfl
+      kummerM (μ - κ + 1 / 2) (1 + 2 * μ) w := rfl
   have hd := differentiableAt_regularizedConfluent (μ + 1 / 2 - κ) (1 + 2 * μ) z
-  have hu : DifferentiableAt ℂ (confluentM (μ - κ + 1 / 2) (1 + 2 * μ)) z := by
+  have hu : DifferentiableAt ℂ (kummerM (μ - κ + 1 / 2) (1 + 2 * μ)) z := by
     rw [hM]; exact hd.const_mul _
   rw [h1, whittakerW_eq_prefactor_mul,
     wronskian_mul_left (differentiableAt_whittaker_prefactor μ hz) hu
-      (differentiableAt_confluentU _ _ hz), whittaker_prefactor_sq μ z]
-  have hW : wronskian (confluentM (μ - κ + 1 / 2) (1 + 2 * μ))
-      (confluentU (μ + 1 / 2 - κ) (1 + 2 * μ)) z =
+      (differentiableAt_kummerU _ _ hz), whittaker_prefactor_sq μ z]
+  have hW : wronskian (kummerM (μ - κ + 1 / 2) (1 + 2 * μ))
+      (kummerU (μ + 1 / 2 - κ) (1 + 2 * μ)) z =
       Gamma (1 + 2 * μ) * wronskian (regularizedHGFun {μ + 1 / 2 - κ} {1 + 2 * μ})
-        (confluentU (μ + 1 / 2 - κ) (1 + 2 * μ)) z := by
+        (kummerU (μ + 1 / 2 - κ) (1 + 2 * μ)) z := by
     unfold wronskian
     rw [hM, deriv_const_mul _ hd]
     ring
-  rw [hW, wronskian_regularizedHGFun_confluentU_all _ _ hz,
+  rw [hW, wronskian_regularizedHGFun_kummerU_all _ _ hz,
     show μ + 1 / 2 - κ = 1 / 2 + μ - κ by ring]
   have hp : z ^ (1 + 2 * μ) * z ^ (-(1 + 2 * μ)) = 1 := by
     rw [← cpow_add _ _ hz0]; simp
@@ -563,15 +565,15 @@ theorem wronskian_whittakerM_neg_W {κ μ z : ℂ} (hz : z ∈ slitPlane)
     rw [heq.deriv_eq, heq.eq_of_nhds]
   rw [hW, whittakerW_eq_prefactor_mul,
     wronskian_mul_left (differentiableAt_whittaker_prefactor μ hz) (hy.const_mul _)
-      (differentiableAt_confluentU _ _ hz), whittaker_prefactor_sq μ z]
+      (differentiableAt_kummerU _ _ hz), whittaker_prefactor_sq μ z]
   have hW2 : wronskian (fun w => Gamma (2 - b) * (w ^ (1 - b) *
-      regularizedHGFun {a - b + 1} {2 - b} w)) (confluentU a b) z =
+      regularizedHGFun {a - b + 1} {2 - b} w)) (kummerU a b) z =
       Gamma (2 - b) * wronskian (fun w => w ^ (1 - b) * regularizedHGFun {a - b + 1} {2 - b} w)
-        (confluentU a b) z := by
+        (kummerU a b) z := by
     unfold wronskian
     rw [deriv_const_mul _ hy]
     ring
-  rw [hW2, wronskian_shifted_regularized_confluentU_all a b hz,
+  rw [hW2, wronskian_shifted_regularized_kummerU_all a b hz,
     show a - b + 1 = 1 / 2 - μ - κ by ring, show (2 : ℂ) - b = 1 - 2 * μ by ring]
   have hp : z ^ (1 + 2 * μ) * z ^ (-b) = 1 := by
     rw [← cpow_add _ _ hz0]; simp [hbdef]
@@ -637,10 +639,10 @@ theorem whittakerM_jump {κ μ z : ℂ} (hz : z ∈ slitPlane) (hμi : ∀ n : �
     _ = _ := by rw [← hpp, ← hmm]; ring
 
 /-- Whittaker W on the logarithmic plane, expressed through Tricomi U there. -/
-lemma whittakerWOnLog_eq_confluentUOnLog (κ μ w : ℂ) :
+lemma whittakerWOnLog_eq_kummerUOnLog (κ μ w : ℂ) :
     whittakerWOnLog κ μ w = exp (-exp w / 2) * exp ((μ + 1 / 2) * w) *
-      confluentUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) w := by
-  unfold whittakerWOnLog whittakerMOnLog confluentUOnLog
+      kummerUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) w := by
+  unfold whittakerWOnLog whittakerMOnLog kummerUOnLog
   rw [show 1 - (1 + 2 * μ) = -2 * μ by ring,
     show 1 / 2 + μ - κ - (1 + 2 * μ) + 1 = 1 / 2 - μ - κ by ring,
     show 1 + 2 * μ - 1 = 2 * μ by ring,
@@ -656,14 +658,14 @@ lemma whittakerWOnLog_eq_confluentUOnLog (κ μ w : ℂ) :
 lemma whittakerWOnLog_half_turn (κ μ : ℂ) {z : ℂ} (hz : z ≠ 0) (sign : Bool) :
     whittakerWOnLog κ μ (log z + (if sign then 1 else -1) * π * I) =
       exp (z / 2) * z ^ (μ + 1 / 2) * exp ((if sign then 1 else -1) * (μ + 1 / 2) * π * I) *
-        confluentUOnLog (1 / 2 + μ - κ) (1 + 2 * μ)
+        kummerUOnLog (1 / 2 + μ - κ) (1 + 2 * μ)
           (log z + (if sign then 1 else -1) * π * I) := by
   set s : ℂ := if sign then 1 else -1 with hs
   have he : exp (log z + s * π * I) = -z := by
     have ht : exp (s * π * I) = -1 := by
       cases sign <;> simp [hs, exp_neg, exp_pi_mul_I]
     rw [exp_add, exp_log hz, ht]; ring
-  rw [whittakerWOnLog_eq_confluentUOnLog, he, neg_neg,
+  rw [whittakerWOnLog_eq_kummerUOnLog, he, neg_neg,
     show (μ + 1 / 2) * (log z + s * π * I) = log z * (μ + 1 / 2) + s * (μ + 1 / 2) * π * I by ring,
     exp_add, cpow_def_of_ne_zero hz]
   ring
@@ -678,7 +680,7 @@ theorem whittakerW_jump {κ μ z : ℂ} (hz : z ∈ slitPlane) (hμi : ∀ n : �
   have hz0 := slitPlane_ne_zero hz
   have hb : ∀ k : ℤ, 1 + 2 * μ ≠ k := fun k hk =>
     hμi (k - 1) (by push_cast; linear_combination hk)
-  have h := confluentU_jump_all (1 / 2 + μ - κ) (1 + 2 * μ) hz hb
+  have h := kummerU_jump_all (1 / 2 + μ - κ) (1 + 2 * μ) hz hb
   have hp := whittakerWOnLog_half_turn κ μ hz0 true
   have hm := whittakerWOnLog_half_turn κ μ hz0 false
   simp only [Bool.false_eq_true, ↓reduceIte, one_mul, neg_one_mul, neg_neg, neg_mul,
@@ -695,7 +697,7 @@ theorem whittakerW_jump {κ μ z : ℂ} (hz : z ∈ slitPlane) (hμi : ∀ n : �
   calc
     _ = (exp (z / 2) * z ^ (μ + 1 / 2)) *
         (2 * π * I * exp (-z) / (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *
-          confluentU (1 / 2 + μ - -κ) (1 + 2 * μ) z) := by
+          kummerU (1 / 2 + μ - -κ) (1 + 2 * μ) z) := by
       unfold whittakerW
       rw [show 1 / 2 + μ = μ + 1 / 2 by ring, ← he]
       ring
@@ -703,8 +705,8 @@ theorem whittakerW_jump {κ μ z : ℂ} (hz : z ∈ slitPlane) (hμi : ∀ n : �
       rw [h]
       simp only [neg_mul] at he1 he2 ⊢
       linear_combination -(exp (z / 2) * z ^ (μ + 1 / 2) *
-        confluentUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) (log z + π * I)) * he1 +
+        kummerUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) (log z + π * I)) * he1 +
         (exp (z / 2) * z ^ (μ + 1 / 2) *
-          confluentUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) (log z - π * I)) * he2
+          kummerUOnLog (1 / 2 + μ - κ) (1 + 2 * μ) (log z - π * I)) * he2
 
 end AAR.Confluent

@@ -10,7 +10,6 @@ public import AAR.Bessel.Basic
 public import AAR.Bessel.BesselIntegral
 public import AAR.Bessel.KIntegrals
 public import AAR.Bessel.Lommel
-public import AAR.Bessel.MathlibBridge
 public import AAR.Bessel.Modified
 public import AAR.Bessel.SecondKind
 public import AAR.Bessel.Theorems
@@ -20,11 +19,13 @@ public import AAR.Bessel.Zeros
 /-!
 # Bessel functions (AAR Chapter 4, §§4.5–4.15; DLMF Chapter 10)
 
-The project's `besselJ` is Mathlib's `Complex.besselJ` (`besselJ_eq_complex_besselJ`): both use
-the regularized `₀F₁` series. This cluster also defines `Y_ν`, `I_ν`, `K_ν` and the Hankel
-functions. It proves differential equations, recurrences, Wronskians, half-integer values,
-Poisson's, Sonine's, Bessel's and Lommel's integrals, the generating function, Hankel's
-large-argument expansions and the existence of infinitely many real zeros.
+`J_ν` is Mathlib's `Complex.besselJ`, used directly; `besselJ_eq_regularized` gives its
+regularized `₀F₁` series form, and Mathlib supplies parity at integer order (DLMF 10.11.1),
+analyticity, entireness at integer order and the value at `0`. This cluster defines `Y_ν`,
+`I_ν`, `K_ν` and the Hankel functions. It proves differential equations, recurrences,
+Wronskians, half-integer values, Poisson's, Sonine's, Bessel's and Lommel's integrals, the
+generating function, Hankel's large-argument expansions and the existence of infinitely many real
+zeros.
 
 The integer-order values of `Y` and `K` are parameter limits (`Filter.limUnder`). These limits
 exist at every nonzero argument, are jointly continuous in order and argument

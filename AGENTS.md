@@ -31,8 +31,8 @@ those gaps.
   Watson's lemma, Laplace asymptotics), in the namespaces of the Mathlib APIs they extend.
   `ToMathlib` imports Mathlib only, never `AAR`; `AAR` modules may import `ToMathlib`.
   A `ToMathlib` file that also exists in `../lean-codes/ToMathlib` (currently
-  `Analysis/Integral/Laplace.lean`) must keep identical content and path; make changes in
-  lean-codes and copy them here.
+  `Analysis/Integral/Laplace.lean` and `Analysis/Complex/Carlson.lean`) must keep identical
+  content and path; make changes in lean-codes and copy them here.
 
 Mathlib and TauCeti are allowed throughout the AAR library, including when filling
 existing admissions. Preserve complex branches, normalizations, exceptional parameters

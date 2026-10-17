@@ -20,6 +20,7 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -37,15 +38,15 @@ def diskPolynomial (α : ℂ) (m n : ℕ) (z : ℂ) : ℂ :=
 at `x = 0` is used only off the boundary in the integral statements below. -/
 @[dlmf 18.37.E7]
 def trianglePolynomial (α β γ : ℂ) (m n : ℕ) (x y : ℂ) : ℂ :=
-  jacobiP α (β + γ + 2 * n + 1) (m - n) (2 * x - 1) * x ^ n *
-    jacobiP β γ n (2 * y / x - 1)
+  jacobiPolyP α (β + γ + 2 * n + 1) (m - n) (2 * x - 1) * x ^ n *
+    jacobiPolyP β γ n (2 * y / x - 1)
 
 @[dlmf 18.37.E1]
 theorem diskPolynomial_polar {α : ℝ} (hα : -1 < α) (m n : ℕ) (r θ : ℝ) (hr : 0 ≤ r) :
     diskPolynomial α m n ((r : ℂ) * exp (I * θ)) =
       exp (I * ((m : ℂ) - n) * θ) * (r : ℂ) ^ (Int.natAbs ((m : ℤ) - n)) *
-      jacobiP α (Int.natAbs ((m : ℤ) - n)) (min m n) (2 * (r : ℂ) ^ 2 - 1) /
-      jacobiP α (Int.natAbs ((m : ℤ) - n)) (min m n) 1 := by
+      jacobiPolyP α (Int.natAbs ((m : ℤ) - n)) (min m n) (2 * (r : ℂ) ^ 2 - 1) /
+      jacobiPolyP α (Int.natAbs ((m : ℤ) - n)) (min m n) 1 := by
   sorry
 
 @[dlmf 18.37.E5]

@@ -11,6 +11,7 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.Analysis.SpecialFunctions.Bessel
 
 /-!
 # Bessel functions of the first and second kinds (AAR §§4.5–4.6)
@@ -21,21 +22,28 @@ $$
 J_ν(z)=\Bigl(\frac{z}{2}\Bigr)^ν\sum_{k=0}^∞\frac{(-1)^k}{k!\,Γ(ν+k+1)}\Bigl(\frac{z}{2}\Bigr)^{2k}
 $$
 
-is Mathlib's regularized `₀F₁(;ν+1;-z²/4)` multiplied by `(z/2)^ν`. The second-kind function
-`Y_ν` is the usual linear combination of `J_ν` and `J_{-ν}`.
+is Mathlib's regularized `₀F₁(;ν+1;-z²/4)` multiplied by `(z/2)^ν`; it is Mathlib's
+`Complex.besselJ`, used here directly, with `besselJ_eq_regularized` giving the series form. The
+second-kind function `Y_ν` is the usual linear combination of `J_ν` and `J_{-ν}`.
 -/
 
 @[expose] public section
 
 open Complex
 open scoped Real Nat Topology
+open AAR.Confluent
 
 noncomputable section
 
-/-- Bessel function of the first kind. -/
+namespace AAR.Bessel
+
+/-- Mathlib's Bessel function of the first kind `Complex.besselJ` as the regularized series
+`J_ν(z) = (z/2)^ν ₀F̃₁(;ν+1;-z²/4)`, the normal form used in this project. -/
 @[dlmf 10.2.E2]
-def besselJ (ν z : ℂ) : ℂ :=
-  (z / 2) ^ ν * regularizedHGFun (∅ : Multiset ℂ) {ν + 1} (-(z ^ 2 / 4))
+theorem besselJ_eq_regularized (ν z : ℂ) :
+    besselJ ν z = (z / 2) ^ ν * regularizedHGFun (∅ : Multiset ℂ) {ν + 1} (-(z ^ 2 / 4)) := by
+  rw [besselJ, Multiset.empty_eq_zero, div_pow]
+  norm_num
 
 /-- Bessel function of the second kind (Weber's `Y_ν`), with integer orders
 defined by their limits in the order parameter (AAR §4.6). -/
@@ -194,16 +202,11 @@ lemma besselSeries_ode (ν σ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
 
 /-- `J_ν(0) = 0` for `ν ≠ 0`. -/
 theorem besselJ_apply_zero {ν : ℂ} (hν : ν ≠ 0) : besselJ ν 0 = 0 := by
-  unfold besselJ
-  rw [zero_div, zero_cpow hν, zero_mul]
+  simp [Complex.besselJ_zero, hν]
 
 /-- `J_0(0) = 1`. -/
 theorem besselJ_zero_zero : besselJ 0 0 = 1 := by
-  unfold besselJ
-  rw [zero_div, cpow_zero, one_mul]
-  have harg : -(0 ^ 2 / 4 : ℂ) = 0 := by ring
-  rw [harg, _root_.regularizedHGFun_zero, regularizedHGFunCoeff_empty]
-  simp [Gamma_one]
+  simp [Complex.besselJ_zero]
 
 /-- Bessel's equation `z² y'' + z y' + (z² - ν²) y = 0` (AAR §4.5). -/
 @[dlmf 10.2.E1]
@@ -212,20 +215,12 @@ theorem besselJ_ode {ν z : ℂ} (hz : z ∈ slitPlane) :
       (z ^ 2 - ν ^ 2) * besselJ ν z = 0 := by
   have he := besselSeries_ode ν (-1) hz
   have hf : (fun w : ℂ => (w / 2) ^ ν * regularizedHGFun ∅ {ν + 1} (-1 * w ^ 2 / 4)) =
-      besselJ ν := by funext w; simp only [besselJ, neg_one_mul, neg_div]
+      besselJ ν := by funext w; simp only [besselJ_eq_regularized, neg_one_mul, neg_div]
   dsimp only at he
   rw [hf] at he
   simp only [iteratedDeriv_succ, iteratedDeriv_zero]
-  simp only [besselJ, neg_one_mul, neg_div] at he ⊢
+  simp only [besselJ_eq_regularized, neg_one_mul, neg_div] at he ⊢
   linear_combination he
-
-/-- `J_ν` is analytic on the principal slit plane, for every order. -/
-lemma analyticAt_besselJ (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    AnalyticAt ℂ (besselJ ν) z := by
-  have he := analyticAt_besselSeries ν (-1) hz
-  have hf : (fun w : ℂ => (w / 2) ^ ν * regularizedHGFun ∅ {ν + 1} (-1 * w ^ 2 / 4)) =
-      besselJ ν := by funext w; simp only [besselJ, neg_one_mul, neg_div]
-  rwa [hf] at he
 
 /-- AAR (4.6.2): the derivative of `J_ν` in terms of `J_{ν+1}`. -/
 lemma hasDerivAt_besselJ {ν z : ℂ} (hz : z ∈ slitPlane) :
@@ -236,8 +231,12 @@ lemma hasDerivAt_besselJ {ν z : ℂ} (hz : z ∈ slitPlane) :
     ring
   have hd := (hasDerivAt_besselPrefactor ν hz).mul
     ((hasDerivAt_regularized0F1 (ν + 1) (-(z ^ 2 / 4))).comp z hu)
+  have hJ : ∀ μ : ℂ, besselJ μ =
+      fun w => (w / 2) ^ μ * regularizedHGFun (∅ : Multiset ℂ) {μ + 1} (-(w ^ 2 / 4)) :=
+    fun μ => funext (besselJ_eq_regularized μ)
+  rw [hJ ν, hJ (ν + 1)]
   convert! hd using 1
-  simp only [besselJ, Function.comp_apply]
+  simp only [Function.comp_apply]
   rw [cpow_add _ _ (div_ne_zero (slitPlane_ne_zero hz) (by norm_num)), cpow_one]
   ring
 
@@ -483,7 +482,7 @@ theorem besselJ_half (z : ℂ) (hz : z ∈ slitPlane) :
   have hz0 := slitPlane_ne_zero hz
   have hg : Gamma (1 / 2 : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
   have hpar : (1 / 2 : ℂ) + 1 = 3 / 2 := by ring
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   rw [hpar, regularized0F1_three_halves_eq_sinc hz0, ← bessel_half_prefactor hz]
   field [hz0, hg]
 
@@ -502,15 +501,15 @@ theorem besselJ_neg_half (z : ℂ) (hz : z ∈ slitPlane) :
   have hπh : (π : ℂ) ^ (1 / 2 : ℂ) ≠ 0 :=
     (cpow_ne_zero_iff.mpr (Or.inl hπ) : (π : ℂ) ^ (1 / 2 : ℂ) ≠ 0)
   have hpar : -(1 / 2 : ℂ) + 1 = 1 / 2 := by ring
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   rw [hpar, regularized0F1_half_eq_cos, cpow_half_inv_div_two hz, Gamma_one_half_eq,
     cpow_half_two_div_pi_z hz, cpow_half_div_pi]
   field [hz0, hg, h2h, hzh, hπh]
 
 /-- Kummer's second transformation (AAR (4.1.12), p. 191), in regularized `₀F₁` form. -/
-lemma confluentM_eq_exp_mul_regularized0F1 {ν : ℂ}
+lemma kummerM_eq_exp_mul_regularized0F1 {ν : ℂ}
     (hν : ∀ k : ℕ, ν + 1 ≠ -k) (h2ν : ∀ k : ℕ, 2 * ν + 1 ≠ -k) (z : ℂ) :
-    confluentM (ν + 1 / 2) (2 * ν + 1) z =
+    kummerM (ν + 1 / 2) (2 * ν + 1) z =
       Gamma (ν + 1) * exp (z / 2) * regularizedHGFun (∅ : Multiset ℂ) {ν + 1} (z ^ 2 / 16) := by
   let F := regularizedHGFun (∅ : Multiset ℂ) {ν + 1}
   let u := fun w : ℂ => w ^ 2 / 16
@@ -551,29 +550,31 @@ lemma confluentM_eq_exp_mul_regularized0F1 {ν : ℂ}
     · dsimp [g]
       fun_prop
     · exact (analyticAt_regularized0F1 (ν + 1) _).comp (by dsimp [u]; fun_prop)
-  have hs := hasFPowerSeriesOnBall_confluentM (a := ν + 1 / 2) h2ν
-  have hma (w : ℂ) : AnalyticAt ℂ (confluentM (ν + 1 / 2) (2 * ν + 1)) w :=
+  have hs := hasFPowerSeriesOnBall_kummerM (a := ν + 1 / 2) h2ν
+  have hma (w : ℂ) : AnalyticAt ℂ (kummerM (ν + 1 / 2) (2 * ν + 1)) w :=
     hs.analyticAt_of_mem (by simp)
-  have hmode (w : ℂ) : w * deriv (deriv (confluentM (ν + 1 / 2) (2 * ν + 1))) w +
-      (2 * ν + 1 - w) * deriv (confluentM (ν + 1 / 2) (2 * ν + 1)) w -
-      (ν + 1 / 2) * confluentM (ν + 1 / 2) (2 * ν + 1) w = 0 := by
+  have hmode (w : ℂ) : w * deriv (deriv (kummerM (ν + 1 / 2) (2 * ν + 1))) w +
+      (2 * ν + 1 - w) * deriv (kummerM (ν + 1 / 2) (2 * ν + 1)) w -
+      (ν + 1 / 2) * kummerM (ν + 1 / 2) (2 * ν + 1) w = 0 := by
     have he := hs.ode_of_recurrence (A := 0) (B := 1) (C := ν + 1 / 2) (D := 2 * ν + 1)
-      (fun n => by rw [confluentHGCoeff_recurrence h2ν]; ring) (z := w) (by simp)
+      (fun n => by rw [kummerMCoeff_recurrence h2ν]; ring) (z := w) (by simp)
     simpa using he
-  have hzero : f 0 = confluentM (ν + 1 / 2) (2 * ν + 1) 0 := by
-    simp [f, g, F, u, _root_.regularizedHGFun_zero, regularizedHGFunCoeff, Gamma_ne_zero hν]
+  have hzero : f 0 = kummerM (ν + 1 / 2) (2 * ν + 1) 0 := by
+    simp [f, g, F, u, AAR.Confluent.regularizedHGFun_zero, regularizedHGFunCoeff, Gamma_ne_zero hν]
   exact (congrFun (confluent_ode_unique h2ν hfa hma hode hmode hzero) z).symm
 
 /-- Relation of `J_ν` to Kummer's function (AAR §4.5). -/
 @[dlmf 10.16.E5]
-theorem besselJ_eq_confluentM {ν z : ℂ} (hν : ∀ k : ℕ, ν + 1 ≠ -k)
+theorem besselJ_eq_kummerM {ν z : ℂ} (hν : ∀ k : ℕ, ν + 1 ≠ -k)
     (h2ν : ∀ k : ℕ, 2 * ν + 1 ≠ -k) :
     besselJ ν z =
       (z / 2) ^ ν * exp (-I * z) / Gamma (ν + 1) *
-        confluentM (ν + 1 / 2) (2 * ν + 1) (2 * I * z) := by
-  rw [confluentM_eq_exp_mul_regularized0F1 hν h2ν]
+        kummerM (ν + 1 / 2) (2 * ν + 1) (2 * I * z) := by
+  rw [kummerM_eq_exp_mul_regularized0F1 hν h2ν]
   have hu : (2 * I * z) ^ 2 / 16 = -(z ^ 2 / 4) := by rw [mul_pow, mul_pow, I_sq]; ring
   rw [hu, show (2 * I * z) / 2 = I * z by ring]
   simp only [neg_mul, exp_neg]
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   field [Gamma_ne_zero hν, exp_ne_zero (I * z)]
+
+end AAR.Bessel

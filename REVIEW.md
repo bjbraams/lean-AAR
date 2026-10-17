@@ -71,14 +71,14 @@ Several distinctions are essential when reading the code.
 ordinary Gaussian hypergeometric function is defined by its power series. An
 infinite-sum expression is not, by itself, analytic continuation beyond the
 convergence region. The project supplies a separate regularized continuation
-`AAR.Hypergeometric.gaussHGCut` on
+`AAR.Hypergeometric.regularizedGaussHG` on
 \(\mathbb C\setminus[1,\infty)\). Identities involving transformed arguments must
 either use this continued function or impose convergence conditions on each
 series argument. This corresponds to the distinction made in
 [DLMF §15.2](https://dlmf.nist.gov/15.2).
 
 **Regularization is essential at exceptional parameters.** The ordinary Kummer
-function `confluentM` is a totalized series. Its quotient by \(\Gamma(b)\) agrees
+function `kummerM` is a totalized series. Its quotient by \(\Gamma(b)\) agrees
 with the regularized function away from nonpositive integer \(b\), but its literal
 value at a pole need not be the limiting regularized value. Mathlib's
 `regularizedHGFun` supplies the appropriate entire coefficient expressions.
@@ -104,7 +104,7 @@ Laguerre and Jacobi functions are defined by terminating hypergeometric formulas
 with Pochhammer prefactors. These formulas give the standard families on the
 regular parameter domains, including the usual orthogonality ranges. They do not
 automatically provide polynomial continuation in all parameters. For example,
-the current definition gives `laguerre (-1) 1 x = 0`, whereas the classically
+the current definition gives `laguerrePolyL (-1) 1 x = 0`, whereas the classically
 continued polynomial is \(L_1^{(-1)}(x)=-x\). The degree-zero definitions still give
 one. Any extension to exceptional parameters needs a denominator-free finite sum
 or a regularized definition, together with comparison theorems.
@@ -174,12 +174,11 @@ The Riemann-equation material includes a hypergeometric solution, gauge shifts,
 and Möbius covariance. Boundary-series convergence and limiting behavior near
 \(z=1\) have substantial proved treatments with explicit parameter hypotheses.
 
-The 17 admissions consist of joint parameter differentiability, two asymptotic
+The 15 admissions consist of joint parameter differentiability, two asymptotic
 results, a cubic connection formula, three continued-fraction limits, four special
-values, three higher or bilateral summations, and three integral representations.
-The summations include Dixon's \({}_3F_2\), Whipple's terminating \({}_7F_6\)
-transformation, and Dougall's bilateral formula. These are significant remaining
-theorems, despite the small admission count. The classical series formulas and
+values, Whipple's terminating \({}_7F_6\) transformation, and three integral
+representations. Dixon's \({}_3F_2\) and Dougall's bilateral formula were proved
+later via Carlson's theorem (see the section on Carlson's theorem below). The classical series formulas and
 the cut-plane API also coexist: not every theorem about the series is stated in
 the strongest possible continued form.
 
@@ -371,8 +370,8 @@ have now been repaired; all three corrected identities still require proofs.
 
 2. **Two finite Kummer–Bessel sums at a Gamma pole.** In
    [Confluent/Relations.lean](AAR/Confluent/Relations.lean), both
-   `AAR.Confluent.confluentM_besselI_sum` and
-   `AAR.Confluent.confluentM_besselI_sum_neg` formerly allowed \(\nu=0,n=0,z=1\).
+   `AAR.Confluent.kummerM_besselI_sum` and
+   `AAR.Confluent.kummerM_besselI_sum_neg` formerly allowed \(\nu=0,n=0,z=1\).
    Their denominator-parameter hypotheses were satisfied. Each right-hand side
    is zero because it contains the totalized factor \(\Gamma(0)\), while the
    left-hand side is \(M(1/2,1,2)>0\): its convergent defining series has constant
@@ -393,9 +392,9 @@ Ten admissions were replaced with proofs, preserving their mathematical hypothes
 
 | Group | Completed theorems | Proof ingredients |
 | --- | --- | --- |
-| 1 | `confluentM_negZeros_eq`, `confluentM_posZeros_nonneg` | Kummer transformation and reflection of the zero set; nonnegative series coefficients, including the totalized `b = 0` case |
+| 1 | `kummerM_negZeros_eq`, `kummerM_posZeros_nonneg` | Kummer transformation and reflection of the zero set; nonnegative series coefficients, including the totalized `b = 0` case |
 | 2 | `compact_support_L2_expansion`, `kernel_polynomials_orthogonal` | TauCeti polynomial completeness and Mathlib Hilbert-basis convergence; Christoffel–Darboux and orthogonality on the measure's support |
-| 3 | `hermite_product_cosine_transform`, `hermite_product_sine_transform`, `hermitePhys_convolution` | Finite Hermite linearization, Laguerre coefficients and single-polynomial transforms; integration by parts and Gaussian scaling |
+| 3 | `hermite_product_cosine_transform`, `hermite_product_sine_transform`, `hermitePolyH_convolution` | Finite Hermite linearization, Laguerre coefficients and single-polynomial transforms; integration by parts and Gaussian scaling |
 | 4 | `regularized_parameter_integral`, `whittakerM_parameter_integral`, `whittakerM_euler` | Dominated termwise Beta integration; positive-real scaling of principal complex powers and affine Euler substitution |
 
 The source admission count decreased from 347 to 337. The three repaired identities
@@ -410,12 +409,12 @@ statements or hypotheses:
 | Completed theorem | Proof ingredients |
 | --- | --- |
 | `tendsto_whittakerM_div_Gamma` | Joint continuity of regularized Kummer M, its proved denominator-pole formula, and a punctured affine parameter substitution |
-| `qGegenbauer_limit_gegenbauer` | Finite `q`-Pochhammer ratio limits and Gegenbauer generating-series coefficients |
-| `laguerre_fractional_integral` | Gamma normalization, the regularized Kummer parameter integral, and positive-real scaling by `y = x t` |
-| `laguerre_fractional_tail_integral` | Translation by `x`, Laguerre addition, and the proved Laguerre moments; all terms except degree zero vanish |
+| `qGegenbauer_limit_ultrasphPoly` | Finite `q`-Pochhammer ratio limits and Gegenbauer generating-series coefficients |
+| `laguerrePolyL_fractional_integral` | Gamma normalization, the regularized Kummer parameter integral, and positive-real scaling by `y = x t` |
+| `laguerrePolyL_fractional_tail_integral` | Translation by `x`, Laguerre addition, and the proved Laguerre moments; all terms except degree zero vanish |
 
 Two supporting lemmas were added: `whittakerW_zero_half` and
-`laguerre_div_Gamma_eq_regularized`. The source admission count decreased from
+`laguerrePolyL_div_Gamma_eq_regularized`. The source admission count decreased from
 337 to 333. The full build, direct file checks, entry-module check, and compiled
 axiom audits verify the new proofs and the previous priority proofs without
 `sorryAx`.
@@ -435,7 +434,7 @@ of the corrected identity remains open.
 The Gauss-kernel integral formulas were also checked against
 [DLMF 13.4.8](https://dlmf.nist.gov/13.4.E8) and
 [13.16.9](https://dlmf.nist.gov/13.16.E9). Their Gamma normalization is correct:
-`gaussHGCut` already denotes the regularized Gauss function.
+`regularizedGaussHG` already denotes the regularized Gauss function.
 
 ## Next priority proofs (2026-10-08)
 
@@ -445,15 +444,15 @@ Seven more admissions were closed with their original statements and hypotheses:
 | --- | --- |
 | `jacobi_fractional_integral` | Gamma normalization, the proved regularized Gauss fractional integral, and the substitution `y = 1 - (1-x)t` |
 | `jacobi_rodrigues` | Induction using the Jacobi weighted derivative; Mathlib's iterated derivative and real-scalar restriction APIs |
-| `laguerre_rodrigues` | Induction using the Laguerre weighted derivative and the same restriction APIs |
+| `laguerrePolyL_rodrigues` | Induction using the Laguerre weighted derivative and the same restriction APIs |
 | `legendre_orthogonality` | Proved Jacobi orthogonality for unequal degrees, followed by the three-term recurrence for the diagonal norms |
-| `laguerre_unweighted_convolution` | Interval integration by parts and the Laguerre derivative recurrence; valid for every real endpoint, including negative ones |
+| `laguerrePolyL_unweighted_convolution` | Interval integration by parts and the Laguerre derivative recurrence; valid for every real endpoint, including negative ones |
 | `laplace_regularizedHGFun_self` | Absolute summability of the integrated Kummer terms, Gamma moments, and the binomial series |
 | `laplace_whittakerM_closed` | The self-transform and an explicit principal-logarithm identity for the quotient of two right-half-plane arguments |
 
 Five supporting lemmas were added: `iteratedDeriv_jacobi_weight`,
-`iteratedDeriv_laguerre_weight`, `integral_cpow_mul_sub_cpow`,
-`confluentU_laplace_integrable`, and `confluentU_laplace_shift_one`.
+`iteratedDeriv_laguerrePolyL_weight`, `integral_cpow_mul_sub_cpow`,
+`kummerU_laplace_integrable`, and `kummerU_laplace_shift_one`.
 The Tricomi kernel is now proved absolutely integrable throughout `Re a > 0`,
 `Re z > 0`, for every complex `b`. Its identity with `U` is proved at `b = a + 1`;
 the general representation remains admitted. These specializations are supporting
@@ -470,14 +469,14 @@ Three further admissions were closed without changing their statements or assump
 
 | Completed theorem | Proof ingredients |
 | --- | --- |
-| `laguerre_convolution` | Finite Gamma-normalized Laguerre expansions, scaled Beta moments, and Vandermonde convolution via a polynomial additive functional |
+| `laguerrePolyL_convolution` | Finite Gamma-normalized Laguerre expansions, scaled Beta moments, and Vandermonde convolution via a polynomial additive functional |
 | `jacobi_norm` | Weighted integration by parts reduces the degree while shifting both parameters; the degree-zero Beta integral starts the induction |
-| `gegenbauer_orthogonality` | Symmetric Jacobi orthogonality and norms, positive-real factorization of the weight, and Mathlib's Gamma duplication formula |
+| `ultrasphPoly_orthogonality` | Symmetric Jacobi orthogonality and norms, positive-real factorization of the weight, and Mathlib's Gamma duplication formula |
 
 The Jacobi proof also establishes `jacobi_norm_all`, whose Gamma denominator is
 regular even when the degree is zero. Weight and polynomial-product integrability
 are explicit, so endpoint singularities remain covered by the original parameter
-range. `gegenbauer_norm` includes degree zero. Finite Laguerre normalization and
+range. `ultrasphPoly_norm` includes degree zero. Finite Laguerre normalization and
 scaled Beta integrability are reusable supporting lemmas.
 
 The general Kummer Laplace identity is now proved as
@@ -485,7 +484,7 @@ The general Kummer Laplace identity is now proved as
 `Re b > 0`, `Re z > 0`, and `‖k‖ < Re z`, including singular denominator parameters.
 It sums absolute integrated terms using a regularized Gauss majorant. The existing
 self-transform now specializes this lemma. Tricomi's Laplace representation is
-proved as `confluentU_laplace_shift_nat` for every `b = a + N + 1`, with nonnegative
+proved as `kummerU_laplace_shift_nat` for every `b = a + N + 1`, with nonnegative
 integer `N`; its former `b = a + 1` helper is the degree-zero specialization.
 These two extensions are supporting results, not additional closed admissions.
 
@@ -501,7 +500,7 @@ The two outstanding targets after that pass were:
   region `Re z > Re k`, `Re z > 0`. This includes cases with `|k/z| ≥ 1`. A Kummer
   growth bound on positive rays and holomorphic integral dependence would support
   continuation; a disk-only replacement would lose intended cases.
-- `confluentU_laplace`: identify the absolutely convergent integral with the
+- `kummerU_laplace`: identify the absolutely convergent integral with the
   connection-formula definition of `U` for general complex `b`, including integer
   second parameters. The finite shifted family supplies checks and useful special
   cases, but agreement at discrete shifts alone does not prove general parameter
@@ -523,10 +522,10 @@ holomorphic dependence on `z` throughout the full half-plane. Analytic uniquenes
 extends the earlier series-region transform, and an explicit argument calculation
 keeps `k/z` on the Gauss cut plane.
 
-For the remaining `confluentU_laplace` priority, the normalized integral is now
+For the remaining `kummerU_laplace` priority, the normalized integral is now
 proved continuous in the second parameter. A fixed polynomial majorant controls
 a neighborhood of every parameter. The proved lemma
-`confluentU_laplace_of_eqOn_integerComplement` therefore reduces the general
+`kummerU_laplace_of_eqOn_integerComplement` therefore reduces the general
 representation to its connection-formula identification at noninteger second
 parameters. That identification remains open; the reduction is a conditional
 supporting result, not a proof of the admitted general representation.
@@ -541,7 +540,7 @@ declarations and exactly 322 declarations dependent on `sorryAx`, matching the
 
 ## Tricomi and Whittaker Laplace representations (2026-10-08)
 
-`confluentU_laplace` and `whittakerW_laplace` are now proved with their original
+`kummerU_laplace` and `whittakerW_laplace` are now proved with their original
 hypotheses. Tricomi's formula covers `Re a > 0`, `Re z > 0`, and every complex
 second parameter, including integers. Whittaker's formula retains
 `Re κ < Re μ + 1/2` and `Re z > 0`. No statement or assumption was changed.
@@ -571,9 +570,9 @@ Tricomi Mellin and Laplace transforms are natural next uses of the new represent
 
 ## Tricomi Mellin transform (2026-10-08)
 
-`mellin_confluentU` is now proved with all three original hypotheses:
+`mellin_kummerU` is now proved with all three original hypotheses:
 `Re (b - 1) < Re λ`, `0 < Re λ`, and `Re λ < Re a`. No statement or
-assumption was changed. The new public lemma `mellin_confluentU_integrable`
+assumption was changed. The new public lemma `mellin_kummerU_integrable`
 also establishes absolute convergence throughout this strip.
 
 The proof in [Integrals.lean](AAR/Confluent/Integrals.lean) inserts the proved
@@ -674,8 +673,8 @@ admission count from 295 to 289.
 
 | Theorem | DLMF | Proof route |
 | --- | --- | --- |
-| `confluentU_poincare`, `confluentU_poincare_remainder` | 13.7.3, 13.7.4 | Watson's lemma (complex exponent) on the Laplace integral 13.4.4 for `re a > 0`; downward induction in `a` with the contiguous relation 13.3.10 |
-| `confluentU_poincare_finite` | 13.7.4 | Remainder of the binomial series of `(1+t)^{-r}` bounded by its first omitted term, by a derivative fencing argument |
+| `kummerU_poincare`, `kummerU_poincare_remainder` | 13.7.3, 13.7.4 | Watson's lemma (complex exponent) on the Laplace integral 13.4.4 for `re a > 0`; downward induction in `a` with the contiguous relation 13.3.10 |
+| `kummerU_poincare_finite` | 13.7.4 | Remainder of the binomial series of `(1+t)^{-r}` bounded by its first omitted term, by a derivative fencing argument |
 | `regularizedHGFun_poincare_real` | 13.7.1 | Watson's lemma on the Euler integral 13.4.1 for `re b > re a > 0`; the regularized contiguous relations 13.3.2 and 13.3.4 lower `a` and `b` |
 | `whittakerM_poincare_real`, `whittakerW_poincare` | 13.19.1, 13.19.3 | The Kummer and Tricomi expansions with 13.14.2–13.14.3 |
 
@@ -728,10 +727,10 @@ reducing that count from 101 to 99 and the source admission count from 288 to 28
 
 | Theorem | DLMF | Proof route |
 | --- | --- | --- |
-| `gegenbauer_laplace_integral` | 18.10.4 | The integrals `∫₀^π (x + √(x²-1) cos φ)ⁿ sin^{2λ-1} φ dφ` satisfy the Gegenbauer recurrence, by integrating the exact derivative of `wⁿ⁺¹ sin^{2λ} φ`; the normalization is `AAR.Gamma.beta_sin_cos` |
+| `ultrasphPoly_laplace_integral` | 18.10.4 | The integrals `∫₀^π (x + √(x²-1) cos φ)ⁿ sin^{2λ-1} φ dφ` satisfy the Gegenbauer recurrence, by integrating the exact derivative of `wⁿ⁺¹ sin^{2λ} φ`; the normalization is `AAR.Gamma.beta_sin_cos` |
 | `legendre_exponential_generating_function` | 18.12.12 | Laplace's integral 18.10.5, Wallis' integrals, and `J₀(u) = π⁻¹ ∫₀^π e^{iu cos t} dt`; the declaration moved from `Series.lean` to `Legendre.lean` to avoid an import cycle |
 
-New proved results include the Rodrigues formulas `gegenbauer_rodrigues` (18.5.5) and
+New proved results include the Rodrigues formulas `ultrasphPoly_rodrigues` (18.5.5) and
 `legendre_rodrigues` in [Integrals.lean](AAR/OrthogonalPolynomials/Integrals.lean).
 
 Watson's lemma now also holds for complex `z → ∞` in a sector `δ|z| ≤ re z`
@@ -762,14 +761,14 @@ derivative of `U` from `Recurrence.lean`. Unused hypotheses are kept with unders
 
 | Theorem | DLMF | Proof route |
 | --- | --- | --- |
-| `confluentM_eq_confluentU_connection` | 13.2.41 | For noninteger `b`: 13.2.42 for both `U` functions, Kummer's transformation 13.2.39, `(-z)^{1-b} = z^{1-b} e^{±πi(1-b)}`, and the totalized reflection formula `(Γ(s)Γ(1-s))⁻¹ = sin(πs)/π`, which holds for every `a`. Continuity in `b` of `𝐌` and `U` gives the regularized form `regularizedHGFun_eq_confluentU_connection` for every `b`. |
-| `wronskian_confluentU_kummerU` | 13.2.38 | Off the real axis, `𝐌 = c₁U + c₂F` near `z` with `F(w) = e^w U(b-a,b,-w)`, so `c₂ W{U,F} = -W{𝐌,U}`; continuity in `a` covers the poles of `Γ(a)` |
-| `wronskian_regularizedHGFun_kummerU` | 13.2.35 | `W{𝐌,F} = c₁ W{U,F}` |
-| `wronskian_shifted_regularized_kummerU` | 13.2.37 | 13.2.41 at `(a-b+1, 2-b)` with Kummer's transformation 13.2.40 for both `U` functions |
-| `wronskian_confluentU_kummer_neg`, `wronskian_confluentU_kummer_pos` | 13.2.24, 13.2.25 | Nonvanishing of 13.2.38; `z` and `-z` in the slit plane force `z ∉ ℝ` |
+| `kummerM_eq_kummerU_connection` | 13.2.41 | For noninteger `b`: 13.2.42 for both `U` functions, Kummer's transformation 13.2.39, `(-z)^{1-b} = z^{1-b} e^{±πi(1-b)}`, and the totalized reflection formula `(Γ(s)Γ(1-s))⁻¹ = sin(πs)/π`, which holds for every `a`. Continuity in `b` of `𝐌` and `U` gives the regularized form `regularizedHGFun_eq_kummerU_connection` for every `b`. |
+| `wronskian_kummerU_kummerUReflected` | 13.2.38 | Off the real axis, `𝐌 = c₁U + c₂F` near `z` with `F(w) = e^w U(b-a,b,-w)`, so `c₂ W{U,F} = -W{𝐌,U}`; continuity in `a` covers the poles of `Γ(a)` |
+| `wronskian_regularizedHGFun_kummerUReflected` | 13.2.35 | `W{𝐌,F} = c₁ W{U,F}` |
+| `wronskian_shifted_regularized_kummerUReflected` | 13.2.37 | 13.2.41 at `(a-b+1, 2-b)` with Kummer's transformation 13.2.40 for both `U` functions |
+| `wronskian_kummerU_kummer_neg`, `wronskian_kummerU_kummer_pos` | 13.2.24, 13.2.25 | Nonvanishing of 13.2.38; `z` and `-z` in the slit plane force `z ∉ ℝ` |
 
 Applications to Coulomb functions are in the new admission-free module
-[CoulombIrregular.lean](AAR/Confluent/CoulombIrregular.lean). `conj_confluentU` shows that `U`
+[CoulombIrregular.lean](AAR/Confluent/CoulombIrregular.lean). `conj_kummerU` shows that `U`
 commutes with complex conjugation on the slit plane, by continuity in `b` at integer `b`. Hence
 `H^-_ℓ = conj H^+_ℓ`. Applied at `z = 2iρ`, 13.2.41 gives `F_ℓ = (H^+_ℓ - H^-_ℓ)/(2i)`. With
 `G_ℓ := Re H^+_ℓ` (DLMF 33.2.11 defines `G_ℓ` this way), this proves `H^±_ℓ = G_ℓ ± iF_ℓ`. It also
@@ -785,13 +784,13 @@ Fourteen admissions were proved, reducing the source admission count from 280 to
 follow results later in the import order were moved unchanged: 13.2.6, 13.2.23, 13.7.2 and
 13.14.20–21 to [AsymptoticConsequences.lean](AAR/Confluent/AsymptoticConsequences.lean),
 13.14.27, 13.14.30 and 13.14.32 to [ConnectionWronskians.lean](AAR/Confluent/ConnectionWronskians.lean),
-and AAR Theorem 4.2.1 (`confluentM_eq_barnes_integral`) from `Basic.lean` to
+and AAR Theorem 4.2.1 (`kummerM_eq_barnes_integral`) from `Basic.lean` to
 [IntegralRepresentations.lean](AAR/Confluent/IntegralRepresentations.lean). Unused hypotheses are
 kept with underscore names.
 
 | Theorem | DLMF | Proof route |
 | --- | --- | --- |
-| `tendsto_confluentU_mul_cpow_atTop`, `tendsto_regularizedHGFun_mul_exp_neg_atTop` | 13.2.6, 13.2.23 | Leading terms of the expansions 13.7.3, 13.7.1 |
+| `tendsto_kummerU_mul_cpow_atTop`, `tendsto_regularizedHGFun_mul_exp_neg_atTop` | 13.2.6, 13.2.23 | Leading terms of the expansions 13.7.3, 13.7.1 |
 | `tendsto_whittakerM_atTop`, `tendsto_whittakerW_atTop` | 13.14.20–21 | From 13.2.23 and 13.2.6 |
 | `regularizedHGFun_poincare_sector` | 13.7.2 | 13.2.41; on `δ ≤ ph z ≤ π-δ` both `z` and `-z` lie in rotated sectors with angles `∓(π/2-δ/2)` |
 | `whittakerM_eq_whittakerW_connection` | 13.14.32 | 13.2.41 with `(-z)^{1/2+μ} = z^{1/2+μ} e^{±πi(1/2+μ)}` |
@@ -799,9 +798,9 @@ kept with underscore names.
 | `barnes_integral` | 15.6.6 | Mellin–Barnes integral for `(1+ut)^{-a}` inserted in Euler's integral, Fubini, Beta; continuation in `c` |
 | `mellin_barnes_beta` | 5.13.1 | Mellin inversion of the Beta integral on `(0,∞)` |
 | `regularized_barnes_integral` | 13.4.16 | Cahen–Mellin integral inserted in Kummer's integral, Fubini, Beta; continuation in `b` |
-| `confluentU_barnes` | 13.4.17 | Mellin–Barnes integral for `(1+t)^{-(1+a-b)}` inserted in the Laplace integral 13.4.4 |
+| `kummerU_barnes` | 13.4.17 | Mellin–Barnes integral for `(1+t)^{-(1+a-b)}` inserted in the Laplace integral 13.4.4 |
 | `whittakerW_barnes` | 13.16.11 | 13.4.17 with the shift `s ↦ s+κ` |
-| `confluentM_eq_barnes_integral` | AAR Thm 4.2.1 | 13.4.16 on the negative axis; identity theorem on `re z < 0` |
+| `kummerM_eq_barnes_integral` | AAR Thm 4.2.1 | 13.4.16 on the negative axis; identity theorem on `re z < 0` |
 
 New infrastructure: [VerticalBounds.lean](AAR/Gamma/VerticalBounds.lean) proves
 `|Γ(x+iy)| ≤ C(1+|y|)^K e^{-π|y|/2}` and `|1/Γ(x+iy)| ≤ C(1+|y|)^K e^{π|y|/2}` (uniform in
@@ -823,7 +822,7 @@ New admission-free results for Temme's Chapter 5:
 ## Bessel functions from Temme, Chapter 9 (2026-10-16)
 
 Three admissions were proved, reducing the source admission count from 266 to 263 (confluent
-91 → 89, Bessel 4 → 3): Kummer's Bessel-K relation 13.6.10 (`confluentU_besselK`), the
+91 → 89, Bessel 4 → 3): Kummer's Bessel-K relation 13.6.10 (`kummerU_besselK`), the
 Whittaker form 13.18.9 (`whittakerW_besselK`), and infinitely many positive zeros of
 \(J_\nu\) (`besselJ_infinite_zeros`). The last statement moved unchanged from `Theorems.lean`
 to [Asymptotics.lean](AAR/Bessel/Asymptotics.lean); its hypothesis `-1 < ν` is unused and is
@@ -838,8 +837,9 @@ New admission-free modules:
   (10.4.3), and the Wronskians 10.5.1, 10.5.2, 10.5.5, 10.28.1 and 10.28.2 hold for all orders. The
   Wronskians come from the entire series `F(ν+1)F(-ν) - wF(ν+2)F(1-ν)`, which is constant by the
   contiguous relation.
-* [MathlibBridge.lean](AAR/Bessel/MathlibBridge.lean): `besselJ = Complex.besselJ`, and Mathlib's
-  parity (10.11.1), entireness at integer order and value at `0`.
+* `MathlibBridge.lean` (removed 2026-10-16, when the project switched to Mathlib's
+  `Complex.besselJ`): `besselJ = Complex.besselJ`, and Mathlib's parity (10.11.1), entireness at
+  integer order and value at `0`.
 * [BesselIntegral.lean](AAR/Bessel/BesselIntegral.lean): the Jacobi–Anger expansion (10.12.1)
   and Bessel's integrals 10.9.1–10.9.2, by Fourier extraction from the generating function.
 * [KIntegrals.lean](AAR/Bessel/KIntegrals.lean): `K_ν(z) = √π (z/2)^ν/Γ(ν+½) ∫₁^∞ e^{-zu}(u²-1)^{ν-½} du`
@@ -866,15 +866,15 @@ Three new admission-free areas were added; the source admission count is unchang
 declaration counts in the inventory table for these rows are from 2026-10-16.
 
 [Legendre](AAR/Legendre.lean) (Temme Ch. 8, DLMF 14). Mathlib has no Legendre functions.
-`legendreFunP ν z = 𝐅(-ν, ν+1; 1; (1-z)/2)` and
-`legendreFunQ ν z = √π Γ(ν+1) (2z)^{-ν-1} 𝐅((ν+2)/2, (ν+1)/2; ν+3/2; 1/z²)` use the
-continuation `gaussHGCut` of `₂F₁` to the cut plane, so they are analytic off `(-∞,-1]` and
+`legendreP ν z = 𝐅(-ν, ν+1; 1; (1-z)/2)` and
+`legendreQ ν z = √π Γ(ν+1) (2z)^{-ν-1} 𝐅((ν+2)/2, (ν+1)/2; ν+3/2; 1/z²)` use the
+continuation `regularizedGaussHG` of `₂F₁` to the cut plane, so they are analytic off `(-∞,-1]` and
 `(-∞,1]` for every complex `ν`. `ferrersP ν μ x` is the Ferrers function on `(-1,1)` (14.3.1).
 Proved:
 * Legendre's equation for `P_ν` and `Q_ν`, and the associated equation for `𝖯^μ_ν` (14.2.1–2).
   These come from the hypergeometric equation on the cut plane, which is the hypothesis-free
   diagonal contiguous relation times `ab`.
-* `P_ν(1) = 1`, `P_{-ν-1} = P_ν` (14.9.5), `P_n = legendreP n`, `P_ν(0)` (14.5.1, by Gauss's second
+* `P_ν(1) = 1`, `P_{-ν-1} = P_ν` (14.9.5), `P_n = legendrePolyP n`, `P_ν(0)` (14.5.1, by Gauss's second
   summation theorem).
 * The recurrence 14.10.3 and `(1-z²)P_ν' = ν(P_{ν-1} - zP_ν)`, as combinations of contiguous
   relations.
@@ -916,7 +916,7 @@ solutions are supplied.
 
 [Elliptic](AAR/Elliptic.lean) (Temme Ch. 12, DLMF 19, 20, 22), for a real parameter `m = k² < 1`:
 * `K(m)`, `E(m)`, their derivatives (19.4.1–2), Legendre's relation (19.7.1), the hypergeometric
-  forms (19.5.1–2) and agreement with the existing `completeEllipticK`.
+  forms (19.5.1–2) and agreement with the existing `compEllIntKkSeries`.
 * Gauss's theorem `K(m) = π/(2M(1, √(1-m)))` via the invariance of `∫₀^∞((t²+a²)(t²+b²))^{-1/2}`
   under the AGM step (Temme Thm 12.1). It uses Mathlib's `NNReal.agm`, with the descending and
   ascending Landen transformations of `K`.
@@ -926,8 +926,8 @@ solutions are supplied.
 * `θ₁, …, θ₄` in DLMF normalization from Mathlib's `jacobiTheta₂`, with series forms 20.2.3–4,
   periodicity, parity and `θ₃(0|-1/τ) = (-iτ)^{1/2} θ₃(0|τ)`.
 Later the same day:
-* `Π(n;φ|m)` for `n, m < 1` (19.2.7): the derivative, oddness and quasi-periodicity, and the closed
-  form at `m = 0` with `Π(n|0) = π/(2√(1-n))`.
+* `Π(φ, n, m)` for `n, m < 1` (19.2.7): the derivative, oddness and quasi-periodicity, and the
+  closed form at `m = 0` with `Π(n, 0) = π/(2√(1-n))`.
 * The descending and ascending Landen transformations of `E` (Temme (12.13)–(12.14)), and `dK/dk`,
   `dE/dk` (19.4.1–2).
 * Jacobi's `K = (π/2) θ₃(q)²` with `k' = θ₄²/θ₃²` (20.9.2). It follows from the doubling identities
@@ -1012,8 +1012,208 @@ admissions; the admission count stays at 262.
 Not done:
 * q-Pfaff–Saalschütz, the `q`-Leibniz rule, and Jackson's `₂φ₁ → ₂φ₂`.
 * `∫₀^{π/4} t cot t`, which needs the Clausen function.
-* General confluence for `ₚF_q`, and `dixon_sum`.
+* General confluence for `ₚF_q` (`dixon_sum` was proved later via Carlson's theorem).
 * `digamma_rat` and the asymptotics of the Bernoulli numbers.
 * The limits of `sn` as `m → 0` and `m → 1`.
 * The integral representations of `Y`.
 * Duverney Tier 3: analytic ODE solutions, stationary phase, Airy and Struve, Lerch.
+
+## Admission pass after the Temme and Duverney work (2026-10-16)
+
+A review of all 262 admissions against the new material found about 40 that could now be proved.
+Twenty-eight were proved, reducing the source admission count from 262 to 234.
+
+* [Confluent](AAR/Confluent.lean), 20:
+  * The addition theorems 13.13.2 and 13.13.6 for every `x` in `slitPlane`, from the Taylor
+    expansion of `(w/x)^{b-1}[e^{-w}]M(a,b,w)`, and the Whittaker additions 13.26.1, 13.26.2,
+    13.26.4, 13.26.5, 13.26.7, 13.26.8, 13.26.10, 13.26.11.
+  * `∫₀^∞ e^{-t} t^{a-1} ₀F̃₁(;c;wt) dt = Γ(a) 𝐌(a,c,w)`, giving 13.4.3, 13.16.3, 13.16.4.
+  * The Mellin transform of `W` (13.23.5) and the Laplace transform of `M` (13.23.1).
+  * `U` near `0` for `1 < re b < 2` and `0 < re b < 1` (13.2.18, 13.2.20).
+  * No positive zeros of `U` for `a ≥ 0` (13.9.13), exactly one positive zero of `M` for `a > 0`,
+    `-1 < b < 0` (13.9.3), and `M(a,b,z)` for large `b` (13.8.1).
+* [Gamma](AAR/Gamma.lean), 6:
+  * Barnes' first lemma (5.13.3) and `Σ ψ'(k+2)/(k+1) = ζ(3)` (5.16.2).
+  * The Glaisher–Kinkelin constant in terms of `ζ'(-1)`, and `Γ(az+b)` for large `z` (5.11.7).
+  * The Dirichlet simplex integrals 5.14.1–2, from the multivariate Beta integral ported from
+    lean-codes into `AAR/Gamma/Simplex/` (see CREDITS).
+* [QSeries](AAR/QSeries.lean), 2: the Jacobi triple product (10.4.1), from the finite Rothe
+  identity and Tannery's theorem, and `θ(τ) = ∏(1-q^{2n})(1+q^{2n-1})²`.
+
+Statement repair: `kummerU_negZeros_none` (13.9.15) was false when `a` is a nonpositive integer
+(`a = b = -1` gives `U = x + 1`, which vanishes at `x = -1`). It now assumes `a ∉ -ℕ` and stays
+admitted.
+
+## Namespace pass (2026-10-16)
+
+Every project declaration now lives under `AAR`. The files that were in the root namespace moved into
+their area's namespace:
+* `AAR.QSeries` (`QSeries/Pochhammer`, `QSeries/Identities`), `AAR.Bailey`, `AAR.Partitions`.
+* `AAR.Selberg`, `AAR.SphericalHarmonics`.
+* `AAR.OrthogonalPolynomials` (`Classical`, `Topics`, `General`, including `IsOrthogonalPolynomials`).
+* `AAR.Hypergeometric` (`Basic`, `Contiguous`, `DiffEq`, `EulerIntegral`, `Series`,
+  `Transformations`, and `gauss_quadratic`, `kummer_quadratic`).
+* `AAR.Confluent` (`Basic`, and the Whittaker definitions), `AAR.Bessel` (nine files).
+
+Two name collisions surfaced and were resolved by renaming: `ultrasphPoly_param_one_eq` (the
+`λ = 1` case in `Classical`) and `cpow_mul_cpow_of_re_pos` (in `Elementary`). The only remaining
+declarations outside `AAR` deliberately extend Mathlib namespaces (`Real.*`, `Complex.*` in the
+Gamma area, `HasFPowerSeriesOnBall.*`, `HasSum.*`, `MeasureTheory.*`, and
+`tendsto_ordinaryHypergeometric_nhdsWithin_one`); these are candidates for `ToMathlib`.
+
+## Bessel `J` from Mathlib (2026-10-16)
+
+The project's own `besselJ` was the same function as Mathlib's `Complex.besselJ` on all of `ℂ × ℂ`
+(same regularized `₀F₁`, same principal branch, same values at `0` and at negative integer
+orders), so it was removed and `Complex.besselJ` is used directly. `besselJ_eq_regularized`
+(DLMF 10.2.2) gives the series form `(z/2)^ν ₀F̃₁(;ν+1;-z²/4)` used by the proofs that unfolded
+the old definition. `MathlibBridge.lean` and the local `analyticAt_besselJ` were removed as
+duplicates of Mathlib; `besselJ_neg_int` is now Mathlib's lemma, restated to keep its DLMF tag.
+
+## Orthogonal-polynomial admissions (2026-10-16)
+
+Six admissions were proved, reducing the source admission count from 234 to 228.
+* The Mellin transforms of Jacobi, Legendre (even and odd) and Gegenbauer polynomials
+  (18.17.36–39), by termwise Beta integrals and the Pfaff–Saalschütz sum; the Gegenbauer case
+  reduces to Jacobi via `s = 1 - 2x²` and Legendre duplication.
+* The Gegenbauer–Bessel generating function (18.12.6), from Laplace's and Poisson's integrals. The
+  statement moved unchanged from `Series.lean` to `Legendre.lean`, beside the Legendre case,
+  because its ingredients are downstream of `Series.lean`.
+* The Morse oscillator equation for `morsePolynomialFunction` (18.34.7), from the Bessel-polynomial
+  differential equation.
+
+The six Fourier and Laplace transforms 18.17.16, 18.17.16_5, 18.17.17–19 and 18.17.33 were then
+proved, reducing the count from 228 to 222. No integration by parts was needed: the Jacobi
+moments follow from the Mellin transform 18.17.36, termwise integration of the exponential gives
+`zⁿ M(β+n+1, α+β+2n+2, -2z)`, Kummer's transformation gives the Fourier form, and the
+Gegenbauer, cosine, sine and Legendre cases follow through `besselJ_eq_kummerM`, Legendre
+duplication and parity.
+
+## q-Pfaff–Saalschütz and the Bailey chain (2026-10-16)
+
+The new module [QSeries/Saalschutz.lean](AAR/QSeries/Saalschutz.lean) proves the q-Pfaff–Saalschütz
+sum as a finite identity valid for every `q` (`sum_qBinom_saalschutz`, by induction with an
+explicit telescoping certificate), with the quotient form `sum_saalschutz_div`. From it,
+[Bailey.lean](AAR/Bailey.lean) is now admission-free, reducing the count from 222 to 218:
+* Bailey's lemma, by interchanging the finite double sum.
+* Watson's `₈φ₇ → ₄φ₃` transformation, from the unit Bailey pair and two Bailey steps, with the
+  degenerate values `aq^j = 1` covered by continuity in `a`.
+* Both Rogers–Ramanujan identities, from the limiting Bailey relation (`ρ₁, ρ₂ → ∞`), Tannery's
+  theorem, and the Jacobi triple product at base `q⁵`.
+
+The three copies of `(a;q)_{m+k} = (a;q)_m (aq^m;q)_k` were merged into
+`AAR.QSeries.qPochhammer_add` in `QSeries/Pochhammer.lean`.
+
+## Dixon and Dougall via Carlson's theorem (2026-10-16)
+
+Carlson's theorem was copied unchanged from lean-codes to
+[ToMathlib/Analysis/Complex/Carlson.lean](ToMathlib/Analysis/Complex/Carlson.lean).
+With it, `dixon_sum` and `dougall_bilateral` (15.4.E25) in
+[AAR/Hypergeometric/Identities.lean](AAR/Hypergeometric/Identities.lean) are proved
+(218 → 216 admissions). Term-by-term bounds give only type π on vertical lines, so both
+proofs use periodicity:
+
+* Dougall: the sum `L(d)` satisfies `(d−a)(d−b)L(d+1) = (c+d−a−b−1)L(d)`. After
+  normalization by Γ factors it is 1-periodic, of type π/2 on a strip, and correct at
+  integer `d` by Gauss's sum. Carlson and the identity theorem give the result.
+* Dixon: a WZ certificate gives a first-order recurrence in `c`. The normalized series
+  is 1-periodic and correct at `c = −j` (the terminating case). Carlson and the
+  recurrence give the result.
+
+The helpers (`CarlsonAux`, `DougallAux`, `DixonAux`, about 1600 lines) include a periodic
+form of Carlson's theorem and Γ-ratio and reciprocal-Γ bounds on strips. These are
+ToMathlib candidates. `whipple_7F6` remains admitted.
+
+## Gamma and digamma admissions (2026-10-17)
+
+Twelve Gamma admissions were proved (216 → 204 project-wide; 27 → 15 in `AAR/Gamma`).
+
+* [BarnesG.lean](AAR/Gamma/BarnesG.lean): the functional equation 5.17.1, integer values
+  5.17.2, and the integral formula 5.17.4. The product converges for all `z`; the leftover
+  factor of the shift identity is identified via `GammaSeq` and Stirling. 5.17.5 remains.
+* [BetaFunction.lean](AAR/Gamma/BetaFunction.lean): 5.12.5 and 5.12.6, by the binomial
+  series of `(1 + r e^{2ix})^{a-1}`, termwise integration, `r → 1⁻`, and a Beta integral;
+  the range `|b| ≤ a - 1` by an integration-by-parts recurrence. 5.12.8 remains.
+* [SeriesExpansions.lean](AAR/Gamma/SeriesExpansions.lean): 5.7.2 by coefficient comparison
+  in `(1/Γ)' = -ψ/Γ`, and 5.7.3 by `exp R = Γ(1+·)` with `|Im R| < π`. The file is
+  admission-free.
+* [SpecialValues.lean](AAR/Gamma/SpecialValues.lean): Gauss's digamma theorem 5.4.19, by a
+  roots-of-unity filter on the digamma series, the Dirichlet test, and Abel's theorem.
+* [QGamma.lean](AAR/Gamma/QGamma.lean): `Γ_q(x) → Γ(x)` (5.18.10), by a concavity sandwich
+  against `GammaSeq`. The monotonicity statements 5.18.8–9 remain.
+* New [ComplexBinet.lean](AAR/Gamma/ComplexBinet.lean): Binet's function in Stieltjes form,
+  holomorphic on the slit plane, with `Γ = exp((z-½)log z - z + ½ log 2π + μ)` and
+  `|μ(z)| ≤ 1/(6(|z| + Re z))`. This gives 5.6.9 and 5.11.9; with Watson's lemma it gives
+  the shifted Stirling expansion (5.11.8 for complex shifts) and the ratio expansion 5.11.13.
+
+Unused hypotheses (statements kept): `habs` in 5.6.9, `x`/`hx` in 5.11.13 and 5.11.19, and
+`n` in 5.17.5.
+
+Still admitted (15): the inequalities 5.6.2, 5.6.3, 5.6.8; `inv_Gamma_binet` (Hankel loop);
+5.11.19; 5.12.8; Mellin–Barnes 5.13.2, 5.13.4, 5.13.5; the Selberg-type 5.14.5–7 (the
+first two follow from the still-admitted Selberg integral); 5.17.5; 5.18.8–9.
+
+## Remaining Gamma admissions, second round (2026-10-17)
+
+Unused hypotheses were dropped from 5.6.9 (`habs`), 5.11.13 and 5.11.19 (`x`, `hx`) and
+5.17.5 (`x`, `hx`, `n`; now stated in `t` directly). Twelve further admissions were proved
+(204 → 192 project-wide; `AAR/Gamma` 15 → 5; `AAR/Selberg/Basic.lean` is admission-free).
+
+* Inequalities 5.6.3 (then 5.6.2 by QM ≥ AM): Taylor lower bounds for `log Γ(1±t)` from
+  trigamma monotonicity, `ζ(3) ≤ 4/3` and `1/2 < γ < 3/5`, closed by a polynomial
+  inequality; `x ≥ 2` is trivial.
+* `inv_Gamma_binet` (5.9.2_5) without contours: on the steepest-descent path an
+  integration-by-parts recursion and a scaling identity give `W(a) = a W(a+1)`; the
+  periodic `W·Γ` is fixed as `π` by Laplace's method and Stirling.
+* 5.11.19: a Beta-integral form of the remainder with a binomial-remainder bound for
+  `Re(c-a) > 0`, then an exact shift identity in `a`.
+* 5.13.2: the Mellin–Barnes Beta integral, continued in `v` to `e^{i(π/2-b)}`. 5.13.4
+  (Ramanujan): Fourier/Parseval with the continued 5.12.5 kernel for real parameters, then
+  continuation in each parameter with locally uniform tail majorants.
+* 5.17.5: `log A` from an Euler–Maclaurin continuation of `ζ` to `Re s > -2`, plus a
+  Binet bound and an affine-function argument for real `t`.
+* 5.18.8–9: strict concavity of `log(1-p^t) - log(1-q^t)` (sinh monotonicity) applied to
+  the product truncations.
+* Selberg integral and Aomoto's integral (Selberg/Basic.lean): Aomoto's recurrence,
+  Carlson in `a`, a dimension recursion fixing the constant, and continuation in `c`.
+  5.14.5 is its `b → ∞` limit by dominated convergence.
+
+Remaining (5): 5.6.8 (the fractional complex case needs Ismail–Lorch–Muldoon complete
+monotonicity); 5.12.8, false as stated, since `betaIntegral a b = 0` for `Re a ≤ 0`
+(counterexample `a = -1/2, b = 2, w = z = 1`: left side `-0.3536`, Lean right side `0`);
+5.13.5 (needs Bailey's very-well-poised Barnes integrals); 5.14.6 (done for `Re c > 0` in
+scratch, the strip `-1/n < Re c ≤ 0` needs an integrability lemma); 5.14.7 (Dyson).
+
+## 5.12.8 and the Selberg files (2026-10-17)
+
+5.12.8 (`beta_vertical`) was false as stated: Mathlib's `betaIntegral a b` is the literal
+integral, which is `0` for `Re a ≤ 0`. With the user's approval its right side now reads
+`(w+z)^{1-a-b} Γ(a+b)/((a+b-1)Γ(a)Γ(b))`. It is proved by Fourier inversion and Fubini for
+`Re a > 0, Re b > 1`, the identity theorem in `b`, and the symmetry `t ↦ -t`.
+
+Five more admissions were proved (192 → 187); `AAR/Gamma` now has 2 (5.6.8, 5.13.5).
+
+* 5.14.6 (Mehta): the limit of Selberg with `a = b = N+1`; integrability in the strip
+  `-1/n < Re c ≤ 0` by Fatou.
+* 5.14.7 (Dyson): Good's proof of the constant-term identity for integer `b`, Carlson's
+  theorem, and continuation with integrability from Landau's theorem.
+* 8.5.3 (`jacobiPolyP_discriminant`): Schur's resultant method from the three-term
+  recurrence, without the Selberg integral. `jacobi_discriminant` in
+  `OrthogonalPolynomials/BoundsZeros.lean` is the same result up to the factor
+  `k_n^{2n-2}`; it could be derived from the `JacobiDisc` section, which needs only
+  `OrthogonalPolynomials.Differential`.
+* 8.9.1(a) (`nearly_poised_3F2`): AAR's proof from Aomoto's integral with `n = 2`.
+
+Still admitted in `AAR/Selberg/Applications.lean`: Siegel's inequality 8.6.2 (needs the
+constrained maximum of the discriminant and the Laguerre discriminant), Hasse–Davenport
+8.10.4 (not in Mathlib), and the finite-field Selberg integral 8.11.2.
+
+## Classical discriminants (2026-10-17)
+
+The Schur resultant section for the Jacobi zeros moved from `Selberg/Applications.lean` to
+the new [JacobiDiscriminant.lean](AAR/OrthogonalPolynomials/JacobiDiscriminant.lean)
+(general lemma `jacobiPolyP_prod_sq_sub`); AAR 8.5.3 is now a one-line corollary. In
+[BoundsZeros.lean](AAR/OrthogonalPolynomials/BoundsZeros.lean) the discriminants 18.16.19
+(Jacobi), 18.16.20 (Laguerre) and 18.16.21 (Hermite) are proved, the latter two by the same
+Schur method on their recurrences (187 → 184). This also removes the duplicate admission
+noted in the 2026-10-16 assessment.

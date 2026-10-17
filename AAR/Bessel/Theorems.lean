@@ -21,15 +21,20 @@ These are the remaining named identities of AAR Chapter 4 that are absent from M
 
 open Complex intervalIntegral
 open scoped Real Nat Topology
+open AAR.OrthogonalPolynomials
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
+
+namespace AAR.Bessel
 
 /-- Recurrence `(2ν/z) J_ν(z) = J_{ν-1}(z) + J_{ν+1}(z)` (AAR (4.6.5), p. 202). -/
 @[dlmf 10.6.E1]
 theorem besselJ_add_sub {ν z : ℂ} (hz : z ≠ 0) :
     (2 * ν / z) * besselJ ν z = besselJ (ν - 1) z + besselJ (ν + 1) z := by
   have he := regularized0F1_contiguous ν (-(z ^ 2 / 4))
-  unfold besselJ
+  simp only [besselJ_eq_regularized]
   rw [cpow_sub _ _ (div_ne_zero hz (by norm_num)),
     cpow_add _ _ (div_ne_zero hz (by norm_num)), cpow_one]
   rw [show ν - 1 + 1 = ν by ring]
@@ -82,10 +87,10 @@ theorem besselJ_eq_poisson_integral {ν : ℂ} {x : ℝ}
     dsimp [f, w]
     rw [hpow, he, exp_add]
     ring
-  have hM := confluentM_eq_euler_integral (z := 2 * I * x) ha
+  have hM := kummerM_eq_euler_integral (z := 2 * I * x) ha
     (show 0 < (2 * ν + 1 - (ν + 1 / 2)).re by rwa [hca])
   rw [hca, show ν + 1 / 2 - 1 = ν - 1 / 2 by ring] at hM
-  change confluentM (ν + 1 / 2) (2 * ν + 1) (2 * I * x) =
+  change kummerM (ν + 1 / 2) (2 * ν + 1) (2 * I * x) =
     Gamma (2 * ν + 1) / (Gamma (ν + 1 / 2) * Gamma (ν + 1 / 2)) *
       ∫ u : ℝ in (0 : ℝ)..1, w u at hM
   have hA : Gamma (ν + 1 / 2) ≠ 0 := Gamma_ne_zero_of_re_pos ha
@@ -106,7 +111,7 @@ theorem besselJ_eq_poisson_integral {ν : ℂ} {x : ℝ}
     apply (eq_div_iff hP).mpr
     linear_combination -2 * Gamma (2 * ν + 1) * (Real.sqrt π : ℂ) * hpow -
       2 * (4 : ℂ) ^ (ν - 1 / 2) * hd
-  rw [besselJ_eq_confluentM (not_neg_nat_of_re_pos hb) (not_neg_nat_of_re_pos hc), hM]
+  rw [besselJ_eq_kummerM (not_neg_nat_of_re_pos hb) (not_neg_nat_of_re_pos hc), hM]
   change _ = (x / 2) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2)) *
     ∫ t : ℝ in (-1 : ℝ)..1, f t
   rw [hi, hG]
@@ -128,7 +133,7 @@ theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
         (Real.sqrt (r ^ 2 + rho ^ 2 - 2 * r * rho * Real.cos phi) : ℂ) ^ ν =
       (2 ^ ν * Gamma ν / (r * rho : ℂ) ^ ν) *
         ∑' n : ℕ, (ν + n) * besselJ (ν + n) r * besselJ (ν + n) rho *
-          gegenbauer ν n (Real.cos phi) := by
+          ultrasphPoly ν n (Real.cos phi) := by
   sorry
 
 /-- At a nonzero point, a zero of regularized `₀F₁` has nonzero derivative.
@@ -171,7 +176,7 @@ lemma regularized0F1_deriv_ne_zero {c w : ℂ} (hc : ∀ k : ℕ, c ≠ -k)
     filter_upwards [hp.eventually_hasSum_sub, hq.eventually_hasSum_sub] with z hz₁ hz₂
     exact hz₁.unique hz₂
   have hz := congrFun hf 0
-  rw [_root_.regularizedHGFun_zero, regularizedHGFunCoeff_empty] at hz
+  rw [AAR.Confluent.regularizedHGFun_zero, regularizedHGFunCoeff_empty] at hz
   simp [Gamma_ne_zero hc] at hz
 
 /-- The positive zeros of `J_ν` are simple. -/
@@ -184,11 +189,15 @@ theorem besselJ_zeros_simple {ν x : ℝ} (hν : -1 < ν) (hx : 0 < x)
     exact Or.inl hx
   have hp (μ : ℂ) : ((x : ℂ) / 2) ^ μ ≠ 0 :=
     cpow_ne_zero_iff.mpr (Or.inl (div_ne_zero hx0 (by norm_num)))
-  have hf : regularizedHGFun (∅ : Multiset ℂ) {(ν : ℂ) + 1} (-((x : ℂ) ^ 2 / 4)) = 0 :=
-    (mul_eq_zero.mp hroot).resolve_left (hp ν)
+  have hf : regularizedHGFun (∅ : Multiset ℂ) {(ν : ℂ) + 1} (-((x : ℂ) ^ 2 / 4)) = 0 := by
+    rw [besselJ_eq_regularized] at hroot
+    exact (mul_eq_zero.mp hroot).resolve_left (hp ν)
   have hc : ∀ k : ℕ, (ν : ℂ) + 1 ≠ -k := not_neg_nat_of_re_pos (by simp; linarith)
   have hw : -((x : ℂ) ^ 2 / 4) ≠ 0 := neg_ne_zero.mpr (div_ne_zero (pow_ne_zero _ hx0) (by norm_num))
   have hne := regularized0F1_deriv_ne_zero hc hw hf
   rw [deriv_regularized0F1] at hne
-  rw [(hasDerivAt_besselJ hxslit).deriv, hroot, mul_zero, zero_sub, neg_ne_zero]
+  rw [(hasDerivAt_besselJ hxslit).deriv, hroot, mul_zero, zero_sub, neg_ne_zero,
+    besselJ_eq_regularized]
   exact mul_ne_zero (hp _) hne
+
+end AAR.Bessel

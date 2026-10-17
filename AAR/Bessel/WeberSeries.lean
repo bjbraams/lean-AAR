@@ -32,6 +32,7 @@ public import AAR.Hypergeometric.ConnectionFormulas
 
 open Complex Filter Set
 open scoped Real Topology Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -153,7 +154,8 @@ lemma deriv_besselJ_order (ν : ℂ) {z : ℂ} (hz : z ≠ 0) :
   have h : HasDerivAt (fun μ : ℂ => (z / 2) ^ μ *
       regularizedHGFun (∅ : Multiset ℂ) {μ + 1} (-(z ^ 2 / 4))) _ ν := h1.mul h2
   rw [show (fun μ => besselJ μ z) = fun μ : ℂ => (z / 2) ^ μ *
-    regularizedHGFun (∅ : Multiset ℂ) {μ + 1} (-(z ^ 2 / 4)) from rfl, h.deriv, besselJ]
+      regularizedHGFun (∅ : Multiset ℂ) {μ + 1} (-(z ^ 2 / 4)) from
+    funext fun μ => besselJ_eq_regularized μ z, h.deriv, besselJ_eq_regularized]
   ring
 
 /-- **The logarithmic series of `Y₀`** (DLMF 10.8.2, Duverney (7.49) with `n = 0`):
@@ -170,7 +172,7 @@ theorem besselY_zero_eq_series {z : ℂ} (hz : z ∈ slitPlane) :
     at hY
   have hd := hasSum_deriv_regularized0F1_param 1 w
   have hJ0 : besselJ 0 z = regularizedHGFun (∅ : Multiset ℂ) {1} w := by
-    simp [besselJ, w]
+    simp [besselJ_eq_regularized, w]
   -- the γ-part
   have hF : HasSum (fun k : ℕ => w ^ k / (k ! : ℂ) ^ 2) (besselJ 0 z) := by
     rw [hJ0, regularized0F1_eq_tsum]
@@ -390,8 +392,8 @@ theorem besselJ_mul_besselJ (μ ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   have hs (c : ℂ) := summable_regularized0F1_term c w
   have hprod := tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm
     (summable_norm_iff.mpr (hs (μ + 1))) (summable_norm_iff.mpr (hs (ν + 1)))
-  rw [besselJ, besselJ, mul_mul_mul_comm, ← cpow_add _ _ hz2, regularized0F1_eq_tsum,
-    regularized0F1_eq_tsum, hprod]
+  rw [besselJ_eq_regularized, besselJ_eq_regularized, mul_mul_mul_comm, ← cpow_add _ _ hz2,
+    regularized0F1_eq_tsum, regularized0F1_eq_tsum, hprod]
   refine congrArg ((z / 2) ^ (μ + ν) * ·) (tsum_congr fun n => ?_)
   have hc := sum_antidiagonal_choose_inv_Gamma n (μ + 1) (ν + 1)
   have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero

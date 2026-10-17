@@ -15,32 +15,16 @@ Mathlib's regularized hypergeometric parameter shift supplies the negative integ
 
 @[expose] public noncomputable section
 
+namespace AAR.Bessel
+
 open Complex
 open scoped Nat
 
-/-- Reflection in an integer order, including the value at zero.
-This uses Mathlib's parameter-shift identity for regularized `₀F₁`. -/
+/-- Reflection in an integer order, including the value at zero (Mathlib's
+`Complex.besselJ_neg_int`, restated to carry the DLMF tag). -/
 @[dlmf 10.4.E1]
-lemma besselJ_neg_int (n : ℤ) (z : ℂ) : besselJ (-n) z = (-1) ^ n * besselJ n z := by
-  wlog hn : 0 ≤ n
-  · have he := this (-n) z (by omega)
-    simp only [Int.cast_neg, neg_neg, zpow_neg] at he
-    rw [he, ← mul_assoc, mul_inv_cancel₀ (zpow_ne_zero _ (by norm_num)), one_mul]
-  obtain ⟨n, rfl⟩ := Int.eq_ofNat_of_zero_le hn
-  have hp : (z / 2) ^ (n : ℂ) = (z / 2) ^ (-(n : ℂ)) * ((z / 2) ^ 2) ^ n := by
-    by_cases hz : z = 0
-    · by_cases hn : n = 0 <;> simp [hz, hn]
-    rw [← pow_mul, ← cpow_natCast, ← cpow_add _ _ (by simpa using hz)]
-    congr 1
-    push_cast
-    ring
-  simp only [besselJ, Int.cast_natCast, zpow_natCast]
-  have hshift := regularizedHGFun_zero_singleton_neg_nat_add_one n (-(z ^ 2 / 4))
-  change regularizedHGFun ∅ {-(n : ℂ) + 1} (-(z ^ 2 / 4)) =
-    (-(z ^ 2 / 4)) ^ n * regularizedHGFun ∅ {(n : ℂ) + 1} (-(z ^ 2 / 4)) at hshift
-  rw [hshift, hp]
-  rw [show -(z ^ 2 / 4) = -((z / 2) ^ 2) by ring, neg_pow]
-  ring
+lemma besselJ_neg_int (n : ℤ) (z : ℂ) : besselJ (-n) z = (-1) ^ n * besselJ n z :=
+  Complex.besselJ_neg_int n z
 
 private def besselDiagonalEquiv (n : ℤ) :
     ℕ ≃ {p : ℕ × ℕ // (p.1 : ℤ) - p.2 = n} where
@@ -89,7 +73,7 @@ lemma hasSum_besselJ_generating_function (z t : ℂ) (ht : t ≠ 0) :
     obtain ⟨n, rfl | rfl⟩ := Int.eq_nat_or_neg n
     · simp only [Int.toNat_natCast, Int.toNat_neg_natCast, add_zero]
       rw [bessel_diagonal_sum, hxy]
-      simp only [besselJ, Int.cast_natCast, cpow_natCast, zpow_natCast, x, mul_pow]
+      simp only [besselJ_eq_regularized, Int.cast_natCast, cpow_natCast, zpow_natCast, x, mul_pow]
       ring
     · simp only [Int.toNat_natCast, Int.toNat_neg_natCast, neg_neg, add_zero]
       simp_rw [mul_comm (x ^ _ / _) (y ^ _ / _)]
@@ -98,7 +82,7 @@ lemma hasSum_besselJ_generating_function (z t : ℂ) (ht : t ≠ 0) :
       rw [show y ^ n = (-1 : ℂ) ^ n * (z / 2) ^ n * (t ^ n)⁻¹ by
         dsimp [y]
         rw [mul_pow, neg_pow, inv_pow]]
-      simp only [besselJ, Int.cast_natCast, cpow_natCast, zpow_natCast, zpow_neg]
+      simp only [besselJ_eq_regularized, Int.cast_natCast, cpow_natCast, zpow_natCast, zpow_neg]
       ring
   have he : exp x * exp y = exp (z / 2 * (t - t⁻¹)) := by
     rw [← exp_add]
@@ -109,3 +93,5 @@ lemma hasSum_besselJ_generating_function (z t : ℂ) (ht : t ≠ 0) :
     x ^ p.val.1 / p.val.1 ! * (y ^ p.val.2 / p.val.2 !)) (exp x * exp y) at hf
   simp_rw [hdiag] at hf
   rwa [he] at hf
+
+end AAR.Bessel

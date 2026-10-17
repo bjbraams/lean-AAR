@@ -31,6 +31,8 @@ open scoped Topology Real
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- The `n`-th Pochhammer symbol `(a)_n`. -/
 abbrev poch (a : ℂ) (n : ℕ) : ℂ :=
   (ascPochhammer ℂ n).eval a
@@ -435,3 +437,5 @@ theorem ordinaryHypergeometric_summable_of_mem_sphere {a b c z : ℂ}
   · push Not at ha
     obtain ⟨k, hk⟩ := ha
     exact hfinite k (Or.inl hk)
+
+end AAR.Hypergeometric

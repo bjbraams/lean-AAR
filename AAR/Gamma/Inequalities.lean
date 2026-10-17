@@ -7,11 +7,18 @@ module
 
 public import AAR.Gamma.Digamma
 public import AAR.Gamma.IntegralRepresentations
+public import AAR.Gamma.ComplexBinet
 public import AAR.Gamma.Products
 public import AAR.Gamma.SpecialValues
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
 public import Mathlib.Analysis.Complex.Trigonometric
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.NumberTheory.ZetaValues
+public import Mathlib.NumberTheory.Harmonic.EulerMascheroni
+public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
 # Inequalities (DLMF §5.6)
@@ -48,15 +55,360 @@ theorem Gamma_stirling_bounds {x : ℝ} (hx : 0 < x) :
   rw [hQ]
   exact ⟨Real.one_lt_exp_iff.mpr h0, Real.exp_lt_exp.mpr h1⟩
 
+section InvGammaSq
+
+/-! ### DLMF 5.6.2–5.6.3
+
+For `1 ≤ x < 2` write `x = 1 + t` and `1/x = 1 - r`. Taylor bounds for `log Γ` at `1`,
+from the monotonicity and a Lipschitz bound of the trigamma function, give
+`log Γ(1/x) ≥ γr + ζ(2)r²/2` and `log Γ(x) ≥ -γt + ζ(2)t²/2 - 4t³/9`. The estimate
+`cosh d ≤ e^{d²/2}` then reduces `Γ(x)⁻² + Γ(1/x)⁻² ≤ 2` to a polynomial inequality in `t`,
+using `1/2 < γ < 3/5` and `π ≈ 3.14`. For `x ≥ 2` both terms are at most `1`.
+-/
+
+open Set
+
+
+local notation "γ" => Real.eulerMascheroniConstant
+
+/-- `γ < 3/5`, from `H₃₂ - log 32`. -/
+lemma eulerMascheroniConstant_lt_three_fifths : γ < 3 / 5 := by
+  refine (Real.eulerMascheroniConstant_lt_eulerMascheroniSeq' 32).trans ?_
+  have h : Real.eulerMascheroniSeq' 32 = (harmonic 32 : ℝ) - Real.log 32 := by
+    simp [Real.eulerMascheroniSeq']
+  have hlog : Real.log 32 = 5 * Real.log 2 := by
+    rw [show (32 : ℝ) = 2 ^ 5 by norm_num, Real.log_pow]
+    norm_num
+  have hH : (harmonic 32 : ℚ) < 3 / 5 + 5 * 0.6931471803 := by
+    simp only [harmonic, Finset.sum_range_succ, Finset.sum_range_zero]
+    norm_num
+  have hH' : (harmonic 32 : ℝ) < 3 / 5 + 5 * 0.6931471803 := by
+    have := (Rat.cast_lt (K := ℝ)).mpr hH
+    push_cast at this
+    exact this
+  rw [h, hlog]
+  linarith [Real.log_two_gt_d9]
+
+/-- The trigamma function is antitone on `(0, ∞)`. -/
+lemma trigamma_le_of_le {x y : ℝ} (hx : 0 < x) (hxy : x ≤ y) :
+    Real.trigamma y ≤ Real.trigamma x := by
+  have hy : 0 < y := hx.trans_le hxy
+  rw [Real.trigamma_eq_tsum hy, Real.trigamma_eq_tsum hx]
+  refine Summable.tsum_le_tsum (fun n => ?_) (Real.summable_trigamma hy)
+    (Real.summable_trigamma hx)
+  have h1 : 0 < x + n := by positivity
+  have h2 : x + n ≤ y + n := by linarith
+  exact pow_le_pow_left₀ (by positivity) (inv_anti₀ h1 h2) 2
+
+lemma hasSum_inv_one_add_sq : HasSum (fun n : ℕ => ((1 : ℝ) + n)⁻¹ ^ 2) (π ^ 2 / 6) := by
+  have h := (hasSum_nat_add_iff' 1).mpr hasSum_zeta_two
+  simp only [Finset.sum_range_one, Nat.cast_zero, ne_eq, OfNat.ofNat_ne_zero,
+    not_false_eq_true, zero_pow, div_zero, sub_zero] at h
+  refine h.congr_fun fun n => ?_
+  push_cast
+  rw [one_div, inv_pow, add_comm]
+
+lemma trigamma_one_eq : Real.trigamma 1 = π ^ 2 / 6 := by
+  rw [Real.trigamma_eq_tsum one_pos]
+  exact hasSum_inv_one_add_sq.tsum_eq
+
+lemma summable_inv_one_add_cube : Summable fun n : ℕ => ((1 : ℝ) + n)⁻¹ ^ 3 := by
+  refine hasSum_inv_one_add_sq.summable.of_nonneg_of_le (fun n => by positivity) fun n => ?_
+  have h1 : (1 : ℝ) ≤ 1 + n := by linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+  have h0 : ((1 : ℝ) + n)⁻¹ ≤ 1 := inv_le_one_of_one_le₀ h1
+  rw [pow_succ]
+  exact mul_le_of_le_one_right (by positivity) h0
+
+/-- `ζ(3) ≤ 4/3`, from `n⁻³ ≤ n⁻²/2` for `n ≥ 2` and `ζ(2) = π²/6`. -/
+lemma tsum_inv_one_add_cube_le : ∑' n : ℕ, ((1 : ℝ) + n)⁻¹ ^ 3 ≤ 4 / 3 := by
+  set g : ℕ → ℝ := fun n : ℕ => ((1 : ℝ) + n)⁻¹ ^ 2 / 2 + if n = 0 then 1 / 2 else 0
+  have hg : HasSum g (π ^ 2 / 6 / 2 + 1 / 2) :=
+    (hasSum_inv_one_add_sq.div_const 2).add (hasSum_ite_eq 0 (1 / 2 : ℝ))
+  have hle : ∀ n : ℕ, ((1 : ℝ) + n)⁻¹ ^ 3 ≤ g n := by
+    intro n
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp [g]
+      norm_num
+    · have h2 : (2 : ℝ) ≤ 1 + n := by
+        have : (1 : ℝ) ≤ n := by exact_mod_cast hn
+        linarith
+      have h0 : ((1 : ℝ) + n)⁻¹ ≤ 1 / 2 := by
+        rw [inv_le_comm₀ (by linarith) (by norm_num)]
+        norm_num
+        linarith
+      simp only [g, hn.ne', ite_false, add_zero]
+      rw [pow_succ, div_eq_mul_one_div]
+      exact mul_le_mul_of_nonneg_left h0 (by positivity)
+  calc ∑' n : ℕ, ((1 : ℝ) + n)⁻¹ ^ 3 ≤ ∑' n, g n :=
+        Summable.tsum_le_tsum hle summable_inv_one_add_cube hg.summable
+    _ = π ^ 2 / 6 / 2 + 1 / 2 := hg.tsum_eq
+    _ ≤ 4 / 3 := by nlinarith [Real.pi_lt_d2, Real.pi_pos]
+
+lemma inv_sq_sub_inv_sq_le {a s : ℝ} (ha : 0 < a) (hs : 0 ≤ s) :
+    a⁻¹ ^ 2 - (a + s)⁻¹ ^ 2 ≤ 2 * s * a⁻¹ ^ 3 := by
+  have hb : 0 < a + s := by linarith
+  have key : a⁻¹ ^ 2 - (a + s)⁻¹ ^ 2 = s * (2 * a + s) / (a ^ 2 * (a + s) ^ 2) := by
+    field_simp
+    ring
+  rw [key, inv_pow, ← div_eq_mul_inv, div_le_div_iff₀ (by positivity) (by positivity)]
+  have : 0 ≤ s * a ^ 2 * (a + 2 * (a + s)) * s := by positivity
+  nlinarith [this]
+
+/-- A Lipschitz bound for the trigamma function to the right of `1`. -/
+lemma trigamma_one_sub_le {s : ℝ} (hs : 0 ≤ s) :
+    Real.trigamma 1 - Real.trigamma (1 + s) ≤ 8 / 3 * s := by
+  have h1s : 0 < 1 + s := by linarith
+  rw [Real.trigamma_eq_tsum one_pos, Real.trigamma_eq_tsum h1s,
+    ← (Real.summable_trigamma one_pos).tsum_sub (Real.summable_trigamma h1s)]
+  calc ∑' n : ℕ, ((1 + (n : ℝ))⁻¹ ^ 2 - (1 + s + n)⁻¹ ^ 2)
+      ≤ ∑' n : ℕ, 2 * s * ((1 : ℝ) + n)⁻¹ ^ 3 := by
+        refine Summable.tsum_le_tsum (fun n => ?_)
+          ((Real.summable_trigamma one_pos).sub (Real.summable_trigamma h1s))
+          (summable_inv_one_add_cube.mul_left _)
+        have := inv_sq_sub_inv_sq_le (a := 1 + n) (by positivity) hs
+        rwa [show (1 : ℝ) + n + s = 1 + s + n by ring] at this
+    _ = 2 * s * ∑' n : ℕ, ((1 : ℝ) + n)⁻¹ ^ 3 := tsum_mul_left
+    _ ≤ 2 * s * (4 / 3) := mul_le_mul_of_nonneg_left tsum_inv_one_add_cube_le (by positivity)
+    _ = 8 / 3 * s := by ring
+
+lemma hasDerivAt_digamma_trigamma {x : ℝ} (hx : 0 < x) :
+    HasDerivAt Real.digamma (Real.trigamma x) x := by
+  rw [Real.trigamma_eq_tsum hx]
+  exact Real.hasDerivAt_digamma hx
+
+/-- Third-order Taylor lower bound for `log Γ` to the right of `1`. -/
+lemma log_Gamma_one_add_ge {t : ℝ} (ht : 0 ≤ t) :
+    -γ * t + π ^ 2 / 6 * t ^ 2 / 2 - 4 / 9 * t ^ 3 ≤ Real.log (Real.Gamma (1 + t)) := by
+  -- first derivative bound
+  set g : ℝ → ℝ := fun s => Real.digamma (1 + s) + γ - π ^ 2 / 6 * s + 4 / 3 * s ^ 2
+  have hgd : ∀ s, 0 ≤ s → HasDerivAt g (Real.trigamma (1 + s) - π ^ 2 / 6 + 8 / 3 * s) s := by
+    intro s hs
+    have h1 := (hasDerivAt_digamma_trigamma (x := 1 + s) (by linarith)).comp_const_add 1 s
+    have h2 := ((h1.add_const γ).sub ((hasDerivAt_id s).const_mul (π ^ 2 / 6))).add
+      (((hasDerivAt_id s).pow 2).const_mul (4 / 3))
+    exact h2.congr_deriv (by simp; ring)
+  have hgmono : MonotoneOn g (Ici 0) := by
+    refine monotoneOn_of_hasDerivWithinAt_nonneg (convex_Ici 0)
+      (fun s hs => (hgd s hs).continuousAt.continuousWithinAt)
+      (fun s hs => (hgd s (interior_subset hs)).hasDerivWithinAt) fun s hs => ?_
+    rw [interior_Ici] at hs
+    have := trigamma_one_sub_le (le_of_lt hs)
+    rw [trigamma_one_eq] at this
+    linarith
+  have hg0 : g 0 = 0 := by simp [g, Real.digamma_one]
+  have hgnn : ∀ s, 0 ≤ s → 0 ≤ g s := fun s hs =>
+    hg0 ▸ hgmono ((Set.mem_Ici.mpr le_rfl)) hs hs
+  set h : ℝ → ℝ := fun s => Real.log (Real.Gamma (1 + s)) -
+    (-γ * s + π ^ 2 / 6 * s ^ 2 / 2 - 4 / 9 * s ^ 3)
+  have hhd : ∀ s, 0 ≤ s → HasDerivAt h (g s) s := by
+    intro s hs
+    have h1 := (Real.hasDerivAt_log_Gamma (x := 1 + s) (by linarith)).comp_const_add 1 s
+    have h2 := h1.sub (((((hasDerivAt_id s).const_mul (-γ)).add
+      (((hasDerivAt_id s).pow 2).const_mul (π ^ 2 / 6) |>.div_const 2))).sub
+      (((hasDerivAt_id s).pow 3).const_mul (4 / 9)))
+    exact h2.congr_deriv (by simp [g]; ring)
+  have hhmono : MonotoneOn h (Ici 0) :=
+    monotoneOn_of_hasDerivWithinAt_nonneg (convex_Ici 0)
+      (fun s hs => (hhd s hs).continuousAt.continuousWithinAt)
+      (fun s hs => (hhd s (interior_subset hs)).hasDerivWithinAt)
+      fun s hs => hgnn s (interior_subset hs)
+  have hh0 : h 0 = 0 := by simp [h]
+  have := hhmono ((Set.mem_Ici.mpr le_rfl)) ht ht
+  rw [hh0] at this
+  simp only [h] at this
+  linarith
+
+/-- Second-order Taylor lower bound for `log Γ` to the left of `1`. -/
+lemma log_Gamma_one_sub_ge {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) :
+    γ * r + π ^ 2 / 6 * r ^ 2 / 2 ≤ Real.log (Real.Gamma (1 - r)) := by
+  set k1 : ℝ → ℝ := fun s => -Real.digamma (1 - s) - γ - π ^ 2 / 6 * s
+  have hk1d : ∀ s ∈ Ico (0 : ℝ) 1, HasDerivAt k1 (Real.trigamma (1 - s) - π ^ 2 / 6) s := by
+    intro s hs
+    have h1 := (hasDerivAt_digamma_trigamma (x := 1 - s) (by linarith [hs.2])).comp_const_sub 1 s
+    have h2 := (h1.neg.sub_const γ).sub ((hasDerivAt_id s).const_mul (π ^ 2 / 6))
+    exact h2.congr_deriv (by simp)
+  have hk1mono : MonotoneOn k1 (Ico 0 1) := by
+    refine monotoneOn_of_hasDerivWithinAt_nonneg (convex_Ico 0 1)
+      (fun s hs => (hk1d s hs).continuousAt.continuousWithinAt)
+      (fun s hs => (hk1d s (interior_subset hs)).hasDerivWithinAt) fun s hs => ?_
+    rw [interior_Ico] at hs
+    have := trigamma_le_of_le (x := 1 - s) (y := 1) (by linarith [hs.2]) (by linarith [hs.1])
+    rw [trigamma_one_eq] at this
+    linarith
+  have hk10 : k1 0 = 0 := by simp [k1, Real.digamma_one]
+  have h0mem : (0 : ℝ) ∈ Ico (0 : ℝ) 1 := ⟨le_rfl, one_pos⟩
+  have hk1nn : ∀ s ∈ Ico (0 : ℝ) 1, 0 ≤ k1 s := fun s hs =>
+    hk10 ▸ hk1mono h0mem hs hs.1
+  set k : ℝ → ℝ := fun s => Real.log (Real.Gamma (1 - s)) - (γ * s + π ^ 2 / 6 * s ^ 2 / 2)
+  have hkd : ∀ s ∈ Ico (0 : ℝ) 1, HasDerivAt k (k1 s) s := by
+    intro s hs
+    have h1 := (Real.hasDerivAt_log_Gamma (x := 1 - s) (by linarith [hs.2])).comp_const_sub 1 s
+    have h2 := h1.sub (((hasDerivAt_id s).const_mul γ).add
+      (((hasDerivAt_id s).pow 2).const_mul (π ^ 2 / 6) |>.div_const 2))
+    exact h2.congr_deriv (by simp [k1]; ring)
+  have hkmono : MonotoneOn k (Ico 0 1) :=
+    monotoneOn_of_hasDerivWithinAt_nonneg (convex_Ico 0 1)
+      (fun s hs => (hkd s hs).continuousAt.continuousWithinAt)
+      (fun s hs => (hkd s (interior_subset hs)).hasDerivWithinAt)
+      fun s hs => hk1nn s (interior_subset hs)
+  have hk0 : k 0 = 0 := by simp [k]
+  have := hkmono h0mem ⟨hr0, hr1⟩ hr0
+  rw [hk0] at this
+  simp only [k] at this
+  linarith
+
+/-- `e^X + e^Y ≤ 2` once `4(X+Y) + (X-Y)² ≤ 0`, via `cosh d ≤ e^{d²/2}`. -/
+lemma exp_add_exp_le_two {X Y : ℝ} (h : 4 * (X + Y) + (X - Y) ^ 2 ≤ 0) :
+    Real.exp X + Real.exp Y ≤ 2 := by
+  have hc := Real.cosh_le_exp_half_sq ((X - Y) / 2)
+  have heq : Real.exp X + Real.exp Y =
+      2 * Real.exp ((X + Y) / 2) * Real.cosh ((X - Y) / 2) := by
+    rw [Real.cosh_eq, mul_assoc, mul_div_assoc', mul_add, ← Real.exp_add, ← Real.exp_add]
+    field_simp
+    ring_nf
+  rw [heq]
+  calc 2 * Real.exp ((X + Y) / 2) * Real.cosh ((X - Y) / 2)
+      ≤ 2 * Real.exp ((X + Y) / 2) * Real.exp (((X - Y) / 2) ^ 2 / 2) :=
+        mul_le_mul_of_nonneg_left hc (by positivity)
+    _ = 2 * Real.exp ((X + Y) / 2 + ((X - Y) / 2) ^ 2 / 2) := by
+        rw [mul_assoc, ← Real.exp_add]
+    _ ≤ 2 * Real.exp 0 := by
+        gcongr
+        nlinarith
+    _ = 2 := by simp
+
+/-- The polynomial inequality behind DLMF 5.6.3. -/
+lemma inv_Gamma_sq_poly {t g Z : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) (hg0 : 1 / 2 ≤ g)
+    (hg1 : g ≤ 3 / 5) (hZ0 : 1643 / 1000 ≤ Z) (hZ1 : Z ≤ 1654 / 1000) :
+    (g * ((1 + t) ^ 2 + (1 + t)) - Z * t ^ 2 * (2 + t) / 2 + 4 / 9 * t ^ 2 * (1 + t) ^ 2) ^ 2 ≤
+      2 * (-g * (1 + t) + Z * ((1 + t) ^ 2 + 1) / 2 - 4 / 9 * t * (1 + t) ^ 2) *
+        (1 + t) ^ 2 := by
+  set e := g * ((1 + t) ^ 2 + (1 + t)) - Z * t ^ 2 * (2 + t) / 2 + 4 / 9 * t ^ 2 * (1 + t) ^ 2
+  set f := -g * (1 + t) + Z * ((1 + t) ^ 2 + 1) / 2 - 4 / 9 * t * (1 + t) ^ 2
+  set e' := 3 / 5 * ((1 + t) ^ 2 + (1 + t)) - 1643 / 1000 * t ^ 2 * (2 + t) / 2 +
+    4 / 9 * t ^ 2 * (1 + t) ^ 2
+  set f' := -(3 / 5) * (1 + t) + 1643 / 1000 * ((1 + t) ^ 2 + 1) / 2 -
+    4 / 9 * t * (1 + t) ^ 2
+  have ht2 : 0 ≤ t ^ 2 * (2 + t) := by positivity
+  have he0 : 0 ≤ e := by
+    have : Z * t ^ 2 * (2 + t) / 2 ≤ 1654 / 1000 * t ^ 2 * (2 + t) / 2 := by
+      have := mul_le_mul_of_nonneg_right hZ1 ht2
+      linarith
+    have : 1 / 2 * ((1 + t) ^ 2 + (1 + t)) ≤ g * ((1 + t) ^ 2 + (1 + t)) :=
+      mul_le_mul_of_nonneg_right hg0 (by positivity)
+    simp only [e]
+    nlinarith [mul_nonneg ht0 (sub_nonneg.2 ht1), mul_nonneg (mul_nonneg ht0 ht0)
+      (sub_nonneg.2 ht1)]
+  have hee : e ≤ e' := by
+    have h1 := mul_le_mul_of_nonneg_right hg1 (by positivity : (0 : ℝ) ≤ (1 + t) ^ 2 + (1 + t))
+    have h2 := mul_le_mul_of_nonneg_right hZ0 ht2
+    simp only [e, e']
+    nlinarith
+  have hff : f' ≤ f := by
+    have h1 := mul_le_mul_of_nonneg_right hg1 (by positivity : (0 : ℝ) ≤ 1 + t)
+    have h2 := mul_le_mul_of_nonneg_right hZ0 (by positivity : (0 : ℝ) ≤ (1 + t) ^ 2 + 1)
+    simp only [f, f']
+    nlinarith
+  have hpoly : e' ^ 2 ≤ 2 * f' * (1 + t) ^ 2 := by
+    have h1 : t ^ 2 ≤ t := by nlinarith
+    have h2 : t ^ 3 ≤ t ^ 2 := by nlinarith
+    have h3 : t ^ 4 ≤ t ^ 3 := by nlinarith
+    have h5 : t ^ 5 ≤ t ^ 4 := by nlinarith
+    have h6 : 0 ≤ t ^ 6 := by positivity
+    have h7 : t ^ 7 ≤ t ^ 4 := by nlinarith [pow_le_pow_of_le_one ht0 ht1 (by norm_num : 4 ≤ 7)]
+    have h8 : t ^ 8 ≤ t ^ 4 := by nlinarith [pow_le_pow_of_le_one ht0 ht1 (by norm_num : 4 ≤ 8)]
+    simp only [e', f']
+    nlinarith
+  calc e ^ 2 ≤ e' ^ 2 := pow_le_pow_left₀ he0 hee 2
+    _ ≤ 2 * f' * (1 + t) ^ 2 := hpoly
+    _ ≤ 2 * f * (1 + t) ^ 2 := by gcongr
+
+lemma inv_sq_eq_exp {G : ℝ} (hG : 0 < G) : (1 / G) ^ 2 = Real.exp (-2 * Real.log G) := by
+  rw [neg_mul, Real.exp_neg, show 2 * Real.log G = Real.log (G ^ 2) by
+    rw [Real.log_pow]; norm_num, Real.exp_log (by positivity), one_div, inv_pow]
+
+lemma inv_Gamma_sq_add_of_one_le_of_lt_two {x : ℝ} (h1 : 1 ≤ x) (h2 : x < 2) :
+    (1 / Real.Gamma x) ^ 2 + (1 / Real.Gamma x⁻¹) ^ 2 ≤ 2 := by
+  have hx0 : 0 < x := by linarith
+  obtain ⟨t, rfl⟩ : ∃ t, x = 1 + t := ⟨x - 1, by ring⟩
+  have ht0 : 0 ≤ t := by linarith
+  have ht1 : t ≤ 1 := by linarith
+  have h1t : 0 < 1 + t := by linarith
+  set r := t / (1 + t) with hr
+  have hr0 : 0 ≤ r := by positivity
+  have hr1 : r < 1 := by rw [hr, div_lt_one h1t]; linarith
+  have hxinv : (1 + t)⁻¹ = 1 - r := by rw [hr]; field_simp; ring
+  set Plo := -γ * t + π ^ 2 / 6 * t ^ 2 / 2 - 4 / 9 * t ^ 3 with hPlo
+  set Mlo := γ * r + π ^ 2 / 6 * r ^ 2 / 2 with hMlo
+  have hP : Plo ≤ Real.log (Real.Gamma (1 + t)) := log_Gamma_one_add_ge ht0
+  have hM : Mlo ≤ Real.log (Real.Gamma (1 + t)⁻¹) := by
+    rw [hxinv]; exact log_Gamma_one_sub_ge hr0 hr1
+  have hγ0 : 1 / 2 ≤ γ := Real.one_half_lt_eulerMascheroniConstant.le
+  have hγ1 : γ ≤ 3 / 5 := eulerMascheroniConstant_lt_three_fifths.le
+  have hZ0 : 1643 / 1000 ≤ π ^ 2 / 6 := by nlinarith [Real.pi_gt_d2, Real.pi_pos]
+  have hZ1 : π ^ 2 / 6 ≤ 1654 / 1000 := by nlinarith [Real.pi_lt_d2, Real.pi_pos]
+  have hpoly := inv_Gamma_sq_poly ht0 ht1 hγ0 hγ1 hZ0 hZ1
+  set e := γ * ((1 + t) ^ 2 + (1 + t)) - π ^ 2 / 6 * t ^ 2 * (2 + t) / 2 +
+    4 / 9 * t ^ 2 * (1 + t) ^ 2 with he
+  set f := -γ * (1 + t) + π ^ 2 / 6 * ((1 + t) ^ 2 + 1) / 2 - 4 / 9 * t * (1 + t) ^ 2
+    with hf
+  have hdiff : (Mlo - Plo) ^ 2 = t ^ 2 * e ^ 2 / (1 + t) ^ 4 := by
+    rw [hMlo, hPlo, hr, he]; field_simp; ring
+  have hsum : 2 * (Mlo + Plo) = t ^ 2 * (2 * f * (1 + t) ^ 2) / (1 + t) ^ 4 := by
+    rw [hMlo, hPlo, hr, hf]; field_simp; ring
+  have key : (Mlo - Plo) ^ 2 ≤ 2 * (Mlo + Plo) := by
+    rw [hdiff, hsum]
+    exact div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_left hpoly (sq_nonneg t))
+      (by positivity)
+  rw [inv_sq_eq_exp (Real.Gamma_pos_of_pos hx0),
+    inv_sq_eq_exp (Real.Gamma_pos_of_pos (inv_pos.2 hx0))]
+  calc Real.exp (-2 * Real.log (Real.Gamma (1 + t))) +
+        Real.exp (-2 * Real.log (Real.Gamma (1 + t)⁻¹))
+      ≤ Real.exp (-2 * Plo) + Real.exp (-2 * Mlo) := by
+        exact add_le_add (Real.exp_le_exp.2 (by linarith)) (Real.exp_le_exp.2 (by linarith))
+    _ ≤ 2 := by
+        apply exp_add_exp_le_two
+        nlinarith [key]
+
+/-- DLMF 5.6.3, the inequality `Γ(x)⁻² + Γ(1/x)⁻² ≤ 2` for `x > 0`. -/
+theorem inv_Gamma_sq_add_le_two {x : ℝ} (hx : 0 < x) :
+    (1 / Real.Gamma x) ^ 2 + (1 / Real.Gamma x⁻¹) ^ 2 ≤ 2 := by
+  wlog h1 : 1 ≤ x generalizing x
+  · have hx' : 1 ≤ x⁻¹ := (one_le_inv₀ hx).2 (le_of_lt (not_le.1 h1))
+    have := this (inv_pos.2 hx) hx'
+    rwa [inv_inv, add_comm] at this
+  rcases lt_or_ge x 2 with h2 | h2
+  · exact inv_Gamma_sq_add_of_one_le_of_lt_two h1 h2
+  · have hG : 1 ≤ Real.Gamma x := by
+      have := Real.Gamma_strictMonoOn_Ici.monotoneOn (Set.mem_Ici.mpr le_rfl)
+        (Set.mem_Ici.mpr h2) h2
+      rwa [Real.Gamma_two] at this
+    have hxi : x⁻¹ ≤ 1 := inv_le_one_of_one_le₀ h1
+    have hG' : 1 ≤ Real.Gamma x⁻¹ := by
+      have := Real.Gamma_strictAntiOn_Ioc.antitoneOn ⟨inv_pos.2 hx, hxi⟩
+        ⟨one_pos, le_rfl⟩ hxi
+      rwa [Real.Gamma_one] at this
+    have a : (1 / Real.Gamma x) ^ 2 ≤ 1 := by
+      rw [div_pow, one_pow]
+      exact div_le_one_of_le₀ (one_le_pow₀ hG) (by positivity)
+    have b : (1 / Real.Gamma x⁻¹) ^ 2 ≤ 1 := by
+      rw [div_pow, one_pow]
+      exact div_le_one_of_le₀ (one_le_pow₀ hG') (by positivity)
+    linarith
+
+end InvGammaSq
+
 @[dlmf 5.6.E2]
 theorem inv_Gamma_add_inv_Gamma_inv {x : ℝ} (hx : 0 < x) :
     1 / Real.Gamma x + 1 / Real.Gamma x⁻¹ ≤ 2 := by
-  sorry
+  have h := inv_Gamma_sq_add_le_two hx
+  nlinarith [sq_nonneg (1 / Real.Gamma x - 1 / Real.Gamma x⁻¹),
+    sq_nonneg (1 / Real.Gamma x + 1 / Real.Gamma x⁻¹ - 2)]
 
 @[dlmf 5.6.E3]
 theorem inv_Gamma_sq_add {x : ℝ} (hx : 0 < x) :
     (1 / Real.Gamma x) ^ 2 + (1 / Real.Gamma x⁻¹) ^ 2 ≤ 2 := by
-  sorry
+  exact inv_Gamma_sq_add_le_two hx
 
 /-- `ψ` is strictly increasing on `(0, ∞)`. -/
 lemma digamma_strictMonoOn : StrictMonoOn Real.digamma (Set.Ioi 0) := by
@@ -410,11 +762,16 @@ theorem Gamma_ratio_norm_le {a b : ℝ} {z : ℂ} (hz : 0 < z.re)
 
 /-- A complex Gamma bound in the closed right half-plane, away from zero. -/
 @[dlmf 5.6.E9]
-theorem norm_Gamma_bound {z : ℂ} (hz : z ∈ slitPlane) (habs : 1 ≤ ‖z‖)
-    (hre : 0 ≤ z.re) :
+theorem norm_Gamma_bound {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 ≤ z.re) :
     ‖Complex.Gamma z‖ ≤
       Real.sqrt (2 * π) * ‖z‖ ^ (z.re - 1 / 2) * Real.exp (-π * |z.im| / 2) *
         Real.exp (1 / (6 * ‖z‖)) := by
-  sorry
+  have hz0 : z ≠ 0 := slitPlane_ne_zero hz
+  have hmu : (binetMu z).re ≤ 1 / (6 * ‖z‖) :=
+    (re_le_norm _).trans (norm_binetMu_le_of_re_nonneg hz0 hre)
+  have harg := pi_div_two_mul_abs_im_le hre
+  rw [norm_Gamma_eq_binet hz]
+  gcongr
+  linarith
 
 end AAR.Gamma

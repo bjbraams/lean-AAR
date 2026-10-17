@@ -24,6 +24,7 @@ restriction.
 
 open Complex
 open scoped Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -141,10 +142,10 @@ lemma laguerreODE_laguerreSeries {α : ℂ} (hα : -1 < α.re) (x : ℂ) :
   · simp only [laguerreSeries, coeff_mk, laguerreExtended_zero, laguerreExtended_one, mul_one]
   · intro n
     simp only [laguerreSeries, coeff_mk, laguerreExtended_eq hc]
-    exact laguerre_recurrence hα n x
+    exact laguerrePolyL_recurrence hα n x
 
 /-- The Laguerre addition theorem for `Re α, Re β > -1`. -/
-lemma laguerre_addition_of_re {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re) (x y : ℂ) (n : ℕ) :
+lemma laguerrePolyL_addition_of_re {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re) (x y : ℂ) (n : ℕ) :
     laguerreExtended (α + β + 1) n (x + y) =
       ∑ k ∈ Finset.range (n + 1), laguerreExtended α k x * laguerreExtended β (n - k) y := by
   have hγ : -1 < (α + β + 1).re := by

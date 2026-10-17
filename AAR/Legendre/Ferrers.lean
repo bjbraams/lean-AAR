@@ -28,17 +28,18 @@ namespace AAR.Hypergeometric
 
 /-- DLMF 15.2.3_5 on the cut plane: `𝐅(a,b;-n;z) = (a)ₙ₊₁ (b)ₙ₊₁ zⁿ⁺¹ 𝐅(a+n+1,b+n+1;n+2;z)`. -/
 @[dlmf 15.2.E3_5]
-theorem gaussHGCut_neg_nat (a b : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b (-n) z = poch a (n + 1) * poch b (n + 1) * z ^ (n + 1) *
-      gaussHGCut (a + n + 1) (b + n + 1) (n + 2) z := by
-  refine eqOn_cutPlane_of_eqOn_disk (f := gaussHGCut a b (-n))
+theorem regularizedGaussHG_neg_nat (a b : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b (-n) z = poch a (n + 1) * poch b (n + 1) * z ^ (n + 1) *
+      regularizedGaussHG (a + n + 1) (b + n + 1) (n + 2) z := by
+  refine eqOn_cutPlane_of_eqOn_disk (f := regularizedGaussHG a b (-n))
     (g := fun z => poch a (n + 1) * poch b (n + 1) * z ^ (n + 1) *
-      gaussHGCut (a + n + 1) (b + n + 1) (n + 2) z)
-    (analyticOnNhd_gaussHGCut _ _ _)
+      regularizedGaussHG (a + n + 1) (b + n + 1) (n + 2) z)
+    (analyticOnNhd_regularizedGaussHG _ _ _)
     (by intro z hz; fun_prop (disch := assumption)) (fun z hz => ?_) hz
   have hc : ∀ k : ℕ, ((n : ℂ) + 2) ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
-  rw [gaussHGCut_eq_regularized _ _ _ hz, gaussHGCut_eq_regularized _ _ _ hz,
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz,
+      regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz,
     regularized_at_neg_nat a b n hz, regularizedGaussHGFun_eq_div_Gamma hc,
     show (n : ℂ) + 2 = ((n + 1 : ℕ) : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
   push_cast
@@ -52,24 +53,24 @@ namespace AAR.Legendre
 `𝖯^μ_ν(x) = ((1+x)/(1-x))^{μ/2} 𝐅(ν+1, -ν; 1-μ; (1-x)/2)` (DLMF 14.3.1). -/
 @[dlmf 14.3.E1]
 def ferrersP (ν μ : ℂ) (x : ℝ) : ℂ :=
-  (((1 + x) / (1 - x) : ℝ) : ℂ) ^ (μ / 2) * gaussHGCut (ν + 1) (-ν) (1 - μ) ((1 - x) / 2)
+  (((1 + x) / (1 - x) : ℝ) : ℂ) ^ (μ / 2) * regularizedGaussHG (ν + 1) (-ν) (1 - μ) ((1 - x) / 2)
 
 /-- At `μ = 0` the Ferrers function is `P_ν` on `(-1, 1)`. -/
-theorem ferrersP_zero (ν : ℂ) {x : ℝ} (hx : -1 < x) : ferrersP ν 0 x = legendreFunP ν x := by
+theorem ferrersP_zero (ν : ℂ) {x : ℝ} (hx : -1 < x) : ferrersP ν 0 x = legendreP ν x := by
   have hs : 1 + (x : ℂ) ∈ slitPlane := Or.inl (by simp; linarith)
-  rw [ferrersP, legendreFunP, zero_div, cpow_zero, one_mul, sub_zero,
-    gaussHGCut_symm _ _ _ (mem_cutPlane_of_one_add hs)]
+  rw [ferrersP, legendreP, zero_div, cpow_zero, one_mul, sub_zero,
+    regularizedGaussHG_symm _ _ _ (mem_cutPlane_of_one_add hs)]
 
 /-- For integer order, `𝖯^m_ν(x) = (-1)ᵐ (1-x²)^{m/2} dᵐP_ν(x)/dxᵐ` (DLMF 14.6.1). -/
 @[dlmf 14.6.E1]
 theorem ferrersP_nat (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : ℝ) 1) :
     ferrersP ν m x = (-1) ^ m * (((1 - x ^ 2) ^ ((m : ℝ) / 2) : ℝ) : ℂ) *
-      iteratedDeriv m (legendreFunP ν) x := by
+      iteratedDeriv m (legendreP ν) x := by
   have hs : 1 + (x : ℂ) ∈ slitPlane := Or.inl (by simp; linarith [hx.1])
   have hw := mem_cutPlane_of_one_add hs
-  rw [iteratedDeriv_legendreFunP ν m hs]
+  rw [iteratedDeriv_legendreP ν m hs]
   rcases m with _ | m
-  · simp [ferrersP_zero ν hx.1, legendreFunP, poch_zero]
+  · simp [ferrersP_zero ν hx.1, legendreP, poch_zero]
   have h1 : (0 : ℝ) < 1 + x := by linarith [hx.1]
   have h2 : (0 : ℝ) < 1 - x := by linarith [hx.2]
   set k : ℕ := m + 1 with hk
@@ -84,7 +85,7 @@ theorem ferrersP_nat (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : �
     field_simp
   have hwc : ((((1 - x) / 2 : ℝ)) : ℂ) ∈ cutPlane := by push_cast; exact hw
   rw [ferrersP, show (1 : ℂ) - (k : ℕ) = -(m : ℂ) by rw [hk]; push_cast; ring,
-    gaussHGCut_neg_nat _ _ _ hw, gaussHGCut_symm (-ν + (k : ℕ)) _ _ hw]
+    regularizedGaussHG_neg_nat _ _ _ hw, regularizedGaussHG_symm (-ν + (k : ℕ)) _ _ hw]
   have hc : (((1 + x) / (1 - x) : ℝ) : ℂ) ^ (((k : ℕ) : ℂ) / 2) =
       (((1 + x) / (1 - x)) ^ ((k : ℝ) / 2) : ℝ) := by
     rw [ofReal_cpow (by positivity)]; push_cast; ring_nf
@@ -98,17 +99,17 @@ theorem ferrersP_nat (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : �
   have hneg : ((-1 : ℂ)) ^ k * (-1 / 2) ^ k = 1 / 2 ^ k := by
     rw [← mul_pow, one_div, ← inv_pow]; norm_num
   linear_combination (poch (ν + 1) k * poch (-ν) k *
-    gaussHGCut (ν + 1 + m + 1) (-ν + m + 1) (m + 2) ((1 - (x : ℂ)) / 2)) * hreal' -
+    regularizedGaussHG (ν + 1 + m + 1) (-ν + m + 1) (m + 2) ((1 - (x : ℂ)) / 2)) * hreal' -
     (((1 - x ^ 2) ^ ((k : ℝ) / 2) : ℝ) : ℂ) * poch (ν + 1) k * poch (-ν) k *
-    gaussHGCut (ν + 1 + m + 1) (-ν + m + 1) (m + 2) ((1 - (x : ℂ)) / 2) * hneg
+    regularizedGaussHG (ν + 1 + m + 1) (-ν + m + 1) (m + 2) ((1 - (x : ℂ)) / 2) * hneg
 
 /-- Chain rule for `x ↦ ((1+x)/(1-x))^p 𝐅(a,b;c;(1-x)/2)` on `(-1, 1)`. -/
 lemma hasDerivAt_ferrers_aux (a b c p : ℂ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : ℝ) 1) :
     HasDerivAt (fun x : ℝ => (((1 + x) / (1 - x) : ℝ) : ℂ) ^ p *
-        gaussHGCut a b c ((1 - (x : ℂ)) / 2))
+        regularizedGaussHG a b c ((1 - (x : ℂ)) / 2))
       ((((1 + x) / (1 - x) : ℝ) : ℂ) ^ p *
-        (p * (2 / (1 - (x : ℂ) ^ 2)) * gaussHGCut a b c ((1 - (x : ℂ)) / 2) -
-          1 / 2 * (a * b * gaussHGCut (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2)))) x := by
+        (p * (2 / (1 - (x : ℂ) ^ 2)) * regularizedGaussHG a b c ((1 - (x : ℂ)) / 2) -
+          1 / 2 * (a * b * regularizedGaussHG (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2)))) x := by
   have h1 : (0 : ℝ) < 1 + x := by linarith [hx.1]
   have h2 : (0 : ℝ) < 1 - x := by linarith [hx.2]
   have hs : 1 + (x : ℂ) ∈ slitPlane := Or.inl (by simp; linarith)
@@ -120,7 +121,7 @@ lemma hasDerivAt_ferrers_aux (a b c p : ℂ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 :
   have hφ := (hasStrictDerivAt_cpow_const (c := p)
     (show (((1 + x) / (1 - x) : ℝ) : ℂ) ∈ slitPlane from
       Or.inl (by rw [ofReal_re]; exact hpos))).hasDerivAt.comp x hr.ofReal_comp
-  have hG := (hasDerivAt_gaussHGCut_half a b c hs).comp_ofReal
+  have hG := (hasDerivAt_regularizedGaussHG_half a b c hs).comp_ofReal
   refine (hφ.mul hG).congr_deriv ?_
   have hne : (((1 + x) / (1 - x) : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr hpos.ne'
   rw [cpow_sub _ _ hne, cpow_one]
@@ -130,8 +131,8 @@ lemma hasDerivAt_ferrers_aux (a b c p : ℂ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 :
     rw [show (1 - (x : ℂ) ^ 2) = (1 + x) * (1 - x) by ring]; exact mul_ne_zero h1' h2'
   simp only [Function.comp]
   generalize (((1 + x) / (1 - x) : ℝ) : ℂ) ^ p = A
-  generalize gaussHGCut a b c ((1 - (x : ℂ)) / 2) = G0
-  generalize gaussHGCut (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2) = G1
+  generalize regularizedGaussHG a b c ((1 - (x : ℂ)) / 2) = G0
+  generalize regularizedGaussHG (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2) = G1
   push_cast
   field_simp
   ring
@@ -157,9 +158,9 @@ theorem ferrersP_ode (ν μ : ℂ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : ℝ) 1) :
     simp
   have hev : deriv (ferrersP ν μ) =ᶠ[𝓝 x] fun y =>
       2 * s * (1 - (y : ℂ) ^ 2)⁻¹ *
-          ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s * gaussHGCut a b c ((1 - (y : ℂ)) / 2)) -
+          ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s * regularizedGaussHG a b c ((1 - (y : ℂ)) / 2)) -
         a * b / 2 * ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s *
-          gaussHGCut (a + 1) (b + 1) (c + 1) ((1 - (y : ℂ)) / 2)) := by
+          regularizedGaussHG (a + 1) (b + 1) (c + 1) ((1 - (y : ℂ)) / 2)) := by
     filter_upwards [hO.mem_nhds hx] with y hy
     have hy' : HasDerivAt (ferrersP ν μ) _ y := hasDerivAt_ferrers_aux a b c s hy
     rw [hy'.deriv]
@@ -168,22 +169,22 @@ theorem ferrersP_ode (ν μ : ℂ) {x : ℝ} (hx : x ∈ Set.Ioo (-1 : ℝ) 1) :
     ((hasDerivAt_ferrers_aux (a + 1) (b + 1) (c + 1) s hx).const_mul (a * b / 2))
   have h2' : HasDerivAt (fun y : ℝ =>
       2 * s * (1 - (y : ℂ) ^ 2)⁻¹ *
-          ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s * gaussHGCut a b c ((1 - (y : ℂ)) / 2)) -
+          ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s * regularizedGaussHG a b c ((1 - (y : ℂ)) / 2)) -
         a * b / 2 * ((((1 + y) / (1 - y) : ℝ) : ℂ) ^ s *
-          gaussHGCut (a + 1) (b + 1) (c + 1) ((1 - (y : ℂ)) / 2))) _ x := h2
+          regularizedGaussHG (a + 1) (b + 1) (c + 1) ((1 - (y : ℂ)) / 2))) _ x := h2
   have hf : ferrersP ν μ x = (((1 + x) / (1 - x) : ℝ) : ℂ) ^ s *
-      gaussHGCut a b c ((1 - (x : ℂ)) / 2) := rfl
+      regularizedGaussHG a b c ((1 - (x : ℂ)) / 2) := rfl
   have hx' : HasDerivAt (ferrersP ν μ) _ x := hasDerivAt_ferrers_aux a b c s hx
   rw [iteratedDeriv_succ, iteratedDeriv_one, hev.deriv_eq, h2'.deriv, hx'.deriv, hf]
   have hs : 1 + (x : ℂ) ∈ slitPlane := Or.inl (by simp; linarith [hx.1])
-  have hode := gaussHGCut_ode a b c (mem_cutPlane_of_one_add hs)
+  have hode := regularizedGaussHG_ode a b c (mem_cutPlane_of_one_add hs)
   simp only [poch, ascPochhammer_succ_eval, ascPochhammer_zero, Polynomial.eval_one] at hode
   rw [show a + 1 + 1 = a + 2 by ring, show b + 1 + 1 = b + 2 by ring,
     show c + 1 + 1 = c + 2 by ring]
   generalize (((1 + x) / (1 - x) : ℝ) : ℂ) ^ s = A
-  generalize gaussHGCut a b c ((1 - (x : ℂ)) / 2) = G0 at *
-  generalize gaussHGCut (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2) = G1 at *
-  generalize gaussHGCut (a + 2) (b + 2) (c + 2) ((1 - (x : ℂ)) / 2) = G2 at *
+  generalize regularizedGaussHG a b c ((1 - (x : ℂ)) / 2) = G0 at *
+  generalize regularizedGaussHG (a + 1) (b + 1) (c + 1) ((1 - (x : ℂ)) / 2) = G1 at *
+  generalize regularizedGaussHG (a + 2) (b + 2) (c + 2) ((1 - (x : ℂ)) / 2) = G2 at *
   have hne : (1 - (x : ℂ) ^ 2) ≠ 0 := by
     rw [show (1 - (x : ℂ) ^ 2) = ((1 - x ^ 2 : ℝ) : ℂ) by push_cast; ring, ofReal_ne_zero]
     nlinarith [hx.1, hx.2]

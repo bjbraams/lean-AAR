@@ -30,6 +30,8 @@ open scoped Real Topology
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- The coefficient identity underlying termwise differentiation. No nonvanishing
 condition on the numerator parameters is needed. -/
 lemma gaussHGCoeff_shift {a b c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) (n : ℕ) :
@@ -234,3 +236,4 @@ theorem arcsin_eq_ordinaryHypergeometric {x : ℝ} (hx : |x| < 1) :
   simp [F, A, mul_re, ofReal_re, ofReal_im, hpow] at hre
   linarith
 
+end AAR.Hypergeometric

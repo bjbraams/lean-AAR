@@ -22,25 +22,27 @@ for the coefficients `A_s` and 13.24.3 for `p_s^{(μ)}` are included.
 
 open Complex
 open scoped Real Topology
+open AAR.Hypergeometric
+open AAR.Bessel
 
 noncomputable section
 
 namespace AAR.Confluent
 
 @[dlmf 13.11.E1]
-theorem confluentM_besselI_series {a b z : ℂ}
+theorem kummerM_besselI_series {a b z : ℂ}
     (ha : ∀ k : ℕ, a + 1 / 2 ≠ -k) (ha0 : a ≠ 1 / 2) (hb : ∀ k : ℕ, b ≠ -k) (hz : z ∈ slitPlane) :
-    confluentM a b z =
+    kummerM a b z =
       Gamma (a - 1 / 2) * exp (z / 2) * (z / 4) ^ (1 / 2 - a) *
         ∑' s : ℕ, poch (2 * a - 1) s * poch (2 * a - b) s / (poch b s * s.factorial) *
           (a - 1 / 2 + s) * besselI (a - 1 / 2 + s) (z / 2) := by
   sorry
 
 @[dlmf 13.11.E2]
-theorem confluentM_besselI_series_complement {a b z : ℂ}
+theorem kummerM_besselI_series_complement {a b z : ℂ}
     (hab : ∀ k : ℕ, b - a + 1 / 2 ≠ -k) (hab0 : b - a ≠ 1 / 2) (hb : ∀ k : ℕ, b ≠ -k)
     (hz : z ∈ slitPlane) :
-    confluentM a b z =
+    kummerM a b z =
       Gamma (b - a - 1 / 2) * exp (z / 2) * (z / 4) ^ (a - b + 1 / 2) *
         ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * b - 2 * a - 1) s * poch (b - 2 * a) s *
           (b - a - 1 / 2 + s) / (poch b s * s.factorial) *

@@ -22,7 +22,7 @@ sectors of `AAR.Confluent.TricomiRotated`. This gives the asymptotic expansion D
 
 ## Main results
 
-* `hasAsymptoticExpansion_cpow_mul_confluentU_rotSector`: `z^a U(a,b,z) ~ ∑ cₖ z^{-k}`.
+* `hasAsymptoticExpansion_cpow_mul_kummerU_rotSector`: `z^a U(a,b,z) ~ ∑ cₖ z^{-k}`.
 * `hasAsymptoticExpansion_coulombHPlus`, `hasAsymptoticExpansion_coulombHMinus`:
   `e^{∓iθ_ℓ} H^±_ℓ(η,ρ) ~ ∑ (a)_k (b)_k / (k! (±2iρ)^k)` with `a = ±iη - ℓ`, `b = ±iη + ℓ + 1`.
 -/
@@ -31,6 +31,7 @@ sectors of `AAR.Confluent.TricomiRotated`. This gives the asymptotic expansion D
 
 open Complex Filter MeasureTheory Asymptotics Set
 open scoped Real Topology Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -38,11 +39,11 @@ namespace AAR.Confluent
 
 /-- Tricomi's expansion normalized by its leading power: `z^a U(a,b,z) ~ ∑ cₖ z^{-k}` in every
 rotated sector. -/
-theorem hasAsymptoticExpansion_cpow_mul_confluentU_rotSector (a b : ℂ) {δ α : ℝ} (hδ : 0 < δ)
+theorem hasAsymptoticExpansion_cpow_mul_kummerU_rotSector (a b : ℂ) {δ α : ℝ} (hδ : 0 < δ)
     (hα : |α| < π / 2) :
     HasAsymptoticExpansion (rotSectorAtTop δ α) (fun (k : ℕ) (z : ℂ) => (z ^ k)⁻¹)
-      (tricomiCoeff a b) (fun z => z ^ a * confluentU a b z) := by
-  refine ((hasAsymptoticExpansion_confluentU_rotSector a b hδ hα).mul_left
+      (tricomiCoeff a b) (fun z => z ^ a * kummerU a b z) := by
+  refine ((hasAsymptoticExpansion_kummerU_rotSector a b hδ hα).mul_left
     (fun z => z ^ a)).congr_scale fun k => ?_
   filter_upwards [eventually_rotSectorAtTop hδ hα] with z hz
   have hz0 : z ≠ 0 := by rintro rfl; norm_num at hz
@@ -78,23 +79,23 @@ def coulombTheta (ℓ : ℕ) (η ρ : ℝ) : ℝ := ρ - η * Real.log (2 * ρ) 
 @[dlmf 33.2.E8]
 def coulombHPlus (ℓ : ℕ) (η ρ : ℝ) : ℂ :=
   exp (I * coulombTheta ℓ η ρ) * (-2 * I * ρ) ^ ((ℓ : ℂ) + 1 + I * η) *
-    confluentU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2) (-2 * I * ρ)
+    kummerU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2) (-2 * I * ρ)
 
 /-- The incoming Coulomb function
 `H^-_ℓ(η,ρ) = e^{-iθ_ℓ} (2iρ)^{ℓ+1-iη} U(ℓ+1-iη, 2ℓ+2, 2iρ)` (DLMF 33.2.8, lower signs). -/
 @[dlmf 33.2.E8]
 def coulombHMinus (ℓ : ℕ) (η ρ : ℝ) : ℂ :=
   exp (-I * coulombTheta ℓ η ρ) * (2 * I * ρ) ^ ((ℓ : ℂ) + 1 - I * η) *
-    confluentU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2) (2 * I * ρ)
+    kummerU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2) (2 * I * ρ)
 
 /-- The expansion behind DLMF 33.11.1 for `ρ ↦ (ρ c)^a U(a, b, ρ c)` along a ray in a rotated
 sector. -/
-lemma hasAsymptoticExpansion_ray_cpow_mul_confluentU (a b : ℂ) {c : ℂ} (hc : c ≠ 0) {δ α : ℝ}
+lemma hasAsymptoticExpansion_ray_cpow_mul_kummerU (a b : ℂ) {c : ℂ} (hc : c ≠ 0) {δ α : ℝ}
     (hδ : 0 < δ) (hα : |α| < π / 2) (h : δ * ‖c‖ ≤ (c * exp (α * I)).re) :
     HasAsymptoticExpansion atTop (fun (k : ℕ) (ρ : ℝ) => ((ρ : ℂ) ^ k)⁻¹)
       (fun k => poch a k * poch (a - b + 1) k / (k ! * (-c) ^ k))
-      (fun ρ : ℝ => ((ρ : ℂ) * c) ^ a * confluentU a b ((ρ : ℂ) * c)) := by
-  refine ((hasAsymptoticExpansion_cpow_mul_confluentU_rotSector a b hδ hα).comp_tendsto
+      (fun ρ : ℝ => ((ρ : ℂ) * c) ^ a * kummerU a b ((ρ : ℂ) * c)) := by
+  refine ((hasAsymptoticExpansion_cpow_mul_kummerU_rotSector a b hδ hα).comp_tendsto
     (tendsto_ofReal_mul_rotSectorAtTop hc h)).smul_scale (κ := fun k => (c ^ k)⁻¹)
     (fun k => Eventually.of_forall fun ρ => ?_) |>.congr_coeff ?_
   · simp only [mul_pow, mul_inv, mul_comm]
@@ -113,7 +114,7 @@ theorem hasAsymptoticExpansion_coulombHPlus (ℓ : ℕ) (η : ℝ) :
     HasAsymptoticExpansion atTop (fun (k : ℕ) (ρ : ℝ) => ((ρ : ℂ) ^ k)⁻¹)
       (fun k => poch (I * η - ℓ) k * poch (I * η + ℓ + 1) k / (k ! * (2 * I) ^ k))
       (fun ρ => exp (-I * coulombTheta ℓ η ρ) * coulombHPlus ℓ η ρ) := by
-  have h := hasAsymptoticExpansion_ray_cpow_mul_confluentU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2)
+  have h := hasAsymptoticExpansion_ray_cpow_mul_kummerU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2)
     (c := -2 * I) (by simp [I_ne_zero]) (δ := 1 / 2) (α := π / 4) (by norm_num)
     (by rw [abs_of_pos (by positivity)]; linarith [Real.pi_pos]) ?_
   · refine (h.congr' (Eventually.of_forall fun ρ => ?_)).congr_coeff (funext fun k => ?_)
@@ -143,7 +144,7 @@ theorem hasAsymptoticExpansion_coulombHMinus (ℓ : ℕ) (η : ℝ) :
     HasAsymptoticExpansion atTop (fun (k : ℕ) (ρ : ℝ) => ((ρ : ℂ) ^ k)⁻¹)
       (fun k => poch (-I * η - ℓ) k * poch (-I * η + ℓ + 1) k / (k ! * (-2 * I) ^ k))
       (fun ρ => exp (I * coulombTheta ℓ η ρ) * coulombHMinus ℓ η ρ) := by
-  have h := hasAsymptoticExpansion_ray_cpow_mul_confluentU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2)
+  have h := hasAsymptoticExpansion_ray_cpow_mul_kummerU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2)
     (c := 2 * I) two_I_ne_zero (δ := 1 / 2) (α := -(π / 4)) (by norm_num)
     (by rw [abs_neg, abs_of_pos (by positivity)]; linarith [Real.pi_pos]) ?_
   · refine (h.congr' (Eventually.of_forall fun ρ => ?_)).congr_coeff (funext fun k => ?_)

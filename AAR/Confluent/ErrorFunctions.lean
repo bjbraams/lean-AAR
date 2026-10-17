@@ -11,18 +11,19 @@ public import AAR.Gamma.IntegralRepresentations
 /-!
 # Fresnel integrals and Dawson's integral (Temme §§7.3.4, 7.3.6; DLMF Chapter 7)
 
-The error function `errorFn` and its complement are defined in `AAR.Confluent.Basic`, and the
+The error function `erf` and its complement are defined in `AAR.Confluent.Basic`, and the
 asymptotic expansion of `erfc` is in `AAR.Confluent.IncompleteGamma`. This file adds the
 Fresnel integrals `C`, `S` and Dawson's integral `F` on the real line.
 
 ## Main results
 
-* `fresnelC_add_I_mul_fresnelS`: `C(x) + i S(x) = (1+i)/2 · erf(√π (1-i) x / 2)` (DLMF 7.5.8).
-* `tendsto_fresnelC_atTop`, `tendsto_fresnelS_atTop`: `C(∞) = S(∞) = 1/2` (DLMF 7.2.9), from the
-  generalized Fresnel integrals of `AAR.Gamma`.
-* `dawson_eq_confluentM`: `F(x) = x M(1, 3/2, -x²)`.
-* `hasAsymptoticExpansion_dawson`: `F(x) ~ ∑ (1/2)_k / (2 x^{2k+1})`, from the expansion of the
-  regularized Kummer function.
+* `Real.fresnelCosInt_add_I_mul_fresnelSinInt`: `C(x) + i S(x) = (1+i)/2 · erf(√π (1-i) x / 2)`
+  (DLMF 7.5.8).
+* `Real.tendsto_fresnelCosInt_atTop`, `Real.tendsto_fresnelSinInt_atTop`: `C(∞) = S(∞) = 1/2`
+  (DLMF 7.2.9), from the generalized Fresnel integrals of `AAR.Gamma`.
+* `Real.dawsonF_eq_kummerM`: `F(x) = x M(1, 3/2, -x²)`.
+* `Real.hasAsymptoticExpansion_dawsonF`: `F(x) ~ ∑ (1/2)_k / (2 x^{2k+1})`, from the expansion of
+  the regularized Kummer function.
 
 The auxiliary functions `f`, `g` of DLMF 7.2.10–7.2.11 and their asymptotic expansions, which
 need the complementary error function off the real axis, are not yet formalized.
@@ -32,6 +33,7 @@ need the complementary error function off the real axis, are not yet formalized.
 
 open Complex Filter MeasureTheory Asymptotics Set
 open scoped Real Topology Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -39,19 +41,21 @@ namespace AAR.Confluent
 
 /-- The Fresnel cosine integral `C(x) = ∫₀ˣ cos(π t²/2) dt` (DLMF 7.2.7). -/
 @[dlmf 7.2.E7]
-def fresnelC (x : ℝ) : ℝ := ∫ t in (0 : ℝ)..x, Real.cos (π * t ^ 2 / 2)
+def Real.fresnelCosInt (x : ℝ) : ℝ := ∫ t in (0 : ℝ)..x, Real.cos (π * t ^ 2 / 2)
 
 /-- The Fresnel sine integral `S(x) = ∫₀ˣ sin(π t²/2) dt` (DLMF 7.2.8). -/
 @[dlmf 7.2.E8]
-def fresnelS (x : ℝ) : ℝ := ∫ t in (0 : ℝ)..x, Real.sin (π * t ^ 2 / 2)
+def Real.fresnelSinInt (x : ℝ) : ℝ := ∫ t in (0 : ℝ)..x, Real.sin (π * t ^ 2 / 2)
 
-theorem hasDerivAt_fresnelC (x : ℝ) : HasDerivAt fresnelC (Real.cos (π * x ^ 2 / 2)) x :=
+theorem Real.hasDerivAt_fresnelCosInt (x : ℝ) : HasDerivAt Real.fresnelCosInt
+    (Real.cos (π * x ^ 2 / 2)) x :=
   intervalIntegral.integral_hasDerivAt_right ((by fun_prop : Continuous fun t : ℝ =>
     Real.cos (π * t ^ 2 / 2)).intervalIntegrable _ _)
     ((by fun_prop : Continuous fun t : ℝ => Real.cos (π * t ^ 2 / 2)
       ).stronglyMeasurableAtFilter _ _) (by fun_prop)
 
-theorem hasDerivAt_fresnelS (x : ℝ) : HasDerivAt fresnelS (Real.sin (π * x ^ 2 / 2)) x :=
+theorem Real.hasDerivAt_fresnelSinInt (x : ℝ) : HasDerivAt Real.fresnelSinInt
+    (Real.sin (π * x ^ 2 / 2)) x :=
   intervalIntegral.integral_hasDerivAt_right ((by fun_prop : Continuous fun t : ℝ =>
     Real.sin (π * t ^ 2 / 2)).intervalIntegrable _ _)
     ((by fun_prop : Continuous fun t : ℝ => Real.sin (π * t ^ 2 / 2)
@@ -60,20 +64,20 @@ theorem hasDerivAt_fresnelS (x : ℝ) : HasDerivAt fresnelS (Real.sin (π * x ^ 
 /-- **Fresnel integrals through the error function** (DLMF 7.5.7, 7.5.8):
 `C(x) + i S(x) = (1+i)/2 · erf(√π (1-i) x / 2)`. -/
 @[dlmf 7.5.E8]
-theorem fresnelC_add_I_mul_fresnelS (x : ℝ) :
-    (fresnelC x : ℂ) + I * fresnelS x =
-      (1 + I) / 2 * errorFn ((Real.sqrt π : ℂ) * (1 - I) / 2 * x) := by
+theorem Real.fresnelCosInt_add_I_mul_fresnelSinInt (x : ℝ) :
+    (Real.fresnelCosInt x : ℂ) + I * Real.fresnelSinInt x =
+      (1 + I) / 2 * erf ((Real.sqrt π : ℂ) * (1 - I) / 2 * x) := by
   set c : ℂ := (Real.sqrt π : ℂ) * (1 - I) / 2 with hc
   have hπ : (Real.sqrt π : ℂ) ≠ 0 :=
     Complex.ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
   have hπsq : (Real.sqrt π : ℂ) ^ 2 = π := by
     rw [← Complex.ofReal_pow, Real.sq_sqrt Real.pi_pos.le]
-  have hderiv : ∀ t : ℝ, HasDerivAt (fun t : ℝ => (1 + I) / 2 * errorFn (c * t))
+  have hderiv : ∀ t : ℝ, HasDerivAt (fun t : ℝ => (1 + I) / 2 * erf (c * t))
       (exp (I * (π * t ^ 2 / 2))) t := by
     intro t
     have hP := ((hasDerivAt_gaussianPrimitive (c * t)).comp (t : ℂ)
       ((hasDerivAt_id (t : ℂ)).const_mul c)).const_mul ((1 + I) / 2 * (2 / (Real.sqrt π : ℂ)))
-    have hE : HasDerivAt (fun w : ℂ => (1 + I) / 2 * errorFn (c * w))
+    have hE : HasDerivAt (fun w : ℂ => (1 + I) / 2 * erf (c * w))
         (exp (I * (π * t ^ 2 / 2))) (t : ℂ) := by
       refine (hP.congr_deriv ?_).congr_of_eventuallyEq (Eventually.of_forall fun w => ?_)
       · simp only [mul_one]
@@ -82,13 +86,13 @@ theorem fresnelC_add_I_mul_fresnelS (x : ℝ) :
         rw [hc]
         field_simp
         linear_combination (-1 : ℂ) * Complex.I_sq
-      · simp only [errorFn, Function.comp]
+      · simp only [erf, Function.comp]
         ring
     exact hE.comp_ofReal
   have hint := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hderiv t)
     ((by fun_prop : Continuous fun t : ℝ => exp (I * (π * t ^ 2 / 2))).intervalIntegrable 0 x)
-  rw [Complex.ofReal_zero, mul_zero, errorFn_zero, mul_zero, sub_zero] at hint
-  rw [← hint, fresnelC, fresnelS, ← intervalIntegral.integral_ofReal,
+  rw [Complex.ofReal_zero, mul_zero, erf_zero, mul_zero, sub_zero] at hint
+  rw [← hint, Real.fresnelCosInt, Real.fresnelSinInt, ← intervalIntegral.integral_ofReal,
     ← intervalIntegral.integral_ofReal, ← intervalIntegral.integral_const_mul,
     ← intervalIntegral.integral_add ((by fun_prop : Continuous fun t : ℝ =>
       ((Real.cos (π * t ^ 2 / 2) : ℝ) : ℂ)).intervalIntegrable 0 x)
@@ -113,13 +117,13 @@ lemma integral_comp_pi_mul_sq_div_two (g : ℝ → ℝ) (x : ℝ) :
 
 /-- `C(x) → 1/2` as `x → +∞` (DLMF 7.2.9). -/
 @[dlmf 7.2.E9]
-theorem tendsto_fresnelC_atTop : Tendsto fresnelC atTop (𝓝 (1 / 2)) := by
+theorem Real.tendsto_fresnelCosInt_atTop : Tendsto Real.fresnelCosInt atTop (𝓝 (1 / 2)) := by
   have hc : 0 < Real.sqrt (π / 2) := Real.sqrt_pos.mpr (by positivity)
   have h := ((AAR.Gamma.Gamma_cos_pow 2 le_rfl).comp
     (tendsto_id.const_mul_atTop hc)).const_mul (Real.sqrt (π / 2))⁻¹
   convert h using 1
   · funext x
-    simp only [Function.comp_apply, id, fresnelC]
+    simp only [Function.comp_apply, id, Real.fresnelCosInt]
     rw [integral_comp_pi_mul_sq_div_two Real.cos x]
   · rw [show (1 : ℝ) + 1 / (2 : ℕ) = 1 / 2 + 1 by norm_num, Real.Gamma_add_one (by norm_num),
       Real.Gamma_one_half_eq, show π / (2 * ((2 : ℕ) : ℝ)) = π / 4 by norm_num,
@@ -131,13 +135,13 @@ theorem tendsto_fresnelC_atTop : Tendsto fresnelC atTop (𝓝 (1 / 2)) := by
 
 /-- `S(x) → 1/2` as `x → +∞` (DLMF 7.2.9). -/
 @[dlmf 7.2.E9]
-theorem tendsto_fresnelS_atTop : Tendsto fresnelS atTop (𝓝 (1 / 2)) := by
+theorem Real.tendsto_fresnelSinInt_atTop : Tendsto Real.fresnelSinInt atTop (𝓝 (1 / 2)) := by
   have hc : 0 < Real.sqrt (π / 2) := Real.sqrt_pos.mpr (by positivity)
   have h := ((AAR.Gamma.Gamma_sin_pow 2 le_rfl).comp
     (tendsto_id.const_mul_atTop hc)).const_mul (Real.sqrt (π / 2))⁻¹
   convert h using 1
   · funext x
-    simp only [Function.comp_apply, id, fresnelS]
+    simp only [Function.comp_apply, id, Real.fresnelSinInt]
     rw [integral_comp_pi_mul_sq_div_two Real.sin x]
   · rw [show (1 : ℝ) + 1 / (2 : ℕ) = 1 / 2 + 1 by norm_num, Real.Gamma_add_one (by norm_num),
       Real.Gamma_one_half_eq, show π / (2 * ((2 : ℕ) : ℝ)) = π / 4 by norm_num,
@@ -149,18 +153,19 @@ theorem tendsto_fresnelS_atTop : Tendsto fresnelS atTop (𝓝 (1 / 2)) := by
 
 /-- Dawson's integral `F(x) = e^{-x²} ∫₀ˣ e^{t²} dt` (DLMF 7.2.5). -/
 @[dlmf 7.2.E5]
-def dawson (x : ℝ) : ℝ := Real.exp (-x ^ 2) * ∫ t in (0 : ℝ)..x, Real.exp (t ^ 2)
+def Real.dawsonF (x : ℝ) : ℝ := Real.exp (-x ^ 2) * ∫ t in (0 : ℝ)..x, Real.exp (t ^ 2)
 
 /-- `∫₀ˣ e^{t²} dt = x M(1/2, 3/2, x²)`. -/
-lemma integral_exp_sq_eq_confluentM (x : ℝ) :
+lemma integral_exp_sq_eq_kummerM (x : ℝ) :
     ((∫ t in (0 : ℝ)..x, Real.exp (t ^ 2) : ℝ) : ℂ) =
-      x * confluentM (1 / 2) (3 / 2) ((x : ℂ) ^ 2) := by
-  have hderiv : ∀ t : ℝ, HasDerivAt (fun t : ℝ => (t : ℂ) * confluentM (1 / 2) (3 / 2) ((t : ℂ) ^ 2))
+      x * kummerM (1 / 2) (3 / 2) ((x : ℂ) ^ 2) := by
+  have hderiv : ∀ t : ℝ,
+      HasDerivAt (fun t : ℝ => (t : ℂ) * kummerM (1 / 2) (3 / 2) ((t : ℂ) ^ 2))
       (exp ((t : ℂ) ^ 2)) t := by
     intro t
     have hP := ((hasDerivAt_gaussianPrimitive (I * t)).comp (t : ℂ)
       ((hasDerivAt_id (t : ℂ)).const_mul I)).const_mul (-I)
-    have hE : HasDerivAt (fun w : ℂ => w * confluentM (1 / 2) (3 / 2) (w ^ 2))
+    have hE : HasDerivAt (fun w : ℂ => w * kummerM (1 / 2) (3 / 2) (w ^ 2))
         (exp ((t : ℂ) ^ 2)) (t : ℂ) := by
       refine (hP.congr_deriv ?_).congr_of_eventuallyEq (Eventually.of_forall fun w => ?_)
       · simp only [mul_one, mul_pow, Complex.I_sq]
@@ -168,7 +173,7 @@ lemma integral_exp_sq_eq_confluentM (x : ℝ) :
         linear_combination (-exp ((t : ℂ) ^ 2)) * Complex.I_mul_I
       · simp only [Function.comp, mul_pow, Complex.I_sq]
         rw [show -(-1 * w ^ 2) = w ^ 2 by ring]
-        linear_combination (w * confluentM (1 / 2) (3 / 2) (w ^ 2)) * Complex.I_mul_I
+        linear_combination (w * kummerM (1 / 2) (3 / 2) (w ^ 2)) * Complex.I_mul_I
     exact hE.comp_ofReal
   have hint := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hderiv t)
     ((by fun_prop : Continuous fun t : ℝ => exp ((t : ℂ) ^ 2)).intervalIntegrable 0 x)
@@ -179,20 +184,20 @@ lemma integral_exp_sq_eq_confluentM (x : ℝ) :
   rfl
 
 /-- Dawson's integral as a Kummer function: `F(x) = x M(1, 3/2, -x²)`. -/
-theorem dawson_eq_confluentM (x : ℝ) :
-    (dawson x : ℂ) = x * confluentM 1 (3 / 2) (-(x : ℂ) ^ 2) := by
-  rw [dawson, Complex.ofReal_mul, integral_exp_sq_eq_confluentM,
-    confluentM_kummer_transform three_half_ne_neg_nat]
+theorem Real.dawsonF_eq_kummerM (x : ℝ) :
+    (Real.dawsonF x : ℂ) = x * kummerM 1 (3 / 2) (-(x : ℂ) ^ 2) := by
+  rw [Real.dawsonF, Complex.ofReal_mul, integral_exp_sq_eq_kummerM,
+    kummerM_kummer_transform three_half_ne_neg_nat]
   push_cast
   rw [show (3 / 2 : ℂ) - 1 / 2 = 1 by norm_num, show -(x : ℂ) ^ 2 = -((x : ℂ) ^ 2) by ring]
   have he : exp (-(x : ℂ) ^ 2) * exp ((x : ℂ) ^ 2) = 1 := by rw [← Complex.exp_add]; simp
-  linear_combination (x * confluentM 1 (3 / 2) (-((x : ℂ) ^ 2))) * he
+  linear_combination (x * kummerM 1 (3 / 2) (-((x : ℂ) ^ 2))) * he
 
 /-- **Asymptotic expansion of Dawson's integral** (Temme §7.3.4 with §7.1):
 `F(x) ~ ∑ (1/2)_k / (2 x^{2k+1})` as `x → +∞`. -/
-theorem hasAsymptoticExpansion_dawson :
+theorem Real.hasAsymptoticExpansion_dawsonF :
     HasAsymptoticExpansion atTop (fun (k : ℕ) (x : ℝ) => (x : ℂ) ^ (-1 - 2 * (k : ℂ)))
-      (fun k => poch (1 / 2) k / 2) (fun x : ℝ => (dawson x : ℂ)) := by
+      (fun k => poch (1 / 2) k / 2) (fun x : ℝ => (Real.dawsonF x : ℂ)) := by
   have hsq : Tendsto (fun x : ℝ => x ^ 2) atTop atTop := tendsto_pow_atTop two_ne_zero
   have hπ : (Real.sqrt π : ℂ) ≠ 0 :=
     Complex.ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
@@ -202,8 +207,8 @@ theorem hasAsymptoticExpansion_dawson :
   refine ((h.congr' ?_).congr_scale fun k => ?_).congr_coeff ?_
   · filter_upwards with x
     simp only [Pi.smul_apply, Function.comp_apply, smul_eq_mul]
-    rw [dawson, Complex.ofReal_mul, integral_exp_sq_eq_confluentM,
-      confluentM_eq_mul_regularizedHGFun three_half_ne_neg_nat]
+    rw [Real.dawsonF, Complex.ofReal_mul, integral_exp_sq_eq_kummerM,
+      kummerM_eq_mul_regularizedHGFun three_half_ne_neg_nat]
     push_cast
     ring
   · filter_upwards [eventually_gt_atTop 0] with x hx

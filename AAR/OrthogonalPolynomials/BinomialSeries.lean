@@ -24,6 +24,7 @@ the coefficient series sums to `(1 - u z)^{-a} (1 - z/u)^{-b}`.
 
 open Complex
 open scoped Nat
+open AAR.Hypergeometric
 
 noncomputable section
 

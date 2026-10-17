@@ -23,8 +23,10 @@ and the proved coefficients of the Gegenbauer generating series.
 
 @[expose] public section
 
-open Complex Polynomial MeasureTheory Filter
+open Complex Polynomial MeasureTheory Filter AAR.QSeries
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
@@ -481,13 +483,14 @@ theorem qHahn_limit_hahn {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {N n : �
 
 @[dlmf 18.27.E14_4]
 theorem littleQJacobi_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) (x : ℂ) :
-    Tendsto (fun q : ℝ => littleQJacobi (Real.rpow q α) (Real.rpow q β) q n x) (𝓝[<] 1) (𝓝 ((n.factorial : ℂ) / poch (α + 1) n * jacobiP α β n (1 - 2 * x))) := by
+    Tendsto (fun q : ℝ => littleQJacobi (Real.rpow q α) (Real.rpow q β) q n x) (𝓝[<] 1)
+        (𝓝 ((n.factorial : ℂ) / poch (α + 1) n * jacobiPolyP α β n (1 - 2 * x))) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   have hP := poch_ne_zero_of_not_neg_nat hα' n
-  have hJ : (n.factorial : ℂ) / poch (α + 1) n * jacobiP α β n (1 - 2 * x) =
+  have hJ : (n.factorial : ℂ) / poch (α + 1) n * jacobiPolyP α β n (1 - 2 * x) =
       ∑ k ∈ Finset.range (n + 1), gaussHGCoeff (-(n : ℂ)) (n + α + β + 1) (α + 1) k * x ^ k := by
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show (1 - (1 - 2 * x)) / 2 = x by ring, ordinaryHypergeometric_eq_sum_neg_nat]
     have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     field_simp
@@ -523,15 +526,16 @@ theorem littleQJacobi_limit_jacobi {α β : ℝ} (hα : -1 < α) (hβ : -1 < β)
     norm_num
 
 @[dlmf 18.27.E14_6]
-theorem littleQLaguerre_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
-    Tendsto (fun q : ℝ => littleQLaguerre (Real.rpow q α) q n ((1 - q : ℂ) * x)) (𝓝[<] 1) (𝓝 ((n.factorial : ℂ) / poch (α + 1) n * laguerre α n x)) := by
+theorem littleQLaguerre_limit_laguerrePolyL {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
+    Tendsto (fun q : ℝ => littleQLaguerre (Real.rpow q α) q n ((1 - q : ℂ) * x)) (𝓝[<] 1)
+        (𝓝 ((n.factorial : ℂ) / poch (α + 1) n * laguerrePolyL α n x)) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   have hP := poch_ne_zero_of_not_neg_nat hα' n
-  have hL : (n.factorial : ℂ) / poch (α + 1) n * laguerre α n x =
+  have hL : (n.factorial : ℂ) / poch (α + 1) n * laguerrePolyL α n x =
       ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k / (poch (α + 1) k * k.factorial) * x ^ k := by
-    unfold laguerre
-    rw [confluentM_eq_sum_neg_nat]
+    unfold laguerrePolyL
+    rw [kummerM_eq_sum_neg_nat]
     have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     field_simp
   rw [hL]
@@ -564,19 +568,20 @@ theorem littleQLaguerre_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x :
     ring
 
 @[dlmf 18.27.E17_3]
-theorem qLaguerre_limit_laguerre {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
-    Tendsto (fun q : ℝ => qLaguerre α q n ((1 - q : ℂ) * x)) (𝓝[<] 1) (𝓝 (laguerre α n x)) := by
+theorem qLaguerre_limit_laguerrePolyL {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℂ) :
+    Tendsto (fun q : ℝ => qLaguerre α q n ((1 - q : ℂ) * x)) (𝓝[<] 1)
+        (𝓝 (laguerrePolyL α n x)) := by
   have hα' : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   have hs : ∀ k : ℕ, poch (((α + 1 : ℝ)) : ℂ) k ≠ 0 := fun k => by
     push_cast; exact poch_ne_zero_of_not_neg_nat hα' k
   have h1s : ∀ k : ℕ, poch (((1 : ℝ)) : ℂ) k ≠ 0 := fun k => by
     push_cast; rw [poch_nat_one]; exact Nat.cast_ne_zero.mpr k.factorial_ne_zero
-  have hL : laguerre α n x = poch (α + 1) n / n ! *
+  have hL : laguerrePolyL α n x = poch (α + 1) n / n ! *
       ∑ k ∈ Finset.range (n + 1), poch (-(n : ℂ)) k / (poch (α + 1) k * k.factorial) *
         ((-1) ^ k * (-x) ^ k) := by
-    unfold laguerre
-    rw [confluentM_eq_sum_neg_nat]
+    unfold laguerrePolyL
+    rw [kummerM_eq_sum_neg_nat]
     congr 1
     refine Finset.sum_congr rfl fun k _ => ?_
     rw [← mul_pow]; ring_nf
@@ -685,8 +690,9 @@ theorem askeyWilson_limit_wilson {a b c d : ℝ} (ha : 0 < a) (hb : 0 < b) (hc :
     exact aw_algebra _ _ _ _ _ _ _ _ _ _ _ _ _ h1
 
 @[dlmf 18.28.E31]
-theorem qGegenbauer_limit_gegenbauer {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) (θ : ℝ) :
-    Tendsto (fun q : ℝ => qGegenbauer (Real.rpow q lam) q n (exp (I * θ))) (𝓝[<] 1) (𝓝 (gegenbauer lam n (Real.cos θ))) := by
+theorem qGegenbauer_limit_ultrasphPoly {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ) (θ : ℝ) :
+    Tendsto (fun q : ℝ => qGegenbauer (Real.rpow q lam) q n (exp (I * θ))) (𝓝[<] 1)
+        (𝓝 (ultrasphPoly lam n (Real.cos θ))) := by
   let w : ℂ := exp (-I * θ)
   have hw : w ≠ 0 := exp_ne_zero _
   have hwi : w⁻¹ = exp (I * θ) := by
@@ -699,7 +705,7 @@ theorem qGegenbauer_limit_gegenbauer {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ)
     dsimp [w]
     rw [Complex.cos]
     congr 1 <;> ring
-  rw [← hcos, gegenbauer_eq_coeff_gegenbauerSeries (by simpa using hlam) hw,
+  rw [← hcos, ultrasphPoly_eq_coeff_gegenbauerSeries (by simpa using hlam) hw,
     coeff_gegenbauerSeries]
   unfold qGegenbauer
   refine tendsto_finsetSum _ fun k hk => ?_
@@ -731,8 +737,8 @@ theorem qGegenbauer_limit_gegenbauer {lam : ℝ} (hlam : -1 / 2 < lam) (n : ℕ)
 @[dlmf 18.27.E25]
 theorem discreteQHermiteI_limit_hermite (n : ℕ) (x : ℂ) :
     Tendsto (fun q : ℝ => discreteQHermiteI q n ((Real.sqrt (1 - q ^ 2) : ℂ) * x) /
-      (Real.sqrt (1 - q ^ 2) : ℂ) ^ n) (𝓝[<] 1) (𝓝 ((2 : ℂ)⁻¹ ^ n * aeval x (hermitePhys n))) := by
-  rw [hermitePhys_finite_sum, Finset.mul_sum, Finset.mul_sum]
+      (Real.sqrt (1 - q ^ 2) : ℂ) ^ n) (𝓝[<] 1) (𝓝 ((2 : ℂ)⁻¹ ^ n * aeval x (hermitePolyH n))) := by
+  rw [hermitePolyH_finite_sum, Finset.mul_sum, Finset.mul_sum]
   unfold discreteQHermiteI
   simp_rw [Finset.mul_sum, Finset.sum_div]
   refine tendsto_finsetSum _ fun k hk => ?_
@@ -774,8 +780,8 @@ theorem discreteQHermiteI_limit_hermite (n : ℕ) (x : ℂ) :
 @[dlmf 18.27.E26]
 theorem discreteQHermiteII_limit_hermite (n : ℕ) (x : ℂ) :
     Tendsto (fun q : ℝ => discreteQHermiteII q n ((Real.sqrt (1 - q ^ 2) : ℂ) * x) /
-      (Real.sqrt (1 - q ^ 2) : ℂ) ^ n) (𝓝[<] 1) (𝓝 ((2 : ℂ)⁻¹ ^ n * aeval x (hermitePhys n))) := by
-  rw [hermitePhys_finite_sum, Finset.mul_sum, Finset.mul_sum]
+      (Real.sqrt (1 - q ^ 2) : ℂ) ^ n) (𝓝[<] 1) (𝓝 ((2 : ℂ)⁻¹ ^ n * aeval x (hermitePolyH n))) := by
+  rw [hermitePolyH_finite_sum, Finset.mul_sum, Finset.mul_sum]
   unfold discreteQHermiteII
   simp_rw [Finset.mul_sum, Finset.sum_div]
   refine tendsto_finsetSum _ fun k hk => ?_

@@ -45,7 +45,7 @@ theorem radius_regularizedHGFunSeries_eq_top {a b : ℂ} :
 /- Already in Mathlib: `M(a,b,z) = Γ(b) 𝐌(a,b,z)` at regular `b`, recovered locally.
 @[dlmf 13.2.E4]
 -/
--- Project: confluentM_eq_mul_regularizedHGFun
+-- Project: kummerM_eq_mul_regularizedHGFun
 
 /- Already in Mathlib: the generalized series includes `{}_2F_0`.
 @[dlmf 13.6.E21]

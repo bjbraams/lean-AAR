@@ -442,7 +442,7 @@ lemma quadratic_lobe_of_mem_ball {w : ℂ} (hw : ‖w‖ < 1) :
 
 /-- Gauss's quadratic transformation, AAR (3.1.3), on the component containing zero. -/
 @[dlmf 15.8.E18]
-theorem _root_.gauss_quadratic {a b z : ℂ}
+theorem gauss_quadratic {a b z : ℂ}
     (hc : ∀ k : ℕ, a + b + 1 / 2 ≠ -(k : ℂ))
     (hz : ‖z‖ < 1) (hzt : ‖4 * z * (1 - z)‖ < 1) (hre : z.re < 1 / 2) :
     ₂F₁ (2 * a) (2 * b) (a + b + 1 / 2) z =
@@ -601,7 +601,7 @@ lemma deriv_deriv_affine_cpow {α β s z : ℂ} (h : α + β * z ∈ slitPlane) 
 
 /-- Kummer's quadratic transformation, AAR §3.1 (first formula). -/
 @[dlmf 15.8.E18]
-theorem _root_.kummer_quadratic {a b z : ℂ}
+theorem kummer_quadratic {a b z : ℂ}
     (hc : ∀ k : ℕ, a + b + 1 / 2 ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
     ₂F₁ a b (a + b + 1 / 2) z =
       ₂F₁ (2 * a) (2 * b) (a + b + 1 / 2) ((1 - (1 - z) ^ (1 / 2 : ℂ)) / 2) := by
@@ -1757,7 +1757,7 @@ theorem cubic_transformation
     · simp [hP, hφdef, hH, ordinaryHypergeometric_zero]
   -- extension to `‖w‖ < 1, Re w < 8/9` through the cut-plane continuation
   set c₂ := 2 * a + 5 / 6 with hc₂
-  set R : ℂ → ℂ := fun w => P w * (Gamma c₂ * gaussHGCut a (a + 1 / 2) c₂ (φ w)) with hR
+  set R : ℂ → ℂ := fun w => P w * (Gamma c₂ * regularizedGaussHG a (a + 1 / 2) c₂ (φ w)) with hR
   set A : Set ℂ := {w | ‖w‖ < 1 ∧ w.re < 8 / 9} with hA
   have hAc : IsPreconnected A := by
     have : A = Metric.ball (0 : ℂ) 1 ∩ {w | w.re < 8 / 9} := by
@@ -1767,12 +1767,12 @@ theorem cubic_transformation
   have hRe : ∀ w : ℂ, ‖φ w‖ < 1 → R w = P w * H (φ w) := by
     intro w hw
     simp only [hR, hH]
-    rw [gaussHGCut_eq_regularized _ _ _ hw, regularizedGaussHGFun_eq_div_Gamma ht,
+    rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hw, regularizedGaussHGFun_eq_div_Gamma ht,
       mul_div_cancel₀ _ (Gamma_ne_zero ht)]
   have hLan : AnalyticOnNhd ℂ (₂F₁ (3 * a) (3 * a + 1 / 2) (4 * a + 2 / 3) : ℂ → ℂ) A :=
     fun w hw => analyticAt_ordinaryHypergeometric hw.1
   have hRan : AnalyticOnNhd ℂ R A := fun w hw =>
-    (hPa w hw.2).mul (analyticAt_const.mul ((analyticAt_gaussHGCut _ _ _
+    (hPa w hw.2).mul (analyticAt_const.mul ((analyticAt_regularizedGaussHG _ _ _
       (cubic_map_mem_cutPlane hw.2)).comp (f := φ) (hφa w hw.2)))
   have h0A : (0 : ℂ) ∈ A := by simp [hA]
   have hev : (₂F₁ (3 * a) (3 * a + 1 / 2) (4 * a + 2 / 3) : ℂ → ℂ) =ᶠ[𝓝 0] R := by

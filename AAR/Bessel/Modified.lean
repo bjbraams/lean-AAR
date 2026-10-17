@@ -22,6 +22,8 @@ open scoped Real Nat Topology
 
 noncomputable section
 
+namespace AAR.Bessel
+
 /-- Modified Bessel function of the first kind. -/
 @[dlmf 10.25.E2]
 def besselI (ν z : ℂ) : ℂ :=
@@ -45,7 +47,7 @@ theorem besselI_zero_zero : besselI 0 0 = 1 := by
   unfold besselI
   rw [zero_div, cpow_zero, one_mul]
   have harg : (0 ^ 2 / 4 : ℂ) = 0 := by ring
-  rw [harg, _root_.regularizedHGFun_zero, regularizedHGFunCoeff_empty]
+  rw [harg, AAR.Confluent.regularizedHGFun_zero, regularizedHGFunCoeff_empty]
   simp [Gamma_one]
 
 /-- `I_ν(z) = i^{-ν} J_ν(i z)` (principal branch). -/
@@ -66,7 +68,8 @@ theorem besselI_eq_besselJ {ν z : ℂ} (hz : z ≠ 0) (harg : z.arg ≤ π / 2)
   have hsq : -((I * z) ^ 2 / 4) = z ^ 2 / 4 := by
     rw [mul_pow, I_sq]
     ring
-  unfold besselI besselJ
+  unfold besselI
+  simp only [besselJ_eq_regularized]
   rw [hsq, show I * z / 2 = I * (z / 2) by ring, hpow, cpow_neg]
   field [(cpow_ne_zero_iff.mpr (Or.inl I_ne_zero) : I ^ ν ≠ 0)]
 
@@ -117,3 +120,5 @@ theorem nicholson_integral {ν : ℂ} {x : ℝ} (hx : 0 < x) :
         ∫ t : ℝ in Set.Ioi (0 : ℝ),
           cosh (2 * ν * (t : ℂ)) * besselK 0 (2 * x * Real.sinh t : ℂ) := by
   sorry
+
+end AAR.Bessel

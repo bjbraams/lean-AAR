@@ -26,6 +26,7 @@ kept with underscore names.
 
 open Complex Filter Set Asymptotics
 open scoped Real Topology Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -36,9 +37,9 @@ lemma tendsto_ofReal_inv_atTop : Tendsto (fun x : ℝ => ((x : ℂ))⁻¹) atTop
   simpa using this
 
 @[dlmf 13.2.E6]
-theorem tendsto_confluentU_mul_cpow_atTop (a b : ℂ) :
-    Tendsto (fun x : ℝ => confluentU a b x * (x : ℂ) ^ a) atTop (𝓝 1) := by
-  have h := ((hasAsymptoticExpansion_confluentU a b).mul_left
+theorem tendsto_kummerU_mul_cpow_atTop (a b : ℂ) :
+    Tendsto (fun x : ℝ => kummerU a b x * (x : ℂ) ^ a) atTop (𝓝 1) := by
+  have h := ((hasAsymptoticExpansion_kummerU a b).mul_left
     (fun x : ℝ => (x : ℂ) ^ a)).congr_scale
     (ψ := fun (n : ℕ) (x : ℝ) => ((x : ℂ) ^ n)⁻¹) fun n => by
       filter_upwards [eventually_gt_atTop 0] with x hx
@@ -90,7 +91,7 @@ theorem tendsto_whittakerM_atTop {κ μ : ℂ} (hμ : ∀ k : ℕ, 1 + 2 * μ �
   filter_upwards [eventually_gt_atTop 0] with x hx
   have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
   have hGb : Gamma (1 + 2 * μ) ≠ 0 := Gamma_ne_zero hμ
-  rw [whittakerM, confluentM_eq_mul_regularizedHGFun hμ,
+  rw [whittakerM, kummerM_eq_mul_regularizedHGFun hμ,
     show μ - κ + 1 / 2 = 1 / 2 + μ - κ by ring]
   have hpow : (x : ℂ) ^ (1 / 2 + μ - κ - (1 + 2 * μ)) * (x : ℂ) ^ (μ + 1 / 2) = (x : ℂ) ^ (-κ) := by
     rw [← cpow_add _ _ hx0]; ring_nf
@@ -113,7 +114,7 @@ theorem tendsto_whittakerM_atTop {κ μ : ℂ} (hμ : ∀ k : ℕ, 1 + 2 * μ �
 @[dlmf 13.14.E21]
 theorem tendsto_whittakerW_atTop (κ μ : ℂ) :
     Tendsto (fun x : ℝ => whittakerW κ μ x / (exp (-x / 2) * (x : ℂ) ^ κ)) atTop (𝓝 1) := by
-  have h := tendsto_confluentU_mul_cpow_atTop (1 / 2 + μ - κ) (1 + 2 * μ)
+  have h := tendsto_kummerU_mul_cpow_atTop (1 / 2 + μ - κ) (1 + 2 * μ)
   refine h.congr' ?_
   filter_upwards [eventually_gt_atTop 0] with x hx
   have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
@@ -121,7 +122,7 @@ theorem tendsto_whittakerW_atTop (κ μ : ℂ) :
   have hE := exp_ne_zero (-(x : ℂ) / 2)
   rw [whittakerW, show (x : ℂ) ^ (1 / 2 + μ) = (x : ℂ) ^ (1 / 2 + μ - κ) * (x : ℂ) ^ κ by
     rw [← cpow_add _ _ hx0]; ring_nf]
-  generalize confluentU (1 / 2 + μ - κ) (1 + 2 * μ) (x : ℂ) = U
+  generalize kummerU (1 / 2 + μ - κ) (1 + 2 * μ) (x : ℂ) = U
   generalize (x : ℂ) ^ (1 / 2 + μ - κ) = P
   generalize (x : ℂ) ^ κ = Q at *
   generalize exp (-(x : ℂ) / 2) = E at *
@@ -190,9 +191,9 @@ theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {δ : ℝ}
     rw [abs_lt]; constructor <;> linarith
   have hα2 : |-(-1 : ℝ) * (π / 2 - δ / 2)| < π / 2 := by
     rw [abs_lt]; constructor <;> linarith
-  have hU1 := (hasAsymptoticExpansion_confluentU_rotSector a b hδ' hα1).comp_tendsto
+  have hU1 := (hasAsymptoticExpansion_kummerU_rotSector a b hδ' hα1).comp_tendsto
     (tendsto_upperSectorAtTop_rot hδ hδπ 1 (Or.inl rfl))
-  have hU2 := (hasAsymptoticExpansion_confluentU_rotSector (b - a) b hδ' hα2).comp_tendsto
+  have hU2 := (hasAsymptoticExpansion_kummerU_rotSector (b - a) b hδ' hα2).comp_tendsto
     (tendsto_upperSectorAtTop_rot hδ hδπ (-1) (Or.inr rfl))
   simp only [ofReal_one, one_mul, ofReal_neg, neg_one_mul, Function.comp_def] at hU1 hU2
   -- eventually: `z ≠ 0` and `0 < arg z`
@@ -207,13 +208,13 @@ theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {δ : ℝ}
   set S1 := fun z : ℂ => ∑ s ∈ Finset.range n, z ^ (-((s : ℂ) + a)) • tricomiCoeff a b s
   set S2 := fun z : ℂ => ∑ s ∈ Finset.range n,
     (-z) ^ (-((s : ℂ) + (b - a))) • tricomiCoeff (b - a) b s
-  have h1 : (fun z => confluentU a b z - S1 z) =O[upperSectorAtTop δ]
+  have h1 : (fun z => kummerU a b z - S1 z) =O[upperSectorAtTop δ]
       fun z => ‖exp z * z ^ (a - b - n)‖ + ‖z ^ (-a - n)‖ := by
     refine (hU1 n).trans (IsBigO.of_bound 1 (Eventually.of_forall fun z => ?_))
     show ‖z ^ (-((n : ℂ) + a))‖ ≤ 1 * ‖‖exp z * z ^ (a - b - n)‖ + ‖z ^ (-a - n)‖‖
     rw [one_mul, Real.norm_of_nonneg (by positivity), show -((n : ℂ) + a) = -a - n by ring]
     exact le_add_of_nonneg_left (norm_nonneg _)
-  have h2 : (fun z => exp z * (confluentU (b - a) b (-z) - S2 z)) =O[upperSectorAtTop δ]
+  have h2 : (fun z => exp z * (kummerU (b - a) b (-z) - S2 z)) =O[upperSectorAtTop δ]
       fun z => ‖exp z * z ^ (a - b - n)‖ + ‖z ^ (-a - n)‖ := by
     have hm := (isBigO_refl (fun z : ℂ => exp z) (upperSectorAtTop δ)).mul (hU2 n)
     refine hm.trans ?_
@@ -236,7 +237,7 @@ theorem regularizedHGFun_poincare_sector (a b : ℂ) (n : ℕ) {δ : ℝ}
       (by simp; linarith [arg_le_pi z]) w
   have hpow : ∀ s : ℕ, exp (π * I * s) = (-1) ^ s := fun s => by
     rw [show π * I * (s : ℂ) = s * (π * I) by ring, exp_nat_mul, exp_pi_mul_I]
-  have hconn := regularizedHGFun_eq_confluentU_connection a b hz.1 false (by simpa using hz.2)
+  have hconn := regularizedHGFun_eq_kummerU_connection a b hz.1 false (by simpa using hz.2)
   simp only [Bool.false_eq_true, ↓reduceIte] at hconn
   rw [show exp ((-1 : ℂ) * π * I) * z = -z by
     rw [show (-1 : ℂ) * π * I = -(π * I) by ring, exp_neg, exp_pi_mul_I]; ring] at hconn

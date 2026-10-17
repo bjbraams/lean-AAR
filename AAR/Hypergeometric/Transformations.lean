@@ -25,6 +25,8 @@ open scoped Real Topology
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- Powers multiply without a branch correction when both factors have positive real part. -/
 lemma mul_cpow_of_re_pos {u v : ℂ} (hu : 0 < u.re) (hv : 0 < v.re) (a : ℂ) :
     (u * v) ^ a = u ^ a * v ^ a := by
@@ -222,3 +224,5 @@ theorem pfaff_transformation_symm {a b c z : ℂ}
 
 -- The same family is the four representations of Kummer's first solution.
 attribute [dlmf 15.10.E11] euler_transformation pfaff_transformation pfaff_transformation_symm
+
+end AAR.Hypergeometric

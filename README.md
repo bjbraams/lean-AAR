@@ -32,6 +32,57 @@ area adds. Statements taken from the DLMF record their equation numbers with Mat
 
 `AAR.lean` imports all areas.
 
+## Naming conventions for special functions
+
+- **Names follow DLMF via Miller's content-dictionary proposal** (Miller, *RFC: DLMF Content
+  Dictionaries*, NIST 2018, in `References/`), adapted to Mathlib: lowerCamelCase with Mathlib's
+  capitalization, Mathlib's names where Mathlib already has the function, project namespaces,
+  correct spellings (Appell, Carlson), and redundant words dropped.
+- **Plain name: the analytic continuation** on its standard domain, which is named by a domain
+  predicate (`slitPlane`, `cutPlane`, `{z | 1 + z ∈ slitPlane}`, …) in the docstring and in theorem
+  hypotheses. Examples: `regularizedGaussHG` (on `cutPlane`), `kummerU`, `erf`, `besselJ`.
+- **`…Series` / `…Integral`: the native representation**, when it is a separate definition with its
+  own natural domain. Examples: `regularizedGaussHGIntegral` (Euler's integral), `polylogSeries`
+  (on the closed disc), `compEllIntKkSeries` (`₂F₁` in the modulus). The plain name is reserved
+  for the continuation even when that is not defined yet, as for `polylog`.
+- **Real-variable forms live in a `Real` sub-namespace** of the area namespace, mirroring Mathlib's
+  `Real.Gamma`/`Complex.Gamma`: `AAR.Polylog.Real.dilog`, `AAR.Confluent.Real.sinInt`,
+  `AAR.Statistical.Real.incBeta`. Their lemmas are `Real.hasDerivAt_dilog`, `Real.dilog_one`, ….
+- **Elliptic functions carry their argument convention as the last letter**, following Miller:
+  `k` for the modulus, `m = k²` for the parameter, `Tau` or `Q` for theta functions in `τ` or in
+  the nome `q`, and `Null` for theta constants (`z = 0`). Argument order is DLMF's.
+- **Bridge theorems** are named `X_eq_XSeries`, `X_eq_XIntegral`, or after the real form, with the
+  domain as hypothesis. Examples: `regularizedGaussHG_eq_regularizedGaussHGIntegral`,
+  `polylogSeries_two_ofReal_eq_dilog`. Bridges to an upstream series use the upstream name, as in
+  `regularizedGaussHG_eq_regularizedGaussHGFun` (Mathlib's `regularizedGaussHGFun` is the series).
+
+| Function (DLMF) | Lean name | Miller macro |
+| --- | --- | --- |
+| Kummer `M(a,b,z)`, `U(a,b,z)` (13.2) | `kummerM`, `kummerU` | `KummerconfhyperM`, `KummerconfhyperU` |
+| Whittaker `M_{κ,μ}`, `W_{κ,μ}` (13.14) | `whittakerM`, `whittakerW` | `WhittakerconfhyperM`, `…W` |
+| Hankel `H^{(1)}_ν`, `H^{(2)}_ν` (10.4) | `hankelH1`, `hankelH2` | `HankelH1`, `HankelH2` |
+| Modified Bessel `I_ν`, `K_ν` (10.25) | `besselI`, `besselK` | `modBesselI`, `modBesselK` |
+| Legendre `P_ν`, `Q_ν` (14.3) | `legendreP`, `legendreQ` | `assLegendreP`, `assLegendreQ` |
+| Ferrers `𝖯_ν^μ` (14.3) | `ferrersP` | `FerrersP` |
+| Classical OPs (18.3) | `jacobiPolyP`, `ultrasphPoly`, `legendrePolyP`, `laguerrePolyL`, `hermitePolyH` | `JacobipolyP`, …, `HermitepolyH` |
+| `γ(a,z)`, `Γ(a,z)` (8.2) | `lowerIncGamma`, `upperIncGamma` | `incgamma`, `incGamma` |
+| `P(a,z)`, `Q(a,z)`, `γ*(a,z)` (8.2) | `normIncGammaP`, `normIncGammaQ`, `scIncGamma` | `normincGammaP`, `…Q`, `scincgamma` |
+| `B_x(a,b)`, `I_x(a,b)` (8.17) | `Real.incBeta`, `Real.normIncBetaI` | `incBeta`, `normincBetaI` |
+| `erf`, `erfc`, Dawson `F` (7.2) | `erf`, `erfc`, `Real.dawsonF` | `erf`, `erfc`, `DawsonintF` |
+| Fresnel `C`, `S` (7.2) | `Real.fresnelCosInt`, `Real.fresnelSinInt` | `Fresnelcosint`, `Fresnelsinint` |
+| `Si`, `Ci`, `Cin`, `Ein`, `E_p` (6.2, 8.19) | `Real.sinInt`, `Real.cosInt`, `Real.cosIntCin`, `Real.expIntEin`, `genExpIntE` | `sinint`, `cosint`, `cosintCin`, `expintEin`, `genexpintE` |
+| `Li_s`, `Li₂`, `Li₃` (25.12) | `polylogSeries`, `Real.dilog`, `Real.trilog` | `polylog`, `dilog` |
+| Barnes `G`, `ψ^{(n)}`, `Γ_q`, `B_q`, `[n k]_q` | `barnesG`, `polygamma`, `qGamma`, `qBeta`, `qBinom` | `BarnesG`, `polygamma`, `qGamma`, `qBeta`, `qbinom` |
+| `K`, `E`, `Π`, `D` complete (19.2.8) | `compEllIntKk`/`…Km`, `compEllIntEk`/`…Em`, `compEllIntPik`/`…Pim`, `compEllIntDk`/`…Dm`; now `compEllIntKkSeries`, `Real.compEllIntKm`, `Real.compEllIntEm`, `Real.compEllIntPim` | `compellintKk`, `compellintEk`, `compellintPik`, `compellintDk` |
+| `F(φ,k)`, `E(φ,k)`, `Π(φ,α²,k)` (19.2.4–7) | `incEllIntFk`/`…Fm`, `incEllIntEk`/`…Em`, `incEllIntPik`/`…Pim`; now `Real.incEllIntFm`, `Real.incEllIntEm`, `Real.incEllIntPim` | `incellintFk`, `incellintEk`, `incellintPik` |
+| `K′`, `E′` (19.2.9) | `ccompEllIntKk`, `ccompEllIntEk` (planned) | `ccompellintKk`, `ccompellintEk` |
+| `am`, `sn`, `cn`, `dn`, `arcsn` (22.2, 22.15, 22.16) | `jacobiAmk`, `jacobiSnk`, …; now `Real.jacobiAmm`, `Real.jacobiSnm`, `Real.jacobiCnm`, `Real.jacobiDnm`, `Real.jacobiArcsnm` | `Jacobiamk`, `Jacobiellsnk`, …, `aJacobiellsnk` |
+| `θ_j(z\|τ)`, `θ_j(z,q)`, `θ_j(q)` (20.2) | `jacobiThetaOneTau`, …, `jacobiThetaFourTau`; `jacobiThetaOneQ`, … (planned); `Real.jacobiThetaThreeNullQ`, `Real.jacobiThetaFourNullQ` | `Jacobithetatau`, `Jacobithetaq` |
+| Carlson `R_F`, `R_D`, `R_C`, `R_J`, `R_G` (19.16) | `carlsonRF`, … (planned) | `CarsonsymellintRF`, … (sic) |
+
+The real digamma function is still `Real.digamma`, defined in Mathlib's `Real` namespace beside
+Mathlib's `Complex.digamma`; moving it into `AAR.Gamma.Real` is left for a later pass.
+
 ## Status
 
 Many statements are admitted (`sorry`) and remain proof obligations; the proved

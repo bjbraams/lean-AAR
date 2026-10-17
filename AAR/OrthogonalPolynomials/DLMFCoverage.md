@@ -14,16 +14,16 @@ Existing theorem statements and assumptions were preserved. The chapter aggregat
 
 ## Conventions and parameter restrictions
 
-- Existing `jacobiP`, `gegenbauer`, and `laguerre` use hypergeometric quotients. At singular lower parameters these are not polynomial continuation in the parameters. New statements therefore specify regular parameter ranges. `laguerreExtended` gives the finite polynomial continuation where negative integral parameters are needed, and its agreement with `laguerre` is proved on the regular domain.
+- Existing `jacobiPolyP`, `ultrasphPoly`, and `laguerrePolyL` use hypergeometric quotients. At singular lower parameters these are not polynomial continuation in the parameters. New statements therefore specify regular parameter ranges. `laguerreExtended` gives the finite polynomial continuation where negative integral parameters are needed, and its agreement with `laguerrePolyL` is proved on the regular domain.
 - Terminating ordinary and basic hypergeometric definitions use explicit finite cutoffs. Finite families carry degree and lattice bounds; positive-weight statements state their positivity and convergence ranges.
-- Mathlib `hermite` is the probabilists’ family; `hermitePhys` is the physicists’ family. Mathlib shifted Legendre uses `P_n(1-2x)`. Existing `qGegenbauer` and definitions named `Laurent` use the Laurent variable, with polynomial argument `(z+z⁻¹)/2`.
+- Mathlib `hermite` is the probabilists’ family; `hermitePolyH` is the physicists’ family. Mathlib shifted Legendre uses `P_n(1-2x)`. Existing `qGegenbauer` and definitions named `Laurent` use the Laurent variable, with polynomial argument `(z+z⁻¹)/2`.
 - New nonterminating Gauss formulas stay in their series convergence domains. Positive real arguments are used for several power/Bessel identities to make branch choices explicit. No unimplemented analytic continuation or principal-value integral is silently represented by an ordinary sum or integral.
 - A tag on a definition, a restricted theorem, or one table row records that correspondence only. It does not claim a proof, all parameter regimes, or every equality in a multi-part display.
 
 ## Source corrections
 
 1. [DLMF 18.2.11_1](https://dlmf.nist.gov/18.2.E11_1) has the wrong sign. Telescoping 18.2.11 gives the **negative** next-to-leading/leading coefficient ratio. See `sum_recurrenceDiagonal` in [GeneralIdentities.lean](GeneralIdentities.lean).
-2. [DLMF 18.12.17](https://dlmf.nist.gov/18.12.E17) prints `|z| < 1`, but the series requires `|z| < 1/2`. At `x=0`, the even coefficients are `(-1)^k (2k)!/(k!)²`, giving radius `1/2`. See `hermitePhys_half_factorial_generating_function` in [Series.lean](Series.lean).
+2. [DLMF 18.12.17](https://dlmf.nist.gov/18.12.E17) prints `|z| < 1`, but the series requires `|z| < 1/2`. At `x=0`, the even coefficients are `(-1)^k (2k)!/(k!)²`, giving radius `1/2`. See `hermitePolyH_half_factorial_generating_function` in [Series.lean](Series.lean).
 3. [DLMF 18.17.41](https://dlmf.nist.gov/18.17.E41) has an incorrect power of `a` and denominator-parameter shifts. For `n=0`, the printed answer is `Γ(z)/a²` instead of `Γ(z)/a^z`. The corrected denominator parameters are `(1-z-n)/2` and `(2-z-n)/2`. `hermite_mellin_laplace_transform` in [Integrals.lean](Integrals.lean) uses a finite coefficient sum to avoid removable singularities.
 
 These are checks of the displayed DLMF statements, documented beside the corresponding Lean declarations. They are not claims about errors in AAR. The corrected telescoping theorem is now proved; the other two correction theorems remain admitted. The finite Racah/dual-Hahn weight and norm displays in §18.25, in particular 18.25.14, are deferred pending a normalization check; no correction to that display is asserted here.
@@ -178,7 +178,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | --- | --- |
 | [18.3.E1](https://dlmf.nist.gov/18.3.E1) | [chebyshevT_discrete_orthogonality](../OrthogonalPolynomials/Explicit.lean) (line 269; local) |
 | [18.3.E2](https://dlmf.nist.gov/18.3.E2) | — Not separately tagged; see section review. |
-| [18.3.T1](https://dlmf.nist.gov/18.3.T1) | [laguerre_orthogonal](../OrthogonalPolynomials/Classical.lean) (line 263; local); [jacobiP_orthogonal](../OrthogonalPolynomials/Classical.lean) (line 611; local); [integral_eval_U_mul_of_ne](../OrthogonalPolynomials/General.lean) (line 766; local); [integral_eval_U_mul_self](../OrthogonalPolynomials/General.lean) (line 816; local); [jacobi_norm](../OrthogonalPolynomials/Integrals.lean) (line 31; local); [laguerre_norm](../OrthogonalPolynomials/Integrals.lean) (line 39; local); [hermitePhys_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 45; local); [hermite_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 51; local); [legendre_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 57; local); [gegenbauer_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 63; local); [Polynomial.Chebyshev.leadingCoeff_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 39; Mathlib comment); [Polynomial.Chebyshev.leadingCoeff_U_natCast](../OrthogonalPolynomials/MathlibCoverage.lean) (line 46; Mathlib comment); [Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne](../OrthogonalPolynomials/MathlibCoverage.lean) (line 242; Mathlib comment); [Polynomial.Chebyshev.integral_eval_T_real_mul_self_measureT_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 249; Mathlib comment); [Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 256; Mathlib comment); [Polynomial.degree_hermite](../OrthogonalPolynomials/MathlibCoverage.lean) (line 263; Mathlib comment); [Polynomial.hermite_monic](../OrthogonalPolynomials/MathlibCoverage.lean) (line 269; Mathlib comment); [Polynomial.leadingCoeff_hermite](../OrthogonalPolynomials/MathlibCoverage.lean) (line 275; Mathlib comment) |
+| [18.3.T1](https://dlmf.nist.gov/18.3.T1) | [laguerrePolyL_orthogonal](../OrthogonalPolynomials/Classical.lean) (line 263; local); [jacobiPolyP_orthogonal](../OrthogonalPolynomials/Classical.lean) (line 611; local); [integral_eval_U_mul_of_ne](../OrthogonalPolynomials/General.lean) (line 766; local); [integral_eval_U_mul_self](../OrthogonalPolynomials/General.lean) (line 816; local); [jacobi_norm](../OrthogonalPolynomials/Integrals.lean) (line 31; local); [laguerrePolyL_norm](../OrthogonalPolynomials/Integrals.lean) (line 39; local); [hermitePolyH_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 45; local); [hermite_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 51; local); [legendre_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 57; local); [ultrasphPoly_orthogonality](../OrthogonalPolynomials/Integrals.lean) (line 63; local); [Polynomial.Chebyshev.leadingCoeff_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 39; Mathlib comment); [Polynomial.Chebyshev.leadingCoeff_U_natCast](../OrthogonalPolynomials/MathlibCoverage.lean) (line 46; Mathlib comment); [Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne](../OrthogonalPolynomials/MathlibCoverage.lean) (line 242; Mathlib comment); [Polynomial.Chebyshev.integral_eval_T_real_mul_self_measureT_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 249; Mathlib comment); [Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 256; Mathlib comment); [Polynomial.degree_hermite](../OrthogonalPolynomials/MathlibCoverage.lean) (line 263; Mathlib comment); [Polynomial.hermite_monic](../OrthogonalPolynomials/MathlibCoverage.lean) (line 269; Mathlib comment); [Polynomial.leadingCoeff_hermite](../OrthogonalPolynomials/MathlibCoverage.lean) (line 275; Mathlib comment) |
 
 ### §18.5
 
@@ -189,75 +189,75 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.5.E3](https://dlmf.nist.gov/18.5.E3) | [chebyshevV_cos](../OrthogonalPolynomials/Explicit.lean) (line 58; local) |
 | [18.5.E4](https://dlmf.nist.gov/18.5.E4) | [chebyshevW_cos](../OrthogonalPolynomials/Explicit.lean) (line 62; local) |
 | [18.5.E4_5](https://dlmf.nist.gov/18.5.E4_5) | — Not separately tagged; see section review. |
-| [18.5.E5](https://dlmf.nist.gov/18.5.E5) | [jacobi_rodrigues](../OrthogonalPolynomials/Integrals.lean) (line 71; local); [laguerre_rodrigues](../OrthogonalPolynomials/Integrals.lean) (line 78; local) |
+| [18.5.E5](https://dlmf.nist.gov/18.5.E5) | [jacobi_rodrigues](../OrthogonalPolynomials/Integrals.lean) (line 71; local); [laguerrePolyL_rodrigues](../OrthogonalPolynomials/Integrals.lean) (line 78; local) |
 | [18.5.E6](https://dlmf.nist.gov/18.5.E6) | — Not separately tagged; see section review. |
-| [18.5.E7](https://dlmf.nist.gov/18.5.E7) | [jacobiP](../OrthogonalPolynomials/Classical.lean) (line 446; local); [jacobi_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 66; local); [Polynomial.coeff_shiftedLegendre](../OrthogonalPolynomials/MathlibCoverage.lean) (line 322; Mathlib comment) |
+| [18.5.E7](https://dlmf.nist.gov/18.5.E7) | [jacobiPolyP](../OrthogonalPolynomials/Classical.lean) (line 446; local); [jacobi_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 66; local); [Polynomial.coeff_shiftedLegendre](../OrthogonalPolynomials/MathlibCoverage.lean) (line 322; Mathlib comment) |
 | [18.5.E8](https://dlmf.nist.gov/18.5.E8) | [jacobi_binomial_sum](../OrthogonalPolynomials/Explicit.lean) (line 100; local) |
-| [18.5.E9](https://dlmf.nist.gov/18.5.E9) | [gegenbauer](../OrthogonalPolynomials/Classical.lean) (line 663; local) |
-| [18.5.E10](https://dlmf.nist.gov/18.5.E10) | [gegenbauer_finite_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
-| [18.5.E11](https://dlmf.nist.gov/18.5.E11) | [gegenbauer_cos_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.5.E9](https://dlmf.nist.gov/18.5.E9) | [ultrasphPoly](../OrthogonalPolynomials/Classical.lean) (line 663; local) |
+| [18.5.E10](https://dlmf.nist.gov/18.5.E10) | [ultrasphPoly_finite_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.5.E11](https://dlmf.nist.gov/18.5.E11) | [ultrasphPoly_cos_sum](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
 | [18.5.E11_1](https://dlmf.nist.gov/18.5.E11_1) | [chebyshevT_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 277; local) |
 | [18.5.E11_2](https://dlmf.nist.gov/18.5.E11_2) | [chebyshevT_hypergeometric](../OrthogonalPolynomials/Explicit.lean) (line 122; local) |
 | [18.5.E11_3](https://dlmf.nist.gov/18.5.E11_3) | [chebyshevU_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 284; local) |
-| [18.5.E11_4](https://dlmf.nist.gov/18.5.E11_4) | [gegenbauer_one_eq](../OrthogonalPolynomials/Classical.lean) (line 672; local) |
-| [18.5.E12](https://dlmf.nist.gov/18.5.E12) | [laguerre](../OrthogonalPolynomials/Classical.lean) (line 170; local); [laguerre_eq_sum](../OrthogonalPolynomials/Classical.lean) (line 299; local); [laguerreExtended](../OrthogonalPolynomials/Explicit.lean) (line 34; local); [laguerreExtended_eq](../OrthogonalPolynomials/Explicit.lean) (line 39; local) |
-| [18.5.E13](https://dlmf.nist.gov/18.5.E13) | [hermitePhys_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 127; local) |
+| [18.5.E11_4](https://dlmf.nist.gov/18.5.E11_4) | [ultrasphPoly_param_one_eq](../OrthogonalPolynomials/Classical.lean) (line 672; local) |
+| [18.5.E12](https://dlmf.nist.gov/18.5.E12) | [laguerrePolyL](../OrthogonalPolynomials/Classical.lean) (line 170; local); [laguerrePolyL_eq_sum](../OrthogonalPolynomials/Classical.lean) (line 299; local); [laguerreExtended](../OrthogonalPolynomials/Explicit.lean) (line 34; local); [laguerreExtended_eq](../OrthogonalPolynomials/Explicit.lean) (line 39; local) |
+| [18.5.E13](https://dlmf.nist.gov/18.5.E13) | [hermitePolyH_finite_sum](../OrthogonalPolynomials/Explicit.lean) (line 127; local) |
 | [18.5.E14](https://dlmf.nist.gov/18.5.E14) | [Polynomial.Chebyshev.T_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 53; Mathlib comment); [Polynomial.Chebyshev.T_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 59; Mathlib comment); [Polynomial.Chebyshev.T_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 65; Mathlib comment) |
 | [18.5.E15](https://dlmf.nist.gov/18.5.E15) | [Polynomial.Chebyshev.U_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 71; Mathlib comment); [Polynomial.Chebyshev.U_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 77; Mathlib comment); [Polynomial.Chebyshev.U_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 83; Mathlib comment) |
-| [18.5.E16](https://dlmf.nist.gov/18.5.E16) | [legendreP_zero](../OrthogonalPolynomials/Classical.lean) (line 459; local); [legendreP_one](../OrthogonalPolynomials/Topics.lean) (line 210; local) |
-| [18.5.E17](https://dlmf.nist.gov/18.5.E17) | [laguerre_zero](../OrthogonalPolynomials/Classical.lean) (line 174; local) |
-| [18.5.E17_5](https://dlmf.nist.gov/18.5.E17_5) | [laguerre_zero](../OrthogonalPolynomials/Classical.lean) (line 174; local) |
-| [18.5.E18](https://dlmf.nist.gov/18.5.E18) | [hermitePhys_zero](../OrthogonalPolynomials/Classical.lean) (line 43; local); [hermitePhys_one](../OrthogonalPolynomials/Classical.lean) (line 51; local); [hermitePhys_two](../OrthogonalPolynomials/Classical.lean) (line 55; local) |
+| [18.5.E16](https://dlmf.nist.gov/18.5.E16) | [legendrePolyP_zero](../OrthogonalPolynomials/Classical.lean) (line 459; local); [legendrePolyP_one](../OrthogonalPolynomials/Topics.lean) (line 210; local) |
+| [18.5.E17](https://dlmf.nist.gov/18.5.E17) | [laguerrePolyL_zero](../OrthogonalPolynomials/Classical.lean) (line 174; local) |
+| [18.5.E17_5](https://dlmf.nist.gov/18.5.E17_5) | [laguerrePolyL_zero](../OrthogonalPolynomials/Classical.lean) (line 174; local) |
+| [18.5.E18](https://dlmf.nist.gov/18.5.E18) | [hermitePolyH_zero](../OrthogonalPolynomials/Classical.lean) (line 43; local); [hermitePolyH_one](../OrthogonalPolynomials/Classical.lean) (line 51; local); [hermitePolyH_two](../OrthogonalPolynomials/Classical.lean) (line 55; local) |
 | [18.5.E19](https://dlmf.nist.gov/18.5.E19) | [Polynomial.hermite_zero](../OrthogonalPolynomials/MathlibCoverage.lean) (line 281; Mathlib comment); [Polynomial.hermite_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 287; Mathlib comment); [Polynomial.coeff_hermite](../OrthogonalPolynomials/MathlibCoverage.lean) (line 293; Mathlib comment) |
-| [18.5.T1](https://dlmf.nist.gov/18.5.T1) | [deriv_gaussian_eq_hermitePhys](../OrthogonalPolynomials/Classical.lean) (line 88; local); [Polynomial.deriv_gaussian_eq_hermite_mul_gaussian](../OrthogonalPolynomials/MathlibCoverage.lean) (line 307; Mathlib comment); [Polynomial.hermite_eq_deriv_gaussian](../OrthogonalPolynomials/MathlibCoverage.lean) (line 315; Mathlib comment) |
+| [18.5.T1](https://dlmf.nist.gov/18.5.T1) | [deriv_gaussian_eq_hermitePolyH](../OrthogonalPolynomials/Classical.lean) (line 88; local); [Polynomial.deriv_gaussian_eq_hermite_mul_gaussian](../OrthogonalPolynomials/MathlibCoverage.lean) (line 307; Mathlib comment); [Polynomial.hermite_eq_deriv_gaussian](../OrthogonalPolynomials/MathlibCoverage.lean) (line 315; Mathlib comment) |
 
 ### §18.6
 
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
-| [18.6.E1](https://dlmf.nist.gov/18.6.E1) | [laguerre_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 134; local) |
+| [18.6.E1](https://dlmf.nist.gov/18.6.E1) | [laguerrePolyL_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 134; local) |
 | [18.6.E2](https://dlmf.nist.gov/18.6.E2) | [jacobi_limit_alpha](../OrthogonalPolynomials/Limits.lean) (line 30; local) |
 | [18.6.E3](https://dlmf.nist.gov/18.6.E3) | [jacobi_limit_beta](../OrthogonalPolynomials/Limits.lean) (line 35; local) |
-| [18.6.E4](https://dlmf.nist.gov/18.6.E4) | [gegenbauer_limit_monomial](../OrthogonalPolynomials/Limits.lean) (line 40; local) |
-| [18.6.E5](https://dlmf.nist.gov/18.6.E5) | [laguerre_limit_monomial](../OrthogonalPolynomials/Limits.lean) (line 45; local) |
-| [18.6.T1](https://dlmf.nist.gov/18.6.T1) | [jacobi_reflection](../OrthogonalPolynomials/Explicit.lean) (line 138; local); [jacobi_at_one](../OrthogonalPolynomials/Explicit.lean) (line 143; local); [jacobi_symmetric_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 158; local); [gegenbauer_reflection](../OrthogonalPolynomials/Explicit.lean) (line 163; local); [gegenbauer_at_one](../OrthogonalPolynomials/Explicit.lean) (line 168; local); [gegenbauer_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 173; local); [hermitePhys_reflection](../OrthogonalPolynomials/Explicit.lean) (line 178; local); [hermitePhys_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 196; local); [chebyshevV_reflection](../OrthogonalPolynomials/Explicit.lean) (line 201; local); [chebyshevW_reflection](../OrthogonalPolynomials/Explicit.lean) (line 205; local); [chebyshevV_at_one](../OrthogonalPolynomials/Explicit.lean) (line 209; local); [chebyshevW_at_one](../OrthogonalPolynomials/Explicit.lean) (line 213; local); [Polynomial.Chebyshev.T_eval_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 89; Mathlib comment); [Polynomial.Chebyshev.T_eval_neg_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 95; Mathlib comment); [Polynomial.Chebyshev.T_eval_neg](../OrthogonalPolynomials/MathlibCoverage.lean) (line 101; Mathlib comment); [Polynomial.Chebyshev.U_eval_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 107; Mathlib comment); [Polynomial.Chebyshev.U_eval_neg_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 113; Mathlib comment); [Polynomial.Chebyshev.U_eval_neg](../OrthogonalPolynomials/MathlibCoverage.lean) (line 119; Mathlib comment); [Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff](../OrthogonalPolynomials/MathlibCoverage.lean) (line 228; Mathlib comment); [Polynomial.coeff_hermite_of_odd_add](../OrthogonalPolynomials/MathlibCoverage.lean) (line 301; Mathlib comment); [Polynomial.shiftedLegendre_eval_symm](../OrthogonalPolynomials/MathlibCoverage.lean) (line 329; Mathlib comment) |
+| [18.6.E4](https://dlmf.nist.gov/18.6.E4) | [ultrasphPoly_limit_monomial](../OrthogonalPolynomials/Limits.lean) (line 40; local) |
+| [18.6.E5](https://dlmf.nist.gov/18.6.E5) | [laguerrePolyL_limit_monomial](../OrthogonalPolynomials/Limits.lean) (line 45; local) |
+| [18.6.T1](https://dlmf.nist.gov/18.6.T1) | [jacobi_reflection](../OrthogonalPolynomials/Explicit.lean) (line 138; local); [jacobi_at_one](../OrthogonalPolynomials/Explicit.lean) (line 143; local); [jacobi_symmetric_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 158; local); [ultrasphPoly_reflection](../OrthogonalPolynomials/Explicit.lean) (line 163; local); [ultrasphPoly_at_one](../OrthogonalPolynomials/Explicit.lean) (line 168; local); [ultrasphPoly_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 173; local); [hermitePolyH_reflection](../OrthogonalPolynomials/Explicit.lean) (line 178; local); [hermitePolyH_even_at_zero](../OrthogonalPolynomials/Explicit.lean) (line 196; local); [chebyshevV_reflection](../OrthogonalPolynomials/Explicit.lean) (line 201; local); [chebyshevW_reflection](../OrthogonalPolynomials/Explicit.lean) (line 205; local); [chebyshevV_at_one](../OrthogonalPolynomials/Explicit.lean) (line 209; local); [chebyshevW_at_one](../OrthogonalPolynomials/Explicit.lean) (line 213; local); [Polynomial.Chebyshev.T_eval_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 89; Mathlib comment); [Polynomial.Chebyshev.T_eval_neg_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 95; Mathlib comment); [Polynomial.Chebyshev.T_eval_neg](../OrthogonalPolynomials/MathlibCoverage.lean) (line 101; Mathlib comment); [Polynomial.Chebyshev.U_eval_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 107; Mathlib comment); [Polynomial.Chebyshev.U_eval_neg_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 113; Mathlib comment); [Polynomial.Chebyshev.U_eval_neg](../OrthogonalPolynomials/MathlibCoverage.lean) (line 119; Mathlib comment); [Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff](../OrthogonalPolynomials/MathlibCoverage.lean) (line 228; Mathlib comment); [Polynomial.coeff_hermite_of_odd_add](../OrthogonalPolynomials/MathlibCoverage.lean) (line 301; Mathlib comment); [Polynomial.shiftedLegendre_eval_symm](../OrthogonalPolynomials/MathlibCoverage.lean) (line 329; Mathlib comment) |
 
 ### §18.7
 
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
-| [18.7.E1](https://dlmf.nist.gov/18.7.E1) | [gegenbauer_eq_jacobiP](../OrthogonalPolynomials/Classical.lean) (line 874; local) |
+| [18.7.E1](https://dlmf.nist.gov/18.7.E1) | [ultrasphPoly_eq_jacobiPolyP](../OrthogonalPolynomials/Classical.lean) (line 874; local) |
 | [18.7.E2](https://dlmf.nist.gov/18.7.E2) | — Not separately tagged; see section review. |
 | [18.7.E3](https://dlmf.nist.gov/18.7.E3) | [chebyshevT_eq_jacobi](../OrthogonalPolynomials/Explicit.lean) (line 218; local) |
-| [18.7.E4](https://dlmf.nist.gov/18.7.E4) | [eval_U_eq_gegenbauer](../OrthogonalPolynomials/Classical.lean) (line 843; local) |
+| [18.7.E4](https://dlmf.nist.gov/18.7.E4) | [eval_U_eq_ultrasphPoly](../OrthogonalPolynomials/Classical.lean) (line 843; local) |
 | [18.7.E5](https://dlmf.nist.gov/18.7.E5) | [chebyshevV](../OrthogonalPolynomials/Explicit.lean) (line 49; local) |
 | [18.7.E6](https://dlmf.nist.gov/18.7.E6) | [chebyshevW](../OrthogonalPolynomials/Explicit.lean) (line 54; local) |
 | [18.7.E7](https://dlmf.nist.gov/18.7.E7) | — Not separately tagged; see section review. |
 | [18.7.E8](https://dlmf.nist.gov/18.7.E8) | — Not separately tagged; see section review. |
-| [18.7.E9](https://dlmf.nist.gov/18.7.E9) | [legendreP](../OrthogonalPolynomials/Classical.lean) (line 455; local); [legendre_eq_gegenbauer](../OrthogonalPolynomials/Explicit.lean) (line 223; local); [legendreP_eq_normalized_gegenbauer](../OrthogonalPolynomials/Topics.lean) (line 203; local) |
-| [18.7.E10](https://dlmf.nist.gov/18.7.E10) | [aeval_shiftedLegendre_eq_legendreP](../OrthogonalPolynomials/Classical.lean) (line 482; local) |
-| [18.7.E11](https://dlmf.nist.gov/18.7.E11) | [aeval_hermitePhys_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
-| [18.7.E12](https://dlmf.nist.gov/18.7.E12) | [aeval_hermitePhys_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
+| [18.7.E9](https://dlmf.nist.gov/18.7.E9) | [legendrePolyP](../OrthogonalPolynomials/Classical.lean) (line 455; local); [legendre_eq_ultrasphPoly](../OrthogonalPolynomials/Explicit.lean) (line 223; local); [legendrePolyP_eq_normalized_ultrasphPoly](../OrthogonalPolynomials/Topics.lean) (line 203; local) |
+| [18.7.E10](https://dlmf.nist.gov/18.7.E10) | [aeval_shiftedLegendre_eq_legendrePolyP](../OrthogonalPolynomials/Classical.lean) (line 482; local) |
+| [18.7.E11](https://dlmf.nist.gov/18.7.E11) | [aeval_hermitePolyH_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
+| [18.7.E12](https://dlmf.nist.gov/18.7.E12) | [aeval_hermitePolyH_eq_hermite](../OrthogonalPolynomials/Classical.lean) (line 62; local) |
 | [18.7.E13](https://dlmf.nist.gov/18.7.E13) | [jacobi_quadratic_even](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
 | [18.7.E14](https://dlmf.nist.gov/18.7.E14) | [jacobi_quadratic_odd](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
-| [18.7.E15](https://dlmf.nist.gov/18.7.E15) | [gegenbauer_quadratic_even](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
-| [18.7.E16](https://dlmf.nist.gov/18.7.E16) | [gegenbauer_quadratic_odd](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.7.E15](https://dlmf.nist.gov/18.7.E15) | [ultrasphPoly_quadratic_even](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
+| [18.7.E16](https://dlmf.nist.gov/18.7.E16) | [ultrasphPoly_quadratic_odd](../OrthogonalPolynomials/GegenbauerSeries.lean) (local) |
 | [18.7.E17](https://dlmf.nist.gov/18.7.E17) | [chebyshevU_quadratic](../OrthogonalPolynomials/Explicit.lean) (line 250; local) |
 | [18.7.E18](https://dlmf.nist.gov/18.7.E18) | [chebyshevT_quadratic](../OrthogonalPolynomials/Explicit.lean) (line 254; local) |
-| [18.7.E19](https://dlmf.nist.gov/18.7.E19) | [hermitePhys_even_eq_laguerre](../OrthogonalPolynomials/Explicit.lean) (line 258; local) |
-| [18.7.E20](https://dlmf.nist.gov/18.7.E20) | [hermitePhys_odd_eq_laguerre](../OrthogonalPolynomials/Explicit.lean) (line 263; local) |
-| [18.7.E21](https://dlmf.nist.gov/18.7.E21) | [jacobi_limit_laguerre](../OrthogonalPolynomials/Limits.lean) (line 50; local) |
-| [18.7.E22](https://dlmf.nist.gov/18.7.E22) | [jacobi_limit_laguerre_reflected](../OrthogonalPolynomials/Limits.lean) (line 55; local) |
+| [18.7.E19](https://dlmf.nist.gov/18.7.E19) | [hermitePolyH_even_eq_laguerrePolyL](../OrthogonalPolynomials/Explicit.lean) (line 258; local) |
+| [18.7.E20](https://dlmf.nist.gov/18.7.E20) | [hermitePolyH_odd_eq_laguerrePolyL](../OrthogonalPolynomials/Explicit.lean) (line 263; local) |
+| [18.7.E21](https://dlmf.nist.gov/18.7.E21) | [jacobi_limit_laguerrePolyL](../OrthogonalPolynomials/Limits.lean) (line 50; local) |
+| [18.7.E22](https://dlmf.nist.gov/18.7.E22) | [jacobi_limit_laguerrePolyL_reflected](../OrthogonalPolynomials/Limits.lean) (line 55; local) |
 | [18.7.E23](https://dlmf.nist.gov/18.7.E23) | [jacobi_limit_hermite](../OrthogonalPolynomials/Limits.lean) (line 60; local) |
-| [18.7.E24](https://dlmf.nist.gov/18.7.E24) | [gegenbauer_limit_hermite](../OrthogonalPolynomials/Limits.lean) (line 66; local) |
-| [18.7.E25](https://dlmf.nist.gov/18.7.E25) | [gegenbauer_limit_chebyshev](../OrthogonalPolynomials/Limits.lean) (line 72; local) |
-| [18.7.E26](https://dlmf.nist.gov/18.7.E26) | [laguerre_limit_hermite](../OrthogonalPolynomials/Limits.lean) (line 78; local) |
+| [18.7.E24](https://dlmf.nist.gov/18.7.E24) | [ultrasphPoly_limit_hermite](../OrthogonalPolynomials/Limits.lean) (line 66; local) |
+| [18.7.E25](https://dlmf.nist.gov/18.7.E25) | [ultrasphPoly_limit_chebyshev](../OrthogonalPolynomials/Limits.lean) (line 72; local) |
+| [18.7.E26](https://dlmf.nist.gov/18.7.E26) | [laguerrePolyL_limit_hermite](../OrthogonalPolynomials/Limits.lean) (line 78; local) |
 
 ### §18.8
 
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
-| [18.8.T1](https://dlmf.nist.gov/18.8.T1) | [jacobi_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 104; local); [gegenbauer_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 119; local); [legendre_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 133; local); [laguerre_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 142; local); [hermitePhys_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 157; local); [hermite_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 168; local); [Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 153; Mathlib comment); [Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U](../OrthogonalPolynomials/MathlibCoverage.lean) (line 160; Mathlib comment) |
+| [18.8.T1](https://dlmf.nist.gov/18.8.T1) | [jacobi_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 104; local); [ultrasphPoly_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 119; local); [legendre_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 133; local); [laguerrePolyL_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 142; local); [hermitePolyH_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 157; local); [hermite_differential_equation](../OrthogonalPolynomials/Differential.lean) (line 168; local); [Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 153; Mathlib comment); [Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U](../OrthogonalPolynomials/MathlibCoverage.lean) (line 160; Mathlib comment) |
 
 ### §18.9
 
@@ -271,46 +271,46 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.9.E4](https://dlmf.nist.gov/18.9.E4) | [jacobi_contiguous_add](../OrthogonalPolynomials/Differential.lean) (line 211; local) |
 | [18.9.E5](https://dlmf.nist.gov/18.9.E5) | [jacobi_raise_beta](../OrthogonalPolynomials/Differential.lean) (line 216; local) |
 | [18.9.E6](https://dlmf.nist.gov/18.9.E6) | [jacobi_raise_degree_beta](../OrthogonalPolynomials/Differential.lean) (line 222; local) |
-| [18.9.E7](https://dlmf.nist.gov/18.9.E7) | [gegenbauer_raise_parameter](../OrthogonalPolynomials/Differential.lean) (line 228; local) |
-| [18.9.E8](https://dlmf.nist.gov/18.9.E8) | [gegenbauer_raise_parameter_sq](../OrthogonalPolynomials/Differential.lean) (line 234; local) |
+| [18.9.E7](https://dlmf.nist.gov/18.9.E7) | [ultrasphPoly_raise_parameter](../OrthogonalPolynomials/Differential.lean) (line 228; local) |
+| [18.9.E8](https://dlmf.nist.gov/18.9.E8) | [ultrasphPoly_raise_parameter_sq](../OrthogonalPolynomials/Differential.lean) (line 234; local) |
 | [18.9.E9](https://dlmf.nist.gov/18.9.E9) | [Polynomial.Chebyshev.U_eq_two_mul_T_add_U](../OrthogonalPolynomials/MathlibCoverage.lean) (line 141; Mathlib comment) |
 | [18.9.E10](https://dlmf.nist.gov/18.9.E10) | [Polynomial.Chebyshev.one_sub_X_sq_mul_U_eq_pol_in_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 344; Mathlib comment) |
 | [18.9.E11](https://dlmf.nist.gov/18.9.E11) | [chebyshevV_contiguous](../OrthogonalPolynomials/Differential.lean) (line 241; local) |
 | [18.9.E12](https://dlmf.nist.gov/18.9.E12) | [chebyshevV_mul_one_add](../OrthogonalPolynomials/Differential.lean) (line 246; local) |
-| [18.9.E13](https://dlmf.nist.gov/18.9.E13) | [laguerre_raise_parameter](../OrthogonalPolynomials/Differential.lean) (line 251; local) |
-| [18.9.E14](https://dlmf.nist.gov/18.9.E14) | [laguerre_mul_argument](../OrthogonalPolynomials/Differential.lean) (line 256; local) |
+| [18.9.E13](https://dlmf.nist.gov/18.9.E13) | [laguerrePolyL_raise_parameter](../OrthogonalPolynomials/Differential.lean) (line 251; local) |
+| [18.9.E14](https://dlmf.nist.gov/18.9.E14) | [laguerrePolyL_mul_argument](../OrthogonalPolynomials/Differential.lean) (line 256; local) |
 | [18.9.E15](https://dlmf.nist.gov/18.9.E15) | [jacobi_derivative](../OrthogonalPolynomials/Differential.lean) (line 275; local) |
 | [18.9.E16](https://dlmf.nist.gov/18.9.E16) | [jacobi_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 411; local) |
 | [18.9.E17](https://dlmf.nist.gov/18.9.E17) | [jacobi_lowering_derivative](../OrthogonalPolynomials/Differential.lean) (line 293; local) |
 | [18.9.E18](https://dlmf.nist.gov/18.9.E18) | [jacobi_raising_derivative](../OrthogonalPolynomials/Differential.lean) (line 300; local) |
 | [18.9.E18_5](https://dlmf.nist.gov/18.9.E18_5) | — Not separately tagged; see section review. |
-| [18.9.E19](https://dlmf.nist.gov/18.9.E19) | [gegenbauer_derivative](../OrthogonalPolynomials/Differential.lean) (line 307; local) |
-| [18.9.E20](https://dlmf.nist.gov/18.9.E20) | [gegenbauer_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 418; local) |
+| [18.9.E19](https://dlmf.nist.gov/18.9.E19) | [ultrasphPoly_derivative](../OrthogonalPolynomials/Differential.lean) (line 307; local) |
+| [18.9.E20](https://dlmf.nist.gov/18.9.E20) | [ultrasphPoly_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 418; local) |
 | [18.9.E21](https://dlmf.nist.gov/18.9.E21) | [Polynomial.Chebyshev.T_derivative_eq_U](../OrthogonalPolynomials/MathlibCoverage.lean) (line 147; Mathlib comment) |
 | [18.9.E22](https://dlmf.nist.gov/18.9.E22) | [chebyshevU_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 426; local) |
-| [18.9.E23](https://dlmf.nist.gov/18.9.E23) | [laguerre_derivative](../OrthogonalPolynomials/Differential.lean) (line 373; local) |
-| [18.9.E24](https://dlmf.nist.gov/18.9.E24) | [laguerre_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 432; local) |
-| [18.9.E25](https://dlmf.nist.gov/18.9.E25) | [hermitePhys_derivative](../OrthogonalPolynomials/Differential.lean) (line 31; local) |
-| [18.9.E26](https://dlmf.nist.gov/18.9.E26) | [hermitePhys_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 390; local) |
+| [18.9.E23](https://dlmf.nist.gov/18.9.E23) | [laguerrePolyL_derivative](../OrthogonalPolynomials/Differential.lean) (line 373; local) |
+| [18.9.E24](https://dlmf.nist.gov/18.9.E24) | [laguerrePolyL_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 432; local) |
+| [18.9.E25](https://dlmf.nist.gov/18.9.E25) | [hermitePolyH_derivative](../OrthogonalPolynomials/Differential.lean) (line 31; local) |
+| [18.9.E26](https://dlmf.nist.gov/18.9.E26) | [hermitePolyH_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 390; local) |
 | [18.9.E27](https://dlmf.nist.gov/18.9.E27) | [hermite_derivative](../OrthogonalPolynomials/Differential.lean) (line 47; local) |
 | [18.9.E28](https://dlmf.nist.gov/18.9.E28) | [hermite_weighted_derivative](../OrthogonalPolynomials/Differential.lean) (line 400; local) |
-| [18.9.T1](https://dlmf.nist.gov/18.9.T1) | [gegenbauer_recurrence](../OrthogonalPolynomials/Differential.lean) (line 184; local); [laguerre_recurrence](../OrthogonalPolynomials/Differential.lean) (line 190; local); [hermitePhys_recurrence](../OrthogonalPolynomials/Differential.lean) (line 196; local); [hermite_recurrence](../OrthogonalPolynomials/Differential.lean) (line 201; local); [Polynomial.Chebyshev.T_add_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 125; Mathlib comment); [Polynomial.Chebyshev.U_add_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 133; Mathlib comment); [gegenbauer_normalized_recurrence](../OrthogonalPolynomials/Topics.lean) (line 101; local); [legendreP_recurrence](../OrthogonalPolynomials/Topics.lean) (line 216; local) |
+| [18.9.T1](https://dlmf.nist.gov/18.9.T1) | [ultrasphPoly_recurrence](../OrthogonalPolynomials/Differential.lean) (line 184; local); [laguerrePolyL_recurrence](../OrthogonalPolynomials/Differential.lean) (line 190; local); [hermitePolyH_recurrence](../OrthogonalPolynomials/Differential.lean) (line 196; local); [hermite_recurrence](../OrthogonalPolynomials/Differential.lean) (line 201; local); [Polynomial.Chebyshev.T_add_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 125; Mathlib comment); [Polynomial.Chebyshev.U_add_two](../OrthogonalPolynomials/MathlibCoverage.lean) (line 133; Mathlib comment); [ultrasphPoly_normalized_recurrence](../OrthogonalPolynomials/Topics.lean) (line 101; local); [legendrePolyP_recurrence](../OrthogonalPolynomials/Topics.lean) (line 216; local) |
 | [18.9.T2](https://dlmf.nist.gov/18.9.T2) | — Not separately tagged; see section review. |
 
 ### §18.10
 
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
-| [18.10.E1](https://dlmf.nist.gov/18.10.E1) | [gegenbauer_dirichlet_integral](../OrthogonalPolynomials/Integrals.lean) (line 335; local) |
+| [18.10.E1](https://dlmf.nist.gov/18.10.E1) | [ultrasphPoly_dirichlet_integral](../OrthogonalPolynomials/Integrals.lean) (line 335; local) |
 | [18.10.E2](https://dlmf.nist.gov/18.10.E2) | [legendre_dirichlet_mehler](../OrthogonalPolynomials/Integrals.lean) (line 84; local) |
 | [18.10.E3](https://dlmf.nist.gov/18.10.E3) | [jacobi_double_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 345; local) |
-| [18.10.E4](https://dlmf.nist.gov/18.10.E4) | [gegenbauer_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 90; local) |
+| [18.10.E4](https://dlmf.nist.gov/18.10.E4) | [ultrasphPoly_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 90; local) |
 | [18.10.E5](https://dlmf.nist.gov/18.10.E5) | [legendre_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 98; local) |
-| [18.10.E6](https://dlmf.nist.gov/18.10.E6) | [laguerre_double_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 357; local) |
-| [18.10.E7](https://dlmf.nist.gov/18.10.E7) | [hermitePhys_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 104; local) |
+| [18.10.E6](https://dlmf.nist.gov/18.10.E6) | [laguerrePolyL_double_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 357; local) |
+| [18.10.E7](https://dlmf.nist.gov/18.10.E7) | [hermitePolyH_laplace_integral](../OrthogonalPolynomials/Integrals.lean) (line 104; local) |
 | [18.10.E8](https://dlmf.nist.gov/18.10.E8) | — Not separately tagged; see section review. |
-| [18.10.E9](https://dlmf.nist.gov/18.10.E9) | [laguerre_bessel_integral](../OrthogonalPolynomials/Integrals.lean) (line 366; local) |
-| [18.10.E10](https://dlmf.nist.gov/18.10.E10) | [hermitePhys_fourier_integral](../OrthogonalPolynomials/Integrals.lean) (line 110; local) |
+| [18.10.E9](https://dlmf.nist.gov/18.10.E9) | [laguerrePolyL_bessel_integral](../OrthogonalPolynomials/Integrals.lean) (line 366; local) |
+| [18.10.E10](https://dlmf.nist.gov/18.10.E10) | [hermitePolyH_fourier_integral](../OrthogonalPolynomials/Integrals.lean) (line 110; local) |
 | [18.10.T1](https://dlmf.nist.gov/18.10.T1) | — Not separately tagged; see section review. |
 
 ### §18.11
@@ -318,11 +318,11 @@ Every numbered equation and table extracted from the visited source pages is lis
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
 | [18.11.E1](https://dlmf.nist.gov/18.11.E1) | — Not separately tagged; see section review. |
-| [18.11.E2](https://dlmf.nist.gov/18.11.E2) | [laguerre_eq_sum_coeff](../OrthogonalPolynomials/Classical.lean) (line 179; local) |
+| [18.11.E2](https://dlmf.nist.gov/18.11.E2) | [laguerrePolyL_eq_sum_coeff](../OrthogonalPolynomials/Classical.lean) (line 179; local) |
 | [18.11.E3](https://dlmf.nist.gov/18.11.E3) | — Not separately tagged; see section review. |
 | [18.11.E4](https://dlmf.nist.gov/18.11.E4) | — Not separately tagged; see section review. |
 | [18.11.E5](https://dlmf.nist.gov/18.11.E5) | [jacobi_mehler_heine](../OrthogonalPolynomials/Limits.lean) (line 84; local) |
-| [18.11.E6](https://dlmf.nist.gov/18.11.E6) | [laguerre_mehler_heine](../OrthogonalPolynomials/Limits.lean) (line 90; local) |
+| [18.11.E6](https://dlmf.nist.gov/18.11.E6) | [laguerrePolyL_mehler_heine](../OrthogonalPolynomials/Limits.lean) (line 90; local) |
 | [18.11.E7](https://dlmf.nist.gov/18.11.E7) | [hermite_even_mehler_heine](../OrthogonalPolynomials/Limits.lean) (line 96; local) |
 | [18.11.E8](https://dlmf.nist.gov/18.11.E8) | [hermite_odd_mehler_heine](../OrthogonalPolynomials/Limits.lean) (line 102; local) |
 
@@ -335,20 +335,20 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.12.E2_5](https://dlmf.nist.gov/18.12.E2_5) | [jacobi_brafman_generating_function](../OrthogonalPolynomials/Series.lean) (line 239; local) |
 | [18.12.E3](https://dlmf.nist.gov/18.12.E3) | [jacobi_weighted_generating_function](../OrthogonalPolynomials/Series.lean) (line 250; local) |
 | [18.12.E3_5](https://dlmf.nist.gov/18.12.E3_5) | [jacobi_adjacent_generating_function](../OrthogonalPolynomials/Series.lean) (line 259; local) |
-| [18.12.E4](https://dlmf.nist.gov/18.12.E4) | [gegenbauer_generating_function](../OrthogonalPolynomials/Series.lean) (line 40; local) |
-| [18.12.E5](https://dlmf.nist.gov/18.12.E5) | [gegenbauer_weighted_generating_function](../OrthogonalPolynomials/Series.lean) (line 46; local) |
-| [18.12.E6](https://dlmf.nist.gov/18.12.E6) | [gegenbauer_bessel_generating_function](../OrthogonalPolynomials/Series.lean) (line 266; local) |
+| [18.12.E4](https://dlmf.nist.gov/18.12.E4) | [ultrasphPoly_generating_function](../OrthogonalPolynomials/Series.lean) (line 40; local) |
+| [18.12.E5](https://dlmf.nist.gov/18.12.E5) | [ultrasphPoly_weighted_generating_function](../OrthogonalPolynomials/Series.lean) (line 46; local) |
+| [18.12.E6](https://dlmf.nist.gov/18.12.E6) | [ultrasphPoly_bessel_generating_function](../OrthogonalPolynomials/Legendre.lean) (line 807; local) |
 | [18.12.E7](https://dlmf.nist.gov/18.12.E7) | [chebyshevT_poisson_generating_function](../OrthogonalPolynomials/Series.lean) (line 274; local) |
 | [18.12.E8](https://dlmf.nist.gov/18.12.E8) | [chebyshevT_generating_function](../OrthogonalPolynomials/Series.lean) (line 53; local) |
 | [18.12.E9](https://dlmf.nist.gov/18.12.E9) | [chebyshevT_log_generating_function](../OrthogonalPolynomials/Series.lean) (line 58; local) |
 | [18.12.E10](https://dlmf.nist.gov/18.12.E10) | [chebyshevU_generating_function](../OrthogonalPolynomials/Series.lean) (line 64; local) |
 | [18.12.E11](https://dlmf.nist.gov/18.12.E11) | [legendre_generating_function](../OrthogonalPolynomials/Series.lean) (line 69; local) |
 | [18.12.E12](https://dlmf.nist.gov/18.12.E12) | [legendre_exponential_generating_function](../OrthogonalPolynomials/Series.lean) (line 74; local) |
-| [18.12.E13](https://dlmf.nist.gov/18.12.E13) | [laguerre_generating_function](../OrthogonalPolynomials/Classical.lean) (line 384; local) |
-| [18.12.E14](https://dlmf.nist.gov/18.12.E14) | [laguerre_bessel_generating_function](../OrthogonalPolynomials/Series.lean) (line 281; local) |
-| [18.12.E15](https://dlmf.nist.gov/18.12.E15) | [hermitePhys_generating_function](../OrthogonalPolynomials/Classical.lean) (line 134; local) |
+| [18.12.E13](https://dlmf.nist.gov/18.12.E13) | [laguerrePolyL_generating_function](../OrthogonalPolynomials/Classical.lean) (line 384; local) |
+| [18.12.E14](https://dlmf.nist.gov/18.12.E14) | [laguerrePolyL_bessel_generating_function](../OrthogonalPolynomials/Series.lean) (line 281; local) |
+| [18.12.E15](https://dlmf.nist.gov/18.12.E15) | [hermitePolyH_generating_function](../OrthogonalPolynomials/Classical.lean) (line 134; local) |
 | [18.12.E16](https://dlmf.nist.gov/18.12.E16) | [hermite_generating_function](../OrthogonalPolynomials/Series.lean) (line 80; local) |
-| [18.12.E17](https://dlmf.nist.gov/18.12.E17) | [hermitePhys_half_factorial_generating_function](../OrthogonalPolynomials/Series.lean) (line 292; local) |
+| [18.12.E17](https://dlmf.nist.gov/18.12.E17) | [hermitePolyH_half_factorial_generating_function](../OrthogonalPolynomials/Series.lean) (line 292; local) |
 
 ### §18.13
 
@@ -357,8 +357,8 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.13.E1](https://dlmf.nist.gov/18.13.E1) | [chebyshevT_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 51; local) |
 | [18.13.E2](https://dlmf.nist.gov/18.13.E2) | [chebyshevU_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 66; local) |
 | [18.13.E3](https://dlmf.nist.gov/18.13.E3) | [legendre_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 79; local) |
-| [18.13.E4](https://dlmf.nist.gov/18.13.E4) | [laguerre_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 95; local) |
-| [18.13.E5](https://dlmf.nist.gov/18.13.E5) | [hermitePhys_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 101; local) |
+| [18.13.E4](https://dlmf.nist.gov/18.13.E4) | [laguerrePolyL_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 95; local) |
+| [18.13.E5](https://dlmf.nist.gov/18.13.E5) | [hermitePolyH_continued_fraction](../OrthogonalPolynomials/ContinuedFractions.lean) (line 101; local) |
 
 ### §18.14
 
@@ -368,16 +368,16 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.14.E2](https://dlmf.nist.gov/18.14.E2) | [jacobi_bound_at_neg_one](../OrthogonalPolynomials/BoundsZeros.lean) (line 35; local) |
 | [18.14.E3](https://dlmf.nist.gov/18.14.E3) | [jacobi_bernstein_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 40; local) |
 | [18.14.E3_5](https://dlmf.nist.gov/18.14.E3_5) | [jacobi_weighted_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 142; local) |
-| [18.14.E4](https://dlmf.nist.gov/18.14.E4) | [gegenbauer_bound_at_one](../OrthogonalPolynomials/BoundsZeros.lean) (line 48; local) |
-| [18.14.E5](https://dlmf.nist.gov/18.14.E5) | [gegenbauer_even_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 53; local) |
-| [18.14.E6](https://dlmf.nist.gov/18.14.E6) | [gegenbauer_odd_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 58; local) |
-| [18.14.E7](https://dlmf.nist.gov/18.14.E7) | [gegenbauer_bernstein_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 64; local) |
-| [18.14.E8](https://dlmf.nist.gov/18.14.E8) | [laguerre_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 70; local) |
-| [18.14.E9](https://dlmf.nist.gov/18.14.E9) | [hermitePhys_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 75; local) |
+| [18.14.E4](https://dlmf.nist.gov/18.14.E4) | [ultrasphPoly_bound_at_one](../OrthogonalPolynomials/BoundsZeros.lean) (line 48; local) |
+| [18.14.E5](https://dlmf.nist.gov/18.14.E5) | [ultrasphPoly_even_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 53; local) |
+| [18.14.E6](https://dlmf.nist.gov/18.14.E6) | [ultrasphPoly_odd_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 58; local) |
+| [18.14.E7](https://dlmf.nist.gov/18.14.E7) | [ultrasphPoly_bernstein_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 64; local) |
+| [18.14.E8](https://dlmf.nist.gov/18.14.E8) | [laguerrePolyL_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 70; local) |
+| [18.14.E9](https://dlmf.nist.gov/18.14.E9) | [hermitePolyH_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 75; local) |
 | [18.14.E10](https://dlmf.nist.gov/18.14.E10) | [turan_legendre](../OrthogonalPolynomials/Topics.lean) (line 226; local) |
-| [18.14.E11](https://dlmf.nist.gov/18.14.E11) | [jacobi_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 80; local); [turan_gegenbauer](../OrthogonalPolynomials/Topics.lean) (line 155; local) |
-| [18.14.E12](https://dlmf.nist.gov/18.14.E12) | [laguerre_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 86; local) |
-| [18.14.E13](https://dlmf.nist.gov/18.14.E13) | [hermitePhys_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 91; local) |
+| [18.14.E11](https://dlmf.nist.gov/18.14.E11) | [jacobi_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 80; local); [turan_ultrasphPoly](../OrthogonalPolynomials/Topics.lean) (line 155; local) |
+| [18.14.E12](https://dlmf.nist.gov/18.14.E12) | [laguerrePolyL_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 86; local) |
+| [18.14.E13](https://dlmf.nist.gov/18.14.E13) | [hermitePolyH_turan](../OrthogonalPolynomials/BoundsZeros.lean) (line 91; local) |
 | [18.14.E14](https://dlmf.nist.gov/18.14.E14) | — Not separately tagged; see section review. |
 | [18.14.E15](https://dlmf.nist.gov/18.14.E15) | — Not separately tagged; see section review. |
 | [18.14.E16](https://dlmf.nist.gov/18.14.E16) | — Not separately tagged; see section review. |
@@ -391,7 +391,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.14.E24](https://dlmf.nist.gov/18.14.E24) | — Not separately tagged; see section review. |
 | [18.14.E25](https://dlmf.nist.gov/18.14.E25) | [jacobi_positive_weighted_sum](../OrthogonalPolynomials/BoundsZeros.lean) (line 96; local) |
 | [18.14.E26](https://dlmf.nist.gov/18.14.E26) | [jacobi_positive_sum](../OrthogonalPolynomials/BoundsZeros.lean) (line 103; local) |
-| [18.14.E27](https://dlmf.nist.gov/18.14.E27) | [laguerre_positive_weighted_sum](../OrthogonalPolynomials/BoundsZeros.lean) (line 109; local) |
+| [18.14.E27](https://dlmf.nist.gov/18.14.E27) | [laguerrePolyL_positive_weighted_sum](../OrthogonalPolynomials/BoundsZeros.lean) (line 109; local) |
 | [18.14.i](https://dlmf.nist.gov/18.14.i) | [Polynomial.Chebyshev.abs_eval_T_real_le_one](../OrthogonalPolynomials/MathlibCoverage.lean) (line 235; Mathlib comment) |
 
 ### §18.15
@@ -443,18 +443,18 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.16.E9](https://dlmf.nist.gov/18.16.E9) | — Not separately tagged; see section review. |
 | [18.16.E10](https://dlmf.nist.gov/18.16.E10) | — Not separately tagged; see section review. |
 | [18.16.E11](https://dlmf.nist.gov/18.16.E11) | — Not separately tagged; see section review. |
-| [18.16.E12](https://dlmf.nist.gov/18.16.E12) | [laguerre_zero_lower_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 148; local) |
-| [18.16.E13](https://dlmf.nist.gov/18.16.E13) | [laguerre_zero_upper_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 155; local) |
+| [18.16.E12](https://dlmf.nist.gov/18.16.E12) | [laguerrePolyL_zero_lower_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 148; local) |
+| [18.16.E13](https://dlmf.nist.gov/18.16.E13) | [laguerrePolyL_zero_upper_bound](../OrthogonalPolynomials/BoundsZeros.lean) (line 155; local) |
 | [18.16.E14](https://dlmf.nist.gov/18.16.E14) | — Not separately tagged; see section review. |
 | [18.16.E15](https://dlmf.nist.gov/18.16.E15) | — Not separately tagged; see section review. |
-| [18.16.E16](https://dlmf.nist.gov/18.16.E16) | [hermitePhys_zeros](../OrthogonalPolynomials/BoundsZeros.lean) (line 127; local) |
+| [18.16.E16](https://dlmf.nist.gov/18.16.E16) | [hermitePolyH_zeros](../OrthogonalPolynomials/BoundsZeros.lean) (line 127; local) |
 | [18.16.E17](https://dlmf.nist.gov/18.16.E17) | — Not separately tagged; see section review. |
 | [18.16.E18](https://dlmf.nist.gov/18.16.E18) | — Not separately tagged; see section review. |
 | [18.16.E19](https://dlmf.nist.gov/18.16.E19) | [jacobi_discriminant](../OrthogonalPolynomials/BoundsZeros.lean) (line 169; local) |
-| [18.16.E20](https://dlmf.nist.gov/18.16.E20) | [laguerre_discriminant](../OrthogonalPolynomials/BoundsZeros.lean) (line 178; local) |
-| [18.16.E21](https://dlmf.nist.gov/18.16.E21) | [hermitePhys_discriminant](../OrthogonalPolynomials/BoundsZeros.lean) (line 185; local) |
+| [18.16.E20](https://dlmf.nist.gov/18.16.E20) | [laguerrePolyL_discriminant](../OrthogonalPolynomials/BoundsZeros.lean) (line 178; local) |
+| [18.16.E21](https://dlmf.nist.gov/18.16.E21) | [hermitePolyH_discriminant](../OrthogonalPolynomials/BoundsZeros.lean) (line 185; local) |
 | [18.16.i](https://dlmf.nist.gov/18.16.i) | [jacobi_zeros](../OrthogonalPolynomials/BoundsZeros.lean) (line 115; local) |
-| [18.16.iv](https://dlmf.nist.gov/18.16.iv) | [laguerre_zeros](../OrthogonalPolynomials/BoundsZeros.lean) (line 121; local) |
+| [18.16.iv](https://dlmf.nist.gov/18.16.iv) | [laguerrePolyL_zeros](../OrthogonalPolynomials/BoundsZeros.lean) (line 121; local) |
 | [18.16.iii](https://dlmf.nist.gov/18.16.iii) | [Polynomial.Chebyshev.roots_T_real](../OrthogonalPolynomials/MathlibCoverage.lean) (line 198; Mathlib comment); [Polynomial.Chebyshev.roots_U_real](../OrthogonalPolynomials/MathlibCoverage.lean) (line 206; Mathlib comment); [Polynomial.Chebyshev.rootMultiplicity_T_real](../OrthogonalPolynomials/MathlibCoverage.lean) (line 214; Mathlib comment); [Polynomial.Chebyshev.rootMultiplicity_U_real](../OrthogonalPolynomials/MathlibCoverage.lean) (line 221; Mathlib comment) |
 
 ### §18.17
@@ -462,10 +462,10 @@ Every numbered equation and table extracted from the visited source pages is lis
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
 | [18.17.E1](https://dlmf.nist.gov/18.17.E1) | [jacobi_weighted_integral](../OrthogonalPolynomials/Integrals.lean) (line 222; local) |
-| [18.17.E2](https://dlmf.nist.gov/18.17.E2) | [laguerre_unweighted_convolution](../OrthogonalPolynomials/Integrals.lean) (line 230; local) |
-| [18.17.E3](https://dlmf.nist.gov/18.17.E3) | [hermitePhys_integral](../OrthogonalPolynomials/Integrals.lean) (line 116; local) |
-| [18.17.E4](https://dlmf.nist.gov/18.17.E4) | [hermitePhys_weighted_integral](../OrthogonalPolynomials/Integrals.lean) (line 122; local) |
-| [18.17.E5](https://dlmf.nist.gov/18.17.E5) | [gegenbauer_product_integral](../OrthogonalPolynomials/Integrals.lean) (line 236; local) |
+| [18.17.E2](https://dlmf.nist.gov/18.17.E2) | [laguerrePolyL_unweighted_convolution](../OrthogonalPolynomials/Integrals.lean) (line 230; local) |
+| [18.17.E3](https://dlmf.nist.gov/18.17.E3) | [hermitePolyH_integral](../OrthogonalPolynomials/Integrals.lean) (line 116; local) |
+| [18.17.E4](https://dlmf.nist.gov/18.17.E4) | [hermitePolyH_weighted_integral](../OrthogonalPolynomials/Integrals.lean) (line 122; local) |
+| [18.17.E5](https://dlmf.nist.gov/18.17.E5) | [ultrasphPoly_product_integral](../OrthogonalPolynomials/Integrals.lean) (line 236; local) |
 | [18.17.E6](https://dlmf.nist.gov/18.17.E6) | [legendre_product_integral](../OrthogonalPolynomials/Integrals.lean) (line 128; local) |
 | [18.17.E7](https://dlmf.nist.gov/18.17.E7) | — Not separately tagged; see section review. |
 | [18.17.E8](https://dlmf.nist.gov/18.17.E8) | — Not separately tagged; see section review. |
@@ -474,18 +474,18 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.17.E11](https://dlmf.nist.gov/18.17.E11) | — Not separately tagged; see section review. |
 | [18.17.E12](https://dlmf.nist.gov/18.17.E12) | — Not separately tagged; see section review. |
 | [18.17.E13](https://dlmf.nist.gov/18.17.E13) | — Not separately tagged; see section review. |
-| [18.17.E14](https://dlmf.nist.gov/18.17.E14) | [laguerre_fractional_integral](../OrthogonalPolynomials/Integrals.lean) (line 135; local) |
-| [18.17.E15](https://dlmf.nist.gov/18.17.E15) | [laguerre_fractional_tail_integral](../OrthogonalPolynomials/Integrals.lean) (line 142; local) |
+| [18.17.E14](https://dlmf.nist.gov/18.17.E14) | [laguerrePolyL_fractional_integral](../OrthogonalPolynomials/Integrals.lean) (line 135; local) |
+| [18.17.E15](https://dlmf.nist.gov/18.17.E15) | [laguerrePolyL_fractional_tail_integral](../OrthogonalPolynomials/Integrals.lean) (line 142; local) |
 | [18.17.E16](https://dlmf.nist.gov/18.17.E16) | [jacobi_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 373; local) |
-| [18.17.E16_5](https://dlmf.nist.gov/18.17.E16_5) | [gegenbauer_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 254; local) |
-| [18.17.E17](https://dlmf.nist.gov/18.17.E17) | [gegenbauer_even_cosine_transform](../OrthogonalPolynomials/Integrals.lean) (line 382; local) |
-| [18.17.E18](https://dlmf.nist.gov/18.17.E18) | [gegenbauer_odd_sine_transform](../OrthogonalPolynomials/Integrals.lean) (line 390; local) |
+| [18.17.E16_5](https://dlmf.nist.gov/18.17.E16_5) | [ultrasphPoly_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 254; local) |
+| [18.17.E17](https://dlmf.nist.gov/18.17.E17) | [ultrasphPoly_even_cosine_transform](../OrthogonalPolynomials/Integrals.lean) (line 382; local) |
+| [18.17.E18](https://dlmf.nist.gov/18.17.E18) | [ultrasphPoly_odd_sine_transform](../OrthogonalPolynomials/Integrals.lean) (line 390; local) |
 | [18.17.E19](https://dlmf.nist.gov/18.17.E19) | [legendre_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 398; local) |
 | [18.17.E20](https://dlmf.nist.gov/18.17.E20) | — Not separately tagged; see section review. |
 | [18.17.E21](https://dlmf.nist.gov/18.17.E21) | [legendre_bessel_square_integral](../OrthogonalPolynomials/Integrals.lean) (line 262; local) |
 | [18.17.E21_1](https://dlmf.nist.gov/18.17.E21_1) | — Not separately tagged; see section review. |
-| [18.17.E21_2](https://dlmf.nist.gov/18.17.E21_2) | [hermitePhys_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 148; local) |
-| [18.17.E21_3](https://dlmf.nist.gov/18.17.E21_3) | [hermitePhys_fourier_eigenfunction](../OrthogonalPolynomials/Integrals.lean) (line 154; local) |
+| [18.17.E21_2](https://dlmf.nist.gov/18.17.E21_2) | [hermitePolyH_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 148; local) |
+| [18.17.E21_3](https://dlmf.nist.gov/18.17.E21_3) | [hermitePolyH_fourier_eigenfunction](../OrthogonalPolynomials/Integrals.lean) (line 154; local) |
 | [18.17.E22](https://dlmf.nist.gov/18.17.E22) | [hermite_fourier_eigenfunction](../OrthogonalPolynomials/Integrals.lean) (line 268; local) |
 | [18.17.E23](https://dlmf.nist.gov/18.17.E23) | [hermite_even_cosine_transform](../OrthogonalPolynomials/Integrals.lean) (line 274; local) |
 | [18.17.E24](https://dlmf.nist.gov/18.17.E24) | — Not separately tagged; see section review. |
@@ -493,20 +493,20 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.17.E26](https://dlmf.nist.gov/18.17.E26) | [hermite_product_sine_transform](../OrthogonalPolynomials/Integrals.lean) (line 294; local) |
 | [18.17.E27](https://dlmf.nist.gov/18.17.E27) | [hermite_odd_sine_transform](../OrthogonalPolynomials/Integrals.lean) (line 280; local) |
 | [18.17.E28](https://dlmf.nist.gov/18.17.E28) | — Not separately tagged; see section review. |
-| [18.17.E28_5](https://dlmf.nist.gov/18.17.E28_5) | [laguerre_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 160; local) |
+| [18.17.E28_5](https://dlmf.nist.gov/18.17.E28_5) | [laguerrePolyL_fourier_transform](../OrthogonalPolynomials/Integrals.lean) (line 160; local) |
 | [18.17.E29](https://dlmf.nist.gov/18.17.E29) | — Not separately tagged; see section review. |
 | [18.17.E30](https://dlmf.nist.gov/18.17.E30) | — Not separately tagged; see section review. |
 | [18.17.E31](https://dlmf.nist.gov/18.17.E31) | — Not separately tagged; see section review. |
 | [18.17.E32](https://dlmf.nist.gov/18.17.E32) | — Not separately tagged; see section review. |
 | [18.17.E33](https://dlmf.nist.gov/18.17.E33) | [jacobi_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 302; local) |
-| [18.17.E34](https://dlmf.nist.gov/18.17.E34) | [laguerre_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 404; local) |
-| [18.17.E34_5](https://dlmf.nist.gov/18.17.E34_5) | [laguerre_product_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 311; local) |
-| [18.17.E35](https://dlmf.nist.gov/18.17.E35) | [hermitePhys_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 166; local) |
+| [18.17.E34](https://dlmf.nist.gov/18.17.E34) | [laguerrePolyL_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 404; local) |
+| [18.17.E34_5](https://dlmf.nist.gov/18.17.E34_5) | [laguerrePolyL_product_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 311; local) |
+| [18.17.E35](https://dlmf.nist.gov/18.17.E35) | [hermitePolyH_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 166; local) |
 | [18.17.E36](https://dlmf.nist.gov/18.17.E36) | [jacobi_mellin_transform](../OrthogonalPolynomials/Integrals.lean) (line 172; local) |
-| [18.17.E37](https://dlmf.nist.gov/18.17.E37) | [gegenbauer_mellin_transform](../OrthogonalPolynomials/Integrals.lean) (line 410; local) |
+| [18.17.E37](https://dlmf.nist.gov/18.17.E37) | [ultrasphPoly_mellin_transform](../OrthogonalPolynomials/Integrals.lean) (line 410; local) |
 | [18.17.E38](https://dlmf.nist.gov/18.17.E38) | [legendre_even_mellin_transform](../OrthogonalPolynomials/Integrals.lean) (line 179; local) |
 | [18.17.E39](https://dlmf.nist.gov/18.17.E39) | [legendre_odd_mellin_transform](../OrthogonalPolynomials/Integrals.lean) (line 185; local) |
-| [18.17.E40](https://dlmf.nist.gov/18.17.E40) | [laguerre_mellin_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 421; local) |
+| [18.17.E40](https://dlmf.nist.gov/18.17.E40) | [laguerrePolyL_mellin_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 421; local) |
 | [18.17.E41](https://dlmf.nist.gov/18.17.E41) | [hermite_mellin_laplace_transform](../OrthogonalPolynomials/Integrals.lean) (line 325; local) |
 | [18.17.E41_5](https://dlmf.nist.gov/18.17.E41_5) | — Not separately tagged; see section review. |
 | [18.17.E42](https://dlmf.nist.gov/18.17.E42) | — Not separately tagged; see section review. |
@@ -514,9 +514,9 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.17.E44](https://dlmf.nist.gov/18.17.E44) | [legendre_singular_integral](../OrthogonalPolynomials/Integrals.lean) (line 191; local) |
 | [18.17.E45](https://dlmf.nist.gov/18.17.E45) | — Not separately tagged; see section review. |
 | [18.17.E46](https://dlmf.nist.gov/18.17.E46) | — Not separately tagged; see section review. |
-| [18.17.E47](https://dlmf.nist.gov/18.17.E47) | [laguerre_convolution](../OrthogonalPolynomials/Integrals.lean) (line 197; local) |
-| [18.17.E48](https://dlmf.nist.gov/18.17.E48) | [hermitePhys_convolution](../OrthogonalPolynomials/Integrals.lean) (line 205; local) |
-| [18.17.E49](https://dlmf.nist.gov/18.17.E49) | [hermitePhys_triple_integral](../OrthogonalPolynomials/Integrals.lean) (line 213; local) |
+| [18.17.E47](https://dlmf.nist.gov/18.17.E47) | [laguerrePolyL_convolution](../OrthogonalPolynomials/Integrals.lean) (line 197; local) |
+| [18.17.E48](https://dlmf.nist.gov/18.17.E48) | [hermitePolyH_convolution](../OrthogonalPolynomials/Integrals.lean) (line 205; local) |
+| [18.17.E49](https://dlmf.nist.gov/18.17.E49) | [hermitePolyH_triple_integral](../OrthogonalPolynomials/Integrals.lean) (line 213; local) |
 
 ### §18.18
 
@@ -531,39 +531,39 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.18.E7](https://dlmf.nist.gov/18.18.E7) | — Not separately tagged; see section review. |
 | [18.18.E8](https://dlmf.nist.gov/18.18.E8) | — Not separately tagged; see section review. |
 | [18.18.E9](https://dlmf.nist.gov/18.18.E9) | [legendre_addition](../OrthogonalPolynomials/Series.lean) (line 157; local) |
-| [18.18.E10](https://dlmf.nist.gov/18.18.E10) | [laguerre_addition](../OrthogonalPolynomials/Series.lean) (line 85; local) |
-| [18.18.E11](https://dlmf.nist.gov/18.18.E11) | [hermitePhys_addition](../OrthogonalPolynomials/Series.lean) (line 91; local) |
-| [18.18.E12](https://dlmf.nist.gov/18.18.E12) | [laguerre_multiplication](../OrthogonalPolynomials/Series.lean) (line 98; local) |
-| [18.18.E13](https://dlmf.nist.gov/18.18.E13) | [hermitePhys_multiplication](../OrthogonalPolynomials/Series.lean) (line 104; local) |
+| [18.18.E10](https://dlmf.nist.gov/18.18.E10) | [laguerrePolyL_addition](../OrthogonalPolynomials/Series.lean) (line 85; local) |
+| [18.18.E11](https://dlmf.nist.gov/18.18.E11) | [hermitePolyH_addition](../OrthogonalPolynomials/Series.lean) (line 91; local) |
+| [18.18.E12](https://dlmf.nist.gov/18.18.E12) | [laguerrePolyL_multiplication](../OrthogonalPolynomials/Series.lean) (line 98; local) |
+| [18.18.E13](https://dlmf.nist.gov/18.18.E13) | [hermitePolyH_multiplication](../OrthogonalPolynomials/Series.lean) (line 104; local) |
 | [18.18.E14](https://dlmf.nist.gov/18.18.E14) | — Not separately tagged; see section review. |
 | [18.18.E15](https://dlmf.nist.gov/18.18.E15) | — Not separately tagged; see section review. |
-| [18.18.E16](https://dlmf.nist.gov/18.18.E16) | [gegenbauer_connection](../OrthogonalPolynomials/Series.lean) (line 111; local) |
-| [18.18.E17](https://dlmf.nist.gov/18.18.E17) | [monomial_gegenbauer_expansion](../OrthogonalPolynomials/Series.lean) (line 118; local) |
-| [18.18.E18](https://dlmf.nist.gov/18.18.E18) | [laguerre_connection](../OrthogonalPolynomials/Series.lean) (line 124; local) |
-| [18.18.E19](https://dlmf.nist.gov/18.18.E19) | [monomial_laguerre_expansion](../OrthogonalPolynomials/Series.lean) (line 130; local) |
-| [18.18.E20](https://dlmf.nist.gov/18.18.E20) | [monomial_hermitePhys_expansion](../OrthogonalPolynomials/Series.lean) (line 136; local) |
+| [18.18.E16](https://dlmf.nist.gov/18.18.E16) | [ultrasphPoly_connection](../OrthogonalPolynomials/Series.lean) (line 111; local) |
+| [18.18.E17](https://dlmf.nist.gov/18.18.E17) | [monomial_ultrasphPoly_expansion](../OrthogonalPolynomials/Series.lean) (line 118; local) |
+| [18.18.E18](https://dlmf.nist.gov/18.18.E18) | [laguerrePolyL_connection](../OrthogonalPolynomials/Series.lean) (line 124; local) |
+| [18.18.E19](https://dlmf.nist.gov/18.18.E19) | [monomial_laguerrePolyL_expansion](../OrthogonalPolynomials/Series.lean) (line 130; local) |
+| [18.18.E20](https://dlmf.nist.gov/18.18.E20) | [monomial_hermitePolyH_expansion](../OrthogonalPolynomials/Series.lean) (line 136; local) |
 | [18.18.E21](https://dlmf.nist.gov/18.18.E21) | [Polynomial.Chebyshev.T_mul_T](../OrthogonalPolynomials/MathlibCoverage.lean) (line 168; Mathlib comment) |
-| [18.18.E22](https://dlmf.nist.gov/18.18.E22) | [gegenbauer_linearization](../OrthogonalPolynomials/Series.lean) (line 167; local) |
-| [18.18.E23](https://dlmf.nist.gov/18.18.E23) | [hermitePhys_linearization](../OrthogonalPolynomials/Series.lean) (line 142; local) |
+| [18.18.E22](https://dlmf.nist.gov/18.18.E22) | [ultrasphPoly_linearization](../OrthogonalPolynomials/Series.lean) (line 167; local) |
+| [18.18.E23](https://dlmf.nist.gov/18.18.E23) | [hermitePolyH_linearization](../OrthogonalPolynomials/Series.lean) (line 142; local) |
 | [18.18.E24](https://dlmf.nist.gov/18.18.E24) | — Not separately tagged; see section review. |
 | [18.18.E25](https://dlmf.nist.gov/18.18.E25) | — Not separately tagged; see section review. |
 | [18.18.E26](https://dlmf.nist.gov/18.18.E26) | — Not separately tagged; see section review. |
 | [18.18.E27](https://dlmf.nist.gov/18.18.E27) | — Not separately tagged; see section review. |
 | [18.18.E28](https://dlmf.nist.gov/18.18.E28) | [mehler_formula](../OrthogonalPolynomials/Series.lean) (line 149; local) |
-| [18.18.E29](https://dlmf.nist.gov/18.18.E29) | [gegenbauer_convolution](../OrthogonalPolynomials/Series.lean) (line 177; local) |
-| [18.18.E30](https://dlmf.nist.gov/18.18.E30) | [gegenbauer_geometric_convolution](../OrthogonalPolynomials/Series.lean) (line 182; local) |
+| [18.18.E29](https://dlmf.nist.gov/18.18.E29) | [ultrasphPoly_convolution](../OrthogonalPolynomials/Series.lean) (line 177; local) |
+| [18.18.E30](https://dlmf.nist.gov/18.18.E30) | [ultrasphPoly_geometric_convolution](../OrthogonalPolynomials/Series.lean) (line 182; local) |
 | [18.18.E31](https://dlmf.nist.gov/18.18.E31) | [chebyshev_geometric_sum](../OrthogonalPolynomials/Series.lean) (line 188; local) |
 | [18.18.E32](https://dlmf.nist.gov/18.18.E32) | [chebyshevT_even_sum](../OrthogonalPolynomials/Series.lean) (line 193; local) |
 | [18.18.E33](https://dlmf.nist.gov/18.18.E33) | [chebyshevT_odd_sum](../OrthogonalPolynomials/Series.lean) (line 198; local) |
 | [18.18.E34](https://dlmf.nist.gov/18.18.E34) | [chebyshevU_even_sum](../OrthogonalPolynomials/Series.lean) (line 203; local) |
 | [18.18.E35](https://dlmf.nist.gov/18.18.E35) | [chebyshevU_odd_sum](../OrthogonalPolynomials/Series.lean) (line 208; local) |
 | [18.18.E36](https://dlmf.nist.gov/18.18.E36) | [legendre_convolution](../OrthogonalPolynomials/Series.lean) (line 213; local) |
-| [18.18.E37](https://dlmf.nist.gov/18.18.E37) | [laguerre_sum](../OrthogonalPolynomials/Series.lean) (line 218; local) |
-| [18.18.E38](https://dlmf.nist.gov/18.18.E38) | [laguerre_addition](../OrthogonalPolynomials/Series.lean) (line 85; local) |
-| [18.18.E39](https://dlmf.nist.gov/18.18.E39) | [hermitePhys_addition](../OrthogonalPolynomials/Series.lean) (line 91; local) |
-| [18.18.E40](https://dlmf.nist.gov/18.18.E40) | [hermitePhys_even_convolution](../OrthogonalPolynomials/Series.lean) (line 223; local) |
-| [18.18.i](https://dlmf.nist.gov/18.18.i) | [jacobiP_complete](../OrthogonalPolynomials/Classical.lean) (line 892; local) |
-| [18.18.iv](https://dlmf.nist.gov/18.18.iv) | [jacobiP_connection](../OrthogonalPolynomials/Topics.lean) (line 27; local) |
+| [18.18.E37](https://dlmf.nist.gov/18.18.E37) | [laguerrePolyL_sum](../OrthogonalPolynomials/Series.lean) (line 218; local) |
+| [18.18.E38](https://dlmf.nist.gov/18.18.E38) | [laguerrePolyL_addition](../OrthogonalPolynomials/Series.lean) (line 85; local) |
+| [18.18.E39](https://dlmf.nist.gov/18.18.E39) | [hermitePolyH_addition](../OrthogonalPolynomials/Series.lean) (line 91; local) |
+| [18.18.E40](https://dlmf.nist.gov/18.18.E40) | [hermitePolyH_even_convolution](../OrthogonalPolynomials/Series.lean) (line 223; local) |
+| [18.18.i](https://dlmf.nist.gov/18.18.i) | [jacobiPolyP_complete](../OrthogonalPolynomials/Classical.lean) (line 892; local) |
+| [18.18.iv](https://dlmf.nist.gov/18.18.iv) | [jacobiPolyP_connection](../OrthogonalPolynomials/Topics.lean) (line 27; local) |
 
 ### §18.19
 
@@ -608,11 +608,11 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.21.E5](https://dlmf.nist.gov/18.21.E5) | [hahn_limit_jacobi](../OrthogonalPolynomials/Hahn.lean) (line 250; local) |
 | [18.21.E6](https://dlmf.nist.gov/18.21.E6) | [krawtchouk_limit_charlier](../OrthogonalPolynomials/Hahn.lean) (line 255; local) |
 | [18.21.E7](https://dlmf.nist.gov/18.21.E7) | [meixner_limit_charlier](../OrthogonalPolynomials/Hahn.lean) (line 260; local) |
-| [18.21.E8](https://dlmf.nist.gov/18.21.E8) | [meixner_limit_laguerre](../OrthogonalPolynomials/Hahn.lean) (line 276; local) |
+| [18.21.E8](https://dlmf.nist.gov/18.21.E8) | [meixner_limit_laguerrePolyL](../OrthogonalPolynomials/Hahn.lean) (line 276; local) |
 | [18.21.E9](https://dlmf.nist.gov/18.21.E9) | [charlier_limit_hermite](../OrthogonalPolynomials/Hahn.lean) (line 265; local) |
 | [18.21.E10](https://dlmf.nist.gov/18.21.E10) | — Not separately tagged; see section review. |
 | [18.21.E11](https://dlmf.nist.gov/18.21.E11) | — Not separately tagged; see section review. |
-| [18.21.E12](https://dlmf.nist.gov/18.21.E12) | [meixnerPollaczek_limit_laguerre](../OrthogonalPolynomials/Hahn.lean) (line 282; local) |
+| [18.21.E12](https://dlmf.nist.gov/18.21.E12) | [meixnerPollaczek_limit_laguerrePolyL](../OrthogonalPolynomials/Hahn.lean) (line 282; local) |
 | [18.21.E13](https://dlmf.nist.gov/18.21.E13) | [meixnerPollaczek_limit_hermite](../OrthogonalPolynomials/Hahn.lean) (line 288; local) |
 
 ### §18.22
@@ -748,13 +748,13 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.27.E14_3](https://dlmf.nist.gov/18.27.E14_3) | — Not separately tagged; see section review. |
 | [18.27.E14_4](https://dlmf.nist.gov/18.27.E14_4) | [littleQJacobi_limit_jacobi](../OrthogonalPolynomials/QFamilies.lean) (line 180; local) |
 | [18.27.E14_5](https://dlmf.nist.gov/18.27.E14_5) | [littleQLaguerre](../OrthogonalPolynomials/QFamilies.lean) (line 51; local) |
-| [18.27.E14_6](https://dlmf.nist.gov/18.27.E14_6) | [littleQLaguerre_limit_laguerre](../OrthogonalPolynomials/QFamilies.lean) (line 185; local) |
+| [18.27.E14_6](https://dlmf.nist.gov/18.27.E14_6) | [littleQLaguerre_limit_laguerrePolyL](../OrthogonalPolynomials/QFamilies.lean) (line 185; local) |
 | [18.27.E15](https://dlmf.nist.gov/18.27.E15) | [qLaguerre](../OrthogonalPolynomials/QFamilies.lean) (line 54; local) |
 | [18.27.E16](https://dlmf.nist.gov/18.27.E16) | [qLaguerre_orthogonal](../OrthogonalPolynomials/QFamilies.lean) (line 125; local) |
 | [18.27.E17](https://dlmf.nist.gov/18.27.E17) | — Not separately tagged; see section review. |
 | [18.27.E17_1](https://dlmf.nist.gov/18.27.E17_1) | — Not separately tagged; see section review. |
 | [18.27.E17_2](https://dlmf.nist.gov/18.27.E17_2) | — Not separately tagged; see section review. |
-| [18.27.E17_3](https://dlmf.nist.gov/18.27.E17_3) | [qLaguerre_limit_laguerre](../OrthogonalPolynomials/QFamilies.lean) (line 190; local) |
+| [18.27.E17_3](https://dlmf.nist.gov/18.27.E17_3) | [qLaguerre_limit_laguerrePolyL](../OrthogonalPolynomials/QFamilies.lean) (line 190; local) |
 | [18.27.E18](https://dlmf.nist.gov/18.27.E18) | [stieltjesWigert](../OrthogonalPolynomials/QFamilies.lean) (line 59; local) |
 | [18.27.E19](https://dlmf.nist.gov/18.27.E19) | — Not separately tagged; see section review. |
 | [18.27.E20](https://dlmf.nist.gov/18.27.E20) | [stieltjesWigert_orthogonal](../OrthogonalPolynomials/QFamilies.lean) (line 131; local) |
@@ -806,7 +806,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.28.E28](https://dlmf.nist.gov/18.28.E28) | — Not separately tagged; see section review. |
 | [18.28.E29](https://dlmf.nist.gov/18.28.E29) | [askeyWilson_limit_wilson](../OrthogonalPolynomials/QFamilies.lean) (line 195; local) |
 | [18.28.E30](https://dlmf.nist.gov/18.28.E30) | — Not separately tagged; see section review. |
-| [18.28.E31](https://dlmf.nist.gov/18.28.E31) | [qGegenbauer_limit_gegenbauer](../OrthogonalPolynomials/QFamilies.lean) (line 200; local) |
+| [18.28.E31](https://dlmf.nist.gov/18.28.E31) | [qGegenbauer_limit_ultrasphPoly](../OrthogonalPolynomials/QFamilies.lean) (line 200; local) |
 | [18.28.E32](https://dlmf.nist.gov/18.28.E32) | — Not separately tagged; see section review. |
 | [18.28.E33](https://dlmf.nist.gov/18.28.E33) | — Not separately tagged; see section review. |
 | [18.28.E34](https://dlmf.nist.gov/18.28.E34) | — Not separately tagged; see section review. |
@@ -840,7 +840,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.30.E16](https://dlmf.nist.gov/18.30.E16) | [associatedMeixnerPollaczek](../OrthogonalPolynomials/Associated.lean) (line 50; local) |
 | [18.30.E17](https://dlmf.nist.gov/18.30.E17) | — Not separately tagged; see section review. |
 | [18.30.E18](https://dlmf.nist.gov/18.30.E18) | — Not separately tagged; see section review. |
-| [18.30.E19](https://dlmf.nist.gov/18.30.E19) | [associatedPollaczek_limit_laguerre](../OrthogonalPolynomials/Associated.lean) (line 95; local) |
+| [18.30.E19](https://dlmf.nist.gov/18.30.E19) | [associatedPollaczek_limit_laguerrePolyL](../OrthogonalPolynomials/Associated.lean) (line 95; local) |
 | [18.30.E20](https://dlmf.nist.gov/18.30.E20) | [associatedPollaczek_limit_hermite](../OrthogonalPolynomials/Associated.lean) (line 101; local) |
 | [18.30.E21](https://dlmf.nist.gov/18.30.E21) | — Not separately tagged; see section review. |
 | [18.30.E22](https://dlmf.nist.gov/18.30.E22) | — Not separately tagged; see section review. |
@@ -909,7 +909,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
-| [18.34.E1](https://dlmf.nist.gov/18.34.E1) | [besselPolynomial](../OrthogonalPolynomials/Associated.lean) (line 61; local); [besselPolynomial_eq_laguerre](../OrthogonalPolynomials/Associated.lean) (line 108; local) |
+| [18.34.E1](https://dlmf.nist.gov/18.34.E1) | [besselPolynomial](../OrthogonalPolynomials/Associated.lean) (line 61; local); [besselPolynomial_eq_laguerrePolyL](../OrthogonalPolynomials/Associated.lean) (line 108; local) |
 | [18.34.E2](https://dlmf.nist.gov/18.34.E2) | [reverseBesselPolynomial](../OrthogonalPolynomials/Associated.lean) (line 66; local); [reverseBesselPolynomial_eq](../OrthogonalPolynomials/Associated.lean) (line 113; local) |
 | [18.34.E3](https://dlmf.nist.gov/18.34.E3) | — Not separately tagged; see section review. |
 | [18.34.E4](https://dlmf.nist.gov/18.34.E4) | [besselPolynomial_recurrence](../OrthogonalPolynomials/Associated.lean) (line 128; local) |
@@ -946,7 +946,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | [18.35.E6_5](https://dlmf.nist.gov/18.35.E6_5) | — Not separately tagged; see section review. |
 | [18.35.E6_6](https://dlmf.nist.gov/18.35.E6_6) | — Not separately tagged; see section review. |
 | [18.35.E7](https://dlmf.nist.gov/18.35.E7) | [pollaczek_generating_function](../OrthogonalPolynomials/Associated.lean) (line 178; local) |
-| [18.35.E8](https://dlmf.nist.gov/18.35.E8) | [pollaczek_eq_gegenbauer](../OrthogonalPolynomials/Associated.lean) (line 185; local) |
+| [18.35.E8](https://dlmf.nist.gov/18.35.E8) | [pollaczek_eq_ultrasphPoly](../OrthogonalPolynomials/Associated.lean) (line 185; local) |
 | [18.35.E9](https://dlmf.nist.gov/18.35.E9) | [pollaczek_eq_meixnerPollaczek](../OrthogonalPolynomials/Associated.lean) (line 190; local) |
 | [18.35.E10](https://dlmf.nist.gov/18.35.E10) | [pollaczek_eq_associatedMeixnerPollaczek](../OrthogonalPolynomials/Associated.lean) (line 195; local) |
 
@@ -955,7 +955,7 @@ Every numbered equation and table extracted from the visited source pages is lis
 | DLMF | Local declaration or Mathlib record |
 | --- | --- |
 | [18.36.E1](https://dlmf.nist.gov/18.36.E1) | — Not separately tagged; see section review. |
-| [18.36.E2](https://dlmf.nist.gov/18.36.E2) | [laguerre_negative_integer_parameter](../OrthogonalPolynomials/Associated.lean) (line 209; local) |
+| [18.36.E2](https://dlmf.nist.gov/18.36.E2) | [laguerrePolyL_negative_integer_parameter](../OrthogonalPolynomials/Associated.lean) (line 209; local) |
 | [18.36.E3](https://dlmf.nist.gov/18.36.E3) | [exceptionalLaguerreWeight](../OrthogonalPolynomials/Associated.lean) (line 80; local) |
 | [18.36.E4](https://dlmf.nist.gov/18.36.E4) | — Not separately tagged; see section review. |
 | [18.36.E5](https://dlmf.nist.gov/18.36.E5) | [exceptionalLaguerre](../OrthogonalPolynomials/Associated.lean) (line 76; local) |
@@ -996,9 +996,9 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Associated.lean](Associated.lean) | `exceptionalLaguerreWeight` | definition |
 | [Associated.lean](Associated.lean) | `exceptionalHermite` | definition |
 | [Associated.lean](Associated.lean) | `associated_zero` | proved |
-| [Associated.lean](Associated.lean) | `associatedPollaczek_limit_laguerre` | `sorry` |
+| [Associated.lean](Associated.lean) | `associatedPollaczek_limit_laguerrePolyL` | `sorry` |
 | [Associated.lean](Associated.lean) | `associatedPollaczek_limit_hermite` | `sorry` |
-| [Associated.lean](Associated.lean) | `besselPolynomial_eq_laguerre` | `sorry` |
+| [Associated.lean](Associated.lean) | `besselPolynomial_eq_laguerrePolyL` | `sorry` |
 | [Associated.lean](Associated.lean) | `reverseBesselPolynomial_eq` | proved |
 | [Associated.lean](Associated.lean) | `besselPolynomial_recurrence` | proved |
 | [Associated.lean](Associated.lean) | `besselPolynomial_differential_equation` | `sorry` |
@@ -1007,10 +1007,10 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Associated.lean](Associated.lean) | `pollaczek_reflection` | proved |
 | [Associated.lean](Associated.lean) | `pollaczek_finite_sum` | proved |
 | [Associated.lean](Associated.lean) | `pollaczek_generating_function` | proved |
-| [Associated.lean](Associated.lean) | `pollaczek_eq_gegenbauer` | `sorry` |
+| [Associated.lean](Associated.lean) | `pollaczek_eq_ultrasphPoly` | `sorry` |
 | [Associated.lean](Associated.lean) | `pollaczek_eq_meixnerPollaczek` | `sorry` |
 | [Associated.lean](Associated.lean) | `pollaczek_eq_associatedMeixnerPollaczek` | proved |
-| [Associated.lean](Associated.lean) | `laguerre_negative_integer_parameter` | `sorry` |
+| [Associated.lean](Associated.lean) | `laguerrePolyL_negative_integer_parameter` | `sorry` |
 | [Associated.lean](Associated.lean) | `exceptionalLaguerre_orthogonality` | `sorry` |
 | [Associated.lean](Associated.lean) | `exceptionalLaguerre_differential_equation` | `sorry` |
 | [Associated.lean](Associated.lean) | `exceptionalHermite_orthonormal` | `sorry` |
@@ -1018,74 +1018,74 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Associated.lean](Associated.lean) | `pollaczekAngularWeight` | definition |
 | [Associated.lean](Associated.lean) | `pollaczek_orthogonality` | `sorry` |
 | [Associated.lean](Associated.lean) | `morsePolynomialFunction` | definition |
-| [Associated.lean](Associated.lean) | `morsePolynomialFunction_ode` | `sorry` |
+| [Associated.lean](Associated.lean) | `morsePolynomialFunction_ode` | proved |
 | [Associated.lean](Associated.lean) | `morsePolynomialFunction_orthogonality` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bound_at_one` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bound_at_neg_one` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_bernstein_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_bound_at_one` | proved |
-| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_even_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_odd_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `gegenbauer_bernstein_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePhys_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `ultrasphPoly_bound_at_one` | proved |
+| [BoundsZeros.lean](BoundsZeros.lean) | `ultrasphPoly_even_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `ultrasphPoly_odd_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `ultrasphPoly_bernstein_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePolyH_bound` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_turan` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_turan` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePhys_turan` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_turan` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePolyH_turan` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_positive_weighted_sum` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_positive_sum` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_positive_weighted_sum` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_positive_weighted_sum` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_zeros` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_zeros` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePhys_zeros` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_zeros` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePolyH_zeros` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_darboux_asymptotic` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_weighted_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_zero_lower_bound` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_zero_upper_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_zero_lower_bound` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_zero_upper_bound` | `sorry` |
 | [BoundsZeros.lean](BoundsZeros.lean) | `rootDiscriminant` | definition |
 | [BoundsZeros.lean](BoundsZeros.lean) | `jacobi_discriminant` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `laguerre_discriminant` | `sorry` |
-| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePhys_discriminant` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `laguerrePolyL_discriminant` | `sorry` |
+| [BoundsZeros.lean](BoundsZeros.lean) | `hermitePolyH_discriminant` | `sorry` |
 | [ContinuedFractions.lean](ContinuedFractions.lean) | `polynomialFraction` | definition |
 | [ContinuedFractions.lean](ContinuedFractions.lean) | `chebyshevT_continued_fraction` | proved |
 | [ContinuedFractions.lean](ContinuedFractions.lean) | `chebyshevU_continued_fraction` | proved |
 | [ContinuedFractions.lean](ContinuedFractions.lean) | `legendre_continued_fraction` | proved |
-| [ContinuedFractions.lean](ContinuedFractions.lean) | `laguerre_continued_fraction` | `sorry` |
-| [ContinuedFractions.lean](ContinuedFractions.lean) | `hermitePhys_continued_fraction` | proved |
+| [ContinuedFractions.lean](ContinuedFractions.lean) | `laguerrePolyL_continued_fraction` | `sorry` |
+| [ContinuedFractions.lean](ContinuedFractions.lean) | `hermitePolyH_continued_fraction` | proved |
 | [Differential.lean](Differential.lean) | `jacobi_differential_equation` | proved |
-| [Differential.lean](Differential.lean) | `gegenbauer_differential_equation` | proved |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_differential_equation` | proved |
 | [Differential.lean](Differential.lean) | `legendre_differential_equation` | proved |
-| [Differential.lean](Differential.lean) | `laguerre_differential_equation` | proved |
-| [Differential.lean](Differential.lean) | `hermitePhys_differential_equation` | proved |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_differential_equation` | proved |
+| [Differential.lean](Differential.lean) | `hermitePolyH_differential_equation` | proved |
 | [Differential.lean](Differential.lean) | `hermite_differential_equation` | proved |
 | [Differential.lean](Differential.lean) | `jacobi_recurrence` | `sorry` |
-| [Differential.lean](Differential.lean) | `gegenbauer_recurrence` | `sorry` |
-| [Differential.lean](Differential.lean) | `laguerre_recurrence` | `sorry` |
-| [Differential.lean](Differential.lean) | `hermitePhys_recurrence` | proved |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_recurrence` | `sorry` |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_recurrence` | `sorry` |
+| [Differential.lean](Differential.lean) | `hermitePolyH_recurrence` | proved |
 | [Differential.lean](Differential.lean) | `hermite_recurrence` | proved |
 | [Differential.lean](Differential.lean) | `jacobi_contiguous_sub` | `sorry` |
 | [Differential.lean](Differential.lean) | `jacobi_contiguous_add` | `sorry` |
 | [Differential.lean](Differential.lean) | `jacobi_raise_beta` | `sorry` |
 | [Differential.lean](Differential.lean) | `jacobi_raise_degree_beta` | `sorry` |
-| [Differential.lean](Differential.lean) | `gegenbauer_raise_parameter` | `sorry` |
-| [Differential.lean](Differential.lean) | `gegenbauer_raise_parameter_sq` | `sorry` |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_raise_parameter` | `sorry` |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_raise_parameter_sq` | `sorry` |
 | [Differential.lean](Differential.lean) | `chebyshevV_contiguous` | `sorry` |
 | [Differential.lean](Differential.lean) | `chebyshevV_mul_one_add` | `sorry` |
-| [Differential.lean](Differential.lean) | `laguerre_raise_parameter` | `sorry` |
-| [Differential.lean](Differential.lean) | `laguerre_mul_argument` | `sorry` |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_raise_parameter` | `sorry` |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_mul_argument` | `sorry` |
 | [Differential.lean](Differential.lean) | `jacobi_derivative` | proved |
 | [Differential.lean](Differential.lean) | `jacobi_lowering_derivative` | `sorry` |
 | [Differential.lean](Differential.lean) | `jacobi_raising_derivative` | `sorry` |
-| [Differential.lean](Differential.lean) | `gegenbauer_derivative` | proved |
-| [Differential.lean](Differential.lean) | `laguerre_derivative` | proved |
-| [Differential.lean](Differential.lean) | `hermitePhys_derivative` | proved |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_derivative` | proved |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_derivative` | proved |
+| [Differential.lean](Differential.lean) | `hermitePolyH_derivative` | proved |
 | [Differential.lean](Differential.lean) | `hermite_derivative` | proved |
-| [Differential.lean](Differential.lean) | `hermitePhys_weighted_derivative` | proved |
+| [Differential.lean](Differential.lean) | `hermitePolyH_weighted_derivative` | proved |
 | [Differential.lean](Differential.lean) | `hermite_weighted_derivative` | proved |
 | [Differential.lean](Differential.lean) | `jacobi_weighted_derivative` | `sorry` |
-| [Differential.lean](Differential.lean) | `gegenbauer_weighted_derivative` | `sorry` |
+| [Differential.lean](Differential.lean) | `ultrasphPoly_weighted_derivative` | `sorry` |
 | [Differential.lean](Differential.lean) | `chebyshevU_weighted_derivative` | `sorry` |
-| [Differential.lean](Differential.lean) | `laguerre_weighted_derivative` | `sorry` |
+| [Differential.lean](Differential.lean) | `laguerrePolyL_weighted_derivative` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `laguerreExtended` | definition |
 | [Explicit.lean](Explicit.lean) | `laguerreExtended_eq` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevV` | definition |
@@ -1095,30 +1095,30 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Explicit.lean](Explicit.lean) | `jacobi_finite_sum` | proved |
 | [Explicit.lean](Explicit.lean) | `jacobi_binomial_sum` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_hypergeometric` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `hermitePhys_finite_sum` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `laguerre_at_zero` | proved |
+| [Explicit.lean](Explicit.lean) | `hermitePolyH_finite_sum` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `laguerrePolyL_at_zero` | proved |
 | [Explicit.lean](Explicit.lean) | `jacobi_reflection` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `jacobi_at_one` | proved |
 | [Explicit.lean](Explicit.lean) | `jacobi_symmetric_even_at_zero` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_reflection` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_at_one` | proved |
-| [Explicit.lean](Explicit.lean) | `gegenbauer_even_at_zero` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `hermitePhys_reflection` | proved |
-| [Explicit.lean](Explicit.lean) | `hermitePhys_even_at_zero` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `ultrasphPoly_reflection` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `ultrasphPoly_at_one` | proved |
+| [Explicit.lean](Explicit.lean) | `ultrasphPoly_even_at_zero` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `hermitePolyH_reflection` | proved |
+| [Explicit.lean](Explicit.lean) | `hermitePolyH_even_at_zero` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevV_reflection` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevW_reflection` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevV_at_one` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevW_at_one` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_eq_jacobi` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `legendre_eq_gegenbauer` | proved |
+| [Explicit.lean](Explicit.lean) | `legendre_eq_ultrasphPoly` | proved |
 | [GegenbauerSeries.lean](GegenbauerSeries.lean) | `jacobi_quadratic_even` | proved |
 | [GegenbauerSeries.lean](GegenbauerSeries.lean) | `jacobi_quadratic_odd` | proved |
-| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_quadratic_even` | proved |
-| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_quadratic_odd` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `ultrasphPoly_quadratic_even` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `ultrasphPoly_quadratic_odd` | proved |
 | [Explicit.lean](Explicit.lean) | `chebyshevU_quadratic` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_quadratic` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `hermitePhys_even_eq_laguerre` | `sorry` |
-| [Explicit.lean](Explicit.lean) | `hermitePhys_odd_eq_laguerre` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `hermitePolyH_even_eq_laguerrePolyL` | `sorry` |
+| [Explicit.lean](Explicit.lean) | `hermitePolyH_odd_eq_laguerrePolyL` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_discrete_orthogonality` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevT_finite_sum` | `sorry` |
 | [Explicit.lean](Explicit.lean) | `chebyshevU_finite_sum` | `sorry` |
@@ -1186,79 +1186,79 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [Hahn.lean](Hahn.lean) | `meixner_limit_charlier` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `charlier_limit_hermite` | proved |
 | [Hahn.lean](Hahn.lean) | `hahn_limit_meixner` | `sorry` |
-| [Hahn.lean](Hahn.lean) | `meixner_limit_laguerre` | `sorry` |
-| [Hahn.lean](Hahn.lean) | `meixnerPollaczek_limit_laguerre` | `sorry` |
+| [Hahn.lean](Hahn.lean) | `meixner_limit_laguerrePolyL` | `sorry` |
+| [Hahn.lean](Hahn.lean) | `meixnerPollaczek_limit_laguerrePolyL` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixnerPollaczek_limit_hermite` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `continuousHahn_difference_equation` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `meixnerPollaczek_difference_equation` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `continuousHahn_central_difference` | `sorry` |
 | [Hahn.lean](Hahn.lean) | `continuousHahn_generating_function` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_norm` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_norm` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_orthogonality` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_norm` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_orthogonality` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_orthogonality` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `legendre_orthogonality` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_orthogonality` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_orthogonality` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_rodrigues` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_rodrigues` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_rodrigues` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `legendre_dirichlet_mehler` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_laplace_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_laplace_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `legendre_laplace_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_laplace_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_fourier_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_weighted_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_laplace_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_fourier_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_weighted_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `legendre_product_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_fractional_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_fractional_tail_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_fourier_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_fourier_eigenfunction` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_fourier_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_laplace_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `jacobi_mellin_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `legendre_even_mellin_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `legendre_odd_mellin_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_fractional_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_fractional_tail_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_fourier_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_fourier_eigenfunction` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_fourier_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_laplace_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `jacobi_mellin_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `legendre_even_mellin_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `legendre_odd_mellin_transform` | proved |
 | [Integrals.lean](Integrals.lean) | `legendre_singular_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_convolution` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_convolution` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `hermitePhys_triple_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_convolution` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_convolution` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `hermitePolyH_triple_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_weighted_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_unweighted_convolution` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_product_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_unweighted_convolution` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_product_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_fractional_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_fourier_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_fourier_transform` | proved |
 | [Integrals.lean](Integrals.lean) | `legendre_bessel_square_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_fourier_eigenfunction` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_even_cosine_transform` | proved |
 | [Integrals.lean](Integrals.lean) | `hermite_odd_sine_transform` | proved |
 | [Integrals.lean](Integrals.lean) | `hermite_product_cosine_transform` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_product_sine_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `jacobi_laplace_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_product_laplace_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `jacobi_laplace_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_product_laplace_transform` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `hermite_mellin_laplace_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_dirichlet_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_dirichlet_integral` | `sorry` |
 | [Integrals.lean](Integrals.lean) | `jacobi_double_laplace_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_double_laplace_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_bessel_integral` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `jacobi_fourier_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_even_cosine_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_odd_sine_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `legendre_fourier_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_laplace_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `gegenbauer_mellin_transform` | `sorry` |
-| [Integrals.lean](Integrals.lean) | `laguerre_mellin_laplace_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_double_laplace_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_bessel_integral` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `jacobi_fourier_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_even_cosine_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_odd_sine_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `legendre_fourier_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_laplace_transform` | `sorry` |
+| [Integrals.lean](Integrals.lean) | `ultrasphPoly_mellin_transform` | proved |
+| [Integrals.lean](Integrals.lean) | `laguerrePolyL_mellin_laplace_transform` | `sorry` |
 | [Limits.lean](Limits.lean) | `jacobi_limit_alpha` | `sorry` |
 | [Limits.lean](Limits.lean) | `jacobi_limit_beta` | `sorry` |
-| [Limits.lean](Limits.lean) | `gegenbauer_limit_monomial` | `sorry` |
-| [Limits.lean](Limits.lean) | `laguerre_limit_monomial` | `sorry` |
-| [Limits.lean](Limits.lean) | `jacobi_limit_laguerre` | `sorry` |
-| [Limits.lean](Limits.lean) | `jacobi_limit_laguerre_reflected` | `sorry` |
+| [Limits.lean](Limits.lean) | `ultrasphPoly_limit_monomial` | `sorry` |
+| [Limits.lean](Limits.lean) | `laguerrePolyL_limit_monomial` | `sorry` |
+| [Limits.lean](Limits.lean) | `jacobi_limit_laguerrePolyL` | `sorry` |
+| [Limits.lean](Limits.lean) | `jacobi_limit_laguerrePolyL_reflected` | `sorry` |
 | [Limits.lean](Limits.lean) | `jacobi_limit_hermite` | `sorry` |
-| [Limits.lean](Limits.lean) | `gegenbauer_limit_hermite` | `sorry` |
-| [Limits.lean](Limits.lean) | `gegenbauer_limit_chebyshev` | `sorry` |
-| [Limits.lean](Limits.lean) | `laguerre_limit_hermite` | `sorry` |
+| [Limits.lean](Limits.lean) | `ultrasphPoly_limit_hermite` | `sorry` |
+| [Limits.lean](Limits.lean) | `ultrasphPoly_limit_chebyshev` | `sorry` |
+| [Limits.lean](Limits.lean) | `laguerrePolyL_limit_hermite` | `sorry` |
 | [Limits.lean](Limits.lean) | `jacobi_mehler_heine` | `sorry` |
-| [Limits.lean](Limits.lean) | `laguerre_mehler_heine` | `sorry` |
+| [Limits.lean](Limits.lean) | `laguerrePolyL_mehler_heine` | `sorry` |
 | [Limits.lean](Limits.lean) | `hermite_even_mehler_heine` | `sorry` |
 | [Limits.lean](Limits.lean) | `hermite_odd_mehler_heine` | `sorry` |
 | [Multivariate.lean](Multivariate.lean) | `diskPolynomial` | definition |
@@ -1292,10 +1292,10 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [QFamilies.lean](QFamilies.lean) | `qRacah_duality` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `qHahn_limit_hahn` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `littleQJacobi_limit_jacobi` | `sorry` |
-| [QFamilies.lean](QFamilies.lean) | `littleQLaguerre_limit_laguerre` | `sorry` |
-| [QFamilies.lean](QFamilies.lean) | `qLaguerre_limit_laguerre` | `sorry` |
+| [QFamilies.lean](QFamilies.lean) | `littleQLaguerre_limit_laguerrePolyL` | `sorry` |
+| [QFamilies.lean](QFamilies.lean) | `qLaguerre_limit_laguerrePolyL` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `askeyWilson_limit_wilson` | `sorry` |
-| [QFamilies.lean](QFamilies.lean) | `qGegenbauer_limit_gegenbauer` | `sorry` |
+| [QFamilies.lean](QFamilies.lean) | `qGegenbauer_limit_ultrasphPoly` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `discreteQHermiteI_limit_hermite` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `discreteQHermiteII_limit_hermite` | `sorry` |
 | [QFamilies.lean](QFamilies.lean) | `askeyWilsonDifferenceCoefficient` | definition |
@@ -1303,47 +1303,47 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 | [QFamilies.lean](QFamilies.lean) | `askeyWilsonAsymptoticCoefficient` | definition |
 | [QFamilies.lean](QFamilies.lean) | `askeyWilson_asymptotic` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_generating_function` | proved |
-| [Series.lean](Series.lean) | `gegenbauer_weighted_generating_function` | proved |
+| [Series.lean](Series.lean) | `ultrasphPoly_generating_function` | proved |
+| [Series.lean](Series.lean) | `ultrasphPoly_weighted_generating_function` | proved |
 | [Series.lean](Series.lean) | `chebyshevT_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_log_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `legendre_generating_function` | proved |
 | [Series.lean](Series.lean) | `legendre_exponential_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `hermite_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_addition` | proved |
-| [Series.lean](Series.lean) | `hermitePhys_addition` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_multiplication` | `sorry` |
-| [Series.lean](Series.lean) | `hermitePhys_multiplication` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_connection` | `sorry` |
-| [Series.lean](Series.lean) | `monomial_gegenbauer_expansion` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_connection` | `sorry` |
-| [Series.lean](Series.lean) | `monomial_laguerre_expansion` | `sorry` |
-| [Series.lean](Series.lean) | `monomial_hermitePhys_expansion` | `sorry` |
-| [Series.lean](Series.lean) | `hermitePhys_linearization` | `sorry` |
+| [Series.lean](Series.lean) | `laguerrePolyL_addition` | proved |
+| [Series.lean](Series.lean) | `hermitePolyH_addition` | `sorry` |
+| [Series.lean](Series.lean) | `laguerrePolyL_multiplication` | `sorry` |
+| [Series.lean](Series.lean) | `hermitePolyH_multiplication` | `sorry` |
+| [Series.lean](Series.lean) | `ultrasphPoly_connection` | `sorry` |
+| [Series.lean](Series.lean) | `monomial_ultrasphPoly_expansion` | `sorry` |
+| [Series.lean](Series.lean) | `laguerrePolyL_connection` | `sorry` |
+| [Series.lean](Series.lean) | `monomial_laguerrePolyL_expansion` | `sorry` |
+| [Series.lean](Series.lean) | `monomial_hermitePolyH_expansion` | `sorry` |
+| [Series.lean](Series.lean) | `hermitePolyH_linearization` | `sorry` |
 | [Series.lean](Series.lean) | `mehler_formula` | `sorry` |
 | [Series.lean](Series.lean) | `legendre_addition` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_linearization` | `sorry` |
-| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_finite_sum` | proved |
-| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `gegenbauer_cos_sum` | proved |
-| [Series.lean](Series.lean) | `gegenbauer_convolution` | proved |
-| [Series.lean](Series.lean) | `gegenbauer_geometric_convolution` | proved |
+| [Series.lean](Series.lean) | `ultrasphPoly_linearization` | `sorry` |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `ultrasphPoly_finite_sum` | proved |
+| [GegenbauerSeries.lean](GegenbauerSeries.lean) | `ultrasphPoly_cos_sum` | proved |
+| [Series.lean](Series.lean) | `ultrasphPoly_convolution` | proved |
+| [Series.lean](Series.lean) | `ultrasphPoly_geometric_convolution` | proved |
 | [Series.lean](Series.lean) | `chebyshev_geometric_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_even_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevT_odd_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_even_sum` | `sorry` |
 | [Series.lean](Series.lean) | `chebyshevU_odd_sum` | `sorry` |
 | [Series.lean](Series.lean) | `legendre_convolution` | proved |
-| [Series.lean](Series.lean) | `laguerre_sum` | `sorry` |
-| [Series.lean](Series.lean) | `hermitePhys_even_convolution` | proved |
+| [Series.lean](Series.lean) | `laguerrePolyL_sum` | `sorry` |
+| [Series.lean](Series.lean) | `hermitePolyH_even_convolution` | proved |
 | [Series.lean](Series.lean) | `jacobi_regularized_generating_function` | proved |
 | [Series.lean](Series.lean) | `jacobi_brafman_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_weighted_generating_function` | `sorry` |
 | [Series.lean](Series.lean) | `jacobi_adjacent_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `gegenbauer_bessel_generating_function` | `sorry` |
+| [Legendre.lean](Legendre.lean) | `ultrasphPoly_bessel_generating_function` | proved |
 | [Series.lean](Series.lean) | `chebyshevT_poisson_generating_function` | `sorry` |
-| [Series.lean](Series.lean) | `laguerre_bessel_generating_function` | proved |
-| [Series.lean](Series.lean) | `hermitePhys_half_factorial_generating_function` | proved |
+| [Series.lean](Series.lean) | `laguerrePolyL_bessel_generating_function` | proved |
+| [Series.lean](Series.lean) | `hermitePolyH_half_factorial_generating_function` | proved |
 | [UnitCircle.lean](UnitCircle.lean) | `reflectedPolynomial` | definition |
 | [UnitCircle.lean](UnitCircle.lean) | `IsUnitCircleOP` | definition |
 | [UnitCircle.lean](UnitCircle.lean) | `verblunskyCoefficient` | definition |
@@ -1382,8 +1382,8 @@ All names below are in namespace `AAR.OrthogonalPolynomials`. This checklist ide
 ## Pre-existing admissions retained
 
 - `favard` and `orthogonal_polynomials_parseval` in `General.lean`.
-- `jacobiP_complete` in `Classical.lean`.
-- `jacobiP_connection`, `vietoris_inequality`, `gegenbauer_cesaro_nonneg`, and `irrational_riemannZeta_three` in `Topics.lean`.
+- `jacobiPolyP_complete` in `Classical.lean`.
+- `jacobiPolyP_connection`, `vietoris_inequality`, `ultrasphPoly_cesaro_nonneg`, and `irrational_riemannZeta_three` in `Topics.lean`.
 
 ## Acquisition validation (before subsequent proof work)
 

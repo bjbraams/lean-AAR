@@ -116,3 +116,17 @@ absent.
 | [5.16](https://dlmf.nist.gov/5.16) | 2 / 2 | New |
 | [5.17](https://dlmf.nist.gov/5.17) | 7 / 7 | Barnes `G` defined by 5.17.3 |
 | [5.18](https://dlmf.nist.gov/5.18) | 12 / 12 | Core `q`-gamma existing; remainder new |
+
+## Proof status (2026-10-17)
+
+Proved on 2026-10-17: 5.4.19 (`digamma_rat`), 5.6.2, 5.6.3, 5.6.9, 5.7.2, 5.7.3,
+5.9.2_5 (`inv_Gamma_binet`), 5.11.9, 5.11.13, 5.11.19, 5.12.5, 5.12.6, 5.13.2, 5.13.4,
+5.14.5, 5.17.1, 5.17.2, 5.17.4, 5.17.5, 5.18.8, 5.18.9, 5.18.10. The Selberg integral
+(`AAR/Selberg/Basic.lean`) and Aomoto's integral were proved the same day.
+
+5.12.8 was restated with `Γ(a+b)/((a+b-1)Γ(a)Γ(b))` in place of `1/((a+b-1) B(a,b))`
+(Mathlib's `betaIntegral` vanishes for `Re a ≤ 0`) and proved, together with 5.14.6 and
+5.14.7, later the same day.
+
+Still admitted in `AAR/Gamma` (2): 5.6.8 (`Gamma_ratio_norm_le`) and 5.13.5
+(de Branges–Wilson).

@@ -22,6 +22,8 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
@@ -88,28 +90,29 @@ lemma deriv_half_shift (f : ℂ → ℂ) :
 
 @[dlmf 18.8.T1]
 theorem jacobi_differential_equation {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (1 - x ^ 2) * deriv (deriv (jacobiP α β n)) x +
-      (β - α - (α + β + 2) * x) * deriv (jacobiP α β n) x +
-      n * (n + α + β + 1) * jacobiP α β n x = 0 := by
+    (1 - x ^ 2) * deriv (deriv (jacobiPolyP α β n)) x +
+      (β - α - (α + β + 2) * x) * deriv (jacobiPolyP α β n) x +
+      n * (n + α + β + 1) * jacobiPolyP α β n x = 0 := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have ho := gauss_neg_nat_ode n (n + α + β + 1) hc ((1 - x) / 2)
-  have he : jacobiP α β n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
+  have he : jacobiPolyP α β n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
       ₂F₁ (-(n : ℂ)) (n + α + β + 1) (α + 1) ((1 - z) / 2) := rfl
   rw [he]
   simp only [deriv_const_mul_field', deriv_half_shift]
   linear_combination (poch (α + 1) n / (n.factorial : ℂ)) * ho
 
 @[dlmf 18.8.T1]
-theorem gegenbauer_differential_equation {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    (1 - x ^ 2) * deriv (deriv (gegenbauer lam n)) x -
-      (2 * lam + 1) * x * deriv (gegenbauer lam n) x + n * (n + 2 * lam) * gegenbauer lam n x = 0 := by
+theorem ultrasphPoly_differential_equation {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    (1 - x ^ 2) * deriv (deriv (ultrasphPoly lam n)) x -
+      (2 * lam + 1) * x * deriv (ultrasphPoly lam n) x + n * (n + 2 * lam) * ultrasphPoly lam n x
+          = 0 := by
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     linarith)
   have ho := gauss_neg_nat_ode n (n + 2 * lam) hc ((1 - x) / 2)
-  have he : gegenbauer lam n = fun z => poch (2 * lam) n / (n.factorial : ℂ) *
+  have he : ultrasphPoly lam n = fun z => poch (2 * lam) n / (n.factorial : ℂ) *
       ₂F₁ (-(n : ℂ)) (n + 2 * lam) (lam + 1 / 2) ((1 - z) / 2) := rfl
   rw [he]
   simp only [deriv_const_mul_field', deriv_half_shift]
@@ -117,34 +120,35 @@ theorem gegenbauer_differential_equation {lam : ℂ} (hlam : -1 / 2 < lam.re) (n
 
 @[dlmf 18.8.T1]
 theorem legendre_differential_equation (n : ℕ) (x : ℂ) :
-    (1 - x ^ 2) * deriv (deriv (legendreP n)) x -
-      2 * x * deriv (legendreP n) x + n * (n + 1) * legendreP n x = 0 := by
+    (1 - x ^ 2) * deriv (deriv (legendrePolyP n)) x -
+      2 * x * deriv (legendrePolyP n) x + n * (n + 1) * legendrePolyP n x = 0 := by
   have h := jacobi_differential_equation (α := 0) (β := 0) (by norm_num) n x
-  change (1 - x ^ 2) * deriv (deriv (jacobiP 0 0 n)) x -
-    2 * x * deriv (jacobiP 0 0 n) x + n * (n + 1) * jacobiP 0 0 n x = 0
+  change (1 - x ^ 2) * deriv (deriv (jacobiPolyP 0 0 n)) x -
+    2 * x * deriv (jacobiPolyP 0 0 n) x + n * (n + 1) * jacobiPolyP 0 0 n x = 0
   linear_combination h
 
 @[dlmf 18.8.T1]
-theorem laguerre_differential_equation {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    x * deriv (deriv (laguerre α n)) x + (α + 1 - x) * deriv (laguerre α n) x + n * laguerre α n x = 0 := by
+theorem laguerrePolyL_differential_equation {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    x * deriv (deriv (laguerrePolyL α n)) x + (α + 1 - x) * deriv (laguerrePolyL α n) x + n
+        * laguerrePolyL α n x = 0 := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have ho := (hasFPowerSeriesOnBall_confluentM (a := -(n : ℂ)) hc).ode_of_recurrence
+  have ho := (hasFPowerSeriesOnBall_kummerM (a := -(n : ℂ)) hc).ode_of_recurrence
     (A := 0) (B := 1) (C := -(n : ℂ)) (D := α + 1)
-    (fun k => by rw [confluentHGCoeff_recurrence hc]; ring) (z := x) (by simp)
-  have he : laguerre α n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
-      confluentM (-(n : ℂ)) (α + 1) z := rfl
+    (fun k => by rw [kummerMCoeff_recurrence hc]; ring) (z := x) (by simp)
+  have he : laguerrePolyL α n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
+      kummerM (-(n : ℂ)) (α + 1) z := rfl
   rw [he]
   simp only [deriv_const_mul_field']
   linear_combination (poch (α + 1) n / (n.factorial : ℂ)) * ho
 
 @[dlmf 18.8.T1]
-theorem hermitePhys_differential_equation (n : ℕ) :
-    derivative (derivative (hermitePhys n)) - 2 * X * derivative (hermitePhys n) +
-      C (2 * n : ℤ) * hermitePhys n = 0 := by
-  have hd := congrArg derivative (hermitePhys_succ n)
-  rw [hermitePhys_derivative] at hd
+theorem hermitePolyH_differential_equation (n : ℕ) :
+    derivative (derivative (hermitePolyH n)) - 2 * X * derivative (hermitePolyH n) +
+      C (2 * n : ℤ) * hermitePolyH n = 0 := by
+  have hd := congrArg derivative (hermitePolyH_succ n)
+  rw [hermitePolyH_derivative] at hd
   simp only [derivative_sub, derivative_mul, derivative_ofNat, derivative_X,
     zero_mul, zero_add, mul_one] at hd
   simp only [map_add, map_mul, map_natCast, map_ofNat, map_one] at hd ⊢
@@ -169,37 +173,37 @@ lemma isOpen_half_shift_disk : IsOpen {x : ℂ | ‖(1 - x) / 2‖ < 1} :=
   isOpen_lt (by fun_prop) continuous_const
 
 /-- Jacobi polynomials are entire in `x`. -/
-lemma analyticOnNhd_jacobiP (α β : ℂ) (n : ℕ) :
-    AnalyticOnNhd ℂ (fun x => jacobiP α β n x) Set.univ := by
+lemma analyticOnNhd_jacobiPolyP (α β : ℂ) (n : ℕ) :
+    AnalyticOnNhd ℂ (fun x => jacobiPolyP α β n x) Set.univ := by
   intro x _
-  unfold jacobiP
+  unfold jacobiPolyP
   have hf : AnalyticAt ℂ (fun w : ℂ => (1 - w) / 2) x := by fun_prop (disch := norm_num)
   exact analyticAt_const.mul
     (AnalyticAt.comp (f := fun w : ℂ => (1 - w) / 2) (analyticAt_gauss_neg_nat n _ _ _) hf)
 
 /-- Gegenbauer polynomials are entire in `x`. -/
-lemma analyticOnNhd_gegenbauer (lam : ℂ) (n : ℕ) :
-    AnalyticOnNhd ℂ (fun x => gegenbauer lam n x) Set.univ := by
+lemma analyticOnNhd_ultrasphPoly (lam : ℂ) (n : ℕ) :
+    AnalyticOnNhd ℂ (fun x => ultrasphPoly lam n x) Set.univ := by
   intro x _
-  unfold gegenbauer
+  unfold ultrasphPoly
   have hf : AnalyticAt ℂ (fun w : ℂ => (1 - w) / 2) x := by fun_prop (disch := norm_num)
   exact analyticAt_const.mul
     (AnalyticAt.comp (f := fun w : ℂ => (1 - w) / 2) (analyticAt_gauss_neg_nat n _ _ _) hf)
 
 /-- Gegenbauer polynomials are analytic in the parameter on the half-plane `-1/2 < Re λ`. -/
-lemma analyticOnNhd_gegenbauer_param (n : ℕ) (x : ℂ) :
-    AnalyticOnNhd ℂ (fun lam => gegenbauer lam n x) {lam : ℂ | -1 / 2 < lam.re} := by
+lemma analyticOnNhd_ultrasphPoly_param (n : ℕ) (x : ℂ) :
+    AnalyticOnNhd ℂ (fun lam => ultrasphPoly lam n x) {lam : ℂ | -1 / 2 < lam.re} := by
   intro lam hlam
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     have := hlam
     simp only [Set.mem_setOf_eq] at this
     linarith)
-  have heq : (fun lam => gegenbauer lam n x) = fun lam => poch (2 * lam) n / n.factorial *
+  have heq : (fun lam => ultrasphPoly lam n x) = fun lam => poch (2 * lam) n / n.factorial *
       ∑ k ∈ Finset.range (n + 1),
         gaussHGCoeff (-(n : ℂ)) (n + 2 * lam) (lam + 1 / 2) k * ((1 - x) / 2) ^ k := by
     funext lam
-    unfold gegenbauer
+    unfold ultrasphPoly
     rw [ordinaryHypergeometric_eq_sum_neg_nat]
   rw [heq]
   simp only [gaussHGCoeff]
@@ -217,15 +221,15 @@ lemma analyticOnNhd_gegenbauer_param (n : ℕ) (x : ℂ) :
 
 /-- Gegenbauer polynomials are analytic at every point, in `fun_prop` form. -/
 @[fun_prop]
-lemma analyticAt_gegenbauer (lam : ℂ) (n : ℕ) (x : ℂ) :
-    AnalyticAt ℂ (fun x => gegenbauer lam n x) x :=
-  analyticOnNhd_gegenbauer lam n x (Set.mem_univ x)
+lemma analyticAt_ultrasphPoly (lam : ℂ) (n : ℕ) (x : ℂ) :
+    AnalyticAt ℂ (fun x => ultrasphPoly lam n x) x :=
+  analyticOnNhd_ultrasphPoly lam n x (Set.mem_univ x)
 
 /-- Jacobi polynomials are analytic at every point, in `fun_prop` form. -/
 @[fun_prop]
-lemma analyticAt_jacobiP (α β : ℂ) (n : ℕ) (x : ℂ) :
-    AnalyticAt ℂ (fun x => jacobiP α β n x) x :=
-  analyticOnNhd_jacobiP α β n x (Set.mem_univ x)
+lemma analyticAt_jacobiPolyP (α β : ℂ) (n : ℕ) (x : ℂ) :
+    AnalyticAt ℂ (fun x => jacobiPolyP α β n x) x :=
+  analyticOnNhd_jacobiPolyP α β n x (Set.mem_univ x)
 
 /-- An identity between entire functions of `x` holds everywhere once it holds for
 `‖(1-x)/2‖ < 1`. -/
@@ -236,17 +240,18 @@ lemma eq_of_eqOn_half_shift_disk {f g : ℂ → ℂ} (hf : AnalyticOnNhd ℂ f S
 
 @[dlmf 18.9.E2]
 theorem jacobi_recurrence {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    2 * (n + 2) * (n + α + β + 2) * (2 * n + α + β + 2) * jacobiP α β (n + 2) x =
-      (2 * n + α + β + 3) * ((2 * n + α + β + 2) * (2 * n + α + β + 4) * x + α ^ 2 - β ^ 2) * jacobiP α β (n + 1) x -
-      2 * (n + α + 1) * (n + β + 1) * (2 * n + α + β + 4) * jacobiP α β n x := by
+    2 * (n + 2) * (n + α + β + 2) * (2 * n + α + β + 2) * jacobiPolyP α β (n + 2) x =
+      (2 * n + α + β + 3) * ((2 * n + α + β + 2) * (2 * n + α + β + 4) * x + α ^ 2 - β ^ 2)
+          * jacobiPolyP α β (n + 1) x -
+      2 * (n + α + 1) * (n + β + 1) * (2 * n + α + β + 4) * jacobiPolyP α β n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have key : (fun x : ℂ => 2 * (n + 2) * (n + α + β + 2) * (2 * n + α + β + 2) *
-      jacobiP α β (n + 2) x) = fun x =>
+      jacobiPolyP α β (n + 2) x) = fun x =>
       (2 * n + α + β + 3) * ((2 * n + α + β + 2) * (2 * n + α + β + 4) * x + α ^ 2 - β ^ 2) *
-        jacobiP α β (n + 1) x -
-      2 * (n + α + 1) * (n + β + 1) * (2 * n + α + β + 4) * jacobiP α β n x := by
+        jacobiPolyP α β (n + 1) x -
+      2 * (n + α + 1) * (n + β + 1) * (2 * n + α + β + 4) * jacobiPolyP α β n x := by
     refine eq_of_eqOn_half_shift_disk (by intro x _; fun_prop) (by intro x _; fun_prop) ?_
     intro x hx
     have hrel := AAR.Hypergeometric.contiguous_antidiagonal (a := -((n : ℂ) + 2))
@@ -262,24 +267,24 @@ theorem jacobi_recurrence {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
       rw [show n + 2 = n + 1 + 1 from rfl, Nat.factorial_succ, Nat.factorial_succ]
       push_cast
       ring
-    have hP2 : jacobiP α β (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP2 : jacobiPolyP α β (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
         poch (α + 1) n * (α + 1 + n) * (α + 1 + (n + 1)) *
           ₂F₁ (-((n : ℂ) + 2)) ((n : ℂ) + 2 + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [hp2, hf2]
       push_cast
       field_simp
-    have hP1 : jacobiP α β (n + 1) x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP1 : jacobiPolyP α β (n + 1) x * ((n + 2) * (n + 1) * n.factorial) =
         poch (α + 1) n * (α + 1 + n) * (n + 2) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 1 + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ, Nat.factorial_succ]
       push_cast
       field_simp
-    have hP0 : jacobiP α β n x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP0 : jacobiPolyP α β n x * ((n + 2) * (n + 1) * n.factorial) =
         poch (α + 1) n * ((n + 2) * (n + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       field_simp
     have hM : ((n : ℂ) + 2) * (n + 1) * n.factorial ≠ 0 := by
       exact mul_ne_zero (mul_ne_zero hn2 hn1) hf
@@ -295,17 +300,18 @@ theorem jacobi_recurrence {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
   exact congrFun key x
 
 @[dlmf 18.9.T1]
-theorem gegenbauer_recurrence {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    (n + 2 : ℂ) * gegenbauer lam (n + 2) x =
-      2 * (n + lam + 1) * x * gegenbauer lam (n + 1) x - (n + 2 * lam) * gegenbauer lam n x := by
+theorem ultrasphPoly_recurrence {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    (n + 2 : ℂ) * ultrasphPoly lam (n + 2) x =
+      2 * (n + lam + 1) * x * ultrasphPoly lam (n + 1) x - (n + 2 * lam)
+          * ultrasphPoly lam n x := by
   -- the case `0 < Re λ`, from the normalized recurrence
-  have hpos : ∀ μ : ℂ, 0 < μ.re → (n + 2 : ℂ) * gegenbauer μ (n + 2) x =
-      2 * (n + μ + 1) * x * gegenbauer μ (n + 1) x - (n + 2 * μ) * gegenbauer μ n x := by
+  have hpos : ∀ μ : ℂ, 0 < μ.re → (n + 2 : ℂ) * ultrasphPoly μ (n + 2) x =
+      2 * (n + μ + 1) * x * ultrasphPoly μ (n + 1) x - (n + 2 * μ) * ultrasphPoly μ n x := by
     intro μ hμ
-    have h := gegenbauer_normalized_recurrence hμ n x
-    have h1 : ∀ m : ℕ, gegenbauer μ m 1 = poch (2 * μ) m / m.factorial := by
+    have h := ultrasphPoly_normalized_recurrence hμ n x
+    have h1 : ∀ m : ℕ, ultrasphPoly μ m 1 = poch (2 * μ) m / m.factorial := by
       intro m
-      unfold gegenbauer
+      unfold ultrasphPoly
       simp
     have h2μ : ∀ k : ℕ, 2 * μ ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
       simp only [Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat, zero_mul, sub_zero]
@@ -327,18 +333,19 @@ theorem gegenbauer_recurrence {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x 
   have hU : IsOpen {μ : ℂ | -1 / 2 < μ.re} := isOpen_lt continuous_const Complex.continuous_re
   have hconn : IsPreconnected {μ : ℂ | -1 / 2 < μ.re} :=
     (convex_halfSpace_re_gt (-1 / 2)).isPreconnected
-  have hf : AnalyticOnNhd ℂ (fun μ => (n + 2 : ℂ) * gegenbauer μ (n + 2) x)
+  have hf : AnalyticOnNhd ℂ (fun μ => (n + 2 : ℂ) * ultrasphPoly μ (n + 2) x)
       {μ : ℂ | -1 / 2 < μ.re} :=
-    analyticOnNhd_const.mul (analyticOnNhd_gegenbauer_param (n + 2) x)
-  have hg : AnalyticOnNhd ℂ (fun μ => 2 * (n + μ + 1) * x * gegenbauer μ (n + 1) x -
-      (n + 2 * μ) * gegenbauer μ n x) {μ : ℂ | -1 / 2 < μ.re} :=
+    analyticOnNhd_const.mul (analyticOnNhd_ultrasphPoly_param (n + 2) x)
+  have hg : AnalyticOnNhd ℂ (fun μ => 2 * (n + μ + 1) * x * ultrasphPoly μ (n + 1) x -
+      (n + 2 * μ) * ultrasphPoly μ n x) {μ : ℂ | -1 / 2 < μ.re} :=
     (((analyticOnNhd_const.mul ((analyticOnNhd_const.add analyticOnNhd_id).add
       analyticOnNhd_const)).mul analyticOnNhd_const).mul
-        (analyticOnNhd_gegenbauer_param (n + 1) x)).sub
+        (analyticOnNhd_ultrasphPoly_param (n + 1) x)).sub
       ((analyticOnNhd_const.add (analyticOnNhd_const.mul analyticOnNhd_id)).mul
-        (analyticOnNhd_gegenbauer_param n x))
-  have hev : (fun μ => (n + 2 : ℂ) * gegenbauer μ (n + 2) x) =ᶠ[𝓝 (1 : ℂ)]
-      fun μ => 2 * (n + μ + 1) * x * gegenbauer μ (n + 1) x - (n + 2 * μ) * gegenbauer μ n x := by
+        (analyticOnNhd_ultrasphPoly_param n x))
+  have hev : (fun μ => (n + 2 : ℂ) * ultrasphPoly μ (n + 2) x) =ᶠ[𝓝 (1 : ℂ)]
+      fun μ => 2 * (n + μ + 1) * x * ultrasphPoly μ (n + 1) x - (n + 2 * μ)
+          * ultrasphPoly μ n x := by
     filter_upwards [(isOpen_lt continuous_const Complex.continuous_re).mem_nhds
       (show (0 : ℝ) < (1 : ℂ).re by simp)] with μ hμ
     exact hpos μ hμ
@@ -346,20 +353,20 @@ theorem gegenbauer_recurrence {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x 
     (show (1 : ℂ) ∈ {μ : ℂ | -1 / 2 < μ.re} by simp; norm_num) hev hlam
 
 @[dlmf 18.9.T1]
-theorem laguerre_recurrence {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (n + 2 : ℂ) * laguerre α (n + 2) x =
-      (2 * n + α + 3 - x) * laguerre α (n + 1) x - (n + α + 1) * laguerre α n x := by
+theorem laguerrePolyL_recurrence {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    (n + 2 : ℂ) * laguerrePolyL α (n + 2) x =
+      (2 * n + α + 3 - x) * laguerrePolyL α (n + 1) x - (n + α + 1) * laguerrePolyL α n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have hM := AAR.Confluent.confluentM_contiguous_a (a := -((n + 1 : ℕ) : ℂ)) hc (z := x)
+  have hM := AAR.Confluent.kummerM_contiguous_a (a := -((n + 1 : ℕ) : ℂ)) hc (z := x)
   rw [show -((n + 1 : ℕ) : ℂ) - 1 = -((n + 2 : ℕ) : ℂ) by push_cast; ring,
     show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring] at hM
   have hQ : poch (α + 1) n ≠ 0 := poch_ne_zero_of_not_neg_nat hc n
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
   have hn2 : (n : ℂ) + 1 + 1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero (n + 1)
-  simp only [laguerre]
+  simp only [laguerrePolyL]
   rw [poch_succ (α + 1) (n + 1), poch_succ (α + 1) n, Nat.factorial_succ (n + 1),
     Nat.factorial_succ n]
   push_cast at hM ⊢
@@ -367,9 +374,9 @@ theorem laguerre_recurrence {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
   linear_combination ((n : ℂ) + 2) * (α + 1 + n) * hM
 
 @[dlmf 18.9.T1]
-theorem hermitePhys_recurrence (n : ℕ) :
-    hermitePhys (n + 2) = 2 * X * hermitePhys (n + 1) - C (2 * (n + 1) : ℤ) * hermitePhys n := by
-  rw [hermitePhys_succ (n + 1), hermitePhys_derivative]
+theorem hermitePolyH_recurrence (n : ℕ) :
+    hermitePolyH (n + 2) = 2 * X * hermitePolyH (n + 1) - C (2 * (n + 1) : ℤ) * hermitePolyH n := by
+  rw [hermitePolyH_succ (n + 1), hermitePolyH_derivative]
 
 @[dlmf 18.9.T1]
 theorem hermite_recurrence (n : ℕ) :
@@ -378,19 +385,19 @@ theorem hermite_recurrence (n : ℕ) :
 
 @[dlmf 18.9.E3]
 theorem jacobi_contiguous_sub {α β : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α (β - 1) (n + 1) x - jacobiP (α - 1) β (n + 1) x = jacobiP α β n x := by
+    jacobiPolyP α (β - 1) (n + 1) x - jacobiPolyP (α - 1) β (n + 1) x = jacobiPolyP α β n x := by
   have hcα : ∀ k : ℕ, α ≠ -(k : ℂ) := not_neg_nat_of_re_pos hα
-  have key : (fun x : ℂ => jacobiP α (β - 1) (n + 1) x - jacobiP (α - 1) β (n + 1) x) =
-      fun x => jacobiP α β n x := by
+  have key : (fun x : ℂ => jacobiPolyP α (β - 1) (n + 1) x - jacobiPolyP (α - 1) β (n + 1) x) =
+      fun x => jacobiPolyP α β n x := by
     refine eq_of_eqOn_half_shift_disk ?_ ?_ ?_
-    · exact (analyticOnNhd_jacobiP _ _ _).sub (analyticOnNhd_jacobiP _ _ _)
-    · exact analyticOnNhd_jacobiP _ _ _
+    · exact (analyticOnNhd_jacobiPolyP _ _ _).sub (analyticOnNhd_jacobiPolyP _ _ _)
+    · exact analyticOnNhd_jacobiPolyP _ _ _
     intro x hx
     have hcc := contiguous_c (a := -((n + 1 : ℕ) : ℂ)) (b := n + α + β + 1) (c := α) hcα hx
     rw [show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring] at hcc
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show ((n + 1 : ℕ) : ℂ) + α + (β - 1) + 1 = n + α + β + 1 by push_cast; ring,
       show ((n + 1 : ℕ) : ℂ) + (α - 1) + β + 1 = n + α + β + 1 by push_cast; ring,
       show α - 1 + 1 = α by ring, poch_succ_left α n, poch_succ (α + 1) n, Nat.factorial_succ]
@@ -401,24 +408,26 @@ theorem jacobi_contiguous_sub {α β : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ
 
 @[dlmf 18.9.E4]
 theorem jacobi_contiguous_add {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (1 - x) * jacobiP (α + 1) β n x + (1 + x) * jacobiP α (β + 1) n x = 2 * jacobiP α β n x := by
+    (1 - x) * jacobiPolyP (α + 1) β n x + (1 + x) * jacobiPolyP α (β + 1) n x = 2
+        * jacobiPolyP α β n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hc0 : α + 1 ≠ 0 := by simpa using hc 0
-  have key : (fun x : ℂ => (1 - x) * jacobiP (α + 1) β n x + (1 + x) * jacobiP α (β + 1) n x) =
-      fun x => 2 * jacobiP α β n x := by
+  have key : (fun x : ℂ => (1 - x) * jacobiPolyP (α + 1) β n x + (1 + x)
+      * jacobiPolyP α (β + 1) n x) =
+      fun x => 2 * jacobiPolyP α β n x := by
     refine eq_of_eqOn_half_shift_disk ?_ ?_ ?_
-    · exact ((analyticOnNhd_const.sub analyticOnNhd_id).mul (analyticOnNhd_jacobiP _ _ _)).add
-        ((analyticOnNhd_const.add analyticOnNhd_id).mul (analyticOnNhd_jacobiP _ _ _))
-    · exact analyticOnNhd_const.mul (analyticOnNhd_jacobiP _ _ _)
+    · exact ((analyticOnNhd_const.sub analyticOnNhd_id).mul (analyticOnNhd_jacobiPolyP _ _ _)).add
+        ((analyticOnNhd_const.add analyticOnNhd_id).mul (analyticOnNhd_jacobiPolyP _ _ _))
+    · exact analyticOnNhd_const.mul (analyticOnNhd_jacobiPolyP _ _ _)
     intro x hx
     have hsb := contiguous_shift_b (a := -(n : ℂ)) (b := n + α + β + 1) (c := α + 1) hc hx
     have hcc := contiguous_c (a := -(n : ℂ)) (b := n + α + β + 1 + 1) (c := α + 1) hc hx
     have hp : (α + 1) * poch (α + 1 + 1) n = poch (α + 1) n * (α + 1 + n) := by
       rw [← poch_succ_left, poch_succ]
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show (n : ℂ) + (α + 1) + β + 1 = n + α + β + 1 + 1 by ring,
       show (n : ℂ) + α + (β + 1) + 1 = n + α + β + 1 + 1 by ring]
     field_simp
@@ -429,25 +438,26 @@ theorem jacobi_contiguous_add {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : �
 
 @[dlmf 18.9.E5]
 theorem jacobi_raise_beta {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (2 * n + α + β + 3) * jacobiP α β (n + 1) x =
-      (n + α + β + 2) * jacobiP α (β + 1) (n + 1) x + (n + α + 1) * jacobiP α (β + 1) n x := by
+    (2 * n + α + β + 3) * jacobiPolyP α β (n + 1) x =
+      (n + α + β + 2) * jacobiPolyP α (β + 1) (n + 1) x + (n + α + 1)
+          * jacobiPolyP α (β + 1) n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (2 * n + α + β + 3) * jacobiP α β (n + 1) x) =
-      fun x => (n + α + β + 2) * jacobiP α (β + 1) (n + 1) x +
-        (n + α + 1) * jacobiP α (β + 1) n x := by
+  have key : (fun x : ℂ => (2 * n + α + β + 3) * jacobiPolyP α β (n + 1) x) =
+      fun x => (n + α + β + 2) * jacobiPolyP α (β + 1) (n + 1) x +
+        (n + α + 1) * jacobiPolyP α (β + 1) n x := by
     refine eq_of_eqOn_half_shift_disk ?_ ?_ ?_
-    · exact analyticOnNhd_const.mul (analyticOnNhd_jacobiP _ _ _)
-    · exact (analyticOnNhd_const.mul (analyticOnNhd_jacobiP _ _ _)).add
-        (analyticOnNhd_const.mul (analyticOnNhd_jacobiP _ _ _))
+    · exact analyticOnNhd_const.mul (analyticOnNhd_jacobiPolyP _ _ _)
+    · exact (analyticOnNhd_const.mul (analyticOnNhd_jacobiPolyP _ _ _)).add
+        (analyticOnNhd_const.mul (analyticOnNhd_jacobiPolyP _ _ _))
     intro x hx
     have hab := AAR.Hypergeometric.contiguous_ab (a := -((n + 1 : ℕ) : ℂ)) (b := (n + 1 : ℕ) + α + β + 1)
       (c := α + 1) hc hx
     rw [show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring] at hab
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show ((n + 1 : ℕ) : ℂ) + α + (β + 1) + 1 = (n + 1 : ℕ) + α + β + 1 + 1 by ring,
       show (n : ℂ) + α + (β + 1) + 1 = (n + 1 : ℕ) + α + β + 1 by push_cast; ring,
       poch_succ (α + 1) n, Nat.factorial_succ]
@@ -458,37 +468,37 @@ theorem jacobi_raise_beta {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
 
 @[dlmf 18.9.E6]
 theorem jacobi_raise_degree_beta {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (n + α / 2 + β / 2 + 1) * (1 + x) * jacobiP α (β + 1) n x =
-      (n + 1) * jacobiP α β (n + 1) x + (n + β + 1) * jacobiP α β n x := by
+    (n + α / 2 + β / 2 + 1) * (1 + x) * jacobiPolyP α (β + 1) n x =
+      (n + 1) * jacobiPolyP α β (n + 1) x + (n + β + 1) * jacobiPolyP α β n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (n + α / 2 + β / 2 + 1) * (1 + x) * jacobiP α (β + 1) n x) =
-      fun x => (n + 1) * jacobiP α β (n + 1) x + (n + β + 1) * jacobiP α β n x := by
+  have key : (fun x : ℂ => (n + α / 2 + β / 2 + 1) * (1 + x) * jacobiPolyP α (β + 1) n x) =
+      fun x => (n + 1) * jacobiPolyP α β (n + 1) x + (n + β + 1) * jacobiPolyP α β n x := by
     refine eq_of_eqOn_half_shift_disk (by intro x _; fun_prop) (by intro x _; fun_prop) ?_
     intro x hx
     have hrel := AAR.Hypergeometric.contiguous_a_pred_b_pred (a := -(n : ℂ))
       (b := (n : ℂ) + α + (β + 1) + 1) (c := α + 1) hc hx
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
-    have hQ : jacobiP α (β + 1) n x * ((n + 1) * n.factorial) =
+    have hQ : jacobiPolyP α (β + 1) n x * ((n + 1) * n.factorial) =
         poch (α + 1) n * (n + 1) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + α + (β + 1) + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       field_simp
-    have hP1 : jacobiP α β (n + 1) x * ((n + 1) * n.factorial) =
+    have hP1 : jacobiPolyP α β (n + 1) x * ((n + 1) * n.factorial) =
         poch (α + 1) n * (α + 1 + n) *
           ₂F₁ (-(n : ℂ) - 1) ((n : ℂ) + α + (β + 1) + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ, Nat.factorial_succ]
       push_cast
       rw [show -((n : ℂ) + 1) = -(n : ℂ) - 1 by ring,
         show (n : ℂ) + 1 + α + β + 1 = (n : ℂ) + α + (β + 1) + 1 by ring]
       field_simp
-    have hP0 : jacobiP α β n x * ((n + 1) * n.factorial) =
+    have hP0 : jacobiPolyP α β n x * ((n + 1) * n.factorial) =
         poch (α + 1) n * (n + 1) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + α + (β + 1) + 1 - 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [show (n : ℂ) + α + (β + 1) + 1 - 1 = (n : ℂ) + α + β + 1 by ring]
       field_simp
     have hM : ((n : ℂ) + 1) * n.factorial ≠ 0 := mul_ne_zero hn1 hf
@@ -498,14 +508,14 @@ theorem jacobi_raise_degree_beta {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x :
   exact congrFun key x
 
 @[dlmf 18.9.E7]
-theorem gegenbauer_raise_parameter {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    (n + lam + 2) * gegenbauer lam (n + 2) x =
-      lam * (gegenbauer (lam + 1) (n + 2) x - gegenbauer (lam + 1) n x) := by
+theorem ultrasphPoly_raise_parameter {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    (n + lam + 2) * ultrasphPoly lam (n + 2) x =
+      lam * (ultrasphPoly (lam + 1) (n + 2) x - ultrasphPoly (lam + 1) n x) := by
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (n + lam + 2) * gegenbauer lam (n + 2) x) =
-      fun x => lam * (gegenbauer (lam + 1) (n + 2) x - gegenbauer (lam + 1) n x) := by
+  have key : (fun x : ℂ => (n + lam + 2) * ultrasphPoly lam (n + 2) x) =
+      fun x => lam * (ultrasphPoly (lam + 1) (n + 2) x - ultrasphPoly (lam + 1) n x) := by
     refine AAR.Hypergeometric.eq_of_analyticOnNhd_univ_of_eqOn (by intro x _; fun_prop)
       (by intro x _; fun_prop)
       (isOpen_half_shift_disk.inter isOpen_ne :
@@ -516,7 +526,7 @@ theorem gegenbauer_raise_parameter {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ
       intro h
       apply hx1
       linear_combination -2 * h
-    have hrel := AAR.Hypergeometric.contiguous_gegenbauer_raise (a := -((n : ℂ) + 2))
+    have hrel := AAR.Hypergeometric.contiguous_ultrasphPoly_raise (a := -((n : ℂ) + 2))
       (c := lam + 1 / 2) hc hx
     have hD : 2 * ((1 - x) / 2) * (-((n : ℂ) + 2) - 2 * (lam + 1 / 2) + 2) ≠ 0 := by
       refine mul_ne_zero (mul_ne_zero two_ne_zero hy) ?_
@@ -541,24 +551,24 @@ theorem gegenbauer_raise_parameter {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ
       rw [show n + 2 = n + 1 + 1 from rfl, Nat.factorial_succ, Nat.factorial_succ]
       push_cast
       ring
-    have hP0 : gegenbauer lam (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP0 : ultrasphPoly lam (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
         2 * lam * (2 * lam + 1) * poch (2 * (lam + 1)) n *
           ₂F₁ (-((n : ℂ) + 2)) ((n : ℂ) + 2 + 2 * lam) (lam + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       rw [hpoch, hf2]
       push_cast
       field_simp
-    have hP1 : gegenbauer (lam + 1) (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP1 : ultrasphPoly (lam + 1) (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
         poch (2 * (lam + 1)) n * (2 * (lam + 1) + n) * (2 * (lam + 1) + (n + 1)) *
           ₂F₁ (-((n : ℂ) + 2)) ((n : ℂ) + 2 + 2 * (lam + 1)) (lam + 1 + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       rw [hpoch', hf2]
       push_cast
       field_simp
-    have hP2 : gegenbauer (lam + 1) n x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP2 : ultrasphPoly (lam + 1) n x * ((n + 2) * (n + 1) * n.factorial) =
         poch (2 * (lam + 1)) n * ((n + 2) * (n + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + 2 * (lam + 1)) (lam + 1 + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       field_simp
     have hM : ((n : ℂ) + 2) * (n + 1) * n.factorial ≠ 0 :=
       mul_ne_zero (mul_ne_zero hn2 hn1) hf
@@ -569,10 +579,10 @@ theorem gegenbauer_raise_parameter {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ
   exact congrFun key x
 
 @[dlmf 18.9.E8]
-theorem gegenbauer_raise_parameter_sq {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    4 * lam * (n + lam + 1) * (1 - x ^ 2) * gegenbauer (lam + 1) n x =
-      -(n + 1) * (n + 2) * gegenbauer lam (n + 2) x +
-      (n + 2 * lam) * (n + 2 * lam + 1) * gegenbauer lam n x := by
+theorem ultrasphPoly_raise_parameter_sq {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    4 * lam * (n + lam + 1) * (1 - x ^ 2) * ultrasphPoly (lam + 1) n x =
+      -(n + 1) * (n + 2) * ultrasphPoly lam (n + 2) x +
+      (n + 2 * lam) * (n + 2 * lam + 1) * ultrasphPoly lam n x := by
   -- the degenerate case `n = 0`, `λ = 0`
   by_cases hN : 2 * lam + n = 0
   · have hn0 : n = 0 := by
@@ -584,16 +594,16 @@ theorem gegenbauer_raise_parameter_sq {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : 
     subst hn0
     have hl0 : lam = 0 := by simpa using hN
     subst hl0
-    simp [gegenbauer, poch_succ_left]
+    simp [ultrasphPoly, poch_succ_left]
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => 4 * lam * (n + lam + 1) * (1 - x ^ 2) * gegenbauer (lam + 1) n x) =
-      fun x => -(n + 1) * (n + 2) * gegenbauer lam (n + 2) x +
-        (n + 2 * lam) * (n + 2 * lam + 1) * gegenbauer lam n x := by
+  have key : (fun x : ℂ => 4 * lam * (n + lam + 1) * (1 - x ^ 2) * ultrasphPoly (lam + 1) n x) =
+      fun x => -(n + 1) * (n + 2) * ultrasphPoly lam (n + 2) x +
+        (n + 2 * lam) * (n + 2 * lam + 1) * ultrasphPoly lam n x := by
     refine eq_of_eqOn_half_shift_disk (by intro x _; fun_prop) (by intro x _; fun_prop) ?_
     intro x hx
-    have hrel := AAR.Hypergeometric.contiguous_gegenbauer_raise_sq (a := -((n : ℂ) + 2))
+    have hrel := AAR.Hypergeometric.contiguous_ultrasphPoly_raise_sq (a := -((n : ℂ) + 2))
       (c := lam + 1 / 2) hc hx
     have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
     have hn2 : ((n : ℂ) + 2) ≠ 0 := by exact_mod_cast (show n + 2 ≠ 0 by omega)
@@ -622,24 +632,24 @@ theorem gegenbauer_raise_parameter_sq {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : 
       rw [show n + 2 = n + 1 + 1 from rfl, Nat.factorial_succ, Nat.factorial_succ]
       push_cast
       ring
-    have hP0 : gegenbauer lam (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP0 : ultrasphPoly lam (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
         2 * lam * (2 * lam + 1) * poch (2 * (lam + 1)) n *
           ₂F₁ (-((n : ℂ) + 2)) ((n : ℂ) + 2 + 2 * lam) (lam + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       rw [hpoch, hf2]
       push_cast
       field_simp
-    have hP1 : gegenbauer (lam + 1) n x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP1 : ultrasphPoly (lam + 1) n x * ((n + 2) * (n + 1) * n.factorial) =
         poch (2 * (lam + 1)) n * ((n + 2) * (n + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + 2 * (lam + 1)) (lam + 1 + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       field_simp
-    have hP2a : gegenbauer lam n x * ((n + 2) * (n + 1) * n.factorial) =
+    have hP2a : ultrasphPoly lam n x * ((n + 2) * (n + 1) * n.factorial) =
         poch (2 * lam) n * ((n + 2) * (n + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + 2 * lam) (lam + 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       field_simp
-    have hP2 : gegenbauer lam n x * ((n + 2) * (n + 1) * n.factorial) *
+    have hP2 : ultrasphPoly lam n x * ((n + 2) * (n + 1) * n.factorial) *
         ((2 * lam + n) * (2 * lam + (n + 1))) =
         2 * lam * (2 * lam + 1) * poch (2 * (lam + 1)) n * ((n + 2) * (n + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + 2 * lam) (lam + 1 / 2) ((1 - x) / 2) := by
@@ -657,22 +667,22 @@ theorem gegenbauer_raise_parameter_sq {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : 
   exact congrFun key x
 
 /-- The Jacobi polynomial of degree one. -/
-lemma jacobiP_one_eq {α : ℂ} (hα : -1 < α.re) (β x : ℂ) :
-    jacobiP α β 1 x = (α + 1) - (α + β + 2) * ((1 - x) / 2) := by
+lemma jacobiPolyP_one_eq {α : ℂ} (hα : -1 < α.re) (β x : ℂ) :
+    jacobiPolyP α β 1 x = (α + 1) - (α + β + 2) * ((1 - x) / 2) := by
   have h : α + 1 ≠ 0 := by
     intro h
     have := congrArg Complex.re h
     simp at this
     linarith
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [ordinaryHypergeometric_eq_sum_neg_nat]
   simp [Finset.sum_range_succ, gaussHGCoeff, poch_zero, poch_one]
   field_simp
   ring
 
 /-- The Gegenbauer polynomial of degree one. -/
-lemma gegenbauer_one_eq {lam : ℂ} (hlam : -1 / 2 < lam.re) (x : ℂ) :
-    gegenbauer lam 1 x = 2 * lam * x := by
+lemma ultrasphPoly_one_eq {lam : ℂ} (hlam : -1 / 2 < lam.re) (x : ℂ) :
+    ultrasphPoly lam 1 x = 2 * lam * x := by
   have h : lam + 1 / 2 ≠ 0 := by
     intro h
     have := congrArg Complex.re h
@@ -686,7 +696,7 @@ lemma gegenbauer_one_eq {lam : ℂ} (hlam : -1 / 2 < lam.re) (x : ℂ) :
     intro h'
     apply h
     linear_combination h' / 2
-  unfold gegenbauer
+  unfold ultrasphPoly
   rw [ordinaryHypergeometric_eq_sum_neg_nat]
   simp only [Finset.sum_range_succ, Finset.sum_range_zero, gaussHGCoeff, poch_zero, poch_one,
     Nat.cast_one, Nat.factorial_one, pow_zero, pow_one, zero_add, mul_one, div_one]
@@ -695,11 +705,11 @@ lemma gegenbauer_one_eq {lam : ℂ} (hlam : -1 / 2 < lam.re) (x : ℂ) :
 
 @[dlmf 18.6.T1]
 theorem jacobi_reflection {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re) (n : ℕ) (x : ℂ) :
-    jacobiP α β n (-x) = (-1 : ℂ) ^ n * jacobiP β α n x := by
+    jacobiPolyP α β n (-x) = (-1 : ℂ) ^ n * jacobiPolyP β α n x := by
   induction n using Nat.twoStepInduction with
   | zero => simp
   | one =>
-    rw [jacobiP_one_eq hα, jacobiP_one_eq hβ]
+    rw [jacobiPolyP_one_eq hα, jacobiPolyP_one_eq hβ]
     ring
   | more n ih0 ih1 =>
     have h1 := jacobi_recurrence (β := β) hα n (-x)
@@ -716,16 +726,16 @@ theorem jacobi_reflection {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re) (n
     linear_combination h1 - (-1 : ℂ) ^ n * h2
 
 @[dlmf 18.6.T1]
-theorem gegenbauer_reflection {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam n (-x) = (-1 : ℂ) ^ n * gegenbauer lam n x := by
+theorem ultrasphPoly_reflection {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    ultrasphPoly lam n (-x) = (-1 : ℂ) ^ n * ultrasphPoly lam n x := by
   induction n using Nat.twoStepInduction with
   | zero => simp
   | one =>
-    rw [gegenbauer_one_eq hlam, gegenbauer_one_eq hlam]
+    rw [ultrasphPoly_one_eq hlam, ultrasphPoly_one_eq hlam]
     ring
   | more n ih0 ih1 =>
-    have h1 := gegenbauer_recurrence hlam n (-x)
-    have h2 := gegenbauer_recurrence hlam n x
+    have h1 := ultrasphPoly_recurrence hlam n (-x)
+    have h2 := ultrasphPoly_recurrence hlam n x
     have hA : ((n : ℂ) + 2) ≠ 0 := by exact_mod_cast (show n + 2 ≠ 0 by omega)
     apply mul_left_cancel₀ hA
     rw [ih0, ih1] at h1
@@ -741,15 +751,15 @@ lemma poch_succ_succ_mul (a : ℂ) (n : ℕ) :
   linear_combination -h1 + h2 + (a + n + 1) * h3
 
 @[dlmf 18.6.T1]
-theorem gegenbauer_even_at_zero {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
-    gegenbauer lam (2 * n) 0 = (-1 : ℂ) ^ n * poch lam n / n.factorial := by
+theorem ultrasphPoly_even_at_zero {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
+    ultrasphPoly lam (2 * n) 0 = (-1 : ℂ) ^ n * poch lam n / n.factorial := by
   induction n with
   | zero => simp [poch_zero]
   | succ n ih =>
-    have hrec := gegenbauer_recurrence hlam (2 * n) 0
+    have hrec := ultrasphPoly_recurrence hlam (2 * n) 0
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
-    have ih' : gegenbauer lam (2 * n) 0 * n.factorial = (-1 : ℂ) ^ n * poch lam n := by
+    have ih' : ultrasphPoly lam (2 * n) 0 * n.factorial = (-1 : ℂ) ^ n * poch lam n := by
       rw [ih]
       field_simp
     rw [show 2 * (n + 1) = 2 * n + 2 by ring, poch_succ, Nat.factorial_succ, eq_div_iff (by
@@ -760,7 +770,7 @@ theorem gegenbauer_even_at_zero {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
 
 @[dlmf 18.6.T1]
 theorem jacobi_symmetric_even_at_zero {α : ℂ} (hα : -1 < α.re) (n : ℕ) :
-    jacobiP α α (2 * n) 0 = (-1 / 4 : ℂ) ^ n * poch (n + α + 1) n / n.factorial := by
+    jacobiPolyP α α (2 * n) 0 = (-1 / 4 : ℂ) ^ n * poch (n + α + 1) n / n.factorial := by
   induction n with
   | zero => simp [poch_zero]
   | succ n ih =>
@@ -777,7 +787,7 @@ theorem jacobi_symmetric_even_at_zero {α : ℂ} (hα : -1 < α.re) (n : ℕ) :
       have := congrArg Complex.re h
       simp at this
       linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
-    have ih' : jacobiP α α (2 * n) 0 * n.factorial = (-1 / 4 : ℂ) ^ n * poch (n + α + 1) n := by
+    have ih' : jacobiPolyP α α (2 * n) 0 * n.factorial = (-1 / 4 : ℂ) ^ n * poch (n + α + 1) n := by
       rw [ih]
       field_simp
     have hpoch : poch ((n : ℂ) + 1 + α + 1) (n + 1) * ((n : ℂ) + α + 1) =
@@ -798,10 +808,10 @@ theorem jacobi_symmetric_even_at_zero {α : ℂ} (hα : -1 < α.re) (n : ℕ) :
       ((-1 / 4 : ℂ) ^ (n + 1) * 16 * (2 * n + α + 1)) * hpoch
 
 /-- Jacobi polynomials with `α = β = -1/2` in hypergeometric form. -/
-lemma jacobiP_half_half (n : ℕ) (x : ℂ) :
-    jacobiP (-1 / 2) (-1 / 2) n x =
+lemma jacobiPolyP_half_half (n : ℕ) (x : ℂ) :
+    jacobiPolyP (-1 / 2) (-1 / 2) n x =
       poch (1 / 2) n / n.factorial * ₂F₁ (-(n : ℂ)) (n : ℂ) (1 / 2) ((1 - x) / 2) := by
-  unfold jacobiP
+  unfold jacobiPolyP
   rw [show (n : ℂ) + -1 / 2 + -1 / 2 + 1 = n by ring, show (-1 / 2 : ℂ) + 1 = 1 / 2 by norm_num]
 
 lemma poch_half_ne_zero (n : ℕ) : poch (1 / 2 : ℂ) n ≠ 0 :=
@@ -829,22 +839,22 @@ lemma gauss_chebyshev_recurrence (n : ℕ) (x : ℂ) :
     rw [show n + 2 = n + 1 + 1 from rfl, Nat.factorial_succ, Nat.factorial_succ]
     push_cast
     ring
-  have hP2 : jacobiP (-1 / 2) (-1 / 2) (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
+  have hP2 : jacobiPolyP (-1 / 2) (-1 / 2) (n + 2) x * ((n + 2) * (n + 1) * n.factorial) =
       poch (1 / 2) n * (1 / 2 + n) * (1 / 2 + (n + 1)) *
         ₂F₁ (-((n : ℂ) + 2)) ((n : ℂ) + 2) (1 / 2) ((1 - x) / 2) := by
-    rw [jacobiP_half_half, hp2, hf2]
+    rw [jacobiPolyP_half_half, hp2, hf2]
     push_cast
     field_simp
-  have hP1 : jacobiP (-1 / 2) (-1 / 2) (n + 1) x * ((n + 2) * (n + 1) * n.factorial) =
+  have hP1 : jacobiPolyP (-1 / 2) (-1 / 2) (n + 1) x * ((n + 2) * (n + 1) * n.factorial) =
       poch (1 / 2) n * (1 / 2 + n) * (n + 2) *
         ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 1) (1 / 2) ((1 - x) / 2) := by
-    rw [jacobiP_half_half, poch_succ, Nat.factorial_succ]
+    rw [jacobiPolyP_half_half, poch_succ, Nat.factorial_succ]
     push_cast
     field_simp
-  have hP0 : jacobiP (-1 / 2) (-1 / 2) n x * ((n + 2) * (n + 1) * n.factorial) =
+  have hP0 : jacobiPolyP (-1 / 2) (-1 / 2) n x * ((n + 2) * (n + 1) * n.factorial) =
       poch (1 / 2) n * ((n + 2) * (n + 1)) *
         ₂F₁ (-(n : ℂ)) (n : ℂ) (1 / 2) ((1 - x) / 2) := by
-    rw [jacobiP_half_half]
+    rw [jacobiPolyP_half_half]
     field_simp
   have hK : (2 * ((n : ℂ) + 2) * (n + 1) * (2 * n + 1) * (n + 1 / 2) * (n + 3 / 2) *
       poch (1 / 2) n) ≠ 0 := by
@@ -895,8 +905,9 @@ theorem chebyshevT_hypergeometric (n : ℕ) (x : ℂ) :
 
 @[dlmf 18.7.E3]
 theorem chebyshevT_eq_jacobi (n : ℕ) (x : ℂ) :
-    (Chebyshev.T ℂ n).eval x = jacobiP (-1 / 2) (-1 / 2) n x / jacobiP (-1 / 2) (-1 / 2) n 1 := by
-  rw [chebyshevT_hypergeometric, jacobiP_half_half, jacobi_at_one (by norm_num),
+    (Chebyshev.T ℂ n).eval x = jacobiPolyP (-1 / 2) (-1 / 2) n x
+        / jacobiPolyP (-1 / 2) (-1 / 2) n 1 := by
+  rw [chebyshevT_hypergeometric, jacobiPolyP_half_half, jacobi_at_one (by norm_num),
     show (-1 / 2 : ℂ) + 1 = 1 / 2 by norm_num]
   have hp : poch (1 / 2 : ℂ) n ≠ 0 := poch_half_ne_zero n
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
@@ -965,7 +976,7 @@ theorem chebyshevV_cos (n : ℕ) (θ : ℂ) :
     chebyshevV n (cos θ) * cos (θ / 2) = cos ((n + 1 / 2) * θ) := by
   induction n with
   | zero =>
-    simp only [chebyshevV, jacobiP_zero, div_one, Nat.cast_zero, zero_add, one_mul]
+    simp only [chebyshevV, jacobiPolyP_zero, div_one, Nat.cast_zero, zero_add, one_mul]
     ring_nf
   | succ n ih =>
     have hV : chebyshevV (n + 1) (cos θ) =
@@ -983,7 +994,7 @@ theorem chebyshevV_cos (n : ℕ) (θ : ℂ) :
     linear_combination -hsum - ih
 
 /-- Jacobi polynomials do not vanish at `x = 1` for `Re α > -1`. -/
-lemma jacobiP_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) : jacobiP α β n 1 ≠ 0 := by
+lemma jacobiPolyP_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) : jacobiPolyP α β n 1 ≠ 0 := by
   rw [jacobi_at_one hα]
   exact div_ne_zero (poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
@@ -992,39 +1003,40 @@ lemma jacobiP_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) : jacobiP �
 /-- The companion of 18.9.5 raising `α`:
 `(2n+α+β+3) P^{(α,β)}_{n+1} = (n+α+β+2) P^{(α+1,β)}_{n+1} - (n+β+1) P^{(α+1,β)}_n`. -/
 theorem jacobi_raise_alpha {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (2 * n + α + β + 3) * jacobiP α β (n + 1) x =
-      (n + α + β + 2) * jacobiP (α + 1) β (n + 1) x - (n + β + 1) * jacobiP (α + 1) β n x := by
+    (2 * n + α + β + 3) * jacobiPolyP α β (n + 1) x =
+      (n + α + β + 2) * jacobiPolyP (α + 1) β (n + 1) x - (n + β + 1)
+          * jacobiPolyP (α + 1) β n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (2 * n + α + β + 3) * jacobiP α β (n + 1) x) =
-      fun x => (n + α + β + 2) * jacobiP (α + 1) β (n + 1) x -
-        (n + β + 1) * jacobiP (α + 1) β n x := by
+  have key : (fun x : ℂ => (2 * n + α + β + 3) * jacobiPolyP α β (n + 1) x) =
+      fun x => (n + α + β + 2) * jacobiPolyP (α + 1) β (n + 1) x -
+        (n + β + 1) * jacobiPolyP (α + 1) β n x := by
     refine eq_of_eqOn_half_shift_disk (by intro x _; fun_prop) (by intro x _; fun_prop) ?_
     intro x hx
     have hrel := AAR.Hypergeometric.contiguous_c_pair (a := -((n : ℂ) + 1))
       (b := (n : ℂ) + 1 + α + β + 1) (c := α + 1) hc hx
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
-    have hP0 : jacobiP α β (n + 1) x * ((n + 1) * n.factorial) =
+    have hP0 : jacobiPolyP α β (n + 1) x * ((n + 1) * n.factorial) =
         (α + 1) * poch (α + 1 + 1) n *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 1 + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ_left, Nat.factorial_succ]
       push_cast
       field_simp
-    have hP1 : jacobiP (α + 1) β (n + 1) x * ((n + 1) * n.factorial) =
+    have hP1 : jacobiPolyP (α + 1) β (n + 1) x * ((n + 1) * n.factorial) =
         poch (α + 1 + 1) n * (α + 1 + 1 + n) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 1 + α + β + 1 + 1) (α + 1 + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ, Nat.factorial_succ]
       push_cast
       rw [show (n : ℂ) + 1 + (α + 1) + β + 1 = (n : ℂ) + 1 + α + β + 1 + 1 by ring]
       field_simp
-    have hP2 : jacobiP (α + 1) β n x * ((n + 1) * n.factorial) =
+    have hP2 : jacobiPolyP (α + 1) β n x * ((n + 1) * n.factorial) =
         poch (α + 1 + 1) n * (n + 1) *
           ₂F₁ (-((n : ℂ) + 1) + 1) ((n : ℂ) + 1 + α + β + 1) (α + 1 + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [show (n : ℂ) + (α + 1) + β + 1 = (n : ℂ) + 1 + α + β + 1 by ring,
         show -(n : ℂ) = -((n : ℂ) + 1) + 1 by ring]
       field_simp
@@ -1075,7 +1087,7 @@ theorem chebyshevW_cos (n : ℕ) (θ : ℂ) :
     chebyshevW n (cos θ) * sin (θ / 2) = sin ((n + 1 / 2) * θ) := by
   induction n with
   | zero =>
-    simp only [chebyshevW, jacobiP_zero, div_one, Nat.cast_zero, mul_zero, zero_add, one_mul]
+    simp only [chebyshevW, jacobiPolyP_zero, div_one, Nat.cast_zero, mul_zero, zero_add, one_mul]
     ring_nf
   | succ n ih =>
     have hW : chebyshevW (n + 1) (cos θ) =
@@ -1127,7 +1139,7 @@ lemma sin_half_ne_zero_of_cos_ne_one {θ : ℂ} (h1 : cos θ ≠ 1) : sin (θ / 
 @[dlmf 18.7.E17]
 theorem chebyshevU_quadratic (n : ℕ) (x : ℂ) :
     (Chebyshev.U ℂ (2 * n)).eval x = chebyshevW n (2 * x ^ 2 - 1) := by
-  have hne : jacobiP (1 / 2) (-1 / 2) n 1 ≠ 0 := jacobiP_one_ne_zero (by norm_num) n
+  have hne : jacobiPolyP (1 / 2) (-1 / 2) n 1 ≠ 0 := jacobiPolyP_one_ne_zero (by norm_num) n
   have key : (fun x : ℂ => (Chebyshev.U ℂ (2 * n)).eval x) =
       fun x => chebyshevW n (2 * x ^ 2 - 1) := by
     refine AAR.Hypergeometric.eq_of_analyticOnNhd_univ_of_eqOn ?_ ?_
@@ -1136,10 +1148,11 @@ theorem chebyshevU_quadratic (n : ℕ) (x : ℂ) :
     · exact (Polynomial.differentiable _).differentiableOn.analyticOnNhd isOpen_univ
     · intro x _
       unfold chebyshevW
-      have h1 : AnalyticAt ℂ (fun x : ℂ => jacobiP (1 / 2) (-1 / 2) n (2 * x ^ 2 - 1)) x :=
-        (analyticAt_jacobiP _ _ n _).comp (f := fun x : ℂ => 2 * x ^ 2 - 1) (by fun_prop)
+      have h1 : AnalyticAt ℂ (fun x : ℂ => jacobiPolyP (1 / 2) (-1 / 2) n (2 * x ^ 2 - 1)) x :=
+        (analyticAt_jacobiPolyP _ _ n _).comp (f := fun x : ℂ => 2 * x ^ 2 - 1) (by fun_prop)
       exact AnalyticAt.fun_div (f := fun x : ℂ => (2 * (n : ℂ) + 1) *
-        jacobiP (1 / 2) (-1 / 2) n (2 * x ^ 2 - 1)) (g := fun _ => jacobiP (1 / 2) (-1 / 2) n 1)
+        jacobiPolyP (1 / 2) (-1 / 2) n (2 * x ^ 2 - 1))
+            (g := fun _ => jacobiPolyP (1 / 2) (-1 / 2) n 1)
         (x := x) (analyticAt_const.mul h1) analyticAt_const hne
     intro x hx
     obtain ⟨θ, rfl⟩ := Complex.cos_surjective x
@@ -1157,22 +1170,22 @@ theorem chebyshevU_quadratic (n : ℕ) (x : ℂ) :
 @[dlmf 18.6.T1]
 theorem chebyshevV_reflection (n : ℕ) (x : ℂ) :
     chebyshevV n (-x) = (-1 : ℂ) ^ n * chebyshevW n x := by
-  have hneV : jacobiP (-1 / 2) (1 / 2) n 1 ≠ 0 := jacobiP_one_ne_zero (by norm_num) n
-  have hneW : jacobiP (1 / 2) (-1 / 2) n 1 ≠ 0 := jacobiP_one_ne_zero (by norm_num) n
+  have hneV : jacobiPolyP (-1 / 2) (1 / 2) n 1 ≠ 0 := jacobiPolyP_one_ne_zero (by norm_num) n
+  have hneW : jacobiPolyP (1 / 2) (-1 / 2) n 1 ≠ 0 := jacobiPolyP_one_ne_zero (by norm_num) n
   have key : (fun x : ℂ => chebyshevV n (-x)) = fun x => (-1 : ℂ) ^ n * chebyshevW n x := by
     refine AAR.Hypergeometric.eq_of_analyticOnNhd_univ_of_eqOn ?_ ?_
       (isOpen_ne : IsOpen {x : ℂ | x ≠ 1}) ⟨0, by norm_num⟩ ?_
     · intro x _
       unfold chebyshevV
-      have h1 : AnalyticAt ℂ (fun x : ℂ => jacobiP (-1 / 2) (1 / 2) n (-x)) x :=
-        (analyticAt_jacobiP _ _ n _).comp (f := fun x : ℂ => -x) (by fun_prop)
-      exact AnalyticAt.fun_div (f := fun x : ℂ => jacobiP (-1 / 2) (1 / 2) n (-x))
-        (g := fun _ => jacobiP (-1 / 2) (1 / 2) n 1) (x := x) h1 analyticAt_const hneV
+      have h1 : AnalyticAt ℂ (fun x : ℂ => jacobiPolyP (-1 / 2) (1 / 2) n (-x)) x :=
+        (analyticAt_jacobiPolyP _ _ n _).comp (f := fun x : ℂ => -x) (by fun_prop)
+      exact AnalyticAt.fun_div (f := fun x : ℂ => jacobiPolyP (-1 / 2) (1 / 2) n (-x))
+        (g := fun _ => jacobiPolyP (-1 / 2) (1 / 2) n 1) (x := x) h1 analyticAt_const hneV
     · intro x _
       unfold chebyshevW
       exact analyticAt_const.mul (AnalyticAt.fun_div (f := fun x : ℂ => (2 * (n : ℂ) + 1) *
-        jacobiP (1 / 2) (-1 / 2) n x) (g := fun _ => jacobiP (1 / 2) (-1 / 2) n 1) (x := x)
-        (analyticAt_const.mul (analyticAt_jacobiP _ _ n x)) analyticAt_const hneW)
+        jacobiPolyP (1 / 2) (-1 / 2) n x) (g := fun _ => jacobiPolyP (1 / 2) (-1 / 2) n 1) (x := x)
+        (analyticAt_const.mul (analyticAt_jacobiPolyP _ _ n x)) analyticAt_const hneW)
     intro x hx
     obtain ⟨θ, rfl⟩ := Complex.cos_surjective x
     have hs : sin (θ / 2) ≠ 0 := sin_half_ne_zero_of_cos_ne_one hx
@@ -1213,33 +1226,34 @@ theorem chebyshevW_reflection (n : ℕ) (x : ℂ) :
   rw [h, ← mul_assoc, hsq, one_mul]
 
 @[dlmf 18.9.E13]
-theorem laguerre_raise_parameter {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    laguerre α (n + 1) x = laguerre (α + 1) (n + 1) x - laguerre (α + 1) n x := by
+theorem laguerrePolyL_raise_parameter {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    laguerrePolyL α (n + 1) x = laguerrePolyL (α + 1) (n + 1) x - laguerrePolyL (α + 1) n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hb : ∀ k : ℕ, α + 1 + 1 - 1 ≠ -(k : ℂ) := by simpa using hc
   have hc1 : ∀ k : ℕ, α + 1 + 1 ≠ -(k : ℂ) := by simpa using not_neg_nat_add_nat hc 1
-  have hM := AAR.Confluent.confluentM_contiguous_a_b (a := -((n + 1 : ℕ) : ℂ)) hb (z := x)
+  have hM := AAR.Confluent.kummerM_contiguous_a_b (a := -((n + 1 : ℕ) : ℂ)) hb (z := x)
   rw [show α + 1 + 1 - 1 = α + 1 by ring,
     show -((n + 1 : ℕ) : ℂ) + 1 = -(n : ℂ) by push_cast; ring] at hM
   have hP : poch (α + 1 + 1) n ≠ 0 := poch_ne_zero_of_not_neg_nat hc1 n
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
-  simp only [laguerre]
+  simp only [laguerrePolyL]
   rw [poch_succ_left (α + 1) n, poch_succ (α + 1 + 1) n, Nat.factorial_succ n]
   push_cast at hM ⊢
   field_simp
   linear_combination hM
 
 @[dlmf 18.9.E14]
-theorem laguerre_mul_argument {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    x * laguerre (α + 1) n x = -(n + 1) * laguerre α (n + 1) x + (n + α + 1) * laguerre α n x := by
+theorem laguerrePolyL_mul_argument {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    x * laguerrePolyL (α + 1) n x = -(n + 1) * laguerrePolyL α (n + 1) x + (n + α + 1)
+        * laguerrePolyL α n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hc0 : α + 1 ≠ 0 := by simpa using hc 0
-  have hM := AAR.Confluent.confluentM_contiguous_shift_a (a := -(n : ℂ)) hc (z := x)
+  have hM := AAR.Confluent.kummerM_contiguous_shift_a (a := -(n : ℂ)) hc (z := x)
   rw [show -(n : ℂ) - 1 = -((n + 1 : ℕ) : ℂ) by push_cast; ring] at hM
   have hQ : poch (α + 1) n ≠ 0 := poch_ne_zero_of_not_neg_nat hc n
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
@@ -1248,7 +1262,7 @@ theorem laguerre_mul_argument {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) 
     rw [← poch_succ_left, poch_succ]
   have hX : poch (α + 1 + 1) n = poch (α + 1) n * (α + 1 + n) / (α + 1) := by
     rw [eq_div_iff hc0]; linear_combination hrel
-  simp only [laguerre]
+  simp only [laguerrePolyL]
   rw [poch_succ (α + 1) n, Nat.factorial_succ n, hX]
   push_cast at hM ⊢
   field_simp
@@ -1270,17 +1284,17 @@ lemma deriv_gauss_neg_nat_succ (n : ℕ) (b : ℂ) {c : ℂ} (hc : ∀ k : ℕ, 
 
 @[dlmf 18.9.E15]
 theorem jacobi_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    deriv (jacobiP α β (n + 1)) x = (n + α + β + 2) / 2 * jacobiP (α + 1) (β + 1) n x := by
+    deriv (jacobiPolyP α β (n + 1)) x = (n + α + β + 2) / 2 * jacobiPolyP (α + 1) (β + 1) n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hc0 : α + 1 ≠ 0 := by simpa using hc 0
   have hn : (n + 1 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
-  have he : jacobiP α β (n + 1) = fun z => poch (α + 1) (n + 1) / ((n + 1).factorial : ℂ) *
+  have he : jacobiPolyP α β (n + 1) = fun z => poch (α + 1) (n + 1) / ((n + 1).factorial : ℂ) *
       ₂F₁ (-((n + 1 : ℕ) : ℂ)) ((n + 1 : ℕ) + α + β + 1) (α + 1) ((1 - z) / 2) := rfl
   rw [he]
   simp only [deriv_const_mul_field', deriv_half_shift, deriv_gauss_neg_nat_succ n _ hc]
-  rw [jacobiP, poch_succ_left, Nat.factorial_succ]
+  rw [jacobiPolyP, poch_succ_left, Nat.factorial_succ]
   push_cast
   rw [show (n : ℂ) + 1 + α + β + 1 + 1 = n + (α + 1) + (β + 1) + 1 by ring]
   field_simp
@@ -1288,8 +1302,8 @@ theorem jacobi_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
 
 /-- The derivative of a Jacobi polynomial on the disk `‖(1-x)/2‖ < 1`, from 15.5.1 and the
 chain rule. -/
-lemma hasDerivAt_jacobiP {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : ℂ} (hx : ‖(1 - x) / 2‖ < 1) :
-    HasDerivAt (jacobiP α β n)
+lemma hasDerivAt_jacobiPolyP {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : ℂ} (hx : ‖(1 - x) / 2‖ < 1) :
+    HasDerivAt (jacobiPolyP α β n)
       (poch (α + 1) n / n.factorial * (-(n : ℂ) * ((n : ℂ) + α + β + 1) / (α + 1) *
         ₂F₁ (-(n : ℂ) + 1) ((n : ℂ) + α + β + 1 + 1) (α + 1 + 1) ((1 - x) / 2) * (-1 / 2))) x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
@@ -1302,19 +1316,19 @@ lemma hasDerivAt_jacobiP {α β : ℂ} (hα : -1 < α.re) (n : ℕ) {x : ℂ} (h
 
 @[dlmf 18.9.E17]
 theorem jacobi_lowering_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiP α β (n + 1)) x =
-      (n + 1) * (α - β - (2 * n + α + β + 2) * x) * jacobiP α β (n + 1) x +
-      2 * (n + α + 1) * (n + β + 1) * jacobiP α β n x := by
+    (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiPolyP α β (n + 1)) x =
+      (n + 1) * (α - β - (2 * n + α + β + 2) * x) * jacobiPolyP α β (n + 1) x +
+      2 * (n + α + 1) * (n + β + 1) * jacobiPolyP α β n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiP α β (n + 1)) x) =
-      fun x => (n + 1) * (α - β - (2 * n + α + β + 2) * x) * jacobiP α β (n + 1) x +
-        2 * (n + α + 1) * (n + β + 1) * jacobiP α β n x := by
+  have key : (fun x : ℂ => (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiPolyP α β (n + 1)) x) =
+      fun x => (n + 1) * (α - β - (2 * n + α + β + 2) * x) * jacobiPolyP α β (n + 1) x +
+        2 * (n + α + 1) * (n + β + 1) * jacobiPolyP α β n x := by
     refine eq_of_eqOn_half_shift_disk ?_ (by intro x _; fun_prop) ?_
     · intro x _
-      have hd : AnalyticAt ℂ (deriv (jacobiP α β (n + 1))) x :=
-        (analyticOnNhd_jacobiP α β (n + 1)).deriv x (Set.mem_univ x)
+      have hd : AnalyticAt ℂ (deriv (jacobiPolyP α β (n + 1))) x :=
+        (analyticOnNhd_jacobiPolyP α β (n + 1)).deriv x (Set.mem_univ x)
       fun_prop
     intro x hx
     have hrel := AAR.Hypergeometric.contiguous_jacobi_lowering (a := -((n : ℂ) + 1))
@@ -1328,24 +1342,24 @@ theorem jacobi_lowering_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x
     have hrel' := (mul_eq_zero.mp hrel).resolve_left hD
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hc0 : (α + 1) ≠ 0 := by simpa using hc 0
-    have hP1 : jacobiP α β (n + 1) x * ((n + 1) * n.factorial * (α + 1)) =
+    have hP1 : jacobiPolyP α β (n + 1) x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * (α + 1 + n) * (α + 1) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 1 + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ, Nat.factorial_succ]
       push_cast
       field_simp
-    have hP0 : jacobiP α β n x * ((n + 1) * n.factorial * (α + 1)) =
+    have hP0 : jacobiPolyP α β n x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * ((n + 1) * (α + 1)) *
           ₂F₁ (-((n : ℂ) + 1) + 1) ((n : ℂ) + 1 + α + β + 1 - 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [show (n : ℂ) + 1 + α + β + 1 - 1 = (n : ℂ) + α + β + 1 by ring,
         show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring]
       field_simp
-    have hDd : deriv (jacobiP α β (n + 1)) x * ((n + 1) * n.factorial * (α + 1)) =
+    have hDd : deriv (jacobiPolyP α β (n + 1)) x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * (α + 1 + n) * (-((n : ℂ) + 1) * ((n : ℂ) + 1 + α + β + 1)) * (-1 / 2) *
           ₂F₁ (-((n : ℂ) + 1) + 1) ((n : ℂ) + 1 + α + β + 1 + 1) (α + 1 + 1) ((1 - x) / 2) := by
-      rw [(hasDerivAt_jacobiP hα (n + 1) hx).deriv, poch_succ, Nat.factorial_succ]
+      rw [(hasDerivAt_jacobiPolyP hα (n + 1) hx).deriv, poch_succ, Nat.factorial_succ]
       push_cast
       field_simp
     have hM : ((n : ℂ) + 1) * n.factorial * (α + 1) ≠ 0 := mul_ne_zero (mul_ne_zero hn1 hf) hc0
@@ -1357,19 +1371,19 @@ theorem jacobi_lowering_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x
 
 @[dlmf 18.9.E18]
 theorem jacobi_raising_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiP α β n) x =
-      (n + α + β + 1) * (α - β + (2 * n + α + β + 2) * x) * jacobiP α β n x -
-      2 * (n + 1) * (n + α + β + 1) * jacobiP α β (n + 1) x := by
+    (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiPolyP α β n) x =
+      (n + α + β + 1) * (α - β + (2 * n + α + β + 2) * x) * jacobiPolyP α β n x -
+      2 * (n + 1) * (n + α + β + 1) * jacobiPolyP α β (n + 1) x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiP α β n) x) =
-      fun x => (n + α + β + 1) * (α - β + (2 * n + α + β + 2) * x) * jacobiP α β n x -
-        2 * (n + 1) * (n + α + β + 1) * jacobiP α β (n + 1) x := by
+  have key : (fun x : ℂ => (2 * n + α + β + 2) * (1 - x ^ 2) * deriv (jacobiPolyP α β n) x) =
+      fun x => (n + α + β + 1) * (α - β + (2 * n + α + β + 2) * x) * jacobiPolyP α β n x -
+        2 * (n + 1) * (n + α + β + 1) * jacobiPolyP α β (n + 1) x := by
     refine eq_of_eqOn_half_shift_disk ?_ (by intro x _; fun_prop) ?_
     · intro x _
-      have hd : AnalyticAt ℂ (deriv (jacobiP α β n)) x :=
-        (analyticOnNhd_jacobiP α β n).deriv x (Set.mem_univ x)
+      have hd : AnalyticAt ℂ (deriv (jacobiPolyP α β n)) x :=
+        (analyticOnNhd_jacobiPolyP α β n).deriv x (Set.mem_univ x)
       fun_prop
     intro x hx
     have hrel := AAR.Hypergeometric.contiguous_jacobi_raising (a := -(n : ℂ))
@@ -1383,24 +1397,24 @@ theorem jacobi_raising_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x 
     have hrel' := (mul_eq_zero.mp hrel).resolve_left hD
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hc0 : (α + 1) ≠ 0 := by simpa using hc 0
-    have hP0 : jacobiP α β n x * ((n + 1) * n.factorial * (α + 1)) =
+    have hP0 : jacobiPolyP α β n x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * ((n + 1) * (α + 1)) *
           ₂F₁ (-(n : ℂ)) ((n : ℂ) + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       field_simp
-    have hP1 : jacobiP α β (n + 1) x * ((n + 1) * n.factorial * (α + 1)) =
+    have hP1 : jacobiPolyP α β (n + 1) x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * (α + 1 + n) * (α + 1) *
           ₂F₁ (-(n : ℂ) - 1) ((n : ℂ) + α + β + 1 + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [poch_succ, Nat.factorial_succ]
       push_cast
       rw [show -((n : ℂ) + 1) = -(n : ℂ) - 1 by ring,
         show (n : ℂ) + 1 + α + β + 1 = (n : ℂ) + α + β + 1 + 1 by ring]
       field_simp
-    have hDd : deriv (jacobiP α β n) x * ((n + 1) * n.factorial * (α + 1)) =
+    have hDd : deriv (jacobiPolyP α β n) x * ((n + 1) * n.factorial * (α + 1)) =
         poch (α + 1) n * (n + 1) * (-(n : ℂ) * ((n : ℂ) + α + β + 1)) * (-1 / 2) *
           ₂F₁ (-(n : ℂ) + 1) ((n : ℂ) + α + β + 1 + 1) (α + 1 + 1) ((1 - x) / 2) := by
-      rw [(hasDerivAt_jacobiP hα n hx).deriv]
+      rw [(hasDerivAt_jacobiPolyP hα n hx).deriv]
       field_simp
     have hM : ((n : ℂ) + 1) * n.factorial * (α + 1) ≠ 0 := mul_ne_zero (mul_ne_zero hn1 hf) hc0
     apply mul_right_cancel₀ hM
@@ -1410,8 +1424,8 @@ theorem jacobi_raising_derivative {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x 
   exact congrFun key x
 
 @[dlmf 18.9.E19]
-theorem gegenbauer_derivative {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    deriv (gegenbauer lam (n + 1)) x = 2 * lam * gegenbauer (lam + 1) n x := by
+theorem ultrasphPoly_derivative {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    deriv (ultrasphPoly lam (n + 1)) x = 2 * lam * ultrasphPoly (lam + 1) n x := by
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     linarith)
@@ -1444,11 +1458,11 @@ theorem gegenbauer_derivative {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x 
             (2 * lam + 1) * (2 * lam * poch (2 * lam + 2) n) by ring,
           mul_div_mul_left _ _ h2]
         ring
-  have he : gegenbauer lam (n + 1) = fun z => poch (2 * lam) (n + 1) / ((n + 1).factorial : ℂ) *
+  have he : ultrasphPoly lam (n + 1) = fun z => poch (2 * lam) (n + 1) / ((n + 1).factorial : ℂ) *
       ₂F₁ (-((n + 1 : ℕ) : ℂ)) ((n + 1 : ℕ) + 2 * lam) (lam + 1 / 2) ((1 - z) / 2) := rfl
   rw [he]
   simp only [deriv_const_mul_field', deriv_half_shift, deriv_gauss_neg_nat_succ n _ hc]
-  rw [gegenbauer]
+  rw [ultrasphPoly]
   push_cast
   rw [show (n : ℂ) + 1 + 2 * lam + 1 = n + 2 * (lam + 1) by ring,
     show lam + 1 / 2 + 1 = (lam + 1) + 1 / 2 by ring]
@@ -1456,35 +1470,35 @@ theorem gegenbauer_derivative {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x 
 
 /-- The derivative formula for Kummer's entire series at regular lower parameters. -/
 @[dlmf 13.3.E15]
-lemma deriv_confluentM_regular {a c : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) :
-    deriv (confluentM a c) = fun z => a / c * confluentM (a + 1) (c + 1) z :=
-  funext fun z => AAR.Confluent.deriv_confluentM hc (by simpa using hc 0)
+lemma deriv_kummerM_regular {a c : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) :
+    deriv (kummerM a c) = fun z => a / c * kummerM (a + 1) (c + 1) z :=
+  funext fun z => AAR.Confluent.deriv_kummerM hc (by simpa using hc 0)
 
 @[dlmf 18.9.E23]
-theorem laguerre_derivative {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    deriv (laguerre α (n + 1)) x = -laguerre (α + 1) n x := by
+theorem laguerrePolyL_derivative {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    deriv (laguerrePolyL α (n + 1)) x = -laguerrePolyL (α + 1) n x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hc0 : α + 1 ≠ 0 := by simpa using hc 0
   have hn : (n + 1 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
-  have he : laguerre α (n + 1) = fun z => poch (α + 1) (n + 1) / ((n + 1).factorial : ℂ) *
-      confluentM (-((n + 1 : ℕ) : ℂ)) (α + 1) z := rfl
+  have he : laguerrePolyL α (n + 1) = fun z => poch (α + 1) (n + 1) / ((n + 1).factorial : ℂ) *
+      kummerM (-((n + 1 : ℕ) : ℂ)) (α + 1) z := rfl
   rw [he]
-  simp only [deriv_const_mul_field', deriv_confluentM_regular hc]
-  rw [laguerre, poch_succ_left, Nat.factorial_succ]
+  simp only [deriv_const_mul_field', deriv_kummerM_regular hc]
+  rw [laguerrePolyL, poch_succ_left, Nat.factorial_succ]
   push_cast
   rw [show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring]
   field_simp
 
 @[dlmf 18.9.E26]
-theorem hermitePhys_weighted_derivative (n : ℕ) (x : ℝ) :
-    deriv (fun t : ℝ => Real.exp (-(t ^ 2)) * aeval t (hermitePhys n)) x =
-      -Real.exp (-(x ^ 2)) * aeval x (hermitePhys (n + 1)) := by
-  have hd := (((hasDerivAt_id x).pow 2).neg.exp).fun_mul ((hermitePhys n).hasDerivAt_aeval x)
+theorem hermitePolyH_weighted_derivative (n : ℕ) (x : ℝ) :
+    deriv (fun t : ℝ => Real.exp (-(t ^ 2)) * aeval t (hermitePolyH n)) x =
+      -Real.exp (-(x ^ 2)) * aeval x (hermitePolyH (n + 1)) := by
+  have hd := (((hasDerivAt_id x).pow 2).neg.exp).fun_mul ((hermitePolyH n).hasDerivAt_aeval x)
   simp only [Pi.pow_apply, Pi.neg_apply, id_eq] at hd
   rw [hd.deriv]
-  simp only [hermitePhys_succ, map_sub, map_mul, map_ofNat, aeval_X, mul_one]
+  simp only [hermitePolyH_succ, map_sub, map_mul, map_ofNat, aeval_X, mul_one]
   ring
 
 @[dlmf 18.9.E28]
@@ -1499,9 +1513,9 @@ theorem hermite_weighted_derivative (n : ℕ) (x : ℝ) :
 
 
 /-- The derivative of a Gegenbauer polynomial on the disk `‖(1-x)/2‖ < 1`. -/
-lemma hasDerivAt_gegenbauer {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) {x : ℂ}
+lemma hasDerivAt_ultrasphPoly {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) {x : ℂ}
     (hx : ‖(1 - x) / 2‖ < 1) :
-    HasDerivAt (gegenbauer lam n)
+    HasDerivAt (ultrasphPoly lam n)
       (poch (2 * lam) n / n.factorial * (-(n : ℂ) * ((n : ℂ) + 2 * lam) / (lam + 1 / 2) *
         ₂F₁ (-(n : ℂ) + 1) ((n : ℂ) + 2 * lam + 1) (lam + 1 / 2 + 1) ((1 - x) / 2) * (-1 / 2))) x := by
   have hc : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
@@ -1515,20 +1529,20 @@ lemma hasDerivAt_gegenbauer {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) {x : 
 /-- The polynomial identity behind 18.9.16:
 `(1-x²) P' + (β(1-x) - α(1+x)) P = -2(n+1) P^{(α-1,β-1)}_{n+1}`. -/
 lemma jacobi_weighted_identity {α β : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ) :
-    (1 - x ^ 2) * deriv (jacobiP α β n) x + (β * (1 - x) - α * (1 + x)) * jacobiP α β n x +
-      2 * (n + 1) * jacobiP (α - 1) (β - 1) (n + 1) x = 0 := by
+    (1 - x ^ 2) * deriv (jacobiPolyP α β n) x + (β * (1 - x) - α * (1 + x)) * jacobiPolyP α β n x +
+      2 * (n + 1) * jacobiPolyP (α - 1) (β - 1) (n + 1) x = 0 := by
   have hα' : -1 < α.re := by linarith
   have hc : ∀ k : ℕ, α ≠ -(k : ℂ) := not_neg_nat_of_re_pos hα
   have hc1 : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => (1 - x ^ 2) * deriv (jacobiP α β n) x +
-      (β * (1 - x) - α * (1 + x)) * jacobiP α β n x +
-      2 * (n + 1) * jacobiP (α - 1) (β - 1) (n + 1) x) = fun _ => 0 := by
+  have key : (fun x : ℂ => (1 - x ^ 2) * deriv (jacobiPolyP α β n) x +
+      (β * (1 - x) - α * (1 + x)) * jacobiPolyP α β n x +
+      2 * (n + 1) * jacobiPolyP (α - 1) (β - 1) (n + 1) x) = fun _ => 0 := by
     refine eq_of_eqOn_half_shift_disk ?_ analyticOnNhd_const ?_
     · intro x _
-      have hd : AnalyticAt ℂ (deriv (jacobiP α β n)) x :=
-        (analyticOnNhd_jacobiP α β n).deriv x (Set.mem_univ x)
+      have hd : AnalyticAt ℂ (deriv (jacobiPolyP α β n)) x :=
+        (analyticOnNhd_jacobiPolyP α β n).deriv x (Set.mem_univ x)
       fun_prop
     intro x hx
     have hdiag := AAR.Hypergeometric.contiguous_diagonal (a := -((n : ℂ) + 1))
@@ -1536,29 +1550,31 @@ lemma jacobi_weighted_identity {α β : ℂ} (hα : 0 < α.re) (n : ℕ) (x : �
     have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hc0 : (α + 1) ≠ 0 := by simpa using hc1 0
-    have hP : jacobiP α β n x * (n.factorial * (n + 1) * (α + 1)) =
+    have hP : jacobiPolyP α β n x * (n.factorial * (n + 1) * (α + 1)) =
         poch (α + 1) n * (n + 1) * (α + 1) *
           ₂F₁ (-((n : ℂ) + 1) + 1) ((n : ℂ) + α + β + 1) (α + 1) ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring]
       field_simp
-    have hD : deriv (jacobiP α β n) x * (n.factorial * (n + 1) * (α + 1)) =
+    have hD : deriv (jacobiPolyP α β n) x * (n.factorial * (n + 1) * (α + 1)) =
         poch (α + 1) n * (n + 1) * (-(n : ℂ) * ((n : ℂ) + α + β + 1)) * (-1 / 2) *
           ₂F₁ (-((n : ℂ) + 1) + 2) ((n : ℂ) + α + β + 2) (α + 2) ((1 - x) / 2) := by
-      rw [(hasDerivAt_jacobiP hα' n hx).deriv, show -((n : ℂ) + 1) + 2 = -(n : ℂ) + 1 by ring,
+      rw [(hasDerivAt_jacobiPolyP hα' n hx).deriv, show -((n : ℂ) + 1) + 2 = -(n : ℂ) + 1 by ring,
         show (n : ℂ) + α + β + 2 = (n : ℂ) + α + β + 1 + 1 by ring, show α + 2 = α + 1 + 1 by ring]
       field_simp
-    have hQ : jacobiP (α - 1) (β - 1) (n + 1) x * (n.factorial * (n + 1) * (α + 1)) =
+    have hQ : jacobiPolyP (α - 1) (β - 1) (n + 1) x * (n.factorial * (n + 1) * (α + 1)) =
         α * poch (α + 1) n * (α + 1) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + α + β) α ((1 - x) / 2) := by
-      unfold jacobiP
+      unfold jacobiPolyP
       rw [show α - 1 + 1 = α by ring, poch_succ_left, Nat.factorial_succ]
       push_cast
       rw [show (n : ℂ) + 1 + (α - 1) + (β - 1) + 1 = (n : ℂ) + α + β by ring]
       field_simp
     have hM : (n.factorial : ℂ) * (n + 1) * (α + 1) ≠ 0 := mul_ne_zero (mul_ne_zero hf hn1) hc0
-    have : ((1 - x ^ 2) * deriv (jacobiP α β n) x + (β * (1 - x) - α * (1 + x)) * jacobiP α β n x +
-        2 * (n + 1) * jacobiP (α - 1) (β - 1) (n + 1) x) * (n.factorial * (n + 1) * (α + 1)) = 0 := by
+    have : ((1 - x ^ 2) * deriv (jacobiPolyP α β n) x + (β * (1 - x) - α * (1 + x))
+        * jacobiPolyP α β n x +
+        2 * (n + 1) * jacobiPolyP (α - 1) (β - 1) (n + 1) x) * (n.factorial * (n + 1) * (α + 1))
+            = 0 := by
       linear_combination (1 - x ^ 2) * hD + (β * (1 - x) - α * (1 + x)) * hP + (2 * (n + 1)) * hQ +
         (-2 * poch (α + 1) n * (n + 1)) * hdiag
     exact (mul_eq_zero.mp this).resolve_right hM
@@ -1566,9 +1582,10 @@ lemma jacobi_weighted_identity {α β : ℂ} (hα : 0 < α.re) (n : ℕ) (x : �
 
 /-- The polynomial identity behind 18.9.20, multiplied by `2(λ-1)`:
 `2(λ-1)((1-x²) C' - (2λ-1) x C) + (n+1)(n+2λ-1) C^{λ-1}_{n+1} = 0`. -/
-lemma gegenbauer_weighted_identity {lam : ℂ} (hlam : 1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    2 * (lam - 1) * ((1 - x ^ 2) * deriv (gegenbauer lam n) x - (2 * lam - 1) * x * gegenbauer lam n x) +
-      (n + 1) * (n + 2 * lam - 1) * gegenbauer (lam - 1) (n + 1) x = 0 := by
+lemma ultrasphPoly_weighted_identity {lam : ℂ} (hlam : 1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    2 * (lam - 1)
+        * ((1 - x ^ 2) * deriv (ultrasphPoly lam n) x - (2 * lam - 1) * x * ultrasphPoly lam n x) +
+      (n + 1) * (n + 2 * lam - 1) * ultrasphPoly (lam - 1) (n + 1) x = 0 := by
   have hlam' : -1 / 2 < lam.re := by linarith
   have hc : ∀ k : ℕ, lam - 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.sub_re, Complex.div_ofNat_re, Complex.one_re]
@@ -1576,13 +1593,13 @@ lemma gegenbauer_weighted_identity {lam : ℂ} (hlam : 1 / 2 < lam.re) (n : ℕ)
   have hc1 : ∀ k : ℕ, lam + 1 / 2 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.div_ofNat_re, Complex.one_re]
     linarith)
-  have key : (fun x : ℂ => 2 * (lam - 1) * ((1 - x ^ 2) * deriv (gegenbauer lam n) x -
-      (2 * lam - 1) * x * gegenbauer lam n x) +
-      (n + 1) * (n + 2 * lam - 1) * gegenbauer (lam - 1) (n + 1) x) = fun _ => 0 := by
+  have key : (fun x : ℂ => 2 * (lam - 1) * ((1 - x ^ 2) * deriv (ultrasphPoly lam n) x -
+      (2 * lam - 1) * x * ultrasphPoly lam n x) +
+      (n + 1) * (n + 2 * lam - 1) * ultrasphPoly (lam - 1) (n + 1) x) = fun _ => 0 := by
     refine eq_of_eqOn_half_shift_disk ?_ analyticOnNhd_const ?_
     · intro x _
-      have hd : AnalyticAt ℂ (deriv (gegenbauer lam n)) x :=
-        (analyticOnNhd_gegenbauer lam n).deriv x (Set.mem_univ x)
+      have hd : AnalyticAt ℂ (deriv (ultrasphPoly lam n)) x :=
+        (analyticOnNhd_ultrasphPoly lam n).deriv x (Set.mem_univ x)
       fun_prop
     intro x hx
     have hdiag := AAR.Hypergeometric.contiguous_diagonal (a := -((n : ℂ) + 1))
@@ -1606,39 +1623,41 @@ lemma gegenbauer_weighted_identity {lam : ℂ} (hlam : 1 / 2 < lam.re) (n : ℕ)
       ring
     have hM : (n.factorial : ℂ) * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n) ≠ 0 :=
       mul_ne_zero (mul_ne_zero (mul_ne_zero hf hn1) hc0) hN
-    have hP : gegenbauer lam n x * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
+    have hP : ultrasphPoly lam n x * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
         poch (2 * lam) n * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n) *
           ₂F₁ (-((n : ℂ) + 1) + 1) ((n : ℂ) + 2 * lam - 1 + 1) (lam - 1 / 2 + 1) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       rw [show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring,
         show (n : ℂ) + 2 * lam - 1 + 1 = (n : ℂ) + 2 * lam by ring,
         show lam - 1 / 2 + 1 = lam + 1 / 2 by ring]
       field_simp
-    have hD : deriv (gegenbauer lam n) x * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
+    have hD : deriv (ultrasphPoly lam n) x
+        * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
         poch (2 * lam) n * (n + 1) * (-(n : ℂ) * ((n : ℂ) + 2 * lam)) * (-1 / 2) * (2 * lam - 1 + n) *
           ₂F₁ (-((n : ℂ) + 1) + 2) ((n : ℂ) + 2 * lam - 1 + 2) (lam - 1 / 2 + 2) ((1 - x) / 2) := by
-      rw [(hasDerivAt_gegenbauer hlam' n hx).deriv,
+      rw [(hasDerivAt_ultrasphPoly hlam' n hx).deriv,
         show -((n : ℂ) + 1) + 2 = -(n : ℂ) + 1 by ring,
         show (n : ℂ) + 2 * lam - 1 + 2 = (n : ℂ) + 2 * lam + 1 by ring,
         show lam - 1 / 2 + 2 = lam + 1 / 2 + 1 by ring]
       field_simp
-    have hQ' : gegenbauer (lam - 1) (n + 1) x * ((n + 1) * n.factorial) =
+    have hQ' : ultrasphPoly (lam - 1) (n + 1) x * ((n + 1) * n.factorial) =
         poch (2 * (lam - 1)) (n + 1) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 2 * lam - 1) (lam - 1 / 2) ((1 - x) / 2) := by
-      unfold gegenbauer
+      unfold ultrasphPoly
       rw [Nat.factorial_succ]
       push_cast
       rw [show (n : ℂ) + 1 + 2 * (lam - 1) = (n : ℂ) + 2 * lam - 1 by ring,
         show lam - 1 + 1 / 2 = lam - 1 / 2 by ring]
       field_simp
-    have hQ : gegenbauer (lam - 1) (n + 1) x * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
+    have hQ : ultrasphPoly (lam - 1) (n + 1) x
+        * (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) =
         2 * (lam - 1) * (2 * lam - 1) * poch (2 * lam) n * (lam + 1 / 2) *
           ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 2 * lam - 1) (lam - 1 / 2) ((1 - x) / 2) := by
       linear_combination ((lam + 1 / 2) * (2 * lam - 1 + n)) * hQ' + ((lam + 1 / 2) *
         ₂F₁ (-((n : ℂ) + 1)) ((n : ℂ) + 2 * lam - 1) (lam - 1 / 2) ((1 - x) / 2)) * hpq
-    have : (2 * (lam - 1) * ((1 - x ^ 2) * deriv (gegenbauer lam n) x -
-        (2 * lam - 1) * x * gegenbauer lam n x) +
-        (n + 1) * (n + 2 * lam - 1) * gegenbauer (lam - 1) (n + 1) x) *
+    have : (2 * (lam - 1) * ((1 - x ^ 2) * deriv (ultrasphPoly lam n) x -
+        (2 * lam - 1) * x * ultrasphPoly lam n x) +
+        (n + 1) * (n + 2 * lam - 1) * ultrasphPoly (lam - 1) (n + 1) x) *
         (n.factorial * (n + 1) * (lam + 1 / 2) * (2 * lam - 1 + n)) = 0 := by
       linear_combination (2 * (lam - 1) * (1 - x ^ 2)) * hD - (2 * (lam - 1) * (2 * lam - 1) * x) * hP +
         ((n + 1) * (n + 2 * lam - 1)) * hQ +
@@ -1648,9 +1667,9 @@ lemma gegenbauer_weighted_identity {lam : ℂ} (hlam : 1 / 2 < lam.re) (n : ℕ)
 
 @[dlmf 18.9.E16]
 theorem jacobi_weighted_derivative {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    deriv (fun t : ℝ => (1 - (t : ℂ)) ^ (α : ℂ) * (1 + (t : ℂ)) ^ (β : ℂ) * jacobiP α β n t) x =
+    deriv (fun t : ℝ => (1 - (t : ℂ)) ^ (α : ℂ) * (1 + (t : ℂ)) ^ (β : ℂ) * jacobiPolyP α β n t) x =
       -2 * (n + 1) * (1 - (x : ℂ)) ^ ((α : ℂ) - 1) * (1 + (x : ℂ)) ^ ((β : ℂ) - 1) *
-        jacobiP (α - 1) (β - 1) (n + 1) x := by
+        jacobiPolyP (α - 1) (β - 1) (n + 1) x := by
   obtain ⟨hx1, hx2⟩ := hx
   have h1 : (1 - (x : ℂ)) ∈ slitPlane := by
     rw [show (1 - (x : ℂ)) = ((1 - x : ℝ) : ℂ) by push_cast; ring]
@@ -1666,11 +1685,11 @@ theorem jacobi_weighted_derivative {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (
   have hB : HasDerivAt (fun t : ℝ => (1 + (t : ℂ)) ^ (β : ℂ))
       ((β : ℂ) * (1 + (x : ℂ)) ^ ((β : ℂ) - 1) * 1) x :=
     ((((hasDerivAt_id' (x : ℂ)).const_add 1).cpow_const (c := (β : ℂ)) h2)).comp_ofReal
-  have hP : HasDerivAt (fun t : ℝ => jacobiP α β n t) (deriv (jacobiP α β n) x) x :=
-    ((analyticOnNhd_jacobiP α β n) x (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal
+  have hP : HasDerivAt (fun t : ℝ => jacobiPolyP α β n t) (deriv (jacobiPolyP α β n) x) x :=
+    ((analyticOnNhd_jacobiPolyP α β n) x (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal
   have hprod := (hA.mul hB).mul hP
   change deriv (((fun t : ℝ => (1 - (t : ℂ)) ^ (α : ℂ)) * fun t : ℝ => (1 + (t : ℂ)) ^ (β : ℂ)) *
-    fun t : ℝ => jacobiP α β n t) x = _
+    fun t : ℝ => jacobiPolyP α β n t) x = _
   rw [hprod.deriv]
   simp only [Pi.mul_apply]
   have hid := jacobi_weighted_identity (α := α) (β := β) (by simpa using hα) n x
@@ -1684,11 +1703,11 @@ theorem jacobi_weighted_derivative {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (
   linear_combination ((1 - (x : ℂ)) ^ ((α : ℂ) - 1) * (1 + (x : ℂ)) ^ ((β : ℂ) - 1)) * hid
 
 @[dlmf 18.9.E20]
-theorem gegenbauer_weighted_derivative {lam : ℝ} (hlam : 1 / 2 < lam) (hlam1 : lam ≠ 1)
+theorem ultrasphPoly_weighted_derivative {lam : ℝ} (hlam : 1 / 2 < lam) (hlam1 : lam ≠ 1)
     (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
-    deriv (fun t : ℝ => (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2) * gegenbauer lam n t) x =
+    deriv (fun t : ℝ => (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2) * ultrasphPoly lam n t) x =
       -(n + 1) * (n + 2 * (lam : ℂ) - 1) / (2 * (lam - 1)) *
-        (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 3 / 2) * gegenbauer (lam - 1) (n + 1) x := by
+        (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 3 / 2) * ultrasphPoly (lam - 1) (n + 1) x := by
   obtain ⟨hx1, hx2⟩ := hx
   have h1 : (1 - (x : ℂ) ^ 2) ∈ slitPlane := by
     rw [show (1 - (x : ℂ) ^ 2) = ((1 - x ^ 2 : ℝ) : ℂ) by push_cast; ring]
@@ -1699,13 +1718,13 @@ theorem gegenbauer_weighted_derivative {lam : ℝ} (hlam : 1 / 2 < lam) (hlam1 :
   have hA : HasDerivAt (fun t : ℝ => (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2))
       (((lam : ℂ) - 1 / 2) * (1 - (x : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2 - 1) * -(2 * (x : ℂ))) x :=
     (hsq.cpow_const (c := (lam : ℂ) - 1 / 2) h1).comp_ofReal
-  have hC : HasDerivAt (fun t : ℝ => gegenbauer lam n t) (deriv (gegenbauer lam n) x) x :=
-    ((analyticOnNhd_gegenbauer lam n) x (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal
+  have hC : HasDerivAt (fun t : ℝ => ultrasphPoly lam n t) (deriv (ultrasphPoly lam n) x) x :=
+    ((analyticOnNhd_ultrasphPoly lam n) x (Set.mem_univ _)).differentiableAt.hasDerivAt.comp_ofReal
   have hprod := hA.mul hC
   change deriv ((fun t : ℝ => (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1 / 2)) *
-    fun t : ℝ => gegenbauer lam n t) x = _
+    fun t : ℝ => ultrasphPoly lam n t) x = _
   rw [hprod.deriv]
-  have hid := gegenbauer_weighted_identity (lam := lam) (by simpa using hlam) n x
+  have hid := ultrasphPoly_weighted_identity (lam := lam) (by simpa using hlam) n x
   have h2 : (2 * ((lam : ℂ) - 1)) ≠ 0 := by
     have : (lam : ℂ) - 1 ≠ 0 := by
       intro h
@@ -1749,36 +1768,38 @@ theorem chebyshevU_weighted_derivative (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (
 
 /-- The polynomial identity behind 18.9.24: `x L' + (α - x) L = (n+1) L^{(α-1)}_{n+1}`, from the
 Kummer relation 13.3.13. -/
-lemma laguerre_weighted_identity {α : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ) :
-    x * deriv (laguerre α n) x + (α - x) * laguerre α n x = (n + 1) * laguerre (α - 1) (n + 1) x := by
+lemma laguerrePolyL_weighted_identity {α : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ) :
+    x * deriv (laguerrePolyL α n) x + (α - x) * laguerrePolyL α n x = (n + 1)
+        * laguerrePolyL (α - 1) (n + 1) x := by
   have hb : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
     linarith)
   have hb' : ∀ k : ℕ, α ≠ -(k : ℂ) := not_neg_nat_of_re_pos hα
   have hb0 : α + 1 ≠ 0 := by simpa using hb 0
-  have hMd : DifferentiableAt ℂ (confluentM (-(n : ℂ)) (α + 1)) x :=
-    ((hasFPowerSeriesOnBall_confluentM (a := -(n : ℂ)) hb).analyticAt_of_mem
+  have hMd : DifferentiableAt ℂ (kummerM (-(n : ℂ)) (α + 1)) x :=
+    ((hasFPowerSeriesOnBall_kummerM (a := -(n : ℂ)) hb).analyticAt_of_mem
       (by simp : x ∈ Metric.eball (0 : ℂ) ⊤)).differentiableAt
-  have hderiv : deriv (laguerre α n) x =
-      poch (α + 1) n / n.factorial * (-(n : ℂ) / (α + 1) * confluentM (-(n : ℂ) + 1) (α + 1 + 1) x) := by
-    show deriv (fun x => poch (α + 1) n / n.factorial * confluentM (-(n : ℂ)) (α + 1) x) x = _
-    rw [deriv_const_mul _ hMd, AAR.Confluent.deriv_confluentM hb hb0]
-  have hode := AAR.Confluent.confluentM_ode_contiguous (a := -((n : ℂ) + 1)) (b := α) (z := x) hb'
+  have hderiv : deriv (laguerrePolyL α n) x =
+      poch (α + 1) n / n.factorial
+          * (-(n : ℂ) / (α + 1) * kummerM (-(n : ℂ) + 1) (α + 1 + 1) x) := by
+    show deriv (fun x => poch (α + 1) n / n.factorial * kummerM (-(n : ℂ)) (α + 1) x) x = _
+    rw [deriv_const_mul _ hMd, AAR.Confluent.deriv_kummerM hb hb0]
+  have hode := AAR.Confluent.kummerM_ode_contiguous (a := -((n : ℂ) + 1)) (b := α) (z := x) hb'
   have hn1 : ((n : ℂ) + 1) ≠ 0 := by exact_mod_cast n.succ_ne_zero
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hM : (n.factorial : ℂ) * (n + 1) * (α + 1) ≠ 0 := mul_ne_zero (mul_ne_zero hf hn1) hb0
-  have hL : laguerre α n x * (n.factorial * (n + 1) * (α + 1)) =
-      poch (α + 1) n * (n + 1) * (α + 1) * confluentM (-((n : ℂ) + 1) + 1) (α + 1) x := by
-    unfold laguerre
+  have hL : laguerrePolyL α n x * (n.factorial * (n + 1) * (α + 1)) =
+      poch (α + 1) n * (n + 1) * (α + 1) * kummerM (-((n : ℂ) + 1) + 1) (α + 1) x := by
+    unfold laguerrePolyL
     rw [show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring]
     field_simp
-  have hD : deriv (laguerre α n) x * (n.factorial * (n + 1) * (α + 1)) =
-      poch (α + 1) n * (n + 1) * (-(n : ℂ)) * confluentM (-((n : ℂ) + 1) + 2) (α + 2) x := by
+  have hD : deriv (laguerrePolyL α n) x * (n.factorial * (n + 1) * (α + 1)) =
+      poch (α + 1) n * (n + 1) * (-(n : ℂ)) * kummerM (-((n : ℂ) + 1) + 2) (α + 2) x := by
     rw [hderiv, show -((n : ℂ) + 1) + 2 = -(n : ℂ) + 1 by ring, show α + 2 = α + 1 + 1 by ring]
     field_simp
-  have hQ : laguerre (α - 1) (n + 1) x * (n.factorial * (n + 1) * (α + 1)) =
-      α * poch (α + 1) n * (α + 1) * confluentM (-((n : ℂ) + 1)) α x := by
-    unfold laguerre
+  have hQ : laguerrePolyL (α - 1) (n + 1) x * (n.factorial * (n + 1) * (α + 1)) =
+      α * poch (α + 1) n * (α + 1) * kummerM (-((n : ℂ) + 1)) α x := by
+    unfold laguerrePolyL
     rw [show α - 1 + 1 = α by ring, poch_succ_left, Nat.factorial_succ]
     push_cast
     field_simp
@@ -1786,33 +1807,33 @@ lemma laguerre_weighted_identity {α : ℂ} (hα : 0 < α.re) (n : ℕ) (x : ℂ
   linear_combination x * hD + (α - x) * hL - (n + 1) * hQ + (poch (α + 1) n * (n + 1)) * hode
 
 @[dlmf 18.9.E24]
-theorem laguerre_weighted_derivative {α : ℝ} (hα : 0 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
-    deriv (fun t : ℝ => exp (-t) * (t : ℂ) ^ (α : ℂ) * laguerre α n t) x =
-      (n + 1) * exp (-x) * (x : ℂ) ^ ((α : ℂ) - 1) * laguerre (α - 1) (n + 1) x := by
+theorem laguerrePolyL_weighted_derivative {α : ℝ} (hα : 0 < α) (n : ℕ) {x : ℝ} (hx : 0 < x) :
+    deriv (fun t : ℝ => exp (-t) * (t : ℂ) ^ (α : ℂ) * laguerrePolyL α n t) x =
+      (n + 1) * exp (-x) * (x : ℂ) ^ ((α : ℂ) - 1) * laguerrePolyL (α - 1) (n + 1) x := by
   have hxs : (x : ℂ) ∈ slitPlane := Complex.ofReal_mem_slitPlane.mpr hx
   have hx0 : (x : ℂ) ≠ 0 := slitPlane_ne_zero hxs
   have hb : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.ofReal_re, Complex.one_re]
     linarith)
-  have hMd : DifferentiableAt ℂ (confluentM (-(n : ℂ)) ((α : ℂ) + 1)) x :=
-    ((hasFPowerSeriesOnBall_confluentM (a := -(n : ℂ)) hb).analyticAt_of_mem
+  have hMd : DifferentiableAt ℂ (kummerM (-(n : ℂ)) ((α : ℂ) + 1)) x :=
+    ((hasFPowerSeriesOnBall_kummerM (a := -(n : ℂ)) hb).analyticAt_of_mem
       (by simp : (x : ℂ) ∈ Metric.eball (0 : ℂ) ⊤)).differentiableAt
-  have hLd : DifferentiableAt ℂ (laguerre α n) x := by
+  have hLd : DifferentiableAt ℂ (laguerrePolyL α n) x := by
     show DifferentiableAt ℂ (fun x => poch ((α : ℂ) + 1) n / n.factorial *
-      confluentM (-(n : ℂ)) ((α : ℂ) + 1) x) x
+      kummerM (-(n : ℂ)) ((α : ℂ) + 1) x) x
     exact hMd.const_mul _
   have hE : HasDerivAt (fun t : ℝ => exp (-(t : ℂ))) (exp (-(x : ℂ)) * -1) x :=
     ((hasDerivAt_id' (x : ℂ)).neg.cexp).comp_ofReal
   have hT : HasDerivAt (fun t : ℝ => (t : ℂ) ^ (α : ℂ)) ((α : ℂ) * (x : ℂ) ^ ((α : ℂ) - 1) * 1) x :=
     ((hasDerivAt_id' (x : ℂ)).cpow_const (c := (α : ℂ)) hxs).comp_ofReal
-  have hL : HasDerivAt (fun t : ℝ => laguerre α n t) (deriv (laguerre α n) x) x :=
+  have hL : HasDerivAt (fun t : ℝ => laguerrePolyL α n t) (deriv (laguerrePolyL α n) x) x :=
     hLd.hasDerivAt.comp_ofReal
   have hprod := (hE.mul hT).mul hL
   change deriv (((fun t : ℝ => exp (-(t : ℂ))) * fun t : ℝ => (t : ℂ) ^ (α : ℂ)) *
-    fun t : ℝ => laguerre α n t) x = _
+    fun t : ℝ => laguerrePolyL α n t) x = _
   rw [hprod.deriv]
   simp only [Pi.mul_apply]
-  have hid := laguerre_weighted_identity (α := α) (by simpa using hα) n x
+  have hid := laguerrePolyL_weighted_identity (α := α) (by simpa using hα) n x
   have hpow : (x : ℂ) ^ (α : ℂ) = (x : ℂ) ^ ((α : ℂ) - 1) * x := by
     rw [Complex.cpow_sub _ _ hx0, Complex.cpow_one]
     field_simp

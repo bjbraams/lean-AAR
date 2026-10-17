@@ -17,8 +17,12 @@ Scaling and the substitution `u = t²` then give Sonine’s Bessel integral.
 
 @[expose] public noncomputable section
 
+namespace AAR.Bessel
+
 open Complex MeasureTheory Set
 open scoped Nat
+open AAR.Hypergeometric
+open AAR.Confluent
 
 /-- Integrating regularized `₀F₁` against its Gamma weight gives an exponential. -/
 lemma integral_regularized0F1_gamma {c w : ℂ} (hc : 0 < c.re) :
@@ -155,7 +159,7 @@ theorem sonine_integral {ν : ℂ} {a p : ℝ} (hν : -1 < ν.re) (ha : 0 < a) (
       push_cast
       ring
     dsimp [g]
-    rw [besselJ, hbase, he, cpow_add _ _ ht0, cpow_one,
+    rw [besselJ_eq_regularized, hbase, he, cpow_add _ _ ht0, cpow_one,
       ofReal_mul, ofReal_ofNat, ofReal_pow, hsquare,
       show -(((a : ℂ) * t) ^ 2 / 4) = (-(a : ℂ) ^ 2 / 4) * (t : ℂ) ^ 2 by ring]
     simp only [Multiset.empty_eq_zero]
@@ -177,3 +181,5 @@ theorem sonine_integral {ν : ℂ} {a p : ℝ} (hν : -1 < ν.re) (ha : 0 < a) (
       rw [cpow_add _ _ (one_div_ne_zero (pow_ne_zero _ hp0)), cpow_one]
       linear_combination (norm := ring_nf)
         exp (-(a : ℂ) ^ 2 / (4 * p ^ 2)) / (2 * (p : ℂ) ^ 2) * hpow
+
+end AAR.Bessel

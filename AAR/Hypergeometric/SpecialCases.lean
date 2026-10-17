@@ -15,13 +15,14 @@ public import AAR.Bessel.Basic
 
 * `ordinaryHypergeometric_one_one_half`: `F(1,1;a+1;1/2) = a(ψ((a+1)/2) - ψ(a/2))` (Ex. 4.10), from
   Euler's transformation and `half_argument_digamma`.
-* `sineIntegral_eq_regularizedHGFun`: `Si(x) = x ₁F₂(1/2; 3/2, 3/2; -x²/4)` (Duverney (3.19)).
+* `Real.sinInt_eq_regularizedHGFun`: `Si(x) = x ₁F₂(1/2; 3/2, 3/2; -x²/4)` (Duverney (3.19)).
 -/
 
 @[expose] public section
 
 open Complex Filter
 open scoped Topology Nat Real
+open AAR.Bessel
 
 noncomputable section
 
@@ -52,10 +53,10 @@ lemma regularizedHGFun_eq_tsum_coeff (a b : Multiset ℂ) (z : ℂ) :
 /-- **The sine integral as a `₁F₂`** (Duverney (3.19)): in regularized form,
 `Si(x) = (π/4) x 𝐅(1/2; 3/2, 3/2; -x²/4)`, i.e. `Si(x) = x ₁F₂(1/2; 3/2, 3/2; -x²/4)` since
 `Γ(3/2)² = π/4`. -/
-theorem sineIntegral_eq_regularizedHGFun (x : ℝ) :
-    (AAR.Confluent.sineIntegral x : ℂ) =
+theorem Real.sinInt_eq_regularizedHGFun (x : ℝ) :
+    (AAR.Confluent.Real.sinInt x : ℂ) =
       π / 4 * x * regularizedHGFun {1 / 2} {3 / 2, 3 / 2} (-((x : ℂ) ^ 2) / 4) := by
-  have h := (AAR.Confluent.hasSum_sineIntegral x).mapL Complex.ofRealCLM
+  have h := (AAR.Confluent.Real.hasSum_sinInt x).mapL Complex.ofRealCLM
   rw [regularizedHGFun_eq_tsum_coeff, ← tsum_mul_left]
   refine (h.tsum_eq.symm.trans (tsum_congr fun n => ?_))
   simp only [ofRealCLM_apply, regularizedHGFunCoeff,

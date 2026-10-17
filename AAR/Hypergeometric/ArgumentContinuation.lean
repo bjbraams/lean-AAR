@@ -21,15 +21,16 @@ the Gauss series. We construct this continuation for the regularized function
 
 * `cutPlane := {z | 1 - z ∈ slitPlane}` is open and star-shaped about `0`, so the identity
   principle `eqOn_cutPlane_of_eqOn_disk` lifts every identity from the unit disk.
-* `eulerIntegral a b c z = (Γ(b) Γ(c-b))⁻¹ ∫₀¹ t^(b-1) (1-t)^(c-b-1) (1 - z t)^(-a) dt` is
-  analytic on the cut plane for `Re b > 0`, `Re (c - b) > 0` (differentiation under the
+* `regularizedGaussHGIntegral a b c z = (Γ(b) Γ(c-b))⁻¹ ∫₀¹ t^(b-1) (1-t)^(c-b-1) (1 - z t)^(-a) dt`
+  is analytic on the cut plane for `Re b > 0`, `Re (c - b) > 0` (differentiation under the
   integral sign), and equals `𝐅` on the disk (`ordinaryHypergeometric_eq_integral`).
-* `gaussHGCut a b c z` is defined for all parameters by shifting `b` and `c` into the Euler
+* `regularizedGaussHG a b c z` is defined for all parameters by shifting `b` and `c` into the Euler
   region with the hypothesis-free contiguous relations `regularizedGaussHGFun_contiguous_c` and
   `regularizedGaussHGFun_contiguous_shift_b`, through a recursion with fuel
   `shiftMeasure b c`.
-* `gaussHGCut_eq_regularized` (agreement with `𝐅` on the disk), `analyticOnNhd_gaussHGCut`
-  (analyticity on the cut plane) and `gaussHGCut_unique` characterize the continuation.
+* `regularizedGaussHG_eq_regularizedGaussHGFun` (agreement with `𝐅` on the disk),
+  `analyticOnNhd_regularizedGaussHG`
+  (analyticity on the cut plane) and `regularizedGaussHG_unique` characterize the continuation.
 
 The second half lifts the derivative formulas, the contiguous relations and the Euler and
 Pfaff transformations to the cut plane.
@@ -137,18 +138,20 @@ def eulerKernelDeriv (a b c z : ℂ) (t : ℝ) : ℂ :=
 
 /-- Euler's integral in the regularized normalization:
 `𝐅(a,b;c;z) = (Γ(b) Γ(c-b))⁻¹ ∫₀¹ t^(b-1) (1-t)^(c-b-1) (1 - z t)^(-a) dt`. -/
-def eulerIntegral (a b c z : ℂ) : ℂ :=
+def regularizedGaussHGIntegral (a b c z : ℂ) : ℂ :=
   (Gamma b * Gamma (c - b))⁻¹ * ∫ t : ℝ in (0 : ℝ)..1, eulerKernel a b c z t
 
 /-- On the unit disk the Euler integral is the regularized Gauss function. -/
-theorem eulerIntegral_eq_regularized {a b c : ℂ} (hb : 0 < b.re) (hcb : 0 < (c - b).re)
-    {z : ℂ} (hz : ‖z‖ < 1) : eulerIntegral a b c z = regularizedGaussHGFun a b c z := by
+theorem regularizedGaussHGIntegral_eq_regularizedGaussHGFun {a b c : ℂ} (hb : 0 < b.re)
+    (hcb : 0 < (c - b).re)
+    {z : ℂ} (hz : ‖z‖ < 1) : regularizedGaussHGIntegral a b c z
+        = regularizedGaussHGFun a b c z := by
   have hc := not_neg_nat_of_re_pos (re_c_pos_of hb hcb)
   have hΓc : Gamma c ≠ 0 := Gamma_ne_zero hc
   have hΓb : Gamma b ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos hb)
   have hΓcb : Gamma (c - b) ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos hcb)
   rw [regularizedGaussHGFun_eq_div_Gamma hc, ordinaryHypergeometric_eq_integral hb hcb hz,
-    eulerIntegral]
+    regularizedGaussHGIntegral]
   simp only [eulerKernel]
   set I := ∫ t : ℝ in (0 : ℝ)..1,
     (t : ℂ) ^ (b - 1) * (1 - (t : ℂ)) ^ (c - b - 1) * (1 - z * t) ^ (-a) with hI
@@ -192,7 +195,8 @@ theorem hasDerivAt_integral_eulerKernel {a b c : ℂ} (hb : 0 < b.re) (hcb : 0 <
       exact one_sub_mul_mem_slitPlane (hclosed hp.2) hp.1
     exact (continuousOn_const.mul hpow).mul
       (continuousOn_const.mul (continuous_ofReal.comp continuous_fst).continuousOn).neg
-  obtain ⟨C, hC⟩ := (isCompact_Icc.prod (isCompact_closedBall z₀ (ε / 2))).exists_bound_of_continuousOn
+  obtain ⟨C, hC⟩
+      := (isCompact_Icc.prod (isCompact_closedBall z₀ (ε / 2))).exists_bound_of_continuousOn
     hGcont
   have hbeta := betaIntegral_convergent hb hcb
   have hIoc : ∀ t ∈ Ι (0 : ℝ) 1, t ∈ Icc (0 : ℝ) 1 := fun t ht => by
@@ -214,7 +218,8 @@ theorem hasDerivAt_integral_eulerKernel {a b c : ℂ} (hb : 0 < b.re) (hcb : 0 <
   · filter_upwards [Metric.ball_mem_nhds z₀ (half_pos hε)] with z hz
     exact (intervalIntegrable_iff.mp (intervalIntegrable_eulerKernel hb hcb (hsub hz))).1
   · exact intervalIntegrable_eulerKernel hb hcb hz₀
-  · exact (intervalIntegrable_iff.mp (hderiv_int z₀ (Metric.mem_closedBall_self (half_pos hε).le))).1
+  · exact (intervalIntegrable_iff.mp
+      (hderiv_int z₀ (Metric.mem_closedBall_self (half_pos hε).le))).1
   · refine ae_of_all _ fun t ht z hz => ?_
     have ht' := hIoc t ht
     show ‖(t : ℂ) ^ (b - 1) * (1 - (t : ℂ)) ^ (c - b - 1) * G (t, z)‖ ≤ _
@@ -226,12 +231,13 @@ theorem hasDerivAt_integral_eulerKernel {a b c : ℂ} (hb : 0 < b.re) (hcb : 0 <
     exact hasDerivAt_eulerKernel (hsub hz) (hIoc t ht)
 
 /-- Euler's integral is analytic in `z` on the cut plane when `Re b > 0`, `Re (c - b) > 0`. -/
-theorem analyticOnNhd_eulerIntegral (a : ℂ) {b c : ℂ} (hb : 0 < b.re) (hcb : 0 < (c - b).re) :
-    AnalyticOnNhd ℂ (eulerIntegral a b c) cutPlane := by
+theorem analyticOnNhd_regularizedGaussHGIntegral (a : ℂ) {b c : ℂ} (hb : 0 < b.re)
+    (hcb : 0 < (c - b).re) :
+    AnalyticOnNhd ℂ (regularizedGaussHGIntegral a b c) cutPlane := by
   refine DifferentiableOn.analyticOnNhd ?_ isOpen_cutPlane
   intro z hz
   refine DifferentiableAt.differentiableWithinAt ?_
-  unfold eulerIntegral
+  unfold regularizedGaussHGIntegral
   exact (differentiableAt_const _).mul (hasDerivAt_integral_eulerKernel hb hcb hz).differentiableAt
 
 /-! ### The continuation for all parameters -/
@@ -280,33 +286,39 @@ lemma euler_region_of_shift_eq_zero {b c : ℂ} (hB : shiftB b = 0) (hC : shiftC
 
 /-- The recursion with fuel: shift `c` while `shiftC > 0`, then shift `b` while `shiftB > 0`,
 then use Euler's integral. -/
-def gaussHGCutAux : ℕ → ℂ → ℂ → ℂ → ℂ → ℂ
-  | 0, a, b, c, z => eulerIntegral a b c z
+def regularizedGaussHGAux : ℕ → ℂ → ℂ → ℂ → ℂ → ℂ
+  | 0, a, b, c, z => regularizedGaussHGIntegral a b c z
   | n + 1, a, b, c, z =>
     if 0 < shiftC b c then
-      (c - a) * gaussHGCutAux n a b (c + 1) z + a * gaussHGCutAux n (a + 1) b (c + 1) z
+      (c - a) * regularizedGaussHGAux n a b (c + 1) z + a
+          * regularizedGaussHGAux n (a + 1) b (c + 1) z
     else if 0 < shiftB b then
-      gaussHGCutAux n a (b + 1) c z - a * z * gaussHGCutAux n (a + 1) (b + 1) (c + 1) z
-    else eulerIntegral a b c z
+      regularizedGaussHGAux n a (b + 1) c z - a * z
+          * regularizedGaussHGAux n (a + 1) (b + 1) (c + 1) z
+    else regularizedGaussHGIntegral a b c z
 
 /-- The regularized Gauss function `𝐅(a,b;c;z) = ₂F₁(a,b;c;z)/Γ(c)` continued to the cut
-plane `ℂ ∖ [1, ∞)`, for all parameters (DLMF §15.2(i)). -/
-def gaussHGCut (a b c z : ℂ) : ℂ := gaussHGCutAux (shiftMeasure b c) a b c z
+plane `ℂ ∖ [1, ∞)`, for all parameters (DLMF §15.2(i)). Its domain is `cutPlane`; the series is
+Mathlib's `regularizedGaussHGFun` and the Euler integral is `regularizedGaussHGIntegral`. -/
+def regularizedGaussHG (a b c z : ℂ) : ℂ := regularizedGaussHGAux (shiftMeasure b c) a b c z
 
-lemma gaussHGCutAux_succ_of_pos_c {n : ℕ} {a b c z : ℂ} (h : 0 < shiftC b c) :
-    gaussHGCutAux (n + 1) a b c z =
-      (c - a) * gaussHGCutAux n a b (c + 1) z + a * gaussHGCutAux n (a + 1) b (c + 1) z := by
-  simp only [gaussHGCutAux, h, ↓reduceIte]
+lemma regularizedGaussHGAux_succ_of_pos_c {n : ℕ} {a b c z : ℂ} (h : 0 < shiftC b c) :
+    regularizedGaussHGAux (n + 1) a b c z =
+      (c - a) * regularizedGaussHGAux n a b (c + 1) z + a
+          * regularizedGaussHGAux n (a + 1) b (c + 1) z := by
+  simp only [regularizedGaussHGAux, h, ↓reduceIte]
 
-lemma gaussHGCutAux_succ_of_pos_b {n : ℕ} {a b c z : ℂ} (hc : ¬ 0 < shiftC b c)
+lemma regularizedGaussHGAux_succ_of_pos_b {n : ℕ} {a b c z : ℂ} (hc : ¬ 0 < shiftC b c)
     (hb : 0 < shiftB b) :
-    gaussHGCutAux (n + 1) a b c z =
-      gaussHGCutAux n a (b + 1) c z - a * z * gaussHGCutAux n (a + 1) (b + 1) (c + 1) z := by
-  simp only [gaussHGCutAux, hc, hb, ↓reduceIte]
+    regularizedGaussHGAux (n + 1) a b c z =
+      regularizedGaussHGAux n a (b + 1) c z - a * z
+          * regularizedGaussHGAux n (a + 1) (b + 1) (c + 1) z := by
+  simp only [regularizedGaussHGAux, hc, hb, ↓reduceIte]
 
-lemma gaussHGCutAux_succ_of_zero {n : ℕ} {a b c z : ℂ} (hc : ¬ 0 < shiftC b c)
-    (hb : ¬ 0 < shiftB b) : gaussHGCutAux (n + 1) a b c z = eulerIntegral a b c z := by
-  simp only [gaussHGCutAux, hc, hb, ↓reduceIte]
+lemma regularizedGaussHGAux_succ_of_zero {n : ℕ} {a b c z : ℂ} (hc : ¬ 0 < shiftC b c)
+    (hb : ¬ 0 < shiftB b) : regularizedGaussHGAux (n + 1) a b c z
+        = regularizedGaussHGIntegral a b c z := by
+  simp only [regularizedGaussHGAux, hc, hb, ↓reduceIte]
 
 /-- The measures of the recursive calls in the `b`-shift branch. -/
 lemma shiftMeasure_b_step {b c : ℂ} (hc : ¬ 0 < shiftC b c) (hb : 0 < shiftB b) :
@@ -332,93 +344,106 @@ lemma shiftMeasure_b_step {b c : ℂ} (hc : ¬ 0 < shiftC b c) (hb : 0 < shiftB 
   omega
 
 /-- On the unit disk, every stage of the recursion agrees with `𝐅` once the fuel suffices. -/
-lemma gaussHGCutAux_eq_regularized (n : ℕ) {a b c : ℂ} (hn : shiftMeasure b c ≤ n) {z : ℂ}
-    (hz : ‖z‖ < 1) : gaussHGCutAux n a b c z = regularizedGaussHGFun a b c z := by
+lemma regularizedGaussHGAux_eq_regularized (n : ℕ) {a b c : ℂ} (hn : shiftMeasure b c ≤ n) {z : ℂ}
+    (hz : ‖z‖ < 1) : regularizedGaussHGAux n a b c z = regularizedGaussHGFun a b c z := by
   induction n generalizing a b c with
   | zero =>
     have h0 : shiftB b = 0 ∧ shiftC b c = 0 := by unfold shiftMeasure at hn; omega
     obtain ⟨h1, h2⟩ := euler_region_of_shift_eq_zero h0.1 h0.2
-    exact eulerIntegral_eq_regularized (by linarith) (by linarith) hz
+    exact regularizedGaussHGIntegral_eq_regularizedGaussHGFun (by linarith) (by linarith) hz
   | succ n ih =>
     by_cases hc : 0 < shiftC b c
-    · rw [gaussHGCutAux_succ_of_pos_c hc]
+    · rw [regularizedGaussHGAux_succ_of_pos_c hc]
       have hlt := shiftC_add_one_lt hc
       have hn' : shiftMeasure b (c + 1) ≤ n := by unfold shiftMeasure at hn ⊢; omega
       rw [ih hn', ih hn', regularizedGaussHGFun_contiguous_c a b c hz]
     · by_cases hb : 0 < shiftB b
-      · rw [gaussHGCutAux_succ_of_pos_b hc hb]
+      · rw [regularizedGaussHGAux_succ_of_pos_b hc hb]
         obtain ⟨hm1, hm2⟩ := shiftMeasure_b_step hc hb
         rw [ih (a := a) (b := b + 1) (c := c) (by omega),
           ih (a := a + 1) (b := b + 1) (c := c + 1) (by omega)]
         linear_combination (-1 : ℂ) * regularizedGaussHGFun_contiguous_shift_b a b c hz
-      · rw [gaussHGCutAux_succ_of_zero hc hb]
+      · rw [regularizedGaussHGAux_succ_of_zero hc hb]
         obtain ⟨h1, h2⟩ := euler_region_of_shift_eq_zero (Nat.eq_zero_of_not_pos hb)
           (Nat.eq_zero_of_not_pos hc)
-        exact eulerIntegral_eq_regularized (by linarith) (by linarith) hz
+        exact regularizedGaussHGIntegral_eq_regularizedGaussHGFun (by linarith) (by linarith) hz
 
 /-- Every stage of the recursion is analytic on the cut plane once the fuel suffices. -/
-lemma analyticOnNhd_gaussHGCutAux (n : ℕ) {a b c : ℂ} (hn : shiftMeasure b c ≤ n) :
-    AnalyticOnNhd ℂ (fun z => gaussHGCutAux n a b c z) cutPlane := by
+lemma analyticOnNhd_regularizedGaussHGAux (n : ℕ) {a b c : ℂ} (hn : shiftMeasure b c ≤ n) :
+    AnalyticOnNhd ℂ (fun z => regularizedGaussHGAux n a b c z) cutPlane := by
   induction n generalizing a b c with
   | zero =>
     have h0 : shiftB b = 0 ∧ shiftC b c = 0 := by unfold shiftMeasure at hn; omega
     obtain ⟨h1, h2⟩ := euler_region_of_shift_eq_zero h0.1 h0.2
-    exact analyticOnNhd_eulerIntegral a (by linarith) (by linarith)
+    exact analyticOnNhd_regularizedGaussHGIntegral a (by linarith) (by linarith)
   | succ n ih =>
     by_cases hc : 0 < shiftC b c
-    · simp_rw [gaussHGCutAux_succ_of_pos_c hc]
+    · simp_rw [regularizedGaussHGAux_succ_of_pos_c hc]
       have hlt := shiftC_add_one_lt hc
       have hn' : shiftMeasure b (c + 1) ≤ n := by unfold shiftMeasure at hn ⊢; omega
       exact (analyticOnNhd_const.mul (ih hn')).add (analyticOnNhd_const.mul (ih hn'))
     · by_cases hb : 0 < shiftB b
-      · simp_rw [gaussHGCutAux_succ_of_pos_b hc hb]
+      · simp_rw [regularizedGaussHGAux_succ_of_pos_b hc hb]
         obtain ⟨hm1, hm2⟩ := shiftMeasure_b_step hc hb
         exact (ih (a := a) (b := b + 1) (c := c) (by omega)).sub
           ((analyticOnNhd_const.mul analyticOnNhd_id).mul
             (ih (a := a + 1) (b := b + 1) (c := c + 1) (by omega)))
-      · simp_rw [gaussHGCutAux_succ_of_zero hc hb]
+      · simp_rw [regularizedGaussHGAux_succ_of_zero hc hb]
         obtain ⟨h1, h2⟩ := euler_region_of_shift_eq_zero (Nat.eq_zero_of_not_pos hb)
           (Nat.eq_zero_of_not_pos hc)
-        exact analyticOnNhd_eulerIntegral a (by linarith) (by linarith)
+        exact analyticOnNhd_regularizedGaussHGIntegral a (by linarith) (by linarith)
 
 /-- On the unit disk the continuation is the regularized Gauss series. -/
-theorem gaussHGCut_eq_regularized (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
-    gaussHGCut a b c z = regularizedGaussHGFun a b c z :=
-  gaussHGCutAux_eq_regularized _ le_rfl hz
+theorem regularizedGaussHG_eq_regularizedGaussHGFun (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
+    regularizedGaussHG a b c z = regularizedGaussHGFun a b c z :=
+  regularizedGaussHGAux_eq_regularized _ le_rfl hz
 
 /-- The continuation is analytic on the cut plane. -/
-theorem analyticOnNhd_gaussHGCut (a b c : ℂ) : AnalyticOnNhd ℂ (gaussHGCut a b c) cutPlane :=
-  analyticOnNhd_gaussHGCutAux _ le_rfl
+theorem analyticOnNhd_regularizedGaussHG (a b c : ℂ) : AnalyticOnNhd ℂ (regularizedGaussHG a b c)
+    cutPlane :=
+  analyticOnNhd_regularizedGaussHGAux _ le_rfl
 
 @[fun_prop]
-theorem analyticAt_gaussHGCut (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    AnalyticAt ℂ (gaussHGCut a b c) z :=
-  analyticOnNhd_gaussHGCut a b c z hz
+theorem analyticAt_regularizedGaussHG (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    AnalyticAt ℂ (regularizedGaussHG a b c) z :=
+  analyticOnNhd_regularizedGaussHG a b c z hz
 
 @[fun_prop]
-theorem differentiableAt_gaussHGCut (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    DifferentiableAt ℂ (gaussHGCut a b c) z :=
-  (analyticAt_gaussHGCut a b c hz).differentiableAt
+theorem differentiableAt_regularizedGaussHG (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    DifferentiableAt ℂ (regularizedGaussHG a b c) z :=
+  (analyticAt_regularizedGaussHG a b c hz).differentiableAt
 
 /-- Uniqueness: any function analytic on the cut plane that agrees with `𝐅` on the unit disk
 is the continuation. -/
-theorem gaussHGCut_unique {a b c : ℂ} {f : ℂ → ℂ} (hf : AnalyticOnNhd ℂ f cutPlane)
+theorem regularizedGaussHG_unique {a b c : ℂ} {f : ℂ → ℂ} (hf : AnalyticOnNhd ℂ f cutPlane)
     (h : ∀ z : ℂ, ‖z‖ < 1 → f z = regularizedGaussHGFun a b c z) :
-    EqOn f (gaussHGCut a b c) cutPlane :=
-  eqOn_cutPlane_of_eqOn_disk hf (analyticOnNhd_gaussHGCut a b c) fun z hz =>
-    (h z hz).trans (gaussHGCut_eq_regularized a b c hz).symm
+    EqOn f (regularizedGaussHG a b c) cutPlane :=
+  eqOn_cutPlane_of_eqOn_disk hf (analyticOnNhd_regularizedGaussHG a b c) fun z hz =>
+    (h z hz).trans (regularizedGaussHG_eq_regularizedGaussHGFun a b c hz).symm
+
+/-- The continuation equals the Euler integral on the whole cut plane, for `Re b > 0` and
+`Re (c - b) > 0`. -/
+theorem regularizedGaussHG_eq_regularizedGaussHGIntegral {a b c : ℂ} (hb : 0 < b.re)
+    (hcb : 0 < (c - b).re) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z = regularizedGaussHGIntegral a b c z :=
+  (regularizedGaussHG_unique (analyticOnNhd_regularizedGaussHGIntegral a hb hcb)
+    (fun _ hw => regularizedGaussHGIntegral_eq_regularizedGaussHGFun hb hcb hw) hz).symm
 
 /-- The classical `₂F₁` on the unit disk is `Γ(c)` times the continuation. -/
-theorem ordinaryHypergeometric_eq_Gamma_mul_gaussHGCut {a b c : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
-    {z : ℂ} (hz : ‖z‖ < 1) : ₂F₁ a b c z = Gamma c * gaussHGCut a b c z := by
-  rw [gaussHGCut_eq_regularized a b c hz, regularizedGaussHGFun_eq_div_Gamma hc,
+theorem ordinaryHypergeometric_eq_Gamma_mul_regularizedGaussHG {a b c : ℂ}
+    (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
+    {z : ℂ} (hz : ‖z‖ < 1) : ₂F₁ a b c z = Gamma c * regularizedGaussHG a b c z := by
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun a b c hz, regularizedGaussHGFun_eq_div_Gamma hc,
     mul_div_cancel₀ _ (Gamma_ne_zero hc)]
 
 /-- Symmetry `𝐅(a,b;c;z) = 𝐅(b,a;c;z)` on the cut plane. -/
-theorem gaussHGCut_symm (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b c z = gaussHGCut b a c z :=
-  eqOn_cutPlane_of_eqOn_disk (analyticOnNhd_gaussHGCut a b c) (analyticOnNhd_gaussHGCut b a c)
-    (fun z hz => by rw [gaussHGCut_eq_regularized a b c hz, gaussHGCut_eq_regularized b a c hz,
+theorem regularizedGaussHG_symm (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z = regularizedGaussHG b a c z :=
+  eqOn_cutPlane_of_eqOn_disk (analyticOnNhd_regularizedGaussHG a b c)
+      (analyticOnNhd_regularizedGaussHG b a c)
+    (fun z hz => by rw
+        [regularizedGaussHG_eq_regularizedGaussHGFun a b c hz,
+            regularizedGaussHG_eq_regularizedGaussHGFun b a c hz,
       regularizedGaussHGFun_symm]) hz
 
 /-! ### Identities on the cut plane
@@ -427,171 +452,209 @@ Every identity between analytic expressions proved on the unit disk lifts to the
 `eqOn_cutPlane_of_eqOn_disk`. -/
 
 /-- 15.5.1 on the cut plane: `𝐅'(a,b;c;z) = a b 𝐅(a+1,b+1;c+1;z)`. -/
-theorem deriv_gaussHGCut (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    deriv (gaussHGCut a b c) z = a * b * gaussHGCut (a + 1) (b + 1) (c + 1) z :=
-  eqOn_cutPlane_of_eqOn_disk (f := deriv (gaussHGCut a b c))
-    (g := fun z => a * b * gaussHGCut (a + 1) (b + 1) (c + 1) z)
-    (analyticOnNhd_gaussHGCut a b c).deriv (by intro z hz; fun_prop (disch := assumption))
+theorem deriv_regularizedGaussHG (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    deriv (regularizedGaussHG a b c) z = a * b * regularizedGaussHG (a + 1) (b + 1) (c + 1) z :=
+  eqOn_cutPlane_of_eqOn_disk (f := deriv (regularizedGaussHG a b c))
+    (g := fun z => a * b * regularizedGaussHG (a + 1) (b + 1) (c + 1) z)
+    (analyticOnNhd_regularizedGaussHG a b c).deriv (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      have heq : gaussHGCut a b c =ᶠ[𝓝 z] regularizedGaussHGFun a b c := by
+      have heq : regularizedGaussHG a b c =ᶠ[𝓝 z] regularizedGaussHGFun a b c := by
         filter_upwards [(isOpen_lt continuous_norm continuous_const).mem_nhds hz] with w hw
-        exact gaussHGCut_eq_regularized a b c hw
-      rw [heq.deriv_eq, deriv_regularizedGaussHGFun a b c hz, gaussHGCut_eq_regularized _ _ _ hz])
+        exact regularizedGaussHG_eq_regularizedGaussHGFun a b c hw
+      rw [heq.deriv_eq, deriv_regularizedGaussHGFun a b c hz,
+          regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz])
     hz
 
 /-- 15.5.2 on the cut plane: `𝐅⁽ⁿ⁾(a,b;c;z) = (a)ₙ (b)ₙ 𝐅(a+n,b+n;c+n;z)`. -/
-theorem iteratedDeriv_gaussHGCut (a b c : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ cutPlane) :
-    iteratedDeriv n (gaussHGCut a b c) z =
-      poch a n * poch b n * gaussHGCut (a + n) (b + n) (c + n) z := by
+theorem iteratedDeriv_regularizedGaussHG (a b c : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ cutPlane) :
+    iteratedDeriv n (regularizedGaussHG a b c) z =
+      poch a n * poch b n * regularizedGaussHG (a + n) (b + n) (c + n) z := by
   induction n generalizing z with
   | zero => simp [iteratedDeriv_zero, poch_zero]
   | succ n ih =>
     rw [iteratedDeriv_succ]
-    have heq : iteratedDeriv n (gaussHGCut a b c) =ᶠ[𝓝 z]
-        fun w => poch a n * poch b n * gaussHGCut (a + n) (b + n) (c + n) w := by
+    have heq : iteratedDeriv n (regularizedGaussHG a b c) =ᶠ[𝓝 z]
+        fun w => poch a n * poch b n * regularizedGaussHG (a + n) (b + n) (c + n) w := by
       filter_upwards [isOpen_cutPlane.mem_nhds hz] with w hw
       exact ih hw
-    rw [heq.deriv_eq, deriv_const_mul _ (differentiableAt_gaussHGCut _ _ _ hz),
-      deriv_gaussHGCut _ _ _ hz, poch_succ, poch_succ,
+    rw [heq.deriv_eq, deriv_const_mul _ (differentiableAt_regularizedGaussHG _ _ _ hz),
+      deriv_regularizedGaussHG _ _ _ hz, poch_succ, poch_succ,
       show a + ((n + 1 : ℕ) : ℂ) = a + n + 1 by push_cast; ring,
       show b + ((n + 1 : ℕ) : ℂ) = b + n + 1 by push_cast; ring,
       show c + ((n + 1 : ℕ) : ℂ) = c + n + 1 by push_cast; ring]
     ring
 
 /-- `regularizedGaussHGFun_contiguous_c` on the cut plane. -/
-theorem gaussHGCut_contiguous_c (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b c z =
-      (c - a) * gaussHGCut a b (c + 1) z + a * gaussHGCut (a + 1) b (c + 1) z :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => gaussHGCut a b c z)
-    (g := fun z => (c - a) * gaussHGCut a b (c + 1) z + a * gaussHGCut (a + 1) b (c + 1) z)
+theorem regularizedGaussHG_contiguous_c (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z =
+      (c - a) * regularizedGaussHG a b (c + 1) z + a * regularizedGaussHG (a + 1) b (c + 1) z :=
+  eqOn_cutPlane_of_eqOn_disk (f := fun z => regularizedGaussHG a b c z)
+    (g := fun z => (c - a) * regularizedGaussHG a b (c + 1) z + a
+        * regularizedGaussHG (a + 1) b (c + 1) z)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_c a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_shift_b` on the cut plane. -/
-theorem gaussHGCut_contiguous_shift_b (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b c z - gaussHGCut a (b + 1) c z = -(a * z) * gaussHGCut (a + 1) (b + 1) (c + 1) z :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => gaussHGCut a b c z - gaussHGCut a (b + 1) c z)
-    (g := fun z => -(a * z) * gaussHGCut (a + 1) (b + 1) (c + 1) z)
+theorem regularizedGaussHG_contiguous_shift_b (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z - regularizedGaussHG a (b + 1) c z = -(a * z)
+        * regularizedGaussHG (a + 1) (b + 1) (c + 1) z :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => regularizedGaussHG a b c z - regularizedGaussHG a (b + 1) c z)
+    (g := fun z => -(a * z) * regularizedGaussHG (a + 1) (b + 1) (c + 1) z)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_shift_b a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a` on the cut plane. -/
-theorem gaussHGCut_contiguous_a (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (c - a) * gaussHGCut (a - 1) b c z + (2 * a - c + (b - a) * z) * gaussHGCut a b c z + a * (z - 1) * gaussHGCut (a + 1) b c z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (c - a) * gaussHGCut (a - 1) b c z + (2 * a - c + (b - a) * z) * gaussHGCut a b c z + a * (z - 1) * gaussHGCut (a + 1) b c z)
+theorem regularizedGaussHG_contiguous_a (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (c - a) * regularizedGaussHG (a - 1) b c z + (2 * a - c + (b - a) * z)
+        * regularizedGaussHG a b c z + a * (z - 1) * regularizedGaussHG (a + 1) b c z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (c - a) * regularizedGaussHG (a - 1) b c z + (2 * a - c + (b - a) * z)
+          * regularizedGaussHG a b c z + a * (z - 1) * regularizedGaussHG (a + 1) b c z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_ab` on the cut plane. -/
-theorem gaussHGCut_contiguous_ab (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (b - a) * gaussHGCut a b c z + a * gaussHGCut (a + 1) b c z - b * gaussHGCut a (b + 1) c z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (b - a) * gaussHGCut a b c z + a * gaussHGCut (a + 1) b c z - b * gaussHGCut a (b + 1) c z)
+theorem regularizedGaussHG_contiguous_ab (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (b - a) * regularizedGaussHG a b c z + a * regularizedGaussHG (a + 1) b c z - b
+        * regularizedGaussHG a (b + 1) c z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (b - a) * regularizedGaussHG a b c z + a * regularizedGaussHG (a + 1) b c z - b
+          * regularizedGaussHG a (b + 1) c z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_ab a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a_b_pred` on the cut plane. -/
-theorem gaussHGCut_contiguous_a_b_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (c - a - b) * gaussHGCut a b c z + a * (1 - z) * gaussHGCut (a + 1) b c z - (c - b) * gaussHGCut a (b - 1) c z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (c - a - b) * gaussHGCut a b c z + a * (1 - z) * gaussHGCut (a + 1) b c z - (c - b) * gaussHGCut a (b - 1) c z)
+theorem regularizedGaussHG_contiguous_a_b_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (c - a - b) * regularizedGaussHG a b c z + a * (1 - z) * regularizedGaussHG (a + 1) b c z
+        - (c - b) * regularizedGaussHG a (b - 1) c z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (c - a - b) * regularizedGaussHG a b c z + a * (1 - z)
+          * regularizedGaussHG (a + 1) b c z - (c - b) * regularizedGaussHG a (b - 1) c z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a_b_pred a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_c_succ_deriv` on the cut plane. -/
-theorem gaussHGCut_contiguous_c_succ_deriv (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (1 - z) * (a * b) * gaussHGCut (a + 1) (b + 1) (c + 1) z = (c - a) * (c - b) * gaussHGCut a b (c + 1) z + (a + b - c) * gaussHGCut a b c z :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (1 - z) * (a * b) * gaussHGCut (a + 1) (b + 1) (c + 1) z)
-    (g := fun z => (c - a) * (c - b) * gaussHGCut a b (c + 1) z + (a + b - c) * gaussHGCut a b c z)
+theorem regularizedGaussHG_contiguous_c_succ_deriv (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (1 - z) * (a * b) * regularizedGaussHG (a + 1) (b + 1) (c + 1) z = (c - a) * (c - b)
+        * regularizedGaussHG a b (c + 1) z + (a + b - c) * regularizedGaussHG a b c z :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (1 - z) * (a * b) * regularizedGaussHG (a + 1) (b + 1) (c + 1) z)
+    (g := fun z => (c - a) * (c - b) * regularizedGaussHG a b (c + 1) z + (a + b - c)
+        * regularizedGaussHG a b c z)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_c_succ_deriv a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a_c_succ` on the cut plane. -/
-theorem gaussHGCut_contiguous_a_c_succ (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (a + (b - c) * z) * gaussHGCut a b c z - a * (1 - z) * gaussHGCut (a + 1) b c z + (c - a) * (c - b) * z * gaussHGCut a b (c + 1) z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (a + (b - c) * z) * gaussHGCut a b c z - a * (1 - z) * gaussHGCut (a + 1) b c z + (c - a) * (c - b) * z * gaussHGCut a b (c + 1) z)
+theorem regularizedGaussHG_contiguous_a_c_succ (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (a + (b - c) * z) * regularizedGaussHG a b c z - a * (1 - z) * regularizedGaussHG (a + 1) b c z
+        + (c - a) * (c - b) * z * regularizedGaussHG a b (c + 1) z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (a + (b - c) * z) * regularizedGaussHG a b c z - a * (1 - z)
+          * regularizedGaussHG (a + 1) b c z + (c - a) * (c - b) * z
+              * regularizedGaussHG a b (c + 1) z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a_c_succ a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a_succ_c_pred` on the cut plane. -/
-theorem gaussHGCut_contiguous_a_succ_c_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (c - a - 1) * gaussHGCut a b c z + a * gaussHGCut (a + 1) b c z - gaussHGCut a b (c - 1) z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (c - a - 1) * gaussHGCut a b c z + a * gaussHGCut (a + 1) b c z - gaussHGCut a b (c - 1) z)
+theorem regularizedGaussHG_contiguous_a_succ_c_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (c - a - 1) * regularizedGaussHG a b c z + a * regularizedGaussHG (a + 1) b c z
+        - regularizedGaussHG a b (c - 1) z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (c - a - 1) * regularizedGaussHG a b c z + a * regularizedGaussHG (a + 1) b c z
+          - regularizedGaussHG a b (c - 1) z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a_succ_c_pred a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a_pred_c_succ` on the cut plane. -/
-theorem gaussHGCut_contiguous_a_pred_c_succ (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (1 - z) * gaussHGCut a b c z - gaussHGCut (a - 1) b c z + (c - b) * z * gaussHGCut a b (c + 1) z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (1 - z) * gaussHGCut a b c z - gaussHGCut (a - 1) b c z + (c - b) * z * gaussHGCut a b (c + 1) z)
+theorem regularizedGaussHG_contiguous_a_pred_c_succ (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (1 - z) * regularizedGaussHG a b c z - regularizedGaussHG (a - 1) b c z + (c - b) * z
+        * regularizedGaussHG a b (c + 1) z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (1 - z) * regularizedGaussHG a b c z - regularizedGaussHG (a - 1) b c z
+          + (c - b) * z * regularizedGaussHG a b (c + 1) z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a_pred_c_succ a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_a_pred_c_pred` on the cut plane. -/
-theorem gaussHGCut_contiguous_a_pred_c_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (a - 1 + (b + 1 - c) * z) * gaussHGCut a b c z + (c - a) * gaussHGCut (a - 1) b c z - (1 - z) * gaussHGCut a b (c - 1) z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (a - 1 + (b + 1 - c) * z) * gaussHGCut a b c z + (c - a) * gaussHGCut (a - 1) b c z - (1 - z) * gaussHGCut a b (c - 1) z)
+theorem regularizedGaussHG_contiguous_a_pred_c_pred (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (a - 1 + (b + 1 - c) * z) * regularizedGaussHG a b c z + (c - a)
+        * regularizedGaussHG (a - 1) b c z - (1 - z) * regularizedGaussHG a b (c - 1) z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (a - 1 + (b + 1 - c) * z) * regularizedGaussHG a b c z + (c - a)
+          * regularizedGaussHG (a - 1) b c z - (1 - z) * regularizedGaussHG a b (c - 1) z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_a_pred_c_pred a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_c_three` on the cut plane. -/
-theorem gaussHGCut_contiguous_c_three (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    (z - 1) * gaussHGCut a b (c - 1) z + (c - 1 - (2 * c - a - b - 1) * z) * gaussHGCut a b c z + (c - a) * (c - b) * z * gaussHGCut a b (c + 1) z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => (z - 1) * gaussHGCut a b (c - 1) z + (c - 1 - (2 * c - a - b - 1) * z) * gaussHGCut a b c z + (c - a) * (c - b) * z * gaussHGCut a b (c + 1) z)
+theorem regularizedGaussHG_contiguous_c_three (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    (z - 1) * regularizedGaussHG a b (c - 1) z + (c - 1 - (2 * c - a - b - 1) * z)
+        * regularizedGaussHG a b c z + (c - a) * (c - b) * z * regularizedGaussHG a b (c + 1) z
+            = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => (z - 1) * regularizedGaussHG a b (c - 1) z + (c - 1 - (2 * c - a - b - 1) * z)
+          * regularizedGaussHG a b c z + (c - a) * (c - b) * z * regularizedGaussHG a b (c + 1) z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_c_three a b c hz) hz
 
 /-- `regularizedGaussHGFun_contiguous_diagonal` on the cut plane. -/
-theorem gaussHGCut_contiguous_diagonal (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    z * (1 - z) * (a + 1) * (b + 1) * gaussHGCut (a + 2) (b + 2) (c + 2) z + (c - (a + b + 1) * z) * gaussHGCut (a + 1) (b + 1) (c + 1) z - gaussHGCut a b c z = 0 :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => z * (1 - z) * (a + 1) * (b + 1) * gaussHGCut (a + 2) (b + 2) (c + 2) z + (c - (a + b + 1) * z) * gaussHGCut (a + 1) (b + 1) (c + 1) z - gaussHGCut a b c z)
+theorem regularizedGaussHG_contiguous_diagonal (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    z * (1 - z) * (a + 1) * (b + 1) * regularizedGaussHG (a + 2) (b + 2) (c + 2) z
+        + (c - (a + b + 1) * z) * regularizedGaussHG (a + 1) (b + 1) (c + 1) z
+            - regularizedGaussHG a b c z = 0 :=
+  eqOn_cutPlane_of_eqOn_disk
+      (f := fun z => z * (1 - z) * (a + 1) * (b + 1) * regularizedGaussHG (a + 2) (b + 2) (c + 2) z
+          + (c - (a + b + 1) * z) * regularizedGaussHG (a + 1) (b + 1) (c + 1) z
+              - regularizedGaussHG a b c z)
     (g := fun z => 0)
     (by intro z hz; fun_prop (disch := assumption)) (by intro z hz; fun_prop (disch := assumption))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_contiguous_diagonal a b c hz) hz
 
 /-- Euler's transformation 15.8.1 on the cut plane:
 `𝐅(a,b;c;z) = (1-z)^(c-a-b) 𝐅(c-a,c-b;c;z)`. -/
-theorem gaussHGCut_euler (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b c z = (1 - z) ^ (c - a - b) * gaussHGCut (c - a) (c - b) c z :=
-  eqOn_cutPlane_of_eqOn_disk (f := fun z => gaussHGCut a b c z)
-    (g := fun z => (1 - z) ^ (c - a - b) * gaussHGCut (c - a) (c - b) c z)
+theorem regularizedGaussHG_euler (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z = (1 - z) ^ (c - a - b) * regularizedGaussHG (c - a) (c - b) c z :=
+  eqOn_cutPlane_of_eqOn_disk (f := fun z => regularizedGaussHG a b c z)
+    (g := fun z => (1 - z) ^ (c - a - b) * regularizedGaussHG (c - a) (c - b) c z)
     (by intro z hz; fun_prop (disch := assumption))
     (by
       intro z hz
       exact ((analyticAt_const.sub analyticAt_id).cpow analyticAt_const hz).mul
-        (analyticAt_gaussHGCut _ _ _ hz))
+        (analyticAt_regularizedGaussHG _ _ _ hz))
     (fun z hz => by
-      simp only [gaussHGCut_eq_regularized _ _ _ hz]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz]
       exact regularizedGaussHGFun_euler a b c hz) hz
 
 /-- The Pfaff map `z ↦ z/(z-1)` preserves the cut plane. -/
@@ -615,10 +678,10 @@ lemma div_sub_one_mem_cutPlane {z : ℂ} (hz : z ∈ cutPlane) : z / (z - 1) ∈
 
 /-- Pfaff's transformation 15.8.1 on the cut plane:
 `𝐅(a,b;c;z) = (1-z)^(-a) 𝐅(a,c-b;c;z/(z-1))`. -/
-theorem gaussHGCut_pfaff (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
-    gaussHGCut a b c z = (1 - z) ^ (-a) * gaussHGCut a (c - b) c (z / (z - 1)) :=
-  eqOn_cutPlane_of_eqOn_ball (f := fun z => gaussHGCut a b c z)
-    (g := fun z => (1 - z) ^ (-a) * gaussHGCut a (c - b) c (z / (z - 1)))
+theorem regularizedGaussHG_pfaff (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
+    regularizedGaussHG a b c z = (1 - z) ^ (-a) * regularizedGaussHG a (c - b) c (z / (z - 1)) :=
+  eqOn_cutPlane_of_eqOn_ball (f := fun z => regularizedGaussHG a b c z)
+    (g := fun z => (1 - z) ^ (-a) * regularizedGaussHG a (c - b) c (z / (z - 1)))
     (by intro z hz; fun_prop (disch := assumption))
     (by
       intro z hz
@@ -627,7 +690,7 @@ theorem gaussHGCut_pfaff (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
         AnalyticAt.fun_div (f := fun w : ℂ => w) (g := fun w : ℂ => w - 1) (x := z)
           analyticAt_id (analyticAt_id.sub analyticAt_const) h1
       exact ((analyticAt_const.sub analyticAt_id).cpow analyticAt_const hz).mul
-        ((analyticAt_gaussHGCut a (c - b) c (div_sub_one_mem_cutPlane hz)).comp
+        ((analyticAt_regularizedGaussHG a (c - b) c (div_sub_one_mem_cutPlane hz)).comp
           (f := fun w : ℂ => w / (w - 1)) hmap))
     (r := 1 / 2) (by norm_num)
     (fun z hz => by
@@ -638,7 +701,8 @@ theorem gaussHGCut_pfaff (a b c : ℂ) {z : ℂ} (hz : z ∈ cutPlane) :
       have hzt : ‖z / (z - 1)‖ < 1 := by
         rw [norm_div, div_lt_one (by linarith)]
         linarith
-      simp only [gaussHGCut_eq_regularized _ _ _ hz1, gaussHGCut_eq_regularized _ _ _ hzt]
+      simp only [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz1,
+          regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hzt]
       exact regularizedGaussHGFun_pfaff a b c hz1 hzt) hz
 
 end AAR.Hypergeometric

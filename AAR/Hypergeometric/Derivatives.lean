@@ -697,7 +697,7 @@ theorem iteratedDeriv_two_cpow
 /-! ### Relations found by computer algebra for the orthogonal-polynomial identities -/
 
 /-- Hypergeometric form of 18.9.7 (`b = 2c - 1 - a`). -/
-theorem contiguous_gegenbauer_raise {a c z : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
+theorem contiguous_ultrasphPoly_raise {a c z : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
     (2*z*(a - 2*c + 2)) * ((-c*(2*c - 1)*(2*a - 2*c + 1)) * ₂F₁ a (-a + 2*c - 1) c z + (-(a - 2*c)*(2*c - 1)*(a - 2*c + 1)/2) * ₂F₁ a ((-a + 2*c - 1) + 2) (c + 1) z + (a*(a + 1)*(2*c - 1)/2) * ₂F₁ (a + 2) (-a + 2*c - 1) (c + 1) z) = 0 := by
   have h0 := AAR.Hypergeometric.contiguous_ab (a := a) (b := ((-a + 2*c - 1) - 1)) (c := c) hc hz
   have h1 := contiguous_c (a := ((-a + 2*c - 1) - 1)) (b := a) (c := c) hc hz
@@ -715,7 +715,7 @@ theorem contiguous_gegenbauer_raise {a c z : ℂ} (hc : ∀ k : ℕ, c ≠ -(k :
   linear_combination (-c*(2*c - 1)*(a - 2*c + 2)) * h0 + (-z*(a - c)*(2*c - 1)*(a - c + 1)) * h1 + ((2*c - 1)*(z - 1)*(a - 2*c + 2)*(a - c + 1)) * h2 + (-z*(2*c - 1)*(a - c + 1)) * h3 + (c*z*(2*c - 1)*(a - 2*c + 2)) * h4 + (c*(2*c - 1)*(a - 2*c + 2)) * h5 + (-z*(a - c)*(2*c - 1)*(a - 2*c + 2)) * h6 + (-z*(2*c - 1)*(a - 2*c + 1)*(a - 2*c + 2)) * h7 + (a*(2*c - 1)*(a - 2*c + 2)) * h8
 
 /-- Hypergeometric form of 18.9.8 (`b = 2c - 1 - a`). -/
-theorem contiguous_gegenbauer_raise_sq {a c z : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
+theorem contiguous_ultrasphPoly_raise_sq {a c z : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : ℂ)) (hz : ‖z‖ < 1) :
     (a*(a + 1)) * ((2*c) * ₂F₁ a (-a + 2*c - 1) c z + (4*z*(z - 1)*(2*a - 2*c + 3)) * ₂F₁ (a + 2) (-a + 2*c - 1) (c + 1) z + (-2*c) * ₂F₁ (a + 2) ((-a + 2*c - 1) - 2) c z) = 0 := by
   have h0 := AAR.Hypergeometric.contiguous_ab (a := a) (b := ((-a + 2*c - 1) - 2)) (c := c) hc hz
   have h1 := AAR.Hypergeometric.contiguous_ab (a := a) (b := ((-a + 2*c - 1) - 1)) (c := c) hc hz

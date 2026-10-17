@@ -22,6 +22,7 @@ parameters: the old formulas at `b = 1` discarded nonzero limiting terms as `0 *
 
 open Complex
 open scoped Real Topology
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -71,59 +72,172 @@ lemma cpow_add_shift_factor {x y : ℂ} (hx : 0 < x.re) (hy : ‖y‖ < ‖x‖)
     show 1 - b + (b - (n : ℂ) - 1) = -(n : ℂ) by ring, cpow_neg, cpow_natCast]
   rfl
 
+/-- For `‖y‖ < ‖x‖` the ratio `(x + y)/x` lies in the right half-plane. -/
+lemma re_add_div_pos {x y : ℂ} (hyx : ‖y‖ < ‖x‖) : 0 < ((x + y) / x).re := by
+  have hx0 : x ≠ 0 := norm_pos_iff.mp (lt_of_le_of_lt (norm_nonneg y) hyx)
+  have hdiv : ‖y / x‖ < 1 := by
+    rw [norm_div]; exact (div_lt_one (norm_pos_iff.mpr hx0)).mpr hyx
+  have h := re_le_norm (-(y / x))
+  simp only [neg_re, norm_neg] at h
+  rw [add_div, div_self hx0]
+  simp only [add_re, one_re]
+  linarith
+
+/-- Splitting `(x + y)^s` as `((x + y)/x)^s x^s` on the principal branch. -/
+lemma add_cpow_eq_div_cpow_mul {x y : ℂ} (hx : 0 < x.re) (hyx : ‖y‖ < ‖x‖) (s : ℂ) :
+    (x + y) ^ s = ((x + y) / x) ^ s * x ^ s := by
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  rw [← cpow_mul_of_re_pos (re_add_div_pos hyx) hx, div_mul_cancel₀ _ hx0]
+
+/-- `x^{n/2} = (x^{1/2})^n`. -/
+lemma cpow_nat_div_two (x : ℂ) (n : ℕ) : x ^ ((n : ℂ) / 2) = (x ^ (1 / 2 : ℂ)) ^ n := by
+  rw [← cpow_nat_mul]; congr 1; ring
+
+/-- `(x^{1/2})^n (x^{1/2})^n = x^n`. -/
+lemma cpow_half_pow_mul_self (x : ℂ) (n : ℕ) :
+    (x ^ (1 / 2 : ℂ)) ^ n * (x ^ (1 / 2 : ℂ)) ^ n = x ^ n := by
+  rw [← mul_pow, ← sq, ← cpow_nat_mul]; norm_num
+
+/-- The principal square root of a nonzero number is nonzero. -/
+lemma cpow_half_ne_zero {x : ℂ} (hx : x ≠ 0) : x ^ (1 / 2 : ℂ) ≠ 0 :=
+  (cpow_ne_zero_iff_of_exponent_ne_zero (by norm_num)).mpr hx
+
+/-- The prefactor of the downward-`μ` Whittaker additions:
+`r^{μ+1/2} r^{-2μ} = (r⁻¹)^{μ-1/2}` for `Re r > 0`. -/
+lemma cpow_shift_down_prefactor {r : ℂ} (hr : 0 < r.re) (μ : ℂ) :
+    r ^ (μ + 1 / 2) * r ^ (-2 * μ) = r⁻¹ ^ (μ - 1 / 2) := by
+  have hr0 := slitPlane_ne_zero (Or.inl hr : r ∈ slitPlane)
+  have harg : r.arg ≠ π := by
+    have := abs_lt.mp (abs_arg_lt_pi_div_two_iff.mpr (Or.inl hr)); linarith [Real.pi_pos]
+  rw [← cpow_add _ _ hr0, inv_cpow _ _ harg, ← cpow_neg]
+  congr 1; ring
+
+/-- Reflection of a Pochhammer symbol: `(b - n)_n = (-1)^n (1 - b)_n`. -/
+lemma poch_sub_nat_self (b : ℂ) (n : ℕ) : poch (b - n) n = (-1 : ℂ) ^ n * poch (1 - b) n := by
+  induction n with
+  | zero => simp [poch_zero]
+  | succ n ih =>
+    rw [poch_succ_left, show b - ((n + 1 : ℕ) : ℂ) + 1 = b - n by push_cast; ring, ih, poch_succ]
+    push_cast
+    ring
+
+/-- Near a point `x` of the slit plane, `w^s = (w/x)^s x^s`. -/
+lemma eventually_cpow_eq_div_cpow_mul {x : ℂ} (hx : x ∈ slitPlane) (s : ℂ) :
+    ∀ᶠ w in 𝓝 x, w ^ s = (w / x) ^ s * x ^ s := by
+  have hx0 := slitPlane_ne_zero hx
+  have hπ : |x.arg| < π := by
+    rw [abs_lt]
+    exact ⟨neg_pi_lt_arg x, lt_of_le_of_ne (arg_le_pi x) (mem_slitPlane_iff_arg.mp hx).1⟩
+  have hc : ContinuousAt (fun w => |(w / x).arg|) x := by
+    refine continuous_abs.continuousAt.comp (f := fun w => (w / x).arg) ?_
+    refine (continuousAt_arg ?_).comp (continuousAt_id.div_const x)
+    simp [div_self hx0]
+  have h0 : |(x / x).arg| < π - |x.arg| := by simp [div_self hx0]; linarith
+  filter_upwards [hc.eventually (gt_mem_nhds h0), eventually_ne_nhds hx0] with w hw hw0
+  have hq : w / x ≠ 0 := div_ne_zero hw0 hx0
+  have hb := abs_lt.mp hw
+  rw [show w ^ s = (w / x * x) ^ s by rw [div_mul_cancel₀ _ hx0],
+    cpow_def_of_ne_zero (mul_ne_zero hq hx0), cpow_def_of_ne_zero hq, cpow_def_of_ne_zero hx0,
+    (log_mul_eq_add_log_iff hq hx0).mpr ⟨by linarith [neg_abs_le x.arg],
+      by linarith [le_abs_self x.arg]⟩, ← exp_add]
+  congr 1; ring
+
+/-- Taylor expansion of `(w/x)^s F(w)` about `x` in the slit plane, on the disk of radius `‖x‖`,
+where `w/x` stays in the right half-plane. -/
+lemma div_cpow_mul_eq_taylor {F : ℂ → ℂ} (hF : Differentiable ℂ F) {x y : ℂ}
+    (hx : x ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (s : ℂ) :
+    ((x + y) / x) ^ s * F (x + y) =
+      ∑' n : ℕ, (n.factorial : ℂ)⁻¹ * ((x ^ s)⁻¹ * iteratedDeriv n (fun w => w ^ s * F w) x) *
+        y ^ n := by
+  have hx0 := slitPlane_ne_zero hx
+  set g : ℂ → ℂ := fun w => (w / x) ^ s * F w with hg
+  have hd : DifferentiableOn ℂ g (Metric.ball x ‖x‖) := by
+    intro w hw
+    have hw' : ‖w - x‖ < ‖x‖ := by simpa [Metric.mem_ball, dist_eq] using hw
+    have hre := re_add_div_pos hw'
+    rw [add_sub_cancel] at hre
+    exact (((differentiableAt_id.div_const x).cpow_const (Or.inl hre)).mul
+      (hF w)).differentiableWithinAt
+  have hz : x + y ∈ Metric.ball x ‖x‖ := by simpa [Metric.mem_ball, dist_eq] using hyx
+  have ht := Complex.taylorSeries_eq_on_ball' hz hd
+  rw [add_sub_cancel_left] at ht
+  rw [show ((x + y) / x) ^ s * F (x + y) = g (x + y) from rfl, ← ht]
+  congr 1; funext n
+  have heq : g =ᶠ[𝓝 x] fun w => (x ^ s)⁻¹ * (w ^ s * F w) := by
+    filter_upwards [eventually_cpow_eq_div_cpow_mul hx s] with w hw
+    have hs0 : x ^ s ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+    simp only [hg]; rw [hw]; field_simp
+  rw [heq.iteratedDeriv_eq, iteratedDeriv_const_mul_field]
+
 @[dlmf 13.12.E1]
-theorem confluentM_product {a b z : ℂ} (hb : ∀ k : ℕ, b ≠ -k) (hb1 : ∀ k : ℕ, 1 - b ≠ -k)
+theorem kummerM_product {a b z : ℂ} (hb : ∀ k : ℕ, b ≠ -k) (hb1 : ∀ k : ℕ, 1 - b ≠ -k)
     (hb0 : b ≠ 0) (hb2 : b ≠ 1) (hb3 : b ≠ -1) :
-    confluentM a b z * confluentM (-a) (-b) (-z) +
+    kummerM a b z * kummerM (-a) (-b) (-z) +
       a * (a - b) * z ^ 2 / (b ^ 2 * (1 - b ^ 2)) *
-        confluentM (1 + a) (2 + b) z * confluentM (1 - a) (2 - b) (-z) = 1 := by
+        kummerM (1 + a) (2 + b) z * kummerM (1 - a) (2 - b) (-z) = 1 := by
   sorry
 
 @[dlmf 13.13.E1]
-theorem confluentM_addition {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b (x + y) =
-      ∑' n : ℕ, poch a n * y ^ n / (poch b n * n.factorial) * confluentM (a + n) (b + n) x := by
-  have hd : Differentiable ℂ (confluentM a b) := fun w =>
-    ((analyticOnNhd_confluentM (a := a) hb) w (Set.mem_univ _)).differentiableAt
+theorem kummerM_addition {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
+    kummerM a b (x + y) =
+      ∑' n : ℕ, poch a n * y ^ n / (poch b n * n.factorial) * kummerM (a + n) (b + n) x := by
+  have hd : Differentiable ℂ (kummerM a b) := fun w =>
+    ((analyticOnNhd_kummerM (a := a) hb) w (Set.mem_univ _)).differentiableAt
   rw [← Complex.taylorSeries_eq_of_entire' (c := x) (z := x + y) hd]
   congr 1
   funext n
-  rw [iteratedDeriv_confluentM n hb, add_sub_cancel_left]
+  rw [iteratedDeriv_kummerM n hb, add_sub_cancel_left]
   ring
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E2]
-theorem confluentM_addition_shift_b {a b x y : ℂ} (hx : x ∈ slitPlane)
+theorem kummerM_addition_shift_b {a b x y : ℂ} (hx : x ∈ slitPlane)
     (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hb : ∀ k : ℤ, b ≠ k) :
-    confluentM a b (x + y) =
+    kummerM a b (x + y) =
       ((x + y) / x) ^ (1 - b) *
-        ∑' n : ℕ, poch (1 - b) n * (-y / x) ^ n / n.factorial * confluentM a (b - n) x := by
-  sorry
+        ∑' n : ℕ, poch (1 - b) n * (-y / x) ^ n / n.factorial * kummerM a (b - n) x := by
+  have hx0 := slitPlane_ne_zero hx
+  have hr0 := slitPlane_ne_zero (Or.inl (re_add_div_pos hyx) : (x + y) / x ∈ slitPlane)
+  have hbN : ∀ k : ℕ, b ≠ -k := fun k hk => hb (-k) (by push_cast; exact hk)
+  have hF : Differentiable ℂ (kummerM a b) := fun w =>
+    ((analyticOnNhd_kummerM (a := a) hbN) w (Set.mem_univ _)).differentiableAt
+  have hM : kummerM a b (x + y) =
+      ((x + y) / x) ^ (1 - b) * (((x + y) / x) ^ (b - 1) * kummerM a b (x + y)) := by
+    rw [← mul_assoc, ← cpow_add _ _ hr0, show 1 - b + (b - 1) = 0 by ring, cpow_zero, one_mul]
+  rw [hM, div_cpow_mul_eq_taylor hF hx hyx (b - 1)]
+  congr 1; congr 1; funext n
+  have hbn : ∀ k : ℕ, b - n ≠ -k := fun k hk =>
+    hb ((n : ℤ) - k) (by push_cast; linear_combination hk)
+  have hs0 : x ^ (b - 1) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+  rw [iteratedDeriv_mul_cpow_kummerM n hbn hx, show b - n - 1 = (b - 1) - n by ring,
+    cpow_sub (x := x) (b - 1) (n : ℂ) hx0, cpow_natCast, poch_sub_nat_self, div_pow]
+  field_simp
+  rw [neg_pow y]; ring
 
 @[dlmf 13.13.E3]
-theorem confluentM_addition_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
+theorem kummerM_addition_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
     (hxy : x + y ∈ slitPlane) (hy : -1 / 2 < (y / x).re) (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b (x + y) =
+    kummerM a b (x + y) =
       (x / (x + y)) ^ a *
-        ∑' n : ℕ, poch a n * y ^ n / (n.factorial * (x + y) ^ n) * confluentM (a + n) b x := by
+        ∑' n : ℕ, poch a n * y ^ n / (n.factorial * (x + y) ^ n) * kummerM (a + n) b x := by
   sorry
 
 @[dlmf 13.13.E4]
-theorem confluentM_addition_exp {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b (x + y) =
+theorem kummerM_addition_exp {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
+    kummerM a b (x + y) =
       exp y * ∑' n : ℕ, poch (b - a) n * (-y) ^ n / (poch b n * n.factorial) *
-        confluentM a (b + n) x := by
-  set f : ℂ → ℂ := fun w => exp (-w) * confluentM a b w with hf
+        kummerM a (b + n) x := by
+  set f : ℂ → ℂ := fun w => exp (-w) * kummerM a b w with hf
   have hd : Differentiable ℂ f := fun w =>
     (by fun_prop : DifferentiableAt ℂ (fun w : ℂ => exp (-w)) w).mul
-      ((analyticOnNhd_confluentM (a := a) hb) w (Set.mem_univ _)).differentiableAt
+      ((analyticOnNhd_kummerM (a := a) hb) w (Set.mem_univ _)).differentiableAt
   have ht := Complex.taylorSeries_eq_of_entire' (c := x) (z := x + y) hd
-  have hM : confluentM a b (x + y) = exp (x + y) * f (x + y) := by
+  have hM : kummerM a b (x + y) = exp (x + y) * f (x + y) := by
     simp only [hf, ← mul_assoc, ← exp_add, add_neg_cancel, exp_zero, one_mul]
   rw [hM, ← ht, ← tsum_mul_left, ← tsum_mul_left]
   congr 1
   funext n
-  rw [hf, iteratedDeriv_exp_neg_confluentM n hb, add_sub_cancel_left, exp_add]
+  rw [hf, iteratedDeriv_exp_neg_kummerM n hb, add_sub_cancel_left, exp_add]
   beta_reduce
   rw [exp_neg]
   have hx : exp x ≠ 0 := exp_ne_zero x
@@ -131,119 +245,142 @@ theorem confluentM_addition_exp {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
   field_simp
 
 @[dlmf 13.13.E5]
-theorem confluentM_addition_exp_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
+theorem kummerM_addition_exp_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
     (hxy : x + y ∈ slitPlane) (hy : 1 / 2 < ((y + x) / x).re) (hb : ∀ k : ℕ, b ≠ -k) :
-    confluentM a b (x + y) =
+    kummerM a b (x + y) =
       exp y * (x / (x + y)) ^ (b - a) *
         ∑' n : ℕ, poch (b - a) n * y ^ n / (n.factorial * (x + y) ^ n) *
-          confluentM (a - n) b x := by
+          kummerM (a - n) b x := by
   sorry
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E6]
-theorem confluentM_addition_exp_shift_both {a b x y : ℂ} (hx : x ∈ slitPlane)
+theorem kummerM_addition_exp_shift_both {a b x y : ℂ} (hx : x ∈ slitPlane)
     (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) (hb : ∀ k : ℤ, b ≠ k) :
-    confluentM a b (x + y) =
+    kummerM a b (x + y) =
       exp y * ((x + y) / x) ^ (1 - b) *
         ∑' n : ℕ, poch (1 - b) n * (-y) ^ n / (n.factorial * x ^ n) *
-          confluentM (a - n) (b - n) x := by
-  sorry
+          kummerM (a - n) (b - n) x := by
+  have hx0 := slitPlane_ne_zero hx
+  have hr0 := slitPlane_ne_zero (Or.inl (re_add_div_pos hyx) : (x + y) / x ∈ slitPlane)
+  have hbN : ∀ k : ℕ, b ≠ -k := fun k hk => hb (-k) (by push_cast; exact hk)
+  have hF : Differentiable ℂ (fun w => cexp (-w) * kummerM a b w) := fun w =>
+    (by fun_prop : DifferentiableAt ℂ (fun w : ℂ => cexp (-w)) w).mul
+      ((analyticOnNhd_kummerM (a := a) hbN) w (Set.mem_univ _)).differentiableAt
+  have hM : kummerM a b (x + y) = cexp (x + y) *
+      (((x + y) / x) ^ (1 - b) *
+        (((x + y) / x) ^ (b - 1) * (cexp (-(x + y)) * kummerM a b (x + y)))) := by
+    rw [← mul_assoc (((x + y) / x) ^ (1 - b)), ← cpow_add _ _ hr0,
+      show 1 - b + (b - 1) = 0 by ring, cpow_zero, one_mul, ← mul_assoc, ← exp_add,
+      add_neg_cancel, exp_zero, one_mul]
+  rw [hM, div_cpow_mul_eq_taylor hF hx hyx (b - 1), ← tsum_mul_left, ← tsum_mul_left,
+    ← tsum_mul_left]
+  congr 1; funext n
+  have hbn : ∀ k : ℕ, b - n ≠ -k := fun k hk =>
+    hb ((n : ℤ) - k) (by push_cast; linear_combination hk)
+  have hs0 : x ^ (b - 1) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+  rw [show (fun w => w ^ (b - 1) * (cexp (-w) * kummerM a b w)) =
+      fun w => w ^ (b - 1) * cexp (-w) * kummerM a b w by funext w; ring,
+    iteratedDeriv_mul_cpow_exp_neg_kummerM n hbn hx, show b - n - 1 = (b - 1) - n by ring,
+    cpow_sub (x := x) (b - 1) (n : ℂ) hx0, cpow_natCast, poch_sub_nat_self, exp_add, exp_neg x]
+  field_simp
+  rw [neg_pow y]; ring
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E7]
-theorem confluentU_addition (a b : ℂ) {x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ slitPlane)
+theorem kummerU_addition (a b : ℂ) {x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ slitPlane)
     (hyx : ‖y‖ < ‖x‖) :
-    confluentU a b (x + y) =
-      ∑' n : ℕ, poch a n * (-y) ^ n / n.factorial * confluentU (a + n) (b + n) x := by
+    kummerU a b (x + y) =
+      ∑' n : ℕ, poch a n * (-y) ^ n / n.factorial * kummerU (a + n) (b + n) x := by
   have hx' : x ∈ slitPlane := Or.inl hx
-  have hd : DifferentiableOn ℂ (confluentU a b) (Metric.ball x ‖x‖) :=
-    fun w hw => (differentiableAt_confluentU a b (ball_norm_subset_slitPlane hx hw)).differentiableWithinAt
+  have hd : DifferentiableOn ℂ (kummerU a b) (Metric.ball x ‖x‖) :=
+    fun w hw => (differentiableAt_kummerU a b (ball_norm_subset_slitPlane hx hw)).differentiableWithinAt
   rw [← Complex.taylorSeries_eq_on_ball' (c := x) (z := x + y)
     (by simpa [mem_ball_iff_norm] using hyx) hd]
   congr 1
   funext n
-  rw [iteratedDeriv_confluentU a b n hx', add_sub_cancel_left, neg_pow]
+  rw [iteratedDeriv_kummerU a b n hx', add_sub_cancel_left, neg_pow]
   ring
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E8]
-theorem confluentU_addition_shift_b {a b x y : ℂ} (hx : 0 < x.re)
+theorem kummerU_addition_shift_b {a b x y : ℂ} (hx : 0 < x.re)
     (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
-    confluentU a b (x + y) =
+    kummerU a b (x + y) =
       ((x + y) / x) ^ (1 - b) *
-        ∑' n : ℕ, poch (1 + a - b) n * (-y / x) ^ n / n.factorial * confluentU a (b - n) x := by
+        ∑' n : ℕ, poch (1 + a - b) n * (-y / x) ^ n / n.factorial * kummerU a (b - n) x := by
   have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
-  rw [confluentU_kummer_transform_all a b (slitPlane_ne_zero hxy),
-    confluentU_addition (a - b + 1) (2 - b) hx hxy hyx,
+  rw [kummerU_kummer_transform_all a b (slitPlane_ne_zero hxy),
+    kummerU_addition (a - b + 1) (2 - b) hx hxy hyx,
     ← tsum_mul_left, ← tsum_mul_left]
   congr 1
   funext n
-  rw [confluentU_kummer_transform_all (a - b + 1 + n) (2 - b + n) hx0,
+  rw [kummerU_kummer_transform_all (a - b + 1 + n) (2 - b + n) hx0,
     show (a - b + 1 + n) - (2 - b + n) + 1 = a by ring,
     show 2 - (2 - b + (n : ℂ)) = b - n by ring,
     show 1 - (2 - b + (n : ℂ)) = b - n - 1 by ring]
   have hp := cpow_add_shift_factor hx hyx b n
   rw [div_pow, show (1 : ℂ) + a - b = a - b + 1 by ring]
-  linear_combination (poch (a - b + 1) n * (-y) ^ n / n.factorial * confluentU a (b - n) x) * hp
+  linear_combination (poch (a - b + 1) n * (-y) ^ n / n.factorial * kummerU a (b - n) x) * hp
 
 @[dlmf 13.13.E9]
-theorem confluentU_addition_shift_a {a b x y : ℂ} (hx : 0 < x.re)
+theorem kummerU_addition_shift_a {a b x y : ℂ} (hx : 0 < x.re)
     (hxy : x + y ∈ slitPlane) (hy : -1 / 2 < (y / x).re) :
-    confluentU a b (x + y) =
+    kummerU a b (x + y) =
       (x / (x + y)) ^ a *
         ∑' n : ℕ, poch a n * poch (1 + a - b) n * y ^ n / (n.factorial * (x + y) ^ n) *
-          confluentU (a + n) b x := by
+          kummerU (a + n) b x := by
   sorry
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E10]
-theorem confluentU_addition_exp (a b : ℂ) {x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ slitPlane)
+theorem kummerU_addition_exp (a b : ℂ) {x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ slitPlane)
     (hyx : ‖y‖ < ‖x‖) :
-    confluentU a b (x + y) =
-      exp y * ∑' n : ℕ, (-y) ^ n / n.factorial * confluentU a (b + n) x := by
+    kummerU a b (x + y) =
+      exp y * ∑' n : ℕ, (-y) ^ n / n.factorial * kummerU a (b + n) x := by
   have hx' : x ∈ slitPlane := Or.inl hx
-  set f : ℂ → ℂ := fun w => exp (-w) * confluentU a b w with hf
+  set f : ℂ → ℂ := fun w => exp (-w) * kummerU a b w with hf
   have hd : DifferentiableOn ℂ f (Metric.ball x ‖x‖) := by
     intro w hw
     exact ((by fun_prop : DifferentiableAt ℂ (fun w : ℂ => exp (-w)) w).mul
-      (differentiableAt_confluentU a b (ball_norm_subset_slitPlane hx hw))).differentiableWithinAt
+      (differentiableAt_kummerU a b (ball_norm_subset_slitPlane hx hw))).differentiableWithinAt
   have ht := Complex.taylorSeries_eq_on_ball' (c := x)
     (z := x + y) (by simpa [mem_ball_iff_norm] using hyx) hd
-  have hU : confluentU a b (x + y) = exp (x + y) * f (x + y) := by
+  have hU : kummerU a b (x + y) = exp (x + y) * f (x + y) := by
     simp only [hf, ← mul_assoc, ← exp_add, add_neg_cancel, exp_zero, one_mul]
   rw [hU, ← ht, ← tsum_mul_left, ← tsum_mul_left]
   congr 1
   funext n
-  rw [hf, iteratedDeriv_exp_neg_confluentU a b n hx', add_sub_cancel_left, exp_add, exp_neg, neg_pow y]
+  rw [hf, iteratedDeriv_exp_neg_kummerU a b n hx', add_sub_cancel_left, exp_add, exp_neg, neg_pow y]
   field_simp
 
 @[dlmf 13.13.E11]
-theorem confluentU_addition_exp_shift_a {a b x y : ℂ} (hx : 0 < x.re)
+theorem kummerU_addition_exp_shift_a {a b x y : ℂ} (hx : 0 < x.re)
     (hxy : x + y ∈ slitPlane) (hy : -1 / 2 < (y / x).re) :
-    confluentU a b (x + y) =
+    kummerU a b (x + y) =
       exp y * (x / (x + y)) ^ (b - a) *
-        ∑' n : ℕ, (-y) ^ n / (n.factorial * (x + y) ^ n) * confluentU (a - n) b x := by
+        ∑' n : ℕ, (-y) ^ n / (n.factorial * (x + y) ^ n) * kummerU (a - n) b x := by
   sorry
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E12]
-theorem confluentU_addition_exp_shift_both {a b x y : ℂ} (hx : 0 < x.re)
+theorem kummerU_addition_exp_shift_both {a b x y : ℂ} (hx : 0 < x.re)
     (hxy : x + y ∈ slitPlane) (hyx : ‖y‖ < ‖x‖) :
-    confluentU a b (x + y) =
+    kummerU a b (x + y) =
       exp y * ((x + y) / x) ^ (1 - b) *
-        ∑' n : ℕ, (-y) ^ n / (n.factorial * x ^ n) * confluentU (a - n) (b - n) x := by
+        ∑' n : ℕ, (-y) ^ n / (n.factorial * x ^ n) * kummerU (a - n) (b - n) x := by
   have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
-  rw [confluentU_kummer_transform_all a b (slitPlane_ne_zero hxy),
-    confluentU_addition_exp (a - b + 1) (2 - b) hx hxy hyx,
+  rw [kummerU_kummer_transform_all a b (slitPlane_ne_zero hxy),
+    kummerU_addition_exp (a - b + 1) (2 - b) hx hxy hyx,
     ← tsum_mul_left, ← tsum_mul_left, ← tsum_mul_left]
   congr 1
   funext n
-  rw [confluentU_kummer_transform_all (a - b + 1) (2 - b + n) hx0,
+  rw [kummerU_kummer_transform_all (a - b + 1) (2 - b + n) hx0,
     show (a - b + 1) - (2 - b + n) + 1 = a - n by ring,
     show 2 - (2 - b + (n : ℂ)) = b - n by ring,
     show 1 - (2 - b + (n : ℂ)) = b - n - 1 by ring]
   have hp := cpow_add_shift_factor hx hyx b n
-  linear_combination (exp y * (-y) ^ n / n.factorial * confluentU (a - n) (b - n) x) * hp
+  linear_combination (exp y * (-y) ^ n / n.factorial * kummerU (a - n) (b - n) x) * hp
 
 /-- Whittaker product formula for `2μ` not an integer, where all four `M` factors are regular. -/
 @[dlmf 13.25.E1]
@@ -264,7 +401,23 @@ theorem whittakerM_addition {κ μ x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ s
       exp (-y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, poch (-2 * μ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerM (κ - n / 2) (μ - n / 2) x := by
-  sorry
+  have hx' : x ∈ slitPlane := Or.inl hx
+  have hx0 := slitPlane_ne_zero hx'
+  have hh := cpow_half_ne_zero hx0
+  have hr := re_add_div_pos hyx
+  simp only [whittakerM]
+  rw [kummerM_addition_shift_b hx' hxy hyx hμ, add_cpow_eq_div_cpow_mul hx hyx,
+    show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    ← cpow_shift_down_prefactor hr μ, ← tsum_mul_left, ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show (1 : ℂ) - (1 + 2 * μ) = -2 * μ by ring,
+    show μ - (n : ℂ) / 2 - (κ - n / 2) + 1 / 2 = μ - κ + 1 / 2 by ring,
+    show 1 + 2 * (μ - (n : ℂ) / 2) = 1 + 2 * μ - n by ring,
+    show μ - (n : ℂ) / 2 + 1 / 2 = μ + 1 / 2 - n / 2 by ring,
+    cpow_sub (x := x) (μ + 1 / 2) ((n : ℂ) / 2) hx0, cpow_nat_div_two, div_pow (-y) x,
+    ← cpow_half_pow_mul_self x n, div_pow (-y) (x ^ (1 / 2 : ℂ)),
+    show -(x + y) / 2 = -y / 2 + -x / 2 by ring, exp_add]
+  field_simp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E2]
@@ -274,7 +427,18 @@ theorem whittakerM_addition_shift_mu {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (-y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n / (poch (1 + 2 * μ) n * n.factorial) *
           (y / x ^ (1 / 2 : ℂ)) ^ n * whittakerM (κ - n / 2) (μ + n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  simp only [whittakerM]
+  rw [kummerM_addition hμ, add_cpow_eq_div_cpow_mul hx hyx, ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show μ + (n : ℂ) / 2 - (κ - n / 2) + 1 / 2 = μ - κ + 1 / 2 + n by ring,
+    show 1 + 2 * (μ + (n : ℂ) / 2) = 1 + 2 * μ + n by ring,
+    show μ + (n : ℂ) / 2 + 1 / 2 = μ + 1 / 2 + n / 2 by ring,
+    cpow_add (x := x) (μ + 1 / 2) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    show (1 : ℂ) / 2 + μ - κ = μ - κ + 1 / 2 by ring, div_pow,
+    show -(x + y) / 2 = -y / 2 + -x / 2 by ring, exp_add]
+  field_simp
 
 @[dlmf 13.26.E3]
 theorem whittakerM_addition_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
@@ -294,7 +458,24 @@ theorem whittakerM_addition_exp {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, poch (-2 * μ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerM (κ + n / 2) (μ - n / 2) x := by
-  sorry
+  have hx' : x ∈ slitPlane := Or.inl hx
+  have hx0 := slitPlane_ne_zero hx'
+  have hh := cpow_half_ne_zero hx0
+  have hr := re_add_div_pos hyx
+  have hey : cexp y = cexp (y / 2) * cexp (y / 2) := by rw [← exp_add]; ring_nf
+  simp only [whittakerM]
+  rw [kummerM_addition_exp_shift_both hx' hxy hyx hμ, add_cpow_eq_div_cpow_mul hx hyx,
+    show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    ← cpow_shift_down_prefactor hr μ, ← tsum_mul_left, ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show (1 : ℂ) - (1 + 2 * μ) = -2 * μ by ring,
+    show μ - (n : ℂ) / 2 - (κ + n / 2) + 1 / 2 = μ - κ + 1 / 2 - n by ring,
+    show 1 + 2 * (μ - (n : ℂ) / 2) = 1 + 2 * μ - n by ring,
+    show μ - (n : ℂ) / 2 + 1 / 2 = μ + 1 / 2 - n / 2 by ring,
+    cpow_sub (x := x) (μ + 1 / 2) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    ← cpow_half_pow_mul_self x n, div_pow (-y) (x ^ (1 / 2 : ℂ)),
+    show -(x + y) / 2 = -(y / 2) + -x / 2 by ring, exp_add, exp_neg (y / 2), hey]
+  field_simp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E5]
@@ -304,7 +485,20 @@ theorem whittakerM_addition_exp_shift_mu {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ + κ) n / (poch (1 + 2 * μ) n * n.factorial) *
           (-y / x ^ (1 / 2 : ℂ)) ^ n * whittakerM (κ + n / 2) (μ + n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  have hey : cexp y = cexp (y / 2) * cexp (y / 2) := by rw [← exp_add]; ring_nf
+  simp only [whittakerM]
+  rw [kummerM_addition_exp hμ, add_cpow_eq_div_cpow_mul hx hyx, ← tsum_mul_left,
+    ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show μ + (n : ℂ) / 2 - (κ + n / 2) + 1 / 2 = μ - κ + 1 / 2 by ring,
+    show 1 + 2 * (μ + (n : ℂ) / 2) = 1 + 2 * μ + n by ring,
+    show μ + (n : ℂ) / 2 + 1 / 2 = μ + 1 / 2 + n / 2 by ring,
+    cpow_add (x := x) (μ + 1 / 2) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    show (1 : ℂ) / 2 + μ + κ = 1 + 2 * μ - (μ - κ + 1 / 2) by ring, div_pow,
+    show -(x + y) / 2 = -(y / 2) + -x / 2 by ring, exp_add, exp_neg (y / 2), hey]
+  field_simp
 
 @[dlmf 13.26.E6]
 theorem whittakerM_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
@@ -324,7 +518,24 @@ theorem whittakerW_addition {κ μ x y : ℂ} (hx : 0 < x.re) (hxy : x + y ∈ s
       exp (-y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 - μ - κ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ - n / 2) (μ - n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  have hr := re_add_div_pos hyx
+  simp only [whittakerW]
+  rw [kummerU_addition_shift_b hx hxy hyx, add_cpow_eq_div_cpow_mul hx hyx,
+    show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    ← cpow_shift_down_prefactor hr μ, ← tsum_mul_left, ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show ((x + y) / x) ^ (1 / 2 + μ) = ((x + y) / x) ^ (μ + 1 / 2) by rw [add_comm (1 / 2 : ℂ)],
+    show (1 : ℂ) - (1 + 2 * μ) = -2 * μ by ring,
+    show 1 + (1 / 2 + μ - κ) - (1 + 2 * μ) = 1 / 2 - μ - κ by ring,
+    show (1 : ℂ) / 2 + (μ - n / 2) - (κ - n / 2) = 1 / 2 + μ - κ by ring,
+    show 1 + 2 * (μ - (n : ℂ) / 2) = 1 + 2 * μ - n by ring,
+    show (1 : ℂ) / 2 + (μ - n / 2) = 1 / 2 + μ - n / 2 by ring,
+    cpow_sub (x := x) (1 / 2 + μ) ((n : ℂ) / 2) hx0, cpow_nat_div_two, div_pow (-y) x,
+    ← cpow_half_pow_mul_self x n, div_pow (-y) (x ^ (1 / 2 : ℂ)),
+    show -(x + y) / 2 = -y / 2 + -x / 2 by ring, exp_add]
+  field_simp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E8]
@@ -334,7 +545,19 @@ theorem whittakerW_addition_shift_mu {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (-y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n / n.factorial * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ - n / 2) (μ + n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  simp only [whittakerW]
+  rw [kummerU_addition _ _ hx hxy hyx, add_cpow_eq_div_cpow_mul hx hyx, ← tsum_mul_left,
+    ← tsum_mul_left]
+  congr 1; funext n
+  rw [show (1 : ℂ) / 2 + (μ + n / 2) - (κ - n / 2) = 1 / 2 + μ - κ + n by ring,
+    show 1 + 2 * (μ + (n : ℂ) / 2) = 1 + 2 * μ + n by ring,
+    show (1 : ℂ) / 2 + (μ + n / 2) = 1 / 2 + μ + n / 2 by ring,
+    cpow_add (x := x) (1 / 2 + μ) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    show (1 : ℂ) / 2 + μ = μ + 1 / 2 by ring, div_pow,
+    show -(x + y) / 2 = -y / 2 + -x / 2 by ring, exp_add]
+  field_simp
 
 @[dlmf 13.26.E9]
 theorem whittakerW_addition_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
@@ -353,7 +576,24 @@ theorem whittakerW_addition_exp {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (y / 2) * (x / (x + y)) ^ (μ - 1 / 2) *
         ∑' n : ℕ, (1 / n.factorial) * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ + n / 2) (μ - n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  have hr := re_add_div_pos hyx
+  have hey : cexp y = cexp (y / 2) * cexp (y / 2) := by rw [← exp_add]; ring_nf
+  simp only [whittakerW]
+  rw [kummerU_addition_exp_shift_both hx hxy hyx, add_cpow_eq_div_cpow_mul hx hyx,
+    show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    ← cpow_shift_down_prefactor hr μ, ← tsum_mul_left, ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show ((x + y) / x) ^ (1 / 2 + μ) = ((x + y) / x) ^ (μ + 1 / 2) by rw [add_comm (1 / 2 : ℂ)],
+    show (1 : ℂ) - (1 + 2 * μ) = -2 * μ by ring,
+    show (1 : ℂ) / 2 + (μ - n / 2) - (κ + n / 2) = 1 / 2 + μ - κ - n by ring,
+    show 1 + 2 * (μ - (n : ℂ) / 2) = 1 + 2 * μ - n by ring,
+    show (1 : ℂ) / 2 + (μ - n / 2) = 1 / 2 + μ - n / 2 by ring,
+    cpow_sub (x := x) (1 / 2 + μ) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    ← cpow_half_pow_mul_self x n, div_pow (-y) (x ^ (1 / 2 : ℂ)),
+    show -(x + y) / 2 = -(y / 2) + -x / 2 by ring, exp_add, exp_neg (y / 2), hey]
+  field_simp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E11]
@@ -363,7 +603,20 @@ theorem whittakerW_addition_exp_shift_mu {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (y / 2) * ((x + y) / x) ^ (μ + 1 / 2) *
         ∑' n : ℕ, (1 / n.factorial) * (-y / x ^ (1 / 2 : ℂ)) ^ n *
           whittakerW (κ + n / 2) (μ + n / 2) x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hh := cpow_half_ne_zero hx0
+  have hey : cexp y = cexp (y / 2) * cexp (y / 2) := by rw [← exp_add]; ring_nf
+  simp only [whittakerW]
+  rw [kummerU_addition_exp _ _ hx hxy hyx, add_cpow_eq_div_cpow_mul hx hyx, ← tsum_mul_left,
+    ← tsum_mul_left, ← tsum_mul_left]
+  congr 1; funext n
+  rw [show (1 : ℂ) / 2 + (μ + n / 2) - (κ + n / 2) = 1 / 2 + μ - κ by ring,
+    show 1 + 2 * (μ + (n : ℂ) / 2) = 1 + 2 * μ + n by ring,
+    show (1 : ℂ) / 2 + (μ + n / 2) = 1 / 2 + μ + n / 2 by ring,
+    cpow_add (x := x) (1 / 2 + μ) ((n : ℂ) / 2) hx0, cpow_nat_div_two,
+    show (1 : ℂ) / 2 + μ = μ + 1 / 2 by ring, div_pow,
+    show -(x + y) / 2 = -(y / 2) + -x / 2 by ring, exp_add, exp_neg (y / 2), hey]
+  field_simp
 
 @[dlmf 13.26.E12]
 theorem whittakerW_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)

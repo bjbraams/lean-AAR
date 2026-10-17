@@ -19,6 +19,7 @@ public import AAR.Gamma.Inequalities
 public import AAR.Gamma.SeriesExpansions
 public import AAR.Gamma.Products
 public import AAR.Gamma.IntegralRepresentations
+public import AAR.Gamma.ComplexBinet
 public import AAR.Gamma.ContinuedFractions
 public import AAR.Gamma.Asymptotics
 public import AAR.Gamma.BetaFunction

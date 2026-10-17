@@ -16,10 +16,10 @@ gives
 
 `U(a,b,z) = 1/Γ(a) · e^{iα} ∫₀^∞ e^{-z r e^{iα}} (r e^{iα})^{a-1} (1 + r e^{iα})^{b-a-1} dr`
 
-on the half-plane `re (z e^{iα}) > 0` (`confluentU_eq_tricomiRotated`). The rotation uses
+on the half-plane `re (z e^{iα}) > 0` (`kummerU_eq_tricomiRotated`). The rotation uses
 `Complex.integral_Ioi_eq_exp_mul_integral_Ioi_rotate` on the common half-plane and extends by
 analytic continuation. Watson's lemma in a sector then gives Tricomi's expansion as `z → ∞` in
-every rotated sector `δ |z| ≤ re (z e^{iα})` (`hasAsymptoticExpansion_confluentU_rotSector`).
+every rotated sector `δ |z| ≤ re (z e^{iα})` (`hasAsymptoticExpansion_kummerU_rotSector`).
 These sectors cover `|arg z| ≤ π - ε`, including the imaginary axis needed for the Coulomb
 and Fresnel functions.
 -/
@@ -28,6 +28,7 @@ and Fresnel functions.
 
 open Complex Filter MeasureTheory Asymptotics Set
 open scoped Real Topology Nat Interval
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -187,9 +188,9 @@ lemma differentiableAt_tricomiKernel (a b z : ℂ) {t : ℂ} (ht : 0 < t.re) :
 /-- **Rotation of Tricomi's Laplace integral**: for `re a > 0`, `|α| < π/2` and `z` with
 `re z > 0`, `re (z e^{iα}) > 0`,
 `U(a,b,z) = 1/Γ(a) · e^{iα} ∫₀^∞ e^{-z r e^{iα}} (r e^{iα})^{a-1} (1 + r e^{iα})^{b-a-1} dr`. -/
-lemma confluentU_eq_rotated_of_re_pos {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (hα : |α| < π / 2)
+lemma kummerU_eq_rotated_of_re_pos {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (hα : |α| < π / 2)
     (hz0 : 0 < z.re) (hzα : 0 < (z * exp (α * I)).re) :
-    confluentU a b z = 1 / Gamma a * (exp (α * I) *
+    kummerU a b z = 1 / Gamma a * (exp (α * I) *
       ∫ r in Ioi (0 : ℝ), tricomiKernel a b z (r * exp (α * I))) := by
   set κ0 := min z.re (z * exp (α * I)).re with hκ0
   have hκ0pos : 0 < κ0 := lt_min hz0 hzα
@@ -218,7 +219,7 @@ lemma confluentU_eq_rotated_of_re_pos {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (
       nlinarith
     gcongr
     linarith
-  rw [confluentU_laplace ha hz0]
+  rw [kummerU_laplace ha hz0]
   congr 1
   rw [← Complex.integral_Ioi_eq_exp_mul_integral_Ioi_rotate (σ := a.re) (κ := κ0 / 2) (C := C)
     ha (by positivity)]
@@ -259,7 +260,7 @@ def tricomiRotated (a b : ℂ) (α : ℝ) (z : ℂ) : ℂ :=
 /-- A real majorant `e^{-δr} r^{s} (1+r)^N` is integrable on `(0, ∞)` for `s > -1`, `δ > 0`. -/
 lemma integrableOn_exp_mul_rpow_mul_one_add_pow {s δ : ℝ} (hs : -1 < s) (hδ : 0 < δ) (N : ℕ) :
     IntegrableOn (fun r : ℝ => Real.exp (-δ * r) * r ^ s * (1 + r) ^ N) (Ioi 0) := by
-  have h := (confluentU_laplace_integrable (a := (s + 1 : ℝ)) (b := (s + 1 : ℝ) + N + 1)
+  have h := (kummerU_laplace_integrable (a := (s + 1 : ℝ)) (b := (s + 1 : ℝ) + N + 1)
     (z := (δ : ℂ)) (by simp; linarith) (by simpa using hδ)).norm
   refine IntegrableOn.congr_fun h (fun r hr => ?_) measurableSet_Ioi
   have hr : (0 : ℝ) < r := hr
@@ -346,8 +347,8 @@ lemma differentiableOn_tricomiRotated {a b : ℂ} {α : ℝ} (ha : 0 < a.re) (h�
 /-- **Rotated Laplace representation of `U`** (Temme §7.2): for `re a > 0`, `|α| < π/2` and
 `re (z e^{iα}) > 0`, `U(a,b,z) = 1/Γ(a) · e^{iα} ∫₀^∞ e^{-z r e^{iα}} (r e^{iα})^{a-1}
 (1 + r e^{iα})^{b-a-1} dr`. This continues `U` beyond the right half-plane. -/
-theorem confluentU_eq_tricomiRotated {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (hα : |α| < π / 2)
-    (hz : 0 < (z * exp (α * I)).re) : confluentU a b z = tricomiRotated a b α z := by
+theorem kummerU_eq_tricomiRotated {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (hα : |α| < π / 2)
+    (hz : 0 < (z * exp (α * I)).re) : kummerU a b z = tricomiRotated a b α z := by
   set ω := exp (α * I) with hω
   set H : Set ℂ := {z : ℂ | 0 < (z * ω).re} with hH
   have hcosα : 0 < Real.cos α :=
@@ -373,8 +374,8 @@ theorem confluentU_eq_tricomiRotated {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (h
     have hw' : w = (w.re : ℂ) := Complex.ext (by simp) (by simp [h.2])
     rw [hw', re_ofReal_mul, hω, exp_ofReal_mul_I_re] at hw
     nlinarith [h.1]
-  have hU : AnalyticOnNhd ℂ (confluentU a b) H :=
-    ((differentiableOn_confluentU a b).mono hHslit).analyticOnNhd hHo
+  have hU : AnalyticOnNhd ℂ (kummerU a b) H :=
+    ((differentiableOn_kummerU a b).mono hHslit).analyticOnNhd hHo
   have hV : AnalyticOnNhd ℂ (tricomiRotated a b α) H :=
     (differentiableOn_tricomiRotated ha hα).analyticOnNhd hHo
   set zs : ℂ := exp ((-(α / 2) : ℝ) * I) with hzs
@@ -387,12 +388,12 @@ theorem confluentU_eq_tricomiRotated {a b z : ℂ} {α : ℝ} (ha : 0 < a.re) (h
       push_cast; ring, exp_ofReal_mul_I_re]
     exact Real.cos_pos_of_mem_Ioo ⟨by linarith [neg_abs_le α, Real.pi_pos],
       by linarith [le_abs_self α, Real.pi_pos]⟩
-  have hev : confluentU a b =ᶠ[𝓝 zs] tricomiRotated a b α := by
+  have hev : kummerU a b =ᶠ[𝓝 zs] tricomiRotated a b α := by
     have hopen : IsOpen {w : ℂ | 0 < w.re ∧ 0 < (w * ω).re} :=
       (isOpen_lt continuous_const continuous_re).inter (isOpen_lt continuous_const
         (by fun_prop : Continuous fun w : ℂ => (w * ω).re))
     filter_upwards [hopen.mem_nhds ⟨hzs0, hzsH⟩] with w hw
-    exact confluentU_eq_rotated_of_re_pos ha hα hw.1 hw.2
+    exact kummerU_eq_rotated_of_re_pos ha hα hw.1 hw.2
   exact hU.eqOn_of_preconnected_of_eventuallyEq hV hHc.isPreconnected hzsH hev hz
 
 /-- The binomial expansion of `(1 + tω)^β` at `t = 0⁺` with an `O(t^N)` remainder. -/
@@ -435,10 +436,10 @@ lemma eventually_rotSectorAtTop {δ α : ℝ} (hδ : 0 < δ) (hα : |α| < π / 
   exact abs_lt_pi_div_two_of_cos_pos (by linarith [neg_abs_le α]) (by linarith [le_abs_self α]) hc
 
 /-- Tricomi's expansion in the rotated sector, for `re a > 0`. -/
-lemma hasAsymptoticExpansion_confluentU_rotSector_of_re_pos {a b : ℂ} (ha : 0 < a.re) {δ α : ℝ}
+lemma hasAsymptoticExpansion_kummerU_rotSector_of_re_pos {a b : ℂ} (ha : 0 < a.re) {δ α : ℝ}
     (hδ : 0 < δ) (hα : |α| < π / 2) :
     HasAsymptoticExpansion (rotSectorAtTop δ α) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
-      (tricomiCoeff a b) (fun z => confluentU a b z) := by
+      (tricomiCoeff a b) (fun z => kummerU a b z) := by
   set ω := exp (α * I) with hω
   have hαpi1 : -π < 0 + α := by linarith [neg_abs_le α, Real.pi_pos]
   have hαpi2 : 0 + α ≤ π := by linarith [le_abs_self α, Real.pi_pos]
@@ -525,7 +526,7 @@ lemma hasAsymptoticExpansion_confluentU_rotSector_of_re_pos {a b : ℂ} (ha : 0 
       (by linarith [(abs_lt.mp hz.2.2).2, Real.pi_pos])]
     ring
   · filter_upwards [hev] with z hz
-    rw [Function.comp_apply, Pi.smul_apply, smul_eq_mul, confluentU_eq_tricomiRotated ha hα hz.2.1,
+    rw [Function.comp_apply, Pi.smul_apply, smul_eq_mul, kummerU_eq_tricomiRotated ha hα hz.2.1,
       tricomiRotated, ← integral_const_mul (exp (α * I))]
     congr 1
     refine setIntegral_congr_fun measurableSet_Ioi fun r _ => ?_
@@ -546,25 +547,25 @@ lemma hasAsymptoticExpansion_confluentU_rotSector_of_re_pos {a b : ℂ} (ha : 0 
 `|α| < π/2` and `δ > 0`, as `z → ∞` with `δ |z| ≤ re (z e^{iα})`,
 `U(a,b,z) ~ ∑ (-1)^s (a)_s (a-b+1)_s / s! · z^{-a-s}`. Together these sectors cover
 `|arg z| ≤ π - ε` for every `ε > 0`. -/
-theorem hasAsymptoticExpansion_confluentU_rotSector (a b : ℂ) {δ α : ℝ} (hδ : 0 < δ)
+theorem hasAsymptoticExpansion_kummerU_rotSector (a b : ℂ) {δ α : ℝ} (hδ : 0 < δ)
     (hα : |α| < π / 2) :
     HasAsymptoticExpansion (rotSectorAtTop δ α) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
-      (tricomiCoeff a b) (fun z => confluentU a b z) := by
+      (tricomiCoeff a b) (fun z => kummerU a b z) := by
   have hl : ∀ᶠ z in rotSectorAtTop δ α, 1 ≤ ‖z‖ :=
     (eventually_rotSectorAtTop hδ hα).mono fun z hz => hz.1
   suffices h : ∀ m : ℕ, ∀ a b : ℂ, 0 < (a + m).re →
       HasAsymptoticExpansion (rotSectorAtTop δ α) (fun (n : ℕ) (z : ℂ) => z ^ (-((n : ℂ) + a)))
-        (tricomiCoeff a b) (fun z => confluentU a b z) by
+        (tricomiCoeff a b) (fun z => kummerU a b z) by
     obtain ⟨m, hm⟩ := exists_nat_gt (-a.re)
     exact h m a b (by simp; linarith)
   intro m
   induction m with
   | zero =>
     intro a b ha
-    exact hasAsymptoticExpansion_confluentU_rotSector_of_re_pos (by simpa using ha) hδ hα
+    exact hasAsymptoticExpansion_kummerU_rotSector_of_re_pos (by simpa using ha) hδ hα
   | succ m ih =>
     intro a b ha
-    have h := hasAsymptoticExpansion_confluentU_sub_one_of_filter hl
+    have h := hasAsymptoticExpansion_kummerU_sub_one_of_filter hl
       (ih (a + 1) (b + 1) (by simp at ha ⊢; linarith))
       (ih (a + 1) b (by simp at ha ⊢; linarith))
     simpa using h

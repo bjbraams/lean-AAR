@@ -20,14 +20,17 @@ and Apéry's theorem on the irrationality of `ζ(3)`. None of these are in Mathl
 
 open Complex Polynomial
 open scoped Real Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
+namespace AAR.OrthogonalPolynomials
+
 /-- Connection coefficients of Jacobi polynomials, AAR Lemma 7.1.1. -/
 @[dlmf 18.18.iv]
-theorem jacobiP_connection {α β γ δ : ℝ}
+theorem jacobiPolyP_connection {α β γ δ : ℝ}
     (hα : -1 < α) (hβ : -1 < β) (hγ : -1 < γ) (hδ : -1 < δ) (n : ℕ) (x : ℂ) :
-    jacobiP γ δ n x =
+    jacobiPolyP γ δ n x =
       ∑ k ∈ Finset.range (n + 1),
         (poch (n + (γ : ℂ) + δ + 1) k * poch (k + (γ : ℂ) + 1) (n - k) /
           ((n - k).factorial * poch (k + (α : ℂ) + β + 1) k)) *
@@ -35,11 +38,11 @@ theorem jacobiP_connection {α β γ δ : ℝ}
           poch (-(n - k : ℕ) : ℂ) j * poch (n + k + (γ : ℂ) + δ + 1) j *
             poch (k + (α : ℂ) + 1) j /
             (poch (k + (γ : ℂ) + 1) j * poch (2 * k + (α : ℂ) + β + 2) j * j.factorial)) *
-        jacobiP α β k x := by
+        jacobiPolyP α β k x := by
   sorry
 
 /-- Coefficient recurrence for the Gegenbauer polynomials normalized at one. -/
-private lemma gegenbauer_coeff_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n k : ℕ) :
+private lemma ultrasphPoly_coeff_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n k : ℕ) :
     (n + 1 + 2 * lam) * gaussHGCoeff (-(n + 2 : ℂ)) (n + 2 + 2 * lam)
         (lam + 1 / 2) (k + 1) -
       2 * (n + 1 + lam) * gaussHGCoeff (-(n + 1 : ℂ)) (n + 1 + 2 * lam)
@@ -88,27 +91,27 @@ private lemma gegenbauer_coeff_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n k :
   ring
 
 /-- Normalizing a Gegenbauer polynomial at one removes its Pochhammer prefactor. -/
-theorem gegenbauer_div_at_one {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam n x / gegenbauer lam n 1 =
+theorem ultrasphPoly_div_at_one {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
+    ultrasphPoly lam n x / ultrasphPoly lam n 1 =
       ₂F₁ (-(n : ℂ)) (n + 2 * lam) (lam + 1 / 2) ((1 - x) / 2) := by
   have hp : poch (2 * lam) n ≠ 0 := poch_ne_zero_of_not_neg_nat
     (not_neg_nat_of_re_pos (by simpa using mul_pos (by norm_num : (0 : ℝ) < 2) hlam)) n
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  simp only [gegenbauer, sub_self, zero_div, ordinaryHypergeometric_zero, mul_one]
+  simp only [ultrasphPoly, sub_self, zero_div, ordinaryHypergeometric_zero, mul_one]
   field_simp
 
 /-- Three-term recurrence for the Gegenbauer polynomials normalized at one. -/
 @[dlmf 18.9.T1]
-theorem gegenbauer_normalized_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
-    (n + 1 + 2 * lam) * (gegenbauer lam (n + 2) x / gegenbauer lam (n + 2) 1) =
-      2 * (n + 1 + lam) * x * (gegenbauer lam (n + 1) x / gegenbauer lam (n + 1) 1) -
-        (n + 1) * (gegenbauer lam n x / gegenbauer lam n 1) := by
+theorem ultrasphPoly_normalized_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
+    (n + 1 + 2 * lam) * (ultrasphPoly lam (n + 2) x / ultrasphPoly lam (n + 2) 1) =
+      2 * (n + 1 + lam) * x * (ultrasphPoly lam (n + 1) x / ultrasphPoly lam (n + 1) 1) -
+        (n + 1) * (ultrasphPoly lam n x / ultrasphPoly lam n 1) := by
   let z := (1 - x) / 2
   let L (m k : ℕ) := gaussHGCoeff (-(m : ℂ)) (m + 2 * lam) (lam + 1 / 2) k
-  let G (m : ℕ) := gegenbauer lam m x / gegenbauer lam m 1
+  let G (m : ℕ) := ultrasphPoly lam m x / ultrasphPoly lam m 1
   have hs (m : ℕ) : HasSum (fun k => L m k * z ^ k) (G m) := by
     dsimp only [G]
-    rw [gegenbauer_div_at_one hlam, ordinaryHypergeometric_eq_sum_neg_nat]
+    rw [ultrasphPoly_div_at_one hlam, ordinaryHypergeometric_eq_sum_neg_nat]
     apply hasSum_sum_of_ne_finset_zero
     intro k hk
     have hmk : m < k := by simpa using hk
@@ -119,7 +122,7 @@ theorem gegenbauer_normalized_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n : �
   have hd (k : ℕ) : d (k + 1) = -4 * (n + 1 + lam) * L (n + 1) k := by
     dsimp [d, L]
     simpa only [Nat.cast_add, Nat.cast_ofNat, Nat.cast_one] using
-      gegenbauer_coeff_recurrence hlam n k
+      ultrasphPoly_coeff_recurrence hlam n k
   have hsum : HasSum (fun k => d k * z ^ k)
       ((n + 1 + 2 * lam) * G (n + 2) - 2 * (n + 1 + lam) * G (n + 1) +
         (n + 1) * G n) := by
@@ -133,14 +136,14 @@ theorem gegenbauer_normalized_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n : �
   linear_combination -he
 
 /-- The normalized degree-one Gegenbauer polynomial is the identity function. -/
-@[simp] theorem gegenbauer_normalized_one {lam : ℂ} (hlam : 0 < lam.re) (x : ℂ) :
-    gegenbauer lam 1 x / gegenbauer lam 1 1 = x := by
+@[simp] theorem ultrasphPoly_normalized_one {lam : ℂ} (hlam : 0 < lam.re) (x : ℂ) :
+    ultrasphPoly lam 1 x / ultrasphPoly lam 1 1 = x := by
   have hc : lam + 1 / 2 ≠ 0 := by
     intro he
     have hre := congrArg Complex.re he
     simp at hre
     linarith
-  rw [gegenbauer_div_at_one hlam]
+  rw [ultrasphPoly_div_at_one hlam]
   have h := ordinaryHypergeometric_eq_sum_neg_nat 1 (1 + 2 * lam) (lam + 1 / 2) ((1 - x) / 2)
   norm_num only [Nat.cast_one] at h ⊢
   rw [h]
@@ -153,18 +156,18 @@ theorem gegenbauer_normalized_recurrence {lam : ℂ} (hlam : 0 < lam.re) (n : �
 /-- Turán's inequality for ultraspherical polynomials normalized at one
 (AAR Exercise 6.23(b)). -/
 @[dlmf 18.14.E11]
-theorem turan_gegenbauer {lam : ℝ} (hlam : 0 < lam) {n : ℕ} (hn : n ≠ 0) {x : ℝ}
+theorem turan_ultrasphPoly {lam : ℝ} (hlam : 0 < lam) {n : ℕ} (hn : n ≠ 0) {x : ℝ}
     (hx : |x| ≤ 1) :
-    0 ≤ ((gegenbauer lam n x / gegenbauer lam n 1).re) ^ 2 -
-      (gegenbauer lam (n - 1) x / gegenbauer lam (n - 1) 1).re *
-        (gegenbauer lam (n + 1) x / gegenbauer lam (n + 1) 1).re := by
-  let G (m : ℕ) := (gegenbauer lam m x / gegenbauer lam m 1).re
+    0 ≤ ((ultrasphPoly lam n x / ultrasphPoly lam n 1).re) ^ 2 -
+      (ultrasphPoly lam (n - 1) x / ultrasphPoly lam (n - 1) 1).re *
+        (ultrasphPoly lam (n + 1) x / ultrasphPoly lam (n + 1) 1).re := by
+  let G (m : ℕ) := (ultrasphPoly lam m x / ultrasphPoly lam m 1).re
   have hl : 0 < (lam : ℂ).re := hlam
   have hG0 : G 0 = 1 := by simp [G]
-  have hG1 : G 1 = x := by simp [G, gegenbauer_normalized_one hl]
+  have hG1 : G 1 = x := by simp [G, ultrasphPoly_normalized_one hl]
   have hr (m : ℕ) : (m + 1 + 2 * lam) * G (m + 2) =
       2 * (m + 1 + lam) * x * G (m + 1) - (m + 1) * G m := by
-    simpa [G, mul_re] using congrArg Complex.re (gegenbauer_normalized_recurrence hl m x)
+    simpa [G, mul_re] using congrArg Complex.re (ultrasphPoly_normalized_recurrence hl m x)
   have hx2 : 0 ≤ 1 - x ^ 2 := by
     have := abs_le.mp hx
     nlinarith [sq_nonneg x]
@@ -201,35 +204,35 @@ theorem turan_gegenbauer {lam : ℝ} (hlam : 0 < lam) {n : ℕ} (hn : n ≠ 0) {
 
 /-- Legendre polynomials are the normalized Gegenbauer family at `λ = 1/2`. -/
 @[dlmf 18.7.E9]
-theorem legendreP_eq_normalized_gegenbauer (n : ℕ) (x : ℂ) :
-    legendreP n x = gegenbauer (1 / 2) n x / gegenbauer (1 / 2) n 1 := by
-  rw [gegenbauer_div_at_one (by norm_num : 0 < (1 / 2 : ℂ).re)]
-  norm_num [legendreP, jacobiP, Nat.cast_ne_zero.mpr n.factorial_ne_zero]
+theorem legendrePolyP_eq_normalized_ultrasphPoly (n : ℕ) (x : ℂ) :
+    legendrePolyP n x = ultrasphPoly (1 / 2) n x / ultrasphPoly (1 / 2) n 1 := by
+  rw [ultrasphPoly_div_at_one (by norm_num : 0 < (1 / 2 : ℂ).re)]
+  norm_num [legendrePolyP, jacobiPolyP, Nat.cast_ne_zero.mpr n.factorial_ne_zero]
 
 /-- The first Legendre polynomial. -/
 @[simp, dlmf 18.5.E16]
-theorem legendreP_one (x : ℂ) : legendreP 1 x = x := by
-  rw [legendreP_eq_normalized_gegenbauer,
-    gegenbauer_normalized_one (by norm_num : 0 < (1 / 2 : ℂ).re)]
+theorem legendrePolyP_one (x : ℂ) : legendrePolyP 1 x = x := by
+  rw [legendrePolyP_eq_normalized_ultrasphPoly,
+    ultrasphPoly_normalized_one (by norm_num : 0 < (1 / 2 : ℂ).re)]
 
 /-- The three-term recurrence for Legendre polynomials, including complex arguments. -/
 @[dlmf 18.9.T1]
-theorem legendreP_recurrence (n : ℕ) (x : ℂ) :
-    (n + 2 : ℂ) * legendreP (n + 2) x =
-      (2 * n + 3) * x * legendreP (n + 1) x - (n + 1) * legendreP n x := by
-  simp_rw [legendreP_eq_normalized_gegenbauer]
-  have h := gegenbauer_normalized_recurrence (by norm_num : 0 < (1 / 2 : ℂ).re) n x
+theorem legendrePolyP_recurrence (n : ℕ) (x : ℂ) :
+    (n + 2 : ℂ) * legendrePolyP (n + 2) x =
+      (2 * n + 3) * x * legendrePolyP (n + 1) x - (n + 1) * legendrePolyP n x := by
+  simp_rw [legendrePolyP_eq_normalized_ultrasphPoly]
+  have h := ultrasphPoly_normalized_recurrence (by norm_num : 0 < (1 / 2 : ℂ).re) n x
   convert h using 1 <;> ring
 
 /-- Turán's inequality for Legendre polynomials (AAR Exercise 6.22):
 `P_n(x)² - P_{n-1}(x) P_{n+1}(x) ≥ 0` on `[-1,1]`. -/
 @[dlmf 18.14.E10]
 theorem turan_legendre {n : ℕ} (hn : n ≠ 0) {x : ℝ} (hx : |x| ≤ 1) :
-    0 ≤ (legendreP n x).re ^ 2 -
-      (legendreP (n - 1) x).re * (legendreP (n + 1) x).re := by
-  simpa only [legendreP_eq_normalized_gegenbauer, Complex.ofReal_div,
+    0 ≤ (legendrePolyP n x).re ^ 2 -
+      (legendrePolyP (n - 1) x).re * (legendrePolyP (n + 1) x).re := by
+  simpa only [legendrePolyP_eq_normalized_ultrasphPoly, Complex.ofReal_div,
     Complex.ofReal_one, Complex.ofReal_ofNat] using
-    turan_gegenbauer (lam := 1 / 2) (by norm_num) hn hx
+    turan_ultrasphPoly (lam := 1 / 2) (by norm_num) hn hx
 
 /-- Vietoris's inequality (AAR §7.3): the cosine polynomials with coefficients
 `a_{2k} = a_{2k+1} = \binom{2k}{k} / 2^{2k}` are nonnegative. -/
@@ -239,11 +242,13 @@ theorem vietoris_inequality (n : ℕ) {θ : ℝ} (hθ : 0 ≤ θ) (hθπ : θ �
   sorry
 
 /-- Positivity of Cesàro sums of ultraspherical polynomials, AAR Corollary 7.6.4. -/
-theorem gegenbauer_cesaro_nonneg {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {x : ℝ} (hx : |x| ≤ 1) :
+theorem ultrasphPoly_cesaro_nonneg {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {x : ℝ} (hx : |x| ≤ 1) :
     0 ≤ (∑ k ∈ Finset.range (n + 1),
-      poch (2 * (lam : ℂ)) (n - k) / (n - k).factorial * gegenbauer lam k x).re := by
+      poch (2 * (lam : ℂ)) (n - k) / (n - k).factorial * ultrasphPoly lam k x).re := by
   sorry
 
 /-- Apéry's theorem: `ζ(3)` is irrational (AAR §7.7). -/
 theorem irrational_riemannZeta_three : Irrational (riemannZeta 3).re := by
   sorry
+
+end AAR.OrthogonalPolynomials

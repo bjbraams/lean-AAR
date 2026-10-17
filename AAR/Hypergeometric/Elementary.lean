@@ -52,7 +52,7 @@ theorem log_ratio {z : ℂ} (hz : ‖z‖ < 1) :
   convert hh.symm using 1 <;> ring
 
 /-- Principal powers of right-half-plane numbers are multiplicative. -/
-lemma mul_cpow_of_re_pos {x y : ℂ} (hx : 0 < x.re) (hy : 0 < y.re) (s : ℂ) :
+lemma cpow_mul_cpow_of_re_pos {x y : ℂ} (hx : 0 < x.re) (hy : 0 < y.re) (s : ℂ) :
     x ^ s * y ^ s = (x * y) ^ s := by
   have hx0 : x ≠ 0 := by rintro rfl; simp at hx
   have hy0 : y ≠ 0 := by rintro rfl; simp at hy
@@ -358,9 +358,9 @@ theorem opposite_parameters_sqrt (a : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
       show -(-a) = a by ring, show -2 * -a = 2 * a by ring,
       show (1 : ℂ) - -w ^ 2 = R ^ 2 by rw [hrsq]; ring, sq_cpow hrre]
     have e1 : R ^ (2 * a) * (1 + t) ^ (2 * a) = (R + w) ^ (2 * a) := by
-      rw [mul_cpow_of_re_pos hrre h1p, htdef]; congr 1; field_simp
+      rw [cpow_mul_cpow_of_re_pos hrre h1p, htdef]; congr 1; field_simp
     have e2 : R ^ (2 * a) * (1 - t) ^ (2 * a) = (R - w) ^ (2 * a) := by
-      rw [mul_cpow_of_re_pos hrre h1m, htdef]; congr 1; field_simp
+      rw [cpow_mul_cpow_of_re_pos hrre h1m, htdef]; congr 1; field_simp
     rw [← e1, ← e2]
     ring
   -- Continuation over the unit disk.
@@ -573,9 +573,9 @@ theorem complementary_parameters_odd_sqrt (a : ℂ) {z : ℂ} (hz : ‖z‖ < 1)
       show (3 / 2 : ℂ) - (1 - a) = a + 1 / 2 by ring,
       show (1 : ℂ) - -w ^ 2 = R ^ 2 by rw [hrsq]; ring, sq_cpow hrre]
     have e1 : R ^ (1 - 2 * a) * (1 + t) ^ (1 - 2 * a) = (R + w) ^ (1 - 2 * a) := by
-      rw [mul_cpow_of_re_pos hrre h1p]; congr 1; rw [hwt]; ring
+      rw [cpow_mul_cpow_of_re_pos hrre h1p]; congr 1; rw [hwt]; ring
     have e2 : R ^ (1 - 2 * a) * (1 - t) ^ (1 - 2 * a) = (R - w) ^ (1 - 2 * a) := by
-      rw [mul_cpow_of_re_pos hrre h1m]; congr 1; rw [hwt]; ring
+      rw [cpow_mul_cpow_of_re_pos hrre h1m]; congr 1; rw [hwt]; ring
     have e3 : R ^ (1 - 2 * a) = R * R ^ (2 * -a) := by
       rw [show 1 - 2 * a = 1 + 2 * -a by ring, cpow_add _ _ hr0, cpow_one]
     rw [← e1, ← e2, e3]

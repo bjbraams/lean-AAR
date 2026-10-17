@@ -27,6 +27,8 @@ open scoped Topology Real
 
 noncomputable section
 
+namespace AAR.QSeries
+
 /-- The finite `q`-Pochhammer symbol `(a;q)_n`. -/
 @[dlmf 17.2.E1]
 def qPochhammer (a q : ℂ) : ℕ → ℂ
@@ -39,6 +41,13 @@ theorem qPochhammer_zero (a q : ℂ) : qPochhammer a q 0 = 1 := rfl
 theorem qPochhammer_succ (a q : ℂ) (n : ℕ) :
     qPochhammer a q (n + 1) = qPochhammer a q n * (1 - a * q ^ n) :=
   rfl
+
+/-- `(a;q)_{m+k} = (a;q)_m (aq^m;q)_k`. -/
+theorem qPochhammer_add (a q : ℂ) (m k : ℕ) :
+    qPochhammer a q (m + k) = qPochhammer a q m * qPochhammer (a * q ^ m) q k := by
+  induction k with
+  | zero => simp
+  | succ k ih => rw [← add_assoc, qPochhammer_succ, ih, qPochhammer_succ, pow_add]; ring
 
 theorem qPochhammer_one (a q : ℂ) : qPochhammer a q 1 = 1 - a := by
   simp [qPochhammer_succ]
@@ -454,3 +463,5 @@ theorem qGamma_add_one {q x : ℂ} (hq : ‖q‖ < 1) (hq0 : q ≠ 0)
   unfold qGamma
   rw [hpow, hshift]
   field [hb, hfactor, hp1]
+
+end AAR.QSeries

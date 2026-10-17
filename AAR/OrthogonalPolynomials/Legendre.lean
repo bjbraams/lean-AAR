@@ -17,16 +17,19 @@ mean-square optimality of truncated Legendre expansions.
 
 ## Main results
 
-* `norm_legendreP_le_one`: `|P_n(x)| ≤ 1` on `[-1, 1]` (Temme (6.52)).
-* `norm_legendreP_cos_le`: `|P_n(cos θ)| ≤ √(π/(2n)) / sin θ` for `n ≥ 1` (Temme (6.53)).
-* `conj_legendreP`: `P_n` is real on the real line.
-* `integral_norm_sub_sum_legendreP_sq`: the mean-square error identity (Temme (6.61)).
+* `norm_legendrePolyP_le_one`: `|P_n(x)| ≤ 1` on `[-1, 1]` (Temme (6.52)).
+* `norm_legendrePolyP_cos_le`: `|P_n(cos θ)| ≤ √(π/(2n)) / sin θ` for `n ≥ 1` (Temme (6.53)).
+* `conj_legendrePolyP`: `P_n` is real on the real line.
+* `integral_norm_sub_sum_legendrePolyP_sq`: the mean-square error identity (Temme (6.61)).
 * `integral_norm_sub_sum_legendreCoeff_sq_le`: the truncated Legendre series is the best
   mean-square polynomial approximation.
 * `sum_legendreCoeff_sq_le`: Bessel's inequality (Temme (6.62)).
 * `besselJ_zero_eq_integral`, `legendre_exponential_generating_function`: Bessel's integral
   `J₀(u) = (1/π) ∫₀^π e^{iu cos φ} dφ` and `∑ Pₙ(x) zⁿ/n! = e^{xz} J₀(z√(1-x²))` (DLMF 18.12.12).
-* `tendsto_sqrt_mul_legendreP_cos`: the Laplace–Heine formula
+* `ultrasphPoly_bessel_generating_function`: the Gegenbauer analogue (DLMF 18.12.6), from the
+  same termwise integration of Laplace's integral, against the weight `sin^{2λ-1} φ`, and
+  Poisson's integral for `J_{λ-1/2}`.
+* `tendsto_sqrt_mul_legendrePolyP_cos`: the Laplace–Heine formula
   `√n P_n(cos θ) - √(2/(π sin θ)) cos((n + 1/2)θ - π/4) → 0` (Temme §6.8.4). Laplace's integral
   is split at `π/2`, rescaled by `√n`, and passed to the limit by dominated convergence, with
   the Gaussian majorant of Temme's bound.
@@ -38,6 +41,8 @@ The Dirichlet–Mehler formula and Stieltjes' full asymptotic expansion are not 
 
 open Complex Filter MeasureTheory Set
 open scoped Real Topology Nat ComplexConjugate
+open AAR.Hypergeometric
+open AAR.Bessel
 
 noncomputable section
 
@@ -55,7 +60,7 @@ lemma norm_laplace_integrand (θ t : ℝ) :
   linear_combination h1 + Real.sin θ ^ 2 * h2
 
 /-- `|P_n(cos θ)| ≤ 1` (Temme (6.52)), from Laplace's integral. -/
-theorem norm_legendreP_cos_le_one (n : ℕ) (θ : ℝ) : ‖legendreP n (Real.cos θ)‖ ≤ 1 := by
+theorem norm_legendrePolyP_cos_le_one (n : ℕ) (θ : ℝ) : ‖legendrePolyP n (Real.cos θ)‖ ≤ 1 := by
   rw [legendre_laplace_integral, norm_mul, norm_inv, Complex.norm_real,
     Real.norm_of_nonneg Real.pi_pos.le]
   have h := intervalIntegral.norm_integral_le_of_norm_le_const (a := 0) (b := π) (C := 1)
@@ -70,8 +75,8 @@ theorem norm_legendreP_cos_le_one (n : ℕ) (θ : ℝ) : ‖legendreP n (Real.co
     _ = 1 := inv_mul_cancel₀ Real.pi_ne_zero
 
 /-- `|P_n(x)| ≤ 1` on `[-1, 1]` (Temme (6.52); DLMF 18.14.1 with `α = β = 0`). -/
-theorem norm_legendreP_le_one (n : ℕ) {x : ℝ} (hx : |x| ≤ 1) : ‖legendreP n x‖ ≤ 1 := by
-  have := norm_legendreP_cos_le_one n (Real.arccos x)
+theorem norm_legendrePolyP_le_one (n : ℕ) {x : ℝ} (hx : |x| ≤ 1) : ‖legendrePolyP n x‖ ≤ 1 := by
+  have := norm_legendrePolyP_cos_le_one n (Real.arccos x)
   rwa [Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2] at this
 
 /-- The Gaussian majorant `|cos θ + i sin θ cos t|ⁿ ≤ exp(-(n sin²θ / 2) sin² t)`. -/
@@ -96,8 +101,8 @@ lemma norm_laplace_integrand_pow_le (n : ℕ) (θ t : ℝ) :
 /-- **Temme's bound** (6.53): for `n ≥ 1` and `0 < θ < π`,
 `|P_n(cos θ)| ≤ √(π/(2n)) / sin θ`, from Laplace's integral, `1 - u ≤ e^{-u}` and Jordan's
 inequality `sin φ ≥ 2φ/π`. -/
-theorem norm_legendreP_cos_le (n : ℕ) (hn : 0 < n) {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < π) :
-    ‖legendreP n (Real.cos θ)‖ ≤ Real.sqrt (π / (2 * n)) / Real.sin θ := by
+theorem norm_legendrePolyP_cos_le (n : ℕ) (hn : 0 < n) {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < π) :
+    ‖legendrePolyP n (Real.cos θ)‖ ≤ Real.sqrt (π / (2 * n)) / Real.sin θ := by
   set s := Real.sin θ with hs
   have hs0 : 0 < s := Real.sin_pos_of_pos_of_lt_pi hθ hθπ
   have hnr : (0 : ℝ) < n := by exact_mod_cast hn
@@ -160,15 +165,15 @@ theorem norm_legendreP_cos_le (n : ℕ) (hn : 0 < n) {θ : ℝ} (hθ : 0 < θ) (
 /-! ### Expansions in Legendre polynomials (Temme §6.9.1) -/
 
 /-- Legendre polynomials are real on the real line. -/
-theorem conj_legendreP (n : ℕ) (x : ℝ) : conj (legendreP n x) = legendreP n x := by
-  suffices h : ∀ n : ℕ, conj (legendreP n x) = legendreP n x ∧
-      conj (legendreP (n + 1) x) = legendreP (n + 1) x from (h n).1
+theorem conj_legendrePolyP (n : ℕ) (x : ℝ) : conj (legendrePolyP n x) = legendrePolyP n x := by
+  suffices h : ∀ n : ℕ, conj (legendrePolyP n x) = legendrePolyP n x ∧
+      conj (legendrePolyP (n + 1) x) = legendrePolyP (n + 1) x from (h n).1
   intro n
   induction n with
-  | zero => simp [legendreP_zero]
+  | zero => simp [legendrePolyP_zero]
   | succ n ih =>
     refine ⟨ih.2, ?_⟩
-    have hr := legendreP_recurrence n x
+    have hr := legendrePolyP_recurrence n x
     have hn : (n + 2 : ℂ) ≠ 0 := by norm_cast
     have hc := congrArg conj hr
     simp only [map_mul, map_sub, map_add, map_natCast, map_ofNat, map_one, Complex.conj_ofReal,
@@ -177,16 +182,16 @@ theorem conj_legendreP (n : ℕ) (x : ℝ) : conj (legendreP n x) = legendreP n 
     rw [show n + 1 + 1 = n + 2 by ring]
     linear_combination hc - hr
 
-lemma continuous_legendreP_ofReal (n : ℕ) : Continuous fun x : ℝ => legendreP n x :=
+lemma continuous_legendrePolyP_ofReal (n : ℕ) : Continuous fun x : ℝ => legendrePolyP n x :=
   (continuous_iff_continuousAt.mpr fun z =>
-    ((analyticOnNhd_jacobiP 0 0 n) z (Set.mem_univ z)).continuousAt).comp continuous_ofReal
+    ((analyticOnNhd_jacobiPolyP 0 0 n) z (Set.mem_univ z)).continuousAt).comp continuous_ofReal
 
 /-- The Legendre coefficient `c_n = (n + 1/2) ∫₋₁¹ f(x) P_n(x) dx` (Temme (6.59)). -/
 def legendreCoeff (f : ℝ → ℂ) (n : ℕ) : ℂ :=
-  (n + 1 / 2) * ∫ x : ℝ in (-1 : ℝ)..1, f x * legendreP n x
+  (n + 1 / 2) * ∫ x : ℝ in (-1 : ℝ)..1, f x * legendrePolyP n x
 
-lemma integral_mul_legendreP_eq (f : ℝ → ℂ) (n : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, f x * legendreP n x = 2 / (2 * n + 1) * legendreCoeff f n := by
+lemma integral_mul_legendrePolyP_eq (f : ℝ → ℂ) (n : ℕ) :
+    ∫ x : ℝ in (-1 : ℝ)..1, f x * legendrePolyP n x = 2 / (2 * n + 1) * legendreCoeff f n := by
   rw [legendreCoeff]
   have h : (2 * (n : ℂ) + 1) ≠ 0 := by norm_cast
   field_simp
@@ -194,23 +199,23 @@ lemma integral_mul_legendreP_eq (f : ℝ → ℂ) (n : ℕ) :
 /-- **The mean-square error of a truncated Legendre expansion** (Temme (6.60)–(6.61)):
 for `f` continuous on `[-1,1]` and any coefficients `a`,
 `∫|f - ∑_{n<N} aₙ Pₙ|² = ∫|f|² - ∑ 2/(2n+1) |cₙ|² + ∑ 2/(2n+1) |aₙ - cₙ|²`. -/
-theorem integral_norm_sub_sum_legendreP_sq {f : ℝ → ℂ} (hf : ContinuousOn f (Icc (-1) 1))
+theorem integral_norm_sub_sum_legendrePolyP_sq {f : ℝ → ℂ} (hf : ContinuousOn f (Icc (-1) 1))
     (a : ℕ → ℂ) (N : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N, a n * legendreP n x‖ ^ 2 =
+    ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N, a n * legendrePolyP n x‖ ^ 2 =
       (∫ x : ℝ in (-1 : ℝ)..1, ‖f x‖ ^ 2) -
         ∑ n ∈ Finset.range N, 2 / (2 * n + 1) * ‖legendreCoeff f n‖ ^ 2 +
         ∑ n ∈ Finset.range N, 2 / (2 * n + 1) * ‖a n - legendreCoeff f n‖ ^ 2 := by
   set c := legendreCoeff f with hc
-  set P : ℕ → ℝ → ℂ := fun n x => legendreP n x with hP
+  set P : ℕ → ℝ → ℂ := fun n x => legendrePolyP n x with hP
   have hU : uIcc (-1 : ℝ) 1 = Icc (-1) 1 := uIcc_of_le (by norm_num)
-  have hPc : ∀ n, Continuous (P n) := continuous_legendreP_ofReal
+  have hPc : ∀ n, Continuous (P n) := continuous_legendrePolyP_ofReal
   have hfc : ContinuousOn (fun x => conj (f x)) (Icc (-1) 1) :=
     Complex.continuous_conj.comp_continuousOn hf
   have hII : ∀ {u : ℝ → ℂ}, ContinuousOn u (Icc (-1) 1) →
       IntervalIntegrable u volume (-1) 1 := fun hu => (hU ▸ hu).intervalIntegrable
   -- the three families of integrals
   have hF1 : ∀ n, ∫ x : ℝ in (-1 : ℝ)..1, f x * P n x = 2 / (2 * n + 1) * c n :=
-    fun n => integral_mul_legendreP_eq f n
+    fun n => integral_mul_legendrePolyP_eq f n
   have hF2 : ∀ n, ∫ x : ℝ in (-1 : ℝ)..1, P n x * conj (f x) = 2 / (2 * n + 1) * conj (c n) := by
     intro n
     have h := congrArg conj (hF1 n)
@@ -218,7 +223,7 @@ theorem integral_norm_sub_sum_legendreP_sq {f : ℝ → ℂ} (hf : ContinuousOn 
     simp only [map_mul, map_div₀, map_add, map_one, map_ofNat, map_natCast] at h
     rw [intervalIntegral.integral_of_le (by norm_num), ← h]
     refine setIntegral_congr_fun measurableSet_Ioc fun x _ => ?_
-    simp only [hP, map_mul, conj_legendreP]
+    simp only [hP, map_mul, conj_legendrePolyP]
     ring
   have hF3 : ∀ m n, ∫ x : ℝ in (-1 : ℝ)..1, P m x * P n x =
       if m = n then (2 : ℂ) / (2 * (n : ℂ) + 1) else 0 := legendre_orthogonality
@@ -232,30 +237,30 @@ theorem integral_norm_sub_sum_legendreP_sq {f : ℝ → ℂ} (hf : ContinuousOn 
     fun m n => ((hPc m).mul (hPc n)).intervalIntegrable _ _
   have hff : IntervalIntegrable (fun x => f x * conj (f x)) volume (-1) 1 := hII (hf.mul hfc)
   -- the pointwise expansion
-  have hexp : ∀ x : ℝ, ((‖f x - ∑ n ∈ Finset.range N, a n * legendreP n x‖ ^ 2 : ℝ) : ℂ) =
+  have hexp : ∀ x : ℝ, ((‖f x - ∑ n ∈ Finset.range N, a n * legendrePolyP n x‖ ^ 2 : ℝ) : ℂ) =
       f x * conj (f x) - ∑ n ∈ Finset.range N, conj (a n) * (f x * P n x) -
         ∑ n ∈ Finset.range N, a n * (P n x * conj (f x)) +
         ∑ m ∈ Finset.range N, ∑ n ∈ Finset.range N, a m * conj (a n) * (P m x * P n x) := by
     intro x
     rw [Complex.ofReal_pow, ← Complex.mul_conj', map_sub, map_sum]
-    simp only [map_mul, conj_legendreP, hP]
+    simp only [map_mul, conj_legendrePolyP, hP]
     rw [sub_mul, mul_sub, mul_sub, Finset.mul_sum, Finset.sum_mul, Finset.sum_mul_sum]
-    have e1 : ∑ i ∈ Finset.range N, f x * (conj (a i) * legendreP i x) =
-        ∑ n ∈ Finset.range N, conj (a n) * (f x * legendreP n x) :=
+    have e1 : ∑ i ∈ Finset.range N, f x * (conj (a i) * legendrePolyP i x) =
+        ∑ n ∈ Finset.range N, conj (a n) * (f x * legendrePolyP n x) :=
       Finset.sum_congr rfl fun n _ => by ring
-    have e2 : ∑ i ∈ Finset.range N, a i * legendreP i x * conj (f x) =
-        ∑ n ∈ Finset.range N, a n * (legendreP n x * conj (f x)) :=
+    have e2 : ∑ i ∈ Finset.range N, a i * legendrePolyP i x * conj (f x) =
+        ∑ n ∈ Finset.range N, a n * (legendrePolyP n x * conj (f x)) :=
       Finset.sum_congr rfl fun n _ => by ring
     have e3 : ∑ i ∈ Finset.range N, ∑ j ∈ Finset.range N,
-        a i * legendreP i x * (conj (a j) * legendreP j x) =
+        a i * legendrePolyP i x * (conj (a j) * legendrePolyP j x) =
         ∑ m ∈ Finset.range N, ∑ n ∈ Finset.range N,
-          a m * conj (a n) * (legendreP m x * legendreP n x) :=
+          a m * conj (a n) * (legendrePolyP m x * legendrePolyP n x) :=
       Finset.sum_congr rfl fun m _ => Finset.sum_congr rfl fun n _ => by ring
     rw [e1, e2, e3]
     ring
   -- integrate
   have hL : (((∫ x : ℝ in (-1 : ℝ)..1,
-      ‖f x - ∑ n ∈ Finset.range N, a n * legendreP n x‖ ^ 2) : ℝ) : ℂ) =
+      ‖f x - ∑ n ∈ Finset.range N, a n * legendrePolyP n x‖ ^ 2) : ℝ) : ℂ) =
       (∫ x : ℝ in (-1 : ℝ)..1, f x * conj (f x)) -
         ∑ n ∈ Finset.range N, h n * (conj (a n) * c n + a n * conj (c n) - a n * conj (a n)) := by
     have hS1 : IntervalIntegrable (fun x => ∑ n ∈ Finset.range N, conj (a n) * (f x * P n x))
@@ -309,9 +314,10 @@ theorem integral_norm_sub_sum_legendreP_sq {f : ℝ → ℂ} (hf : ContinuousOn 
 `∑_{n<N} aₙ Pₙ`, the truncated Legendre series of `f` minimizes the mean-square error. -/
 theorem integral_norm_sub_sum_legendreCoeff_sq_le {f : ℝ → ℂ}
     (hf : ContinuousOn f (Icc (-1) 1)) (a : ℕ → ℂ) (N : ℕ) :
-    ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N, legendreCoeff f n * legendreP n x‖ ^ 2 ≤
-      ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N, a n * legendreP n x‖ ^ 2 := by
-  rw [integral_norm_sub_sum_legendreP_sq hf, integral_norm_sub_sum_legendreP_sq hf]
+    ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N,
+        legendreCoeff f n * legendrePolyP n x‖ ^ 2 ≤
+      ∫ x : ℝ in (-1 : ℝ)..1, ‖f x - ∑ n ∈ Finset.range N, a n * legendrePolyP n x‖ ^ 2 := by
+  rw [integral_norm_sub_sum_legendrePolyP_sq hf, integral_norm_sub_sum_legendrePolyP_sq hf]
   simp only [sub_self, norm_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow,
     mul_zero, Finset.sum_const_zero, add_zero]
   have : 0 ≤ ∑ n ∈ Finset.range N, 2 / (2 * (n : ℝ) + 1) * ‖a n - legendreCoeff f n‖ ^ 2 :=
@@ -323,11 +329,11 @@ theorem integral_norm_sub_sum_legendreCoeff_sq_le {f : ℝ → ℂ}
 theorem sum_legendreCoeff_sq_le {f : ℝ → ℂ} (hf : ContinuousOn f (Icc (-1) 1)) (N : ℕ) :
     ∑ n ∈ Finset.range N, 2 / (2 * (n : ℝ) + 1) * ‖legendreCoeff f n‖ ^ 2 ≤
       ∫ x : ℝ in (-1 : ℝ)..1, ‖f x‖ ^ 2 := by
-  have h := integral_norm_sub_sum_legendreP_sq hf (legendreCoeff f) N
+  have h := integral_norm_sub_sum_legendrePolyP_sq hf (legendreCoeff f) N
   simp only [sub_self, norm_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow,
     mul_zero, Finset.sum_const_zero, add_zero] at h
   have h0 : 0 ≤ ∫ x : ℝ in (-1 : ℝ)..1,
-      ‖f x - ∑ n ∈ Finset.range N, legendreCoeff f n * legendreP n x‖ ^ 2 :=
+      ‖f x - ∑ n ∈ Finset.range N, legendreCoeff f n * legendrePolyP n x‖ ^ 2 :=
     intervalIntegral.integral_nonneg (by norm_num) fun x _ => by positivity
   linarith
 
@@ -553,8 +559,8 @@ lemma laplace_gaussian_constant {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < π) :
 /-- **The Laplace–Heine asymptotic formula** (Temme §6.8.4; DLMF 18.15.1 for `α = β = 0`):
 for `0 < θ < π`,
 `√n P_n(cos θ) - √(2/(π sin θ)) cos((n + 1/2)θ - π/4) → 0` as `n → ∞`. -/
-theorem tendsto_sqrt_mul_legendreP_cos {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < π) :
-    Tendsto (fun n : ℕ => (Real.sqrt n : ℂ) * legendreP n (Real.cos θ) -
+theorem tendsto_sqrt_mul_legendrePolyP_cos {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < π) :
+    Tendsto (fun n : ℕ => (Real.sqrt n : ℂ) * legendrePolyP n (Real.cos θ) -
       ((Real.sqrt (2 / (π * Real.sin θ)) * Real.cos ((n + 1 / 2) * θ - π / 4) : ℝ) : ℂ))
       atTop (𝓝 0) := by
   set κ := laplaceKappa θ with hκ
@@ -564,7 +570,7 @@ theorem tendsto_sqrt_mul_legendreP_cos {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < �
   set e : ℕ → ℂ := fun n => Complex.exp ((n * θ : ℝ) * I) with he
   have hnorme : ∀ n, ‖e n‖ = 1 := fun n => Complex.norm_exp_ofReal_mul_I _
   -- `P_n(cos θ) = π⁻¹ (e_n K_n + conj (e_n K_n))`
-  have hP : ∀ n : ℕ, legendreP n (Real.cos θ) = (π : ℂ)⁻¹ * (e n * K n + conj (e n * K n)) := by
+  have hP : ∀ n : ℕ, legendrePolyP n (Real.cos θ) = (π : ℂ)⁻¹ * (e n * K n + conj (e n * K n)) := by
     intro n
     rw [legendre_laplace_integral, integral_laplace_eq_add_conj]
     have hJ : ∫ t : ℝ in (0 : ℝ)..(π / 2), ((Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t) ^ n =
@@ -689,7 +695,7 @@ theorem besselJ_zero_eq_integral (u : ℂ) :
   -- the Bessel series
   have hB := (hasFPowerSeriesOnBall_regularized0F1 (0 + 1)).hasSum_mul_pow
     (z := -(u ^ 2 / 4)) (by simp)
-  rw [besselJ, Complex.cpow_zero, one_mul]
+  rw [besselJ_eq_regularized, Complex.cpow_zero, one_mul]
   refine hB.unique ?_
   have h2 := hS.mul_left (π : ℂ)⁻¹
   convert h2 using 1
@@ -708,7 +714,7 @@ theorem besselJ_zero_eq_integral (u : ℂ) :
 `∑ Pₙ(x) zⁿ/n! = e^{xz} J₀(z √(1-x²))` for `|x| ≤ 1`. -/
 @[dlmf 18.12.E12]
 theorem legendre_exponential_generating_function {x : ℝ} (hx : |x| ≤ 1) (z : ℂ) :
-    HasSum (fun n : ℕ => legendreP n x / n.factorial * z ^ n)
+    HasSum (fun n : ℕ => legendrePolyP n x / n.factorial * z ^ n)
       (exp (x * z) * besselJ 0 (z * Real.sqrt (1 - x ^ 2))) := by
   set θ := Real.arccos x with hθ
   have hc : Real.cos θ = x := Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2
@@ -734,5 +740,140 @@ theorem legendre_exponential_generating_function {x : ℝ} (hx : |x| ≤ 1) (z :
     refine intervalIntegral.integral_congr fun t _ => ?_
     rw [mul_left_comm, ← Complex.exp_add]
     ring_nf
+
+/-- Termwise integration over `[0, π]` of a power series in a bounded continuous function,
+against an integrable weight. -/
+lemma hasSum_integral_pow_div_factorial_mul {g : ℝ → ℂ} (hg : Continuous g)
+    (hb : ∀ t, ‖g t‖ ≤ 1) {ρ : ℝ → ℂ} (hρ : IntervalIntegrable ρ volume 0 π) (u : ℂ) :
+    HasSum (fun k : ℕ => ∫ t in (0 : ℝ)..π, (u * g t) ^ k / k ! * ρ t)
+      (∫ t in (0 : ℝ)..π, Complex.exp (u * g t) * ρ t) := by
+  have hρm : AEStronglyMeasurable ρ (volume.restrict (Set.uIoc 0 π)) := by
+    rw [uIoc_of_le Real.pi_pos.le]; exact hρ.1.aestronglyMeasurable
+  refine intervalIntegral.hasSum_integral_of_dominated_convergence
+    (fun k t => ‖u‖ ^ k / k ! * ‖ρ t‖)
+    (fun k => ((by fun_prop : Continuous fun t =>
+      (u * g t) ^ k / (k ! : ℂ)).aestronglyMeasurable).mul hρm)
+    (fun k => Eventually.of_forall fun t _ => ?_)
+    (Eventually.of_forall fun t _ => (Real.summable_pow_div_factorial ‖u‖).mul_right _)
+    ?_
+    (Eventually.of_forall fun t _ => by
+      simpa only [Complex.exp_eq_exp_ℂ] using
+        (NormedSpace.expSeries_div_hasSum_exp (u * g t)).mul_right (ρ t))
+  · rw [norm_mul, norm_div, norm_pow, norm_mul, Complex.norm_natCast]
+    gcongr
+    calc ‖u‖ * ‖g t‖ ≤ ‖u‖ * 1 := by gcongr; exact hb t
+      _ = ‖u‖ := mul_one _
+  · have h : (fun t => ∑' k : ℕ, ‖u‖ ^ k / k ! * ‖ρ t‖) = fun t => Real.exp ‖u‖ * ‖ρ t‖ := by
+      funext t
+      rw [tsum_mul_right, Real.exp_eq_exp_ℝ,
+        ← (NormedSpace.expSeries_div_hasSum_exp (𝔸 := ℝ) ‖u‖).tsum_eq]
+    rw [h]
+    exact hρ.norm.const_mul _
+
+/-- Poisson's integral in angular form: with `t = cos ψ`,
+`∫₋₁¹ (1 - t²)^{λ-1} e^{iwt} dt = ∫₀^π e^{iw cos ψ} sin^{2λ-1} ψ dψ`. -/
+lemma integral_one_sub_sq_cpow_mul_exp_eq_integral_cos {lam : ℝ} (w : ℝ) :
+    ∫ t : ℝ in (-1 : ℝ)..1, (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1) * Complex.exp (I * w * t) =
+      ∫ ψ : ℝ in (0 : ℝ)..π, Complex.exp (I * w * Real.cos ψ) *
+        (Real.rpow (Real.sin ψ) (2 * lam - 1) : ℂ) := by
+  set G : ℝ → ℂ := fun t => (1 - (t : ℂ) ^ 2) ^ ((lam : ℂ) - 1) * Complex.exp (I * w * t)
+  have hcv := integral_image_eq_integral_abs_deriv_smul (f := Real.cos)
+    (f' := fun ψ => -Real.sin ψ) measurableSet_Icc
+    (fun ψ _ => (Real.hasDerivAt_cos ψ).hasDerivWithinAt) Real.injOn_cos G
+  rw [Real.bijOn_cos.image_eq] at hcv
+  rw [intervalIntegral.integral_of_le (by norm_num), ← integral_Icc_eq_integral_Ioc, hcv,
+    integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le Real.pi_pos.le]
+  refine intervalIntegral.integral_congr_Ioo_of_le Real.pi_pos.le fun ψ hψ => ?_
+  have hs : 0 < Real.sin ψ := Real.sin_pos_of_pos_of_lt_pi hψ.1 hψ.2
+  have hbase : 1 - ((Real.cos ψ : ℝ) : ℂ) ^ 2 = ((Real.sin ψ ^ 2 : ℝ) : ℂ) := by
+    have h := congrArg (fun x : ℝ => (x : ℂ)) (Real.sin_sq_add_cos_sq ψ)
+    push_cast at h ⊢
+    linear_combination -h
+  have hpow : ((Real.sin ψ ^ 2 : ℝ) : ℂ) ^ ((lam : ℂ) - 1) =
+      ((Real.sin ψ ^ (2 * lam - 2) : ℝ) : ℂ) := by
+    rw [show ((lam : ℂ) - 1) = ((lam - 1 : ℝ) : ℂ) by push_cast; ring,
+      ← Complex.ofReal_cpow (by positivity), ← Real.rpow_natCast, ← Real.rpow_mul hs.le]
+    congr 2; push_cast; ring
+  have hsin : Real.sin ψ * Real.sin ψ ^ (2 * lam - 2) = Real.rpow (Real.sin ψ) (2 * lam - 1) := by
+    rw [Real.rpow_eq_pow, show 2 * lam - 1 = (2 * lam - 2) + 1 by ring,
+      Real.rpow_add_one hs.ne', mul_comm]
+  simp only [G, abs_neg, abs_of_pos hs, Complex.real_smul, hbase, hpow]
+  rw [← hsin]; push_cast; ring
+
+/-- **The Bessel generating function of Gegenbauer polynomials** (DLMF 18.12.6):
+`∑ C_n^λ(cos θ) zⁿ/(2λ)_n = Γ(λ+1/2) e^{z cos θ} (z sin θ/2)^{1/2-λ} J_{λ-1/2}(z sin θ)`, from
+Laplace's integral for `C_n^λ` and Poisson's integral for `J`. -/
+@[dlmf 18.12.E6]
+theorem ultrasphPoly_bessel_generating_function {lam : ℝ} (hlam : 0 < lam)
+    {θ z : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) (hz : 0 < z) :
+    HasSum (fun n : ℕ => ultrasphPoly lam n (Real.cos θ) / poch (2 * lam) n * (z : ℂ) ^ n)
+      (Gamma (lam + 1 / 2 : ℂ) * exp (z * Real.cos θ : ℂ) *
+        (z * Real.sin θ / 2 : ℂ) ^ (1 / 2 - lam : ℂ) * besselJ (lam - 1 / 2) (z * Real.sin θ)) := by
+  set ρ : ℝ → ℂ := fun ψ => (Real.rpow (Real.sin ψ) (2 * lam - 1) : ℂ) with hρ
+  set A : ℂ := Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) with hA
+  set g : ℝ → ℂ := fun t => (Real.cos θ : ℂ) + I * Real.sin θ * Real.cos t with hg
+  have hρi : IntervalIntegrable ρ volume 0 π := by
+    have h := (integral_sin_rpow_aux hlam).1
+    have h' : IntervalIntegrable (fun t => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) volume 0 π :=
+      ⟨h.1.ofReal, h.2.ofReal⟩
+    simpa [ρ, Real.rpow_eq_pow] using h'
+  have hS := hasSum_integral_pow_div_factorial_mul (g := g) (by fun_prop)
+    (fun t => by
+      rw [hg, norm_laplace_integrand, Real.sqrt_le_one]
+      nlinarith [sq_nonneg (Real.sin θ * Real.sin t)]) hρi (z : ℂ)
+  have h := hS.mul_left A
+  convert h using 1
+  · funext n
+    have hL := ultrasphPoly_laplace_integral hlam n θ
+    have h1 : ultrasphPoly (lam : ℂ) n 1 = poch (2 * (lam : ℂ)) n / n.factorial :=
+      ultrasphPoly_at_one (by simp; linarith) n
+    have hp : poch (2 * (lam : ℂ)) n ≠ 0 := poch_ne_zero_of_re_pos (by simp; linarith) n
+    have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    have hC1 : ultrasphPoly (lam : ℂ) n 1 ≠ 0 := by rw [h1]; exact div_ne_zero hp hf
+    rw [div_eq_iff hC1] at hL
+    have hI : ∫ t in (0 : ℝ)..π, ((z : ℂ) * g t) ^ n / n ! * ρ t =
+        (z : ℂ) ^ n / n ! * ∫ t in (0 : ℝ)..π, g t ^ n * ρ t := by
+      rw [← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun t _ => ?_
+      rw [mul_pow]; ring
+    have hp' : poch ((lam : ℂ) * 2) n ≠ 0 := by rwa [mul_comm]
+    rw [hI, hL, h1]
+    simp only [g, ρ, A]
+    field_simp
+  · have hs : 0 < Real.sin θ := Real.sin_pos_of_pos_of_lt_pi hθ hθπ
+    have hw : 0 < z * Real.sin θ := mul_pos hz hs
+    have hP := besselJ_eq_poisson_integral (ν := (lam : ℂ) - 1 / 2) (x := z * Real.sin θ)
+      (by simp; linarith) hw
+    rw [show (lam : ℂ) - 1 / 2 - 1 / 2 = (lam : ℂ) - 1 by ring,
+      show (lam : ℂ) - 1 / 2 + 1 / 2 = lam by ring,
+      integral_one_sub_sq_cpow_mul_exp_eq_integral_cos] at hP
+    rw [Complex.ofReal_mul] at hP
+    have hE : ∫ t in (0 : ℝ)..π, Complex.exp ((z : ℂ) * g t) * ρ t =
+        Complex.exp (z * Real.cos θ) * ∫ t in (0 : ℝ)..π,
+          Complex.exp (I * (z * Real.sin θ) * Real.cos t) * ρ t := by
+      rw [← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun t _ => ?_
+      simp only [g]
+      rw [← mul_assoc, ← Complex.exp_add]
+      ring_nf
+    have hw2 : ((z : ℂ) * Real.sin θ / 2) ≠ 0 := by
+      have : ((z * Real.sin θ / 2 : ℝ) : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (by positivity)
+      simpa using this
+    have hcp : ((z : ℂ) * Real.sin θ / 2) ^ (1 / 2 - (lam : ℂ)) *
+        ((z : ℂ) * Real.sin θ / 2) ^ ((lam : ℂ) - 1 / 2) = 1 := by
+      rw [← Complex.cpow_add _ _ hw2, show 1 / 2 - (lam : ℂ) + ((lam : ℂ) - 1 / 2) = 0 by ring,
+        Complex.cpow_zero]
+    have hG : Gamma (lam : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using hlam)
+    have hπ : (Real.sqrt π : ℂ) ≠ 0 :=
+      Complex.ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    rw [hE, hP, hA]
+    simp only [ρ]
+    calc _ = Gamma (lam + 1 / 2 : ℂ) * Complex.exp (z * Real.cos θ) *
+          (((z : ℂ) * Real.sin θ / 2) ^ (1 / 2 - (lam : ℂ)) *
+            ((z : ℂ) * Real.sin θ / 2) ^ ((lam : ℂ) - 1 / 2)) /
+          (Real.sqrt π * Gamma (lam : ℂ)) *
+          ∫ t in (0 : ℝ)..π, Complex.exp (I * (z * Real.sin θ) * Real.cos t) *
+            ((Real.sin t).rpow (2 * lam - 1) : ℂ) := by ring
+      _ = _ := by rw [hcp]; field_simp
 
 end AAR.OrthogonalPolynomials

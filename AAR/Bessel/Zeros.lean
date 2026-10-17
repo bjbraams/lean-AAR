@@ -77,7 +77,7 @@ lemma eventually_re_besselJ_pos {ν : ℝ} (hν : -1 < ν) :
     (analyticAt_regularized0F1 _ _).continuousAt.comp (by fun_prop)
   have hG0 : G 0 = ((Real.Gamma (ν + 1))⁻¹ : ℝ) := by
     simp only [G]
-    rw [show -(((0 : ℝ) : ℂ) ^ 2 / 4) = 0 by simp, _root_.regularizedHGFun_zero,
+    rw [show -(((0 : ℝ) : ℂ) ^ 2 / 4) = 0 by simp, AAR.Confluent.regularizedHGFun_zero,
       regularizedHGFunCoeff_empty]
     push_cast
     rw [← Gamma_ofReal]; push_cast; simp
@@ -88,7 +88,7 @@ lemma eventually_re_besselJ_pos {ν : ℝ} (hν : -1 < ν) :
   filter_upwards [nhdsWithin_le_nhds hev, self_mem_nhdsWithin] with x hx hx0
   have hx0 : (0 : ℝ) < x := hx0
   have hJ : besselJ ν x = (((x / 2) ^ ν : ℝ) : ℂ) * G x := by
-    simp only [besselJ, G]
+    simp only [besselJ_eq_regularized, G]
     rw [ofReal_cpow (by positivity)]
     push_cast; ring_nf
   rw [hJ, re_ofReal_mul]
@@ -274,11 +274,11 @@ theorem besselJ_first_zero_lt {ν μ : ℝ} (hν : 0 ≤ ν) (hνμ : ν < μ) :
   have hneg : (besselJ μ x).re / (x - J) < 0 := div_neg_of_pos_of_neg hfx (by linarith [hx2.2])
   linarith
 
-end AAR.Bessel
-
 /-- The first positive Bessel zero is strictly increasing with the nonnegative order. -/
 theorem besselJ_first_positive_zero_strictMono :
     StrictMonoOn (fun ν : ℝ => sInf {x : ℝ | 0 < x ∧ besselJ ν x = 0}) (Set.Ici 0) :=
-  fun _ hν _ _ hlt => AAR.Bessel.besselJ_first_zero_lt hν hlt
+  fun _ hν _ _ hlt => besselJ_first_zero_lt hν hlt
+
+end AAR.Bessel
 
 end

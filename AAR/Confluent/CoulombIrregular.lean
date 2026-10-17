@@ -19,11 +19,11 @@ This gives `H^+_ℓ = A^+ ρ^{ℓ+1} e^{iρ} U(ℓ+1+iη, 2ℓ+2, -2iρ)` with a
 `G_ℓ = Re H^+_ℓ`, so that `H^±_ℓ = G_ℓ ± i F_ℓ`.
 
 The Wronskian `W{H^+_ℓ, F_ℓ}` reduces to `W{𝐌, U}` at `-2iρ`
-(`wronskian_regularizedHGFun_confluentU_all`), whose constant evaluates to `1`.
+(`wronskian_regularizedHGFun_kummerU_all`), whose constant evaluates to `1`.
 
 ## Main results
 
-* `conj_confluentU`: `conj U(a,b,z) = U(conj a, conj b, conj z)` on the slit plane.
+* `conj_kummerU`: `conj U(a,b,z) = U(conj a, conj b, conj z)` on the slit plane.
 * `coulombHMinus_eq_conj`, `coulombF_eq_sub_div`, `coulombF_eq_im`.
 * `coulombG`, `coulombH_eq_G_add_I_mul_F`: DLMF 33.2.11.
 * `coulomb_wronskian`, `coulomb_wronskian_HPlus`, `coulomb_wronskian_HMinus`: DLMF 33.2.12.
@@ -35,32 +35,33 @@ The Wronskian `W{H^+_ℓ, F_ℓ}` reduces to `W{𝐌, U}` at `-2iρ`
 
 open Complex Filter Set
 open scoped Real Topology Nat ComplexConjugate
+open AAR.Hypergeometric
 
 noncomputable section
 
 namespace AAR.Confluent
 
 /-- Tricomi's function commutes with complex conjugation on the slit plane. -/
-theorem conj_confluentU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    conj (confluentU a b z) = confluentU (conj a) (conj b) (conj z) := by
+theorem conj_kummerU (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    conj (kummerU a b z) = kummerU (conj a) (conj b) (conj z) := by
   have hz0 := slitPlane_ne_zero hz
   have hcz : conj z ≠ 0 := (map_ne_zero _).mpr hz0
   have harg : z.arg ≠ π := slitPlane_arg_ne_pi hz
   have key : ∀ c ∈ integerComplement,
-      conj (confluentU a c z) = confluentU (conj a) (conj c) (conj z) := by
+      conj (kummerU a c z) = kummerU (conj a) (conj c) (conj z) := by
     intro c hc
     have hcz' := forall_of_mem_integerComplement hc
     have hcc : ∀ k : ℤ, conj c ≠ k := fun k h => hcz' k (by
       simpa using congrArg conj h)
-    rw [confluentU_eq_connection _ _ _ hcz', confluentU_eq_connection _ _ _ hcc,
-      confluentUConnection, confluentUConnection]
+    rw [kummerU_eq_connection _ _ _ hcz', kummerU_eq_connection _ _ _ hcc,
+      kummerUConnection, kummerUConnection]
     simp only [map_add, map_mul, map_div₀, map_sub, map_one, map_ofNat, ← Gamma_conj,
-      conj_confluentM, conj_cpow _ _ harg, Complex.conj_conj]
-  refine eq_of_continuousAt_of_integerComplement (f := fun c => conj (confluentU a c z))
-    (g := fun c => confluentU (conj a) (conj c) (conj z)) ?_ ?_ key
+      conj_kummerM, conj_cpow _ _ harg, Complex.conj_conj]
+  refine eq_of_continuousAt_of_integerComplement (f := fun c => conj (kummerU a c z))
+    (g := fun c => kummerU (conj a) (conj c) (conj z)) ?_ ?_ key
   · exact continuous_conj.continuousAt.comp
-      (continuousAt_confluentU_comp continuousAt_const continuousAt_id hz0)
-  · exact continuousAt_confluentU_comp continuousAt_const continuous_conj.continuousAt hcz
+      (continuousAt_kummerU_comp continuousAt_const continuousAt_id hz0)
+  · exact continuousAt_kummerU_comp continuousAt_const continuous_conj.continuousAt hcz
 
 lemma exp_neg_I_mul_pi_div_two : exp (-(I * π / 2)) = -I := by
   rw [show -(I * π / 2) = ((-(π / 2) : ℝ) : ℂ) * I by push_cast; ring, exp_mul_I,
@@ -91,7 +92,7 @@ def coulombAPlus (ℓ : ℕ) (η : ℝ) : ℂ :=
 /-- `H^+_ℓ` without the logarithmic phase: `H^+_ℓ = A^+ ρ^{ℓ+1} e^{iρ} U(ℓ+1+iη, 2ℓ+2, -2iρ)`. -/
 theorem coulombHPlus_eq (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
     coulombHPlus ℓ η ρ = coulombAPlus ℓ η * (ρ : ℂ) ^ (ℓ + 1) * exp (I * ρ) *
-      confluentU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2) (-2 * I * ρ) := by
+      kummerU ((ℓ : ℂ) + 1 + I * η) (2 * ℓ + 2) (-2 * I * ρ) := by
   have hz : (-2 * I * ρ : ℂ) ≠ 0 := slitPlane_ne_zero (neg_two_I_mul_mem_slitPlane hρ)
   rw [coulombHPlus, coulombAPlus, coulombTheta,
     show (ℓ : ℂ) + 1 + I * η = ((ℓ + 1 : ℕ) : ℂ) + I * η by push_cast; ring, cpow_add _ _ hz,
@@ -116,7 +117,7 @@ theorem coulombHPlus_eq (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
     fun _ _ _ _ => by ring, hx, mul_pow, mul_pow]
   linear_combination ((ρ : ℂ) ^ (ℓ + 1) * exp (I * ρ) * exp (coulombSigma ℓ η * I) *
     exp ((π * η / 2 : ℝ) : ℂ) *
-    confluentU (((ℓ + 1 : ℕ) : ℂ) + I * η) (2 * ℓ + 2) (-2 * I * ρ)) * hpow
+    kummerU (((ℓ + 1 : ℕ) : ℂ) + I * η) (2 * ℓ + 2) (-2 * I * ρ)) * hpow
 
 /-- **`H^-_ℓ` is the complex conjugate of `H^+_ℓ`** (DLMF §33.2(iii)). -/
 theorem coulombHMinus_eq_conj (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
@@ -124,7 +125,7 @@ theorem coulombHMinus_eq_conj (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
   have hs := neg_two_I_mul_mem_slitPlane hρ
   have hcp : ∀ w : ℂ, conj ((-2 * I * ρ : ℂ) ^ w) = (conj (-2 * I * ρ : ℂ)) ^ (conj w) := by
     intro w; rw [conj_cpow _ _ (slitPlane_arg_ne_pi hs), conj_conj]
-  rw [coulombHPlus, coulombHMinus, map_mul, map_mul, conj_confluentU _ _ hs, ← exp_conj, hcp]
+  rw [coulombHPlus, coulombHMinus, map_mul, map_mul, conj_kummerU _ _ hs, ← exp_conj, hcp]
   simp only [map_mul, map_add, map_neg, map_ofNat, conj_ofReal, conj_I, map_natCast, map_one]
   ring_nf
 
@@ -135,9 +136,9 @@ lemma arg_two_I_mul {ρ : ℝ} (hρ : 0 < ρ) : arg (2 * I * ρ) = π / 2 := by
 /-- `H^-_ℓ = conj(A^+) ρ^{ℓ+1} e^{-iρ} U(ℓ+1-iη, 2ℓ+2, 2iρ)`. -/
 theorem coulombHMinus_eq (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
     coulombHMinus ℓ η ρ = conj (coulombAPlus ℓ η) * (ρ : ℂ) ^ (ℓ + 1) * exp (-I * ρ) *
-      confluentU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2) (2 * I * ρ) := by
+      kummerU ((ℓ : ℂ) + 1 - I * η) (2 * ℓ + 2) (2 * I * ρ) := by
   rw [coulombHMinus_eq_conj ℓ η hρ, coulombHPlus_eq ℓ η hρ, map_mul, map_mul, map_mul,
-    conj_confluentU _ _ (neg_two_I_mul_mem_slitPlane hρ), ← exp_conj]
+    conj_kummerU _ _ (neg_two_I_mul_mem_slitPlane hρ), ← exp_conj]
   simp only [map_mul, map_add, map_neg, map_ofNat, conj_ofReal, conj_I, map_natCast, map_one,
     map_pow]
   ring_nf
@@ -147,7 +148,7 @@ connection formula 13.2.41 at `z = 2iρ`. -/
 theorem coulombF_eq_sub_div (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
     (coulombF ℓ η ρ : ℂ) = (coulombHPlus ℓ η ρ - coulombHMinus ℓ η ρ) / (2 * I) := by
   set a : ℂ := (ℓ : ℂ) + 1 - I * η with ha
-  have hconn := confluentM_eq_confluentU_connection a (2 * ℓ + 2) (two_I_mul_mem_slitPlane hρ)
+  have hconn := kummerM_eq_kummerU_connection a (2 * ℓ + 2) (two_I_mul_mem_slitPlane hρ)
     false (by simp [arg_two_I_mul hρ, Real.pi_pos]) (two_mul_nat_add_two_ne_neg_nat ℓ)
   simp only [Bool.false_eq_true, ↓reduceIte] at hconn
   rw [show 2 * (ℓ : ℂ) + 2 - a = ℓ + 1 + I * η by rw [ha]; ring,
@@ -238,7 +239,7 @@ lemma ofReal_coulombF_eq_regularized (ℓ : ℕ) (η ρ : ℝ) :
       ((ρ : ℂ) ^ (ℓ + 1) * exp (I * ρ)) *
         regularizedHGFun {(ℓ : ℂ) + 1 + I * η} {2 * (ℓ : ℂ) + 2} (-2 * I * ρ) := by
   rw [ofReal_coulombF, coulombWave_eq_conj_form,
-    confluentM_eq_mul_regularizedHGFun (two_mul_nat_add_two_ne_neg_nat ℓ),
+    kummerM_eq_mul_regularizedHGFun (two_mul_nat_add_two_ne_neg_nat ℓ),
     show 2 * (ℓ : ℂ) + 2 = ((2 * ℓ + 1 : ℕ) : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial,
     show -(2 * I * (ρ : ℂ)) = -2 * I * ρ by ring]
   push_cast
@@ -311,7 +312,7 @@ theorem coulomb_wronskian_aux (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
   set A := coulombAPlus ℓ η with hA
   set K : ℂ := (coulombC ℓ η : ℂ) * ((2 * ℓ + 1)! : ℂ) with hK
   have hs := neg_two_I_mul_mem_slitPlane hρ
-  have hU := hasDerivAt_confluentU α b hs
+  have hU := hasDerivAt_kummerU α b hs
   have hM := (differentiableAt_regularizedConfluent α b (-2 * I * ρ)).hasDerivAt
   have hlin : HasDerivAt (fun w : ℂ => -2 * I * w) (-2 * I) (ρ : ℂ) := by
     simpa using (hasDerivAt_id (ρ : ℂ)).const_mul (-2 * I)
@@ -336,7 +337,7 @@ theorem coulomb_wronskian_aux (ℓ : ℕ) (η : ℝ) {ρ : ℝ} (hρ : 0 < ρ) :
   · exact Eventually.of_forall fun x => by
       simp only [Pi.mul_apply, Function.comp_apply]
       rw [ofReal_coulombF_eq_regularized]
-  · have hW := wronskian_regularizedHGFun_confluentU_all α b hs
+  · have hW := wronskian_regularizedHGFun_kummerU_all α b hs
     rw [wronskian, hU.deriv] at hW
     rw [coulombHPlus_eq ℓ η hρ, ofReal_coulombF_eq_regularized]
     simp only [Function.comp_apply]

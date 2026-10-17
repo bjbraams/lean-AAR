@@ -30,14 +30,17 @@ deferred here. Parabolic cylinder and Coulomb wave functions are now defined in
 
 open Complex Polynomial Filter
 open scoped Real Topology ENNReal
+open AAR.OrthogonalPolynomials
+open AAR.Hypergeometric
+open AAR.Bessel
 
 noncomputable section
 
 namespace AAR.Confluent
 
 /-- Physicists' Hermite polynomial evaluated in `ℂ`. -/
-def hermitePhysEval (n : ℕ) (z : ℂ) : ℂ :=
-  eval z ((hermitePhys n).map (Int.castRingHom ℂ))
+def hermitePolyHEval (n : ℕ) (z : ℂ) : ℂ :=
+  eval z ((hermitePolyH n).map (Int.castRingHom ℂ))
 
 /-- `(-n)_{n-s} (-1)^{n-s} / (n-s)! = C(n,s)`. -/
 lemma poch_neg_nat_sub_div (n s : ℕ) (hs : s ≤ n) :
@@ -93,15 +96,15 @@ lemma Gamma_one_half_eq_sqrt : Gamma (1 / 2 : ℂ) = (Real.sqrt π : ℂ) := by
   norm_num
 
 @[dlmf 13.6.E2]
-theorem confluentM_one_two (z : ℂ) (hz : z ≠ 0) :
-    confluentM 1 2 (2 * z) = exp z * sinh z / z := by
+theorem kummerM_one_two (z : ℂ) (hz : z ≠ 0) :
+    kummerM 1 2 (2 * z) = exp z * sinh z / z := by
   have h1 : ∀ k : ℕ, (1 : ℂ) ≠ -k := fun k h => by
     have := congrArg Complex.re h
     simp at this
     linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
-  have h := AAR.Confluent.confluentM_contiguous_shift_a (a := 1) (b := 1) h1 (z := 2 * z)
-  rw [sub_self, confluentM_of_zero_param, confluentM_self h1, one_add_one_eq_two] at h
-  have key : 2 * z * confluentM 1 2 (2 * z) = exp (2 * z) - 1 := by linear_combination -h
+  have h := AAR.Confluent.kummerM_contiguous_shift_a (a := 1) (b := 1) h1 (z := 2 * z)
+  rw [sub_self, kummerM_of_zero_param, kummerM_self h1, one_add_one_eq_two] at h
+  have key : 2 * z * kummerM 1 2 (2 * z) = exp (2 * z) - 1 := by linear_combination -h
   have h2 := Complex.two_sinh z
   have hexp : exp (2 * z) = exp z * exp z := by rw [← exp_add]; ring_nf
   have hexpneg : exp z * exp (-z) = 1 := by rw [← exp_add]; simp
@@ -111,55 +114,55 @@ theorem confluentM_one_two (z : ℂ) (hz : z ≠ 0) :
 
 /-- Tricomi U at zero first parameter, including integer second parameters. -/
 @[dlmf 13.6.E3]
-theorem confluentU_of_zero_param (b z : ℂ) : confluentU 0 b z = 1 :=
-  confluentU_zero b z
+theorem kummerU_of_zero_param (b z : ℂ) : kummerU 0 b z = 1 :=
+  kummerU_zero b z
 
 /-- The elementary shifted-parameter specialization of the continued Tricomi function. -/
 @[dlmf 13.6.E4]
-theorem confluentU_shift_one (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU a (a + 1) z = z ^ (-a) := by
-  rw [confluentU_kummer_transform_all a _ (slitPlane_ne_zero hz), show a - (a + 1) + 1 = 0 by ring, confluentU_zero,
+theorem kummerU_shift_one (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a (a + 1) z = z ^ (-a) := by
+  rw [kummerU_kummer_transform_all a _ (slitPlane_ne_zero hz), show a - (a + 1) + 1 = 0 by ring, kummerU_zero,
     show (1 : ℂ) - (a + 1) = -a by ring, mul_one]
 
 /-- Upper incomplete gamma via Tricomi's `U`, from DLMF 13.6.6. -/
-def GammaInc (s z : ℂ) : ℂ := exp (-z) * confluentU (1 - s) (1 - s) z
+def upperIncGamma (s z : ℂ) : ℂ := exp (-z) * kummerU (1 - s) (1 - s) z
 
 /-- Lower incomplete-Gamma identities with a regular denominator for Kummer M. -/
 @[dlmf 13.6.E5]
-theorem confluentM_lowerIncompleteGamma (a z : ℂ) (ha : a ≠ 0) {w : ℂ}
+theorem kummerM_lowerIncGamma (a z : ℂ) (ha : a ≠ 0) {w : ℂ}
     (hw : w ∈ slitPlane) (hz : w = z) (hden : ∀ k : ℕ, a + 1 ≠ -k) :
-    confluentM a (a + 1) (-z) = exp (-z) * confluentM 1 (a + 1) z ∧
-      confluentM a (a + 1) (-z) = a * z ^ (-a) * lowerIncompleteGamma a z := by
+    kummerM a (a + 1) (-z) = exp (-z) * kummerM 1 (a + 1) z ∧
+      kummerM a (a + 1) (-z) = a * z ^ (-a) * lowerIncGamma a z := by
   subst hz
   have hw0 := slitPlane_ne_zero hw
   refine ⟨?_, ?_⟩
-  · rw [confluentM_kummer_transform hden, show a + 1 - a = 1 by ring, neg_neg]
-  · unfold lowerIncompleteGamma
+  · rw [kummerM_kummer_transform hden, show a + 1 - a = 1 by ring, neg_neg]
+  · unfold lowerIncGamma
     have hp : w ^ (-a) * w ^ a = 1 := by
       rw [← cpow_add _ _ hw0, neg_add_cancel, cpow_zero]
     field_simp
-    linear_combination (-confluentM a (a + 1) (-w)) * hp
+    linear_combination (-kummerM a (a + 1) (-w)) * hp
 
 /-- Incomplete-Gamma relations for U at noninteger parameter. -/
 @[dlmf 13.6.E6]
-theorem confluentU_upperIncompleteGamma (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem kummerU_upperIncGamma (a : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (ha : ∀ k : ℤ, a ≠ k) :
-    confluentU a a z = z ^ (1 - a) * confluentU 1 (2 - a) z ∧
-      confluentU a a z = exp z * GammaInc (1 - a) z := by
+    kummerU a a z = z ^ (1 - a) * kummerU 1 (2 - a) z ∧
+      kummerU a a z = exp z * upperIncGamma (1 - a) z := by
   refine ⟨?_, ?_⟩
-  · simpa using confluentU_kummer_transform a a hz ha
-  · unfold GammaInc
+  · simpa using kummerU_kummer_transform a a hz ha
+  · unfold upperIncGamma
     have : (1 : ℂ) - (1 - a) = a := by ring
     simp only [this]
     rw [← mul_assoc, ← exp_add]
-    convert (one_mul (confluentU a a z)).symm using 2
+    convert (one_mul (kummerU a a z)).symm using 2
     convert exp_zero using 2
     ring
 
 @[dlmf 13.6.E7]
-theorem confluentM_errorFn {z : ℂ} (hz : z ≠ 0) :
-    confluentM (1 / 2) (3 / 2) (-(z ^ 2)) = (Real.sqrt π : ℂ) / (2 * z) * errorFn z := by
-  unfold errorFn
+theorem kummerM_erf {z : ℂ} (hz : z ≠ 0) :
+    kummerM (1 / 2) (3 / 2) (-(z ^ 2)) = (Real.sqrt π : ℂ) / (2 * z) * erf z := by
+  unfold erf
   have hπ : (Real.sqrt π : ℂ) ≠ 0 :=
     ofReal_ne_zero.2 (ne_of_gt (Real.sqrt_pos.2 Real.pi_pos))
   field_simp [hz, hπ]
@@ -168,8 +171,8 @@ theorem confluentM_errorFn {z : ℂ} (hz : z ≠ 0) :
 /-- Tricomi U at `a = b = 1/2` and complementary error function. The left side depends only on `z ^
 2`, so the identity needs `0 < Re z`. -/
 @[dlmf 13.6.E8]
-theorem confluentU_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
-    confluentU (1 / 2) (1 / 2) (z ^ 2) = (Real.sqrt π : ℂ) * exp (z ^ 2) * erfcFn z := by
+theorem kummerU_erfc {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
+    kummerU (1 / 2) (1 / 2) (z ^ 2) = (Real.sqrt π : ℂ) * exp (z ^ 2) * erfc z := by
   have hz0 := slitPlane_ne_zero hz
   have hb : ∀ k : ℤ, (1 / 2 : ℂ) ≠ k := fun k h => by
     have := congrArg re h
@@ -181,13 +184,13 @@ theorem confluentU_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   have h12 : ∀ k : ℕ, (1 / 2 : ℂ) ≠ -k := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
-  rw [confluentU_eq_connection _ _ _ hb]
-  unfold confluentUConnection erfcFn
+  rw [kummerU_eq_connection _ _ _ hb]
+  unfold kummerUConnection erfc
   rw [show (1 : ℂ) - 1 / 2 = 1 / 2 by ring, show (1 / 2 : ℂ) - 1 / 2 + 1 = 1 by ring,
     show (1 / 2 : ℂ) - 1 = -1 / 2 by ring, show (2 : ℂ) - 1 / 2 = 3 / 2 by ring,
-    confluentM_self h12, Complex.Gamma_one, sq_cpow_of_re_pos hre,
-    show (2 : ℂ) * (1 / 2) = 1 by ring, cpow_one, confluentM_kummer_transform h32,
-    show (3 / 2 : ℂ) - 1 = 1 / 2 by ring, confluentM_errorFn hz0, Gamma_one_half_eq_sqrt]
+    kummerM_self h12, Complex.Gamma_one, sq_cpow_of_re_pos hre,
+    show (2 : ℂ) * (1 / 2) = 1 by ring, cpow_one, kummerM_kummer_transform h32,
+    show (3 / 2 : ℂ) - 1 = 1 / 2 by ring, kummerM_erf hz0, Gamma_one_half_eq_sqrt]
   have hGm : Gamma (-1 / 2 : ℂ) = -2 * (Real.sqrt π : ℂ) := by
     have h := Gamma_add_one (-1 / 2 : ℂ) (by norm_num)
     rw [show (-1 / 2 : ℂ) + 1 = 1 / 2 by ring, Gamma_one_half_eq_sqrt] at h
@@ -199,14 +202,14 @@ theorem confluentU_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
   ring
 
 @[dlmf 13.6.E9]
-theorem confluentM_besselI (ν z : ℂ) (hz : z ∈ slitPlane) (hν : ∀ k : ℕ, 1 + 2 * ν ≠ -k) :
-    confluentM (ν + 1 / 2) (2 * ν + 1) (2 * z) =
+theorem kummerM_besselI (ν z : ℂ) (hz : z ∈ slitPlane) (hν : ∀ k : ℕ, 1 + 2 * ν ≠ -k) :
+    kummerM (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       Gamma (1 + ν) * exp z * (z / 2) ^ (-ν) * besselI ν z := by
   have hz0 := slitPlane_ne_zero hz
   have h2ν : ∀ k : ℕ, 2 * ν + 1 ≠ -k := fun k h => hν k (by rw [← h]; ring)
   have hν1 : ∀ k : ℕ, ν + 1 ≠ -k := fun k h => hν (2 * k + 1) (by
     push_cast; linear_combination 2 * h)
-  rw [confluentM_eq_exp_mul_regularized0F1 hν1 h2ν, besselI,
+  rw [kummerM_eq_exp_mul_regularized0F1 hν1 h2ν, besselI,
     show (2 * z) ^ 2 / 16 = z ^ 2 / 4 by ring, show 2 * z / 2 = z by ring,
     show (1 : ℂ) + ν = ν + 1 by ring]
   have hp : (z / 2) ^ (-ν) * (z / 2) ^ ν = 1 := by
@@ -223,9 +226,9 @@ lemma ofReal_mul_cpow' {r : ℝ} (hr : 0 < r) {w : ℂ} (hw : w ≠ 0) (s : ℂ)
 
 /-- DLMF 13.6.10 when `2ν` is not an integer, from the connection formula, 13.6.9, the
 duplication formula and the reflection formula. -/
-lemma confluentU_besselK_of_not_int (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+lemma kummerU_besselK_of_not_int (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (h2ν : ∀ k : ℤ, 2 * ν ≠ k) :
-    confluentU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
+    kummerU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
   have hz0 := slitPlane_ne_zero hz
   have hν : ∀ k : ℤ, ν ≠ k := fun k h => h2ν (2 * k) (by rw [h]; push_cast; ring)
@@ -237,11 +240,11 @@ lemma confluentU_besselK_of_not_int (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     push_cast; linear_combination 2 * h)
   have hhalf' : ∀ k : ℤ, -ν + 1 / 2 ≠ k := fun k h => h2ν (1 - 2 * k) (by
     push_cast; linear_combination -2 * h)
-  have hM1 := confluentM_besselI ν z hz hb1
-  have hM2 := confluentM_besselI (-ν) z hz hb2
+  have hM1 := kummerM_besselI ν z hz hb1
+  have hM2 := kummerM_besselI (-ν) z hz hb2
   rw [show -ν + 1 / 2 = ν + 1 / 2 - (2 * ν + 1) + 1 by ring,
     show 2 * -ν + 1 = 2 - (2 * ν + 1) by ring, neg_neg] at hM2
-  rw [confluentU_eq_connection _ _ _ hb, confluentUConnection, hM1, hM2,
+  rw [kummerU_eq_connection _ _ _ hb, kummerUConnection, hM1, hM2,
     besselK_eq_of_not_int hν, besselE]
   -- the Gamma coefficients
   have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
@@ -312,24 +315,24 @@ lemma confluentU_besselK_of_not_int (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
   linear_combination Iν * r1 + Im * r2
 
 @[dlmf 13.6.E10]
-theorem confluentU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
-    confluentU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
+theorem kummerU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
+    kummerU (ν + 1 / 2) (2 * ν + 1) (2 * z) =
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-ν) * besselK ν z := by
   have hz0 := slitPlane_ne_zero hz
   have h2z : 2 * z ≠ 0 := mul_ne_zero two_ne_zero hz0
   -- both sides are continuous in the order; compare them along `t = 2ν`
-  have key : ∀ t : ℂ, confluentU (t / 2 + 1 / 2) (t + 1) (2 * z) =
+  have key : ∀ t : ℂ, kummerU (t / 2 + 1 / 2) (t + 1) (2 * z) =
       1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-(t / 2)) * besselK (t / 2) z := by
     intro t
     refine eq_of_continuousAt_of_integerComplement
-      (f := fun t => confluentU (t / 2 + 1 / 2) (t + 1) (2 * z))
+      (f := fun t => kummerU (t / 2 + 1 / 2) (t + 1) (2 * z))
       (g := fun t => 1 / (Real.sqrt π : ℂ) * exp z * (2 * z) ^ (-(t / 2)) * besselK (t / 2) z)
-      (continuousAt_confluentU_comp (by fun_prop) (by fun_prop) h2z)
+      (continuousAt_kummerU_comp (by fun_prop) (by fun_prop) h2z)
       ((continuousAt_const.mul (((by fun_prop : ContinuousAt (fun t : ℂ => -(t / 2)) t).const_cpow
         (Or.inl h2z)))).mul
         (continuousAt_besselK_order (· / 2) (by fun_prop) t hz)) fun c hc => ?_
     have hcz := forall_of_mem_integerComplement hc
-    have := confluentU_besselK_of_not_int (c / 2) hz (fun k h => hcz k (by linear_combination h))
+    have := kummerU_besselK_of_not_int (c / 2) hz (fun k h => hcz k (by linear_combination h))
     rwa [show 2 * (c / 2) = c by ring] at this
   have := key (2 * ν)
   rwa [show 2 * ν / 2 = ν by ring] at this
@@ -338,10 +341,10 @@ theorem confluentU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
 The former statement included `ν = 0, n = 0`, where totalized `Gamma 0`
 made the right-hand side zero. -/
 @[dlmf 13.6.E11_1]
-theorem confluentM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
+theorem kummerM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
     (hν : ∀ k : ℕ, 2 * ν + 1 + n ≠ -k)
     (hΓ : ∀ k : ℕ, ν ≠ -k) (hz : z ∈ slitPlane) :
-    confluentM (ν + 1 / 2) (2 * ν + 1 + n) (2 * z) =
+    kummerM (ν + 1 / 2) (2 * ν + 1 + n) (2 * z) =
       Gamma ν * exp z * (z / 2) ^ (-ν) *
         ∑ k ∈ Finset.range (n + 1),
           poch (-(n : ℂ)) k * poch (2 * ν) k * (ν + k) /
@@ -351,58 +354,58 @@ theorem confluentM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
 /-- Negative-shift finite Kummer–Bessel expansion away from all poles of
 `Gamma (ν - n)`; excluding only `ν = 0` would not suffice. -/
 @[dlmf 13.6.E11_2]
-theorem confluentM_besselI_sum_neg (ν : ℂ) (n : ℕ) (z : ℂ)
+theorem kummerM_besselI_sum_neg (ν : ℂ) (n : ℕ) (z : ℂ)
     (hν : ∀ k : ℕ, 2 * ν + 1 - n ≠ -k)
     (hΓ : ∀ k : ℕ, ν - n ≠ -k) (hz : z ∈ slitPlane) :
-    confluentM (ν + 1 / 2) (2 * ν + 1 - n) (2 * z) =
+    kummerM (ν + 1 / 2) (2 * ν + 1 - n) (2 * z) =
       Gamma (ν - n) * exp z * (z / 2) ^ (n - ν : ℂ) *
         ∑ k ∈ Finset.range (n + 1),
           (-1 : ℂ) ^ k * poch (-(n : ℂ)) k * poch (2 * ν - 2 * n) k * (ν - n + k) /
             (poch (2 * ν + 1 - n) k * k.factorial) * besselI (ν + k - n) z := by
   sorry
 
-/-- `hermitePhysEval` is the algebra evaluation. -/
-lemma hermitePhysEval_eq_aeval (n : ℕ) (z : ℂ) :
-    hermitePhysEval n z = Polynomial.aeval z (hermitePhys n) := by
-  rw [hermitePhysEval, Polynomial.eval_map, Polynomial.aeval_def, algebraMap_int_eq]
+/-- `hermitePolyHEval` is the algebra evaluation. -/
+lemma hermitePolyHEval_eq_aeval (n : ℕ) (z : ℂ) :
+    hermitePolyHEval n z = Polynomial.aeval z (hermitePolyH n) := by
+  rw [hermitePolyHEval, Polynomial.eval_map, Polynomial.aeval_def, algebraMap_int_eq]
 
-lemma hermitePhysEval_zero (z : ℂ) : hermitePhysEval 0 z = 1 := by
-  simp [hermitePhysEval]
+lemma hermitePolyHEval_zero (z : ℂ) : hermitePolyHEval 0 z = 1 := by
+  simp [hermitePolyHEval]
 
-lemma hermitePhysEval_one (z : ℂ) : hermitePhysEval 1 z = 2 * z := by
-  simp [hermitePhysEval, hermitePhys_one]
+lemma hermitePolyHEval_one (z : ℂ) : hermitePolyHEval 1 z = 2 * z := by
+  simp [hermitePolyHEval, hermitePolyH_one]
 
-lemma hermitePhysEval_two (z : ℂ) : hermitePhysEval 2 z = 4 * z ^ 2 - 2 := by
-  simp [hermitePhysEval]
+lemma hermitePolyHEval_two (z : ℂ) : hermitePolyHEval 2 z = 4 * z ^ 2 - 2 := by
+  simp [hermitePolyHEval]
   ring
 
 /-- The three-term recurrence `H_{k+2} = 2z H_{k+1} - 2(k+1) H_k`. -/
-lemma hermitePhysEval_succ_succ (k : ℕ) (z : ℂ) :
-    hermitePhysEval (k + 2) z =
-      2 * z * hermitePhysEval (k + 1) z - 2 * (k + 1) * hermitePhysEval k z := by
-  show hermitePhysEval (k + 1 + 1) z = _
-  unfold hermitePhysEval
-  rw [hermitePhys_succ (k + 1), hermitePhys_derivative]
+lemma hermitePolyHEval_succ_succ (k : ℕ) (z : ℂ) :
+    hermitePolyHEval (k + 2) z =
+      2 * z * hermitePolyHEval (k + 1) z - 2 * (k + 1) * hermitePolyHEval k z := by
+  show hermitePolyHEval (k + 1 + 1) z = _
+  unfold hermitePolyHEval
+  rw [hermitePolyH_succ (k + 1), hermitePolyH_derivative]
   simp only [Polynomial.map_sub, Polynomial.map_mul, Polynomial.map_ofNat, Polynomial.map_X,
     Polynomial.map_C, Polynomial.eval_sub, Polynomial.eval_mul, Polynomial.eval_ofNat,
     Polynomial.eval_X, Polynomial.eval_C, Int.coe_castRingHom]
   push_cast
   ring
 
-lemma hermitePhysEval_three (z : ℂ) : hermitePhysEval 3 z = 8 * z ^ 3 - 12 * z := by
-  rw [show (3 : ℕ) = 1 + 2 from rfl, hermitePhysEval_succ_succ, hermitePhysEval_two,
-    hermitePhysEval_one]
+lemma hermitePolyHEval_three (z : ℂ) : hermitePolyHEval 3 z = 8 * z ^ 3 - 12 * z := by
+  rw [show (3 : ℕ) = 1 + 2 from rfl, hermitePolyHEval_succ_succ, hermitePolyHEval_two,
+    hermitePolyHEval_one]
   push_cast
   ring
 
 /-- The two-step recurrence `H_{k+4} = (4z² - 4k - 10) H_{k+2} - 4(k+1)(k+2) H_k`. -/
-lemma hermitePhysEval_two_step (k : ℕ) (z : ℂ) :
-    hermitePhysEval (k + 4) z =
-      (4 * z ^ 2 - (4 * k + 10)) * hermitePhysEval (k + 2) z -
-        4 * (k + 1) * (k + 2) * hermitePhysEval k z := by
-  have r1 := hermitePhysEval_succ_succ (k + 2) z
-  have r2 := hermitePhysEval_succ_succ (k + 1) z
-  have r3 := hermitePhysEval_succ_succ k z
+lemma hermitePolyHEval_two_step (k : ℕ) (z : ℂ) :
+    hermitePolyHEval (k + 4) z =
+      (4 * z ^ 2 - (4 * k + 10)) * hermitePolyHEval (k + 2) z -
+        4 * (k + 1) * (k + 2) * hermitePolyHEval k z := by
+  have r1 := hermitePolyHEval_succ_succ (k + 2) z
+  have r2 := hermitePolyHEval_succ_succ (k + 1) z
+  have r3 := hermitePolyHEval_succ_succ k z
   rw [show k + 2 + 2 = k + 4 by ring, show k + 2 + 1 = k + 3 by ring] at r1
   rw [show k + 1 + 2 = k + 3 by ring, show k + 1 + 1 = k + 2 by ring] at r2
   push_cast at r1 r2 r3
@@ -419,21 +422,21 @@ lemma three_half_ne_neg_nat : ∀ k : ℕ, (3 / 2 : ℂ) ≠ -(k : ℂ) := fun k
   linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
 
 /-- 13.6.16 in division-free form: `H_{2n}(z) · n! = (-1)^n (2n)! M(-n, 1/2, z²)`. -/
-theorem hermitePhysEval_even_mul (n : ℕ) (z : ℂ) :
-    hermitePhysEval (2 * n) z * n.factorial =
-      (-1 : ℂ) ^ n * (2 * n).factorial * confluentM (-(n : ℂ)) (1 / 2) (z ^ 2) := by
+theorem hermitePolyHEval_even_mul (n : ℕ) (z : ℂ) :
+    hermitePolyHEval (2 * n) z * n.factorial =
+      (-1 : ℂ) ^ n * (2 * n).factorial * kummerM (-(n : ℂ)) (1 / 2) (z ^ 2) := by
   induction n using Nat.twoStepInduction with
-  | zero => simp [hermitePhysEval_zero, confluentM_of_zero_param]
+  | zero => simp [hermitePolyHEval_zero, kummerM_of_zero_param]
   | one =>
-    rw [confluentM_eq_sum_neg_nat]
-    simp [hermitePhysEval_two, Finset.sum_range_succ, poch_zero, poch_one]
+    rw [kummerM_eq_sum_neg_nat]
+    simp [hermitePolyHEval_two, Finset.sum_range_succ, poch_zero, poch_one]
     ring
   | more n ih0 ih1 =>
-    have K := confluentM_contiguous_a (a := -((n : ℂ) + 1)) (b := 1 / 2) (z := z ^ 2)
+    have K := kummerM_contiguous_a (a := -((n : ℂ) + 1)) (b := 1 / 2) (z := z ^ 2)
       half_ne_neg_nat
     rw [show -((n : ℂ) + 1) - 1 = -((n : ℂ) + 2) by ring,
       show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring] at K
-    have hrec := hermitePhysEval_two_step (2 * n) z
+    have hrec := hermitePolyHEval_two_step (2 * n) z
     rw [show 2 * n + 4 = 2 * (n + 2) by ring, show 2 * n + 2 = 2 * (n + 1) by ring] at hrec
     have hf4 : ((2 * (n + 2)).factorial : ℂ) =
         (2 * n + 4) * (2 * n + 3) * (2 * n + 2) * (2 * n + 1) * (2 * n).factorial := by
@@ -464,21 +467,21 @@ theorem hermitePhysEval_even_mul (n : ℕ) (z : ℂ) :
       (4 * (-1 : ℂ) ^ n * ((2 * n).factorial : ℂ) * (2 * n + 1) * (n + 2) * (2 * n + 2)) * K
 
 /-- 13.6.17 in division-free form: `H_{2n+1}(z) · n! = (-1)^n (2n+1)! (2z) M(-n, 3/2, z²)`. -/
-theorem hermitePhysEval_odd_mul (n : ℕ) (z : ℂ) :
-    hermitePhysEval (2 * n + 1) z * n.factorial =
-      (-1 : ℂ) ^ n * (2 * n + 1).factorial * (2 * z) * confluentM (-(n : ℂ)) (3 / 2) (z ^ 2) := by
+theorem hermitePolyHEval_odd_mul (n : ℕ) (z : ℂ) :
+    hermitePolyHEval (2 * n + 1) z * n.factorial =
+      (-1 : ℂ) ^ n * (2 * n + 1).factorial * (2 * z) * kummerM (-(n : ℂ)) (3 / 2) (z ^ 2) := by
   induction n using Nat.twoStepInduction with
-  | zero => simp [hermitePhysEval_one, confluentM_of_zero_param]
+  | zero => simp [hermitePolyHEval_one, kummerM_of_zero_param]
   | one =>
-    rw [confluentM_eq_sum_neg_nat, show 2 * 1 + 1 = 3 from rfl, hermitePhysEval_three]
+    rw [kummerM_eq_sum_neg_nat, show 2 * 1 + 1 = 3 from rfl, hermitePolyHEval_three]
     simp [Finset.sum_range_succ, poch_zero, poch_one]
     ring
   | more n ih0 ih1 =>
-    have K := confluentM_contiguous_a (a := -((n : ℂ) + 1)) (b := 3 / 2) (z := z ^ 2)
+    have K := kummerM_contiguous_a (a := -((n : ℂ) + 1)) (b := 3 / 2) (z := z ^ 2)
       three_half_ne_neg_nat
     rw [show -((n : ℂ) + 1) - 1 = -((n : ℂ) + 2) by ring,
       show -((n : ℂ) + 1) + 1 = -(n : ℂ) by ring] at K
-    have hrec := hermitePhysEval_two_step (2 * n + 1) z
+    have hrec := hermitePolyHEval_two_step (2 * n + 1) z
     rw [show 2 * n + 1 + 4 = 2 * (n + 2) + 1 by ring,
       show 2 * n + 1 + 2 = 2 * (n + 1) + 1 by ring] at hrec
     have hf4 : ((2 * (n + 2) + 1).factorial : ℂ) =
@@ -512,45 +515,45 @@ theorem hermitePhysEval_odd_mul (n : ℕ) (z : ℂ) :
         (2 * n + 2)) * K
 
 @[dlmf 13.6.E16]
-theorem confluentM_hermite_even (n : ℕ) (z : ℂ) :
-    confluentM (-(n : ℂ)) (1 / 2) (z ^ 2) =
-      (-1 : ℂ) ^ n * n.factorial / (2 * n).factorial * hermitePhysEval (2 * n) z := by
-  have h := hermitePhysEval_even_mul n z
+theorem kummerM_hermite_even (n : ℕ) (z : ℂ) :
+    kummerM (-(n : ℂ)) (1 / 2) (z ^ 2) =
+      (-1 : ℂ) ^ n * n.factorial / (2 * n).factorial * hermitePolyHEval (2 * n) z := by
+  have h := hermitePolyHEval_even_mul n z
   have hsq : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by
     rw [← mul_pow]
     simp
   have hf : ((2 * n).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
-  have this : ((2 * n).factorial : ℂ) * confluentM (-(n : ℂ)) (1 / 2) (z ^ 2) =
-      (-1 : ℂ) ^ n * n.factorial * hermitePhysEval (2 * n) z := by
+  have this : ((2 * n).factorial : ℂ) * kummerM (-(n : ℂ)) (1 / 2) (z ^ 2) =
+      (-1 : ℂ) ^ n * n.factorial * hermitePolyHEval (2 * n) z := by
     linear_combination (-(-1 : ℂ) ^ n) * h -
-      (((2 * n).factorial : ℂ) * confluentM (-(n : ℂ)) (1 / 2) (z ^ 2)) * hsq
+      (((2 * n).factorial : ℂ) * kummerM (-(n : ℂ)) (1 / 2) (z ^ 2)) * hsq
   rw [eq_comm, div_mul_eq_mul_div, div_eq_iff hf]
   linear_combination -this
 
 @[dlmf 13.6.E17]
-theorem confluentM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
-    confluentM (-(n : ℂ)) (3 / 2) (z ^ 2) =
+theorem kummerM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
+    kummerM (-(n : ℂ)) (3 / 2) (z ^ 2) =
       (-1 : ℂ) ^ n * n.factorial / ((2 * n + 1).factorial * 2 * z) *
-        hermitePhysEval (2 * n + 1) z := by
-  have h := hermitePhysEval_odd_mul n z
+        hermitePolyHEval (2 * n + 1) z := by
+  have h := hermitePolyHEval_odd_mul n z
   have hsq : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by
     rw [← mul_pow]
     simp
   have hf : ((2 * n + 1).factorial : ℂ) * 2 * z ≠ 0 :=
     mul_ne_zero (mul_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)) two_ne_zero) hz
-  have this : ((2 * n + 1).factorial : ℂ) * 2 * z * confluentM (-(n : ℂ)) (3 / 2) (z ^ 2) =
-      (-1 : ℂ) ^ n * n.factorial * hermitePhysEval (2 * n + 1) z := by
+  have this : ((2 * n + 1).factorial : ℂ) * 2 * z * kummerM (-(n : ℂ)) (3 / 2) (z ^ 2) =
+      (-1 : ℂ) ^ n * n.factorial * hermitePolyHEval (2 * n + 1) z := by
     linear_combination (-(-1 : ℂ) ^ n) * h -
-      (((2 * n + 1).factorial : ℂ) * 2 * z * confluentM (-(n : ℂ)) (3 / 2) (z ^ 2)) * hsq
+      (((2 * n + 1).factorial : ℂ) * 2 * z * kummerM (-(n : ℂ)) (3 / 2) (z ^ 2)) * hsq
   rw [eq_comm, div_mul_eq_mul_div, div_eq_iff hf]
   linear_combination -this
 
 /-- Tricomi U and Hermite polynomials. The left side depends only on `z ^ 2`, so the identity needs
 `0 < Re z`. -/
 @[dlmf 13.6.E18]
-theorem confluentU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
-    confluentU (1 / 2 - n / 2) (3 / 2) (z ^ 2) =
-      (2 : ℂ) ^ (-(n : ℂ)) * z⁻¹ * hermitePhysEval n z := by
+theorem kummerU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
+    kummerU (1 / 2 - n / 2) (3 / 2) (z ^ 2) =
+      (2 : ℂ) ^ (-(n : ℂ)) * z⁻¹ * hermitePolyHEval n z := by
   have hz0 := slitPlane_ne_zero hz
   have hnp : ∀ (c : ℂ), 0 < c.re → ∀ k : ℕ, c ≠ -k := fun c hc k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
@@ -559,51 +562,51 @@ theorem confluentU_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 <
   have hf : ∀ k : ℕ, (k.factorial : ℂ) ≠ 0 := fun k => Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
   have hsq : ∀ m : ℕ, ((-1 : ℂ) ^ m) * (-1) ^ m = 1 := fun m => by rw [← mul_pow]; simp
   obtain ⟨m, rfl | rfl⟩ := Nat.even_or_odd' n
-  · rw [confluentU_kummer_transform_all _ _ (slitPlane_ne_zero (sq_mem_slitPlane_of_re_pos hre)),
+  · rw [kummerU_kummer_transform_all _ _ (slitPlane_ne_zero (sq_mem_slitPlane_of_re_pos hre)),
       show (1 : ℂ) / 2 - ((2 * m : ℕ) : ℂ) / 2 - 3 / 2 + 1 = -(m : ℂ) by push_cast; ring,
       show (2 : ℂ) - 3 / 2 = 1 / 2 by ring, show (1 : ℂ) - 3 / 2 = -1 / 2 by ring,
       sq_cpow_of_re_pos hre, show (2 : ℂ) * (-1 / 2) = -1 by ring, cpow_neg_one,
-      confluentU_neg_nat m _ _ (hnp _ (by norm_num)), confluentM_hermite_even, poch_half, h4]
+      kummerU_neg_nat m _ _ (hnp _ (by norm_num)), kummerM_hermite_even, poch_half, h4]
     have := hf (2 * m); have := hf m
     have hsq2 : ((-1 : ℂ) ^ m) ^ 2 = 1 := by rw [sq, hsq]
     field_simp
-    linear_combination hermitePhysEval (2 * m) z * hsq2
+    linear_combination hermitePolyHEval (2 * m) z * hsq2
   · rw [show (1 : ℂ) / 2 - ((2 * m + 1 : ℕ) : ℂ) / 2 = -(m : ℂ) by push_cast; ring,
-      confluentU_neg_nat m _ _ (hnp _ (by norm_num)), confluentM_hermite_odd m hz0,
+      kummerU_neg_nat m _ _ (hnp _ (by norm_num)), kummerM_hermite_odd m hz0,
       poch_three_halves_factorial, cpow_neg, cpow_natCast, pow_succ, pow_mul]
     norm_num
     have := hf (2 * m + 1); have := hf m
     have hsq2 : ((-1 : ℂ) ^ m) ^ 2 = 1 := by rw [sq, hsq]
     field_simp
-    linear_combination hermitePhysEval (2 * m + 1) z * hsq2
+    linear_combination hermitePolyHEval (2 * m + 1) z * hsq2
 
 /-- Laguerre specialization of continued U, with a regular ordinary-M denominator. -/
 @[dlmf 13.6.E19]
-theorem confluentU_laguerre (n : ℕ) (α z : ℂ) (hα : ∀ k : ℕ, α + 1 ≠ -k) :
-    confluentU (-(n : ℂ)) (α + 1) z =
-      (-1 : ℂ) ^ n * poch (α + 1) n * confluentM (-(n : ℂ)) (α + 1) z ∧
-      confluentU (-(n : ℂ)) (α + 1) z = (-1 : ℂ) ^ n * n.factorial * laguerre α n z := by
-  have h := confluentU_neg_nat n (α + 1) z hα
+theorem kummerU_laguerrePolyL (n : ℕ) (α z : ℂ) (hα : ∀ k : ℕ, α + 1 ≠ -k) :
+    kummerU (-(n : ℂ)) (α + 1) z =
+      (-1 : ℂ) ^ n * poch (α + 1) n * kummerM (-(n : ℂ)) (α + 1) z ∧
+      kummerU (-(n : ℂ)) (α + 1) z = (-1 : ℂ) ^ n * n.factorial * laguerrePolyL α n z := by
+  have h := kummerU_neg_nat n (α + 1) z hα
   refine ⟨h, ?_⟩
-  rw [h, laguerre]
+  rw [h, laguerrePolyL]
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
   field_simp
 
 /-- Charlier specialization with nonzero scale and a regular ordinary-M denominator. -/
 @[dlmf 13.6.E20]
-theorem confluentU_charlier (n : ℕ) (z a : ℂ) (ha : a ≠ 0)
+theorem kummerU_charlier (n : ℕ) (z a : ℂ) (ha : a ≠ 0)
     (hz : ∀ k : ℕ, z - n + 1 ≠ -k) :
-    confluentU (-(n : ℂ)) (z - n + 1) a =
-      poch (-z) n * confluentM (-(n : ℂ)) (z - n + 1) a ∧
-      confluentU (-(n : ℂ)) (z - n + 1) a = a ^ n * AAR.OrthogonalPolynomials.charlier a n z := by
+    kummerU (-(n : ℂ)) (z - n + 1) a =
+      poch (-z) n * kummerM (-(n : ℂ)) (z - n + 1) a ∧
+      kummerU (-(n : ℂ)) (z - n + 1) a = a ^ n * AAR.OrthogonalPolynomials.charlier a n z := by
   refine ⟨?_, ?_⟩
-  · rw [confluentU_neg_nat n _ a hz]
+  · rw [kummerU_neg_nat n _ a hz]
     have hp := poch_one_sub_sub_nat (-z) n
     rw [show 1 - -z - (n : ℂ) = z - n + 1 by ring] at hp
     have h1 : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
     rw [hp]
-    linear_combination (poch (-z) n * confluentM (-(n : ℂ)) (z - n + 1) a) * h1
-  · rw [confluentU_neg_nat_sum, AAR.OrthogonalPolynomials.charlier,
+    linear_combination (poch (-z) n * kummerM (-(n : ℂ)) (z - n + 1) a) * h1
+  · rw [kummerU_neg_nat_sum, AAR.OrthogonalPolynomials.charlier,
       AAR.OrthogonalPolynomials.terminatingHG, Finset.mul_sum, Finset.mul_sum]
     conv_rhs => rw [← Finset.sum_range_reflect]
     refine Finset.sum_congr rfl fun s hs => ?_
@@ -634,8 +637,8 @@ theorem confluentU_charlier (n : ℕ) (z a : ℂ) (ha : a ≠ 0)
 A nonterminating `₂F₀` is generally divergent and cannot be interpreted as
 Mathlib's ordinary regularized hypergeometric power-series sum. -/
 @[dlmf 13.6.E21]
-theorem confluentU_eq_twoFzero (n : ℕ) (b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    confluentU (-(n : ℂ)) b z =
+theorem kummerU_eq_twoFzero (n : ℕ) (b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU (-(n : ℂ)) b z =
       z ^ n * regularizedHGFun {-(n : ℂ), -(n : ℂ) - b + 1}
         (∅ : Multiset ℂ) (-z⁻¹) := by
   have hz0 := slitPlane_ne_zero hz
@@ -648,7 +651,7 @@ theorem confluentU_eq_twoFzero (n : ℕ) (b : ℂ) {z : ℂ} (hz : z ∈ slitPla
     · intro k hk
       have hk' : n < k := by simpa using hk
       simp [regularizedHGFunCoeff, hk']
-  rw [hfin, confluentU_neg_nat_sum, Finset.mul_sum, Finset.mul_sum]
+  rw [hfin, kummerU_neg_nat_sum, Finset.mul_sum, Finset.mul_sum]
   conv_rhs => rw [← Finset.sum_range_reflect]
   refine Finset.sum_congr rfl fun s hs => ?_
   have hs' : s ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hs)
@@ -684,7 +687,7 @@ theorem whittakerM_sinh {z : ℂ} (hz : z ∈ slitPlane) :
   have hμ : (1 / 2 : ℂ) - 0 + 1 / 2 = 1 := by ring
   have hb : (1 : ℂ) + 2 * (1 / 2) = 2 := by ring
   have hr : (1 / 2 : ℂ) + 1 / 2 = 1 := by ring
-  rw [hμ, hb, hr, cpow_one, confluentM_one_two z hz0]
+  rw [hμ, hb, hr, cpow_one, kummerM_one_two z hz0]
   have : exp (-(2 * z) / 2) = exp (-z) := by ring_nf
   rw [this]
   field_simp [hz0]
@@ -698,14 +701,14 @@ theorem whittakerM_exp (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   have hz0 := slitPlane_ne_zero hz
   refine ⟨?_, ?_, ?_⟩
   · unfold whittakerM
-    rw [show κ - 1 / 2 - κ + 1 / 2 = 0 by ring, confluentM_of_zero_param,
+    rw [show κ - 1 / 2 - κ + 1 / 2 = 0 by ring, kummerM_of_zero_param,
       show κ - 1 / 2 + 1 / 2 = κ by ring, mul_one]
   · unfold whittakerW
-    rw [show 1 / 2 + (κ - 1 / 2) - κ = 0 by ring, confluentU_zero,
+    rw [show 1 / 2 + (κ - 1 / 2) - κ = 0 by ring, kummerU_zero,
       show 1 / 2 + (κ - 1 / 2) = κ by ring, mul_one]
   · unfold whittakerW
     rw [show 1 / 2 + (-κ + 1 / 2) - κ = 1 - 2 * κ by ring,
-      show 1 + 2 * (-κ + 1 / 2) = (1 - 2 * κ) + 1 by ring, confluentU_shift_one _ hz, mul_assoc,
+      show 1 + 2 * (-κ + 1 / 2) = (1 - 2 * κ) + 1 by ring, kummerU_shift_one _ hz, mul_assoc,
       ← cpow_add _ _ hz0]
     congr 2
     ring
@@ -717,22 +720,22 @@ theorem whittakerM_exp_neg (κ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     whittakerM κ (-κ - 1 / 2) z = exp (z / 2) * z ^ (-κ) := by
   unfold whittakerM
   rw [show -κ - 1 / 2 - κ + 1 / 2 = -2 * κ by ring, show 1 + 2 * (-κ - 1 / 2) = -2 * κ by ring,
-    confluentM_self hκ, show -κ - 1 / 2 + 1 / 2 = -κ by ring]
+    kummerM_self hκ, show -κ - 1 / 2 + 1 / 2 = -κ by ring]
   have : exp (-z / 2) * exp z = exp (z / 2) := by rw [← exp_add]; ring_nf
   rw [← this]
   ring
 
 /-- Whittaker M and the lower incomplete Gamma function. At `μ = 0` the right side is the
-removable limit `2μ γ(2μ,z) → 1`, which the totalized `lowerIncompleteGamma` does not take. -/
+removable limit `2μ γ(2μ,z) → 1`, which the totalized `lowerIncGamma` does not take. -/
 @[dlmf 13.18.E4]
-theorem whittakerM_lowerIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem whittakerM_lowerIncGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
     (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) (hμ0 : μ ≠ 0) :
     whittakerM (μ - 1 / 2) μ z =
-      2 * μ * exp (z / 2) * z ^ (1 / 2 - μ) * lowerIncompleteGamma (2 * μ) z := by
+      2 * μ * exp (z / 2) * z ^ (1 / 2 - μ) * lowerIncGamma (2 * μ) z := by
   have hz0 := slitPlane_ne_zero hz
-  unfold whittakerM lowerIncompleteGamma
+  unfold whittakerM lowerIncGamma
   have hden : ∀ k : ℕ, 2 * μ + 1 ≠ -k := fun k h => hμ k (by rw [← h]; ring)
-  rw [confluentM_kummer_transform hden, show 2 * μ + 1 - 2 * μ = 1 by ring, neg_neg,
+  rw [kummerM_kummer_transform hden, show 2 * μ + 1 - 2 * μ = 1 by ring, neg_neg,
     show μ - (μ - 1 / 2) + 1 / 2 = 1 by ring, show 2 * μ + 1 = 1 + 2 * μ by ring]
   have hp : z ^ (1 / 2 - μ) * z ^ (2 * μ) = z ^ (μ + 1 / 2) := by
     rw [← cpow_add _ _ hz0]; ring_nf
@@ -742,12 +745,12 @@ theorem whittakerM_lowerIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPla
   field_simp
 
 @[dlmf 13.18.E5]
-theorem whittakerW_upperIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem whittakerW_upperIncGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     whittakerW (μ - 1 / 2) μ z =
-      exp (z / 2) * z ^ (1 / 2 - μ) * GammaInc (2 * μ) z := by
+      exp (z / 2) * z ^ (1 / 2 - μ) * upperIncGamma (2 * μ) z := by
   have hz0 := slitPlane_ne_zero hz
-  unfold whittakerW GammaInc
-  rw [confluentU_kummer_transform_all (1 - 2 * μ) _ (slitPlane_ne_zero hz), show 1 / 2 + μ - (μ - 1 / 2) = 1 by ring,
+  unfold whittakerW upperIncGamma
+  rw [kummerU_kummer_transform_all (1 - 2 * μ) _ (slitPlane_ne_zero hz), show 1 / 2 + μ - (μ - 1 / 2) = 1 by ring,
     show 1 - 2 * μ - (1 - 2 * μ) + 1 = 1 by ring, show (2 : ℂ) - (1 - 2 * μ) = 1 + 2 * μ by ring,
     show (1 : ℂ) - (1 - 2 * μ) = 2 * μ by ring]
   have hp : z ^ (1 / 2 - μ) * z ^ (2 * μ) = z ^ (1 / 2 + μ) := by
@@ -759,16 +762,16 @@ theorem whittakerW_upperIncompleteGamma (μ : ℂ) {z : ℂ} (hz : z ∈ slitPla
 /-- Whittaker function and error functions. The left side depends only on `z ^ 2`, so the identity
 needs `0 < Re z`. -/
 @[dlmf 13.18.E6]
-theorem whittakerM_errorFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
+theorem whittakerM_erf {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (-1 / 4) (1 / 4) (z ^ 2) =
-      (1 / 2) * exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * errorFn z := by
+      (1 / 2) * exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * erf z := by
   have hz0 := slitPlane_ne_zero hz
   have h32 : ∀ k : ℕ, (3 / 2 : ℂ) ≠ -k := fun k h => by
     have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
   unfold whittakerM
   rw [show (1 / 4 : ℂ) - (-1 / 4) + 1 / 2 = 1 by ring,
-    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, confluentM_kummer_transform h32,
-    show (3 / 2 : ℂ) - 1 = 1 / 2 by ring, confluentM_errorFn hz0,
+    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, kummerM_kummer_transform h32,
+    show (3 / 2 : ℂ) - 1 = 1 / 2 by ring, kummerM_erf hz0,
     sq_cpow_of_re_pos hre, show (2 : ℂ) * (1 / 4 + 1 / 2) = 1 + 1 / 2 by ring,
     cpow_add _ _ hz0, cpow_one]
   have he : exp (-z ^ 2 / 2) * exp (z ^ 2) = exp (z ^ 2 / 2) := by rw [← exp_add]; ring_nf
@@ -778,15 +781,15 @@ theorem whittakerM_errorFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
 /-- Whittaker function and error functions. The left side depends only on `z ^ 2`, so the identity
 needs `0 < Re z`. -/
 @[dlmf 13.18.E7]
-theorem whittakerW_erfcFn {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
+theorem whittakerW_erfc {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerW (-1 / 4) (1 / 4) (z ^ 2) =
-      exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * erfcFn z := by
+      exp (z ^ 2 / 2) * (Real.sqrt π : ℂ) * z ^ (1 / 2 : ℂ) * erfc z := by
   have hz0 := slitPlane_ne_zero hz
   have hz2 := slitPlane_ne_zero (sq_mem_slitPlane_of_re_pos hre)
   unfold whittakerW
   rw [show (1 / 2 : ℂ) + 1 / 4 - -1 / 4 = 1 by ring, show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring,
-    confluentU_kummer_transform_all 1 (3 / 2) hz2, show (1 : ℂ) - 3 / 2 + 1 = 1 / 2 by ring,
-    show (2 : ℂ) - 3 / 2 = 1 / 2 by ring, confluentU_erfcFn hz hre, sq_cpow_of_re_pos hre,
+    kummerU_kummer_transform_all 1 (3 / 2) hz2, show (1 : ℂ) - 3 / 2 + 1 = 1 / 2 by ring,
+    show (2 : ℂ) - 3 / 2 = 1 / 2 by ring, kummerU_erfc hz hre, sq_cpow_of_re_pos hre,
     sq_cpow_of_re_pos hre, show (2 : ℂ) * (1 / 2 + 1 / 4) = 1 + 1 / 2 by ring,
     show (2 : ℂ) * (1 - 3 / 2) = -1 by ring, cpow_neg_one, cpow_add _ _ hz0, cpow_one]
   have he : exp (-z ^ 2 / 2) * exp (z ^ 2) = exp (z ^ 2 / 2) := by
@@ -802,7 +805,7 @@ theorem whittakerM_besselI (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane)
   have hz0 := slitPlane_ne_zero hz
   unfold whittakerM
   rw [show ν - 0 + 1 / 2 = ν + 1 / 2 by ring, show 1 + 2 * ν = 2 * ν + 1 by ring,
-    confluentM_besselI ν z hz hν]
+    kummerM_besselI ν z hz hν]
   have h2 : (2 * z) ^ (ν + 1 / 2) = (2 : ℂ) ^ (ν + 1 / 2) * z ^ (ν + 1 / 2) := by
     have := ofReal_mul_cpow_of_pos (r := 2) two_pos hz0 (ν + 1 / 2)
     simpa using this
@@ -832,7 +835,7 @@ theorem whittakerW_besselK (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
       ((2 * z) / π) ^ (1 / 2 : ℂ) * besselK ν z := by
   have hz0 := slitPlane_ne_zero hz
   have h2z : 2 * z ≠ 0 := mul_ne_zero two_ne_zero hz0
-  have hU := confluentU_besselK ν z hz
+  have hU := kummerU_besselK ν z hz
   rw [whittakerW, show 1 / 2 + ν - 0 = ν + 1 / 2 by ring, show 1 + 2 * ν = 2 * ν + 1 by ring, hU]
   have hsplit :
       ((2 * z) / π) ^ (1 / 2 : ℂ) = ((1 / π : ℝ) : ℂ) ^ (1 / 2 : ℂ) * (2 * z) ^ (1 / 2 : ℂ) := by
@@ -855,10 +858,10 @@ identity needs `0 < Re z`. -/
 theorem whittakerM_hermite_even (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (1 / 4 + n) (-1 / 4) (z ^ 2) =
       (-1 : ℂ) ^ n * n.factorial / (2 * n).factorial * exp (-z ^ 2 / 2) *
-        z ^ (1 / 2 : ℂ) * hermitePhysEval (2 * n) z := by
+        z ^ (1 / 2 : ℂ) * hermitePolyHEval (2 * n) z := by
   unfold whittakerM
   rw [show (-1 / 4 : ℂ) - (1 / 4 + n) + 1 / 2 = -(n : ℂ) by ring,
-    show (1 : ℂ) + 2 * (-1 / 4) = 1 / 2 by ring, confluentM_hermite_even,
+    show (1 : ℂ) + 2 * (-1 / 4) = 1 / 2 by ring, kummerM_hermite_even,
     sq_cpow_of_re_pos hre, show (2 : ℂ) * (-1 / 4 + 1 / 2) = 1 / 2 by ring]
   ring
 
@@ -868,11 +871,11 @@ identity needs `0 < Re z`. -/
 theorem whittakerM_hermite_odd (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerM (3 / 4 + n) (1 / 4) (z ^ 2) =
       (-1 : ℂ) ^ n * n.factorial / (2 * n + 1).factorial *
-        exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) / 2 * hermitePhysEval (2 * n + 1) z := by
+        exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) / 2 * hermitePolyHEval (2 * n + 1) z := by
   have hz0 := slitPlane_ne_zero hz
   unfold whittakerM
   rw [show (1 / 4 : ℂ) - (3 / 4 + n) + 1 / 2 = -(n : ℂ) by ring,
-    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, confluentM_hermite_odd n hz0,
+    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, kummerM_hermite_odd n hz0,
     sq_cpow_of_re_pos hre, show (2 : ℂ) * (1 / 4 + 1 / 2) = 1 + 1 / 2 by ring,
     cpow_add _ _ hz0, cpow_one]
   have hf : ((2 * n + 1).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
@@ -883,23 +886,23 @@ identity needs `0 < Re z`. -/
 @[dlmf 13.18.E16]
 theorem whittakerW_hermite (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) (hre : 0 < z.re) :
     whittakerW (1 / 4 + n / 2) (1 / 4) (z ^ 2) =
-      (2 : ℂ) ^ (-(n : ℂ)) * exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) * hermitePhysEval n z := by
+      (2 : ℂ) ^ (-(n : ℂ)) * exp (-z ^ 2 / 2) * z ^ (1 / 2 : ℂ) * hermitePolyHEval n z := by
   have hz0 := slitPlane_ne_zero hz
   unfold whittakerW
   rw [show (1 / 2 : ℂ) + 1 / 4 - (1 / 4 + n / 2) = 1 / 2 - n / 2 by ring,
-    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, confluentU_hermite n hz hre, sq_cpow_of_re_pos hre,
+    show (1 : ℂ) + 2 * (1 / 4) = 3 / 2 by ring, kummerU_hermite n hz hre, sq_cpow_of_re_pos hre,
     show (2 : ℂ) * (1 / 2 + 1 / 4) = 1 + 1 / 2 by ring, cpow_add _ _ hz0, cpow_one]
   field_simp
 
 /-- Laguerre specialization of W with a regular Kummer-M denominator. -/
 @[dlmf 13.18.E17]
-theorem whittakerW_laguerre (α : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
+theorem whittakerW_laguerrePolyL (α : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
     (hα : ∀ k : ℕ, α + 1 ≠ -k) :
     whittakerW (α / 2 + 1 / 2 + n) (α / 2) z =
       (-1 : ℂ) ^ n * poch (α + 1) n * whittakerM (α / 2 + 1 / 2 + n) (α / 2) z ∧
       whittakerW (α / 2 + 1 / 2 + n) (α / 2) z =
-        (-1 : ℂ) ^ n * n.factorial * exp (-z / 2) * z ^ (α / 2 + 1 / 2) * laguerre α n z := by
-  obtain ⟨h1, h2⟩ := confluentU_laguerre n α z hα
+        (-1 : ℂ) ^ n * n.factorial * exp (-z / 2) * z ^ (α / 2 + 1 / 2) * laguerrePolyL α n z := by
+  obtain ⟨h1, h2⟩ := kummerU_laguerrePolyL n α z hα
   unfold whittakerW whittakerM
   rw [show 1 / 2 + α / 2 - (α / 2 + 1 / 2 + n) = -(n : ℂ) by ring,
     show α / 2 - (α / 2 + 1 / 2 + n) + 1 / 2 = -(n : ℂ) by ring,

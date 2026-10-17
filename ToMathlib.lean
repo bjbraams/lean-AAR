@@ -14,6 +14,7 @@ public import ToMathlib.Analysis.BooleSummation
 public import ToMathlib.Analysis.Asymptotics.AsymptoticExpansion
 public import ToMathlib.Analysis.Asymptotics.Watson
 public import ToMathlib.Analysis.Integral.Laplace
+public import ToMathlib.Analysis.Complex.Carlson
 
 /-!
 # Supporting results for Mathlib

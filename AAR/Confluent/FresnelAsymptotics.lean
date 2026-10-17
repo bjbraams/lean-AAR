@@ -29,6 +29,7 @@ imaginary parts are DLMF 7.12.2 and 7.12.3.
 
 open Complex Filter MeasureTheory Asymptotics Set
 open scoped Real Topology Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -38,13 +39,15 @@ namespace AAR.Confluent
 (DLMF 7.2.10). -/
 @[dlmf 7.2.E10]
 def fresnelAuxF (x : ℝ) : ℝ :=
-  (1 / 2 - fresnelS x) * Real.cos (π * x ^ 2 / 2) - (1 / 2 - fresnelC x) * Real.sin (π * x ^ 2 / 2)
+  (1 / 2 - Real.fresnelSinInt x) * Real.cos (π * x ^ 2 / 2) - (1 / 2 - Real.fresnelCosInt x)
+      * Real.sin (π * x ^ 2 / 2)
 
 /-- The auxiliary Fresnel function `g(x) = (1/2 - C(x)) cos(πx²/2) + (1/2 - S(x)) sin(πx²/2)`
 (DLMF 7.2.11). -/
 @[dlmf 7.2.E11]
 def fresnelAuxG (x : ℝ) : ℝ :=
-  (1 / 2 - fresnelC x) * Real.cos (π * x ^ 2 / 2) + (1 / 2 - fresnelS x) * Real.sin (π * x ^ 2 / 2)
+  (1 / 2 - Real.fresnelCosInt x) * Real.cos (π * x ^ 2 / 2) + (1 / 2 - Real.fresnelSinInt x)
+      * Real.sin (π * x ^ 2 / 2)
 
 /-- The Fresnel variable `ζ = √π (1 - i) x / 2` of DLMF 7.5.7. -/
 def fresnelZeta (x : ℝ) : ℂ := (Real.sqrt π : ℂ) * (1 - I) / 2 * x
@@ -62,10 +65,10 @@ lemma fresnelZeta_sq (x : ℝ) : fresnelZeta x ^ 2 = -(I * (π * x ^ 2 / 2)) := 
 @[dlmf 7.5.E10]
 theorem fresnelAuxG_add_I_mul_fresnelAuxF (x : ℝ) :
     (fresnelAuxG x : ℂ) + I * fresnelAuxF x =
-      (1 + I) / 2 * exp (fresnelZeta x ^ 2) * erfcFn (fresnelZeta x) := by
-  have hCS := fresnelC_add_I_mul_fresnelS x
+      (1 + I) / 2 * exp (fresnelZeta x ^ 2) * erfc (fresnelZeta x) := by
+  have hCS := Real.fresnelCosInt_add_I_mul_fresnelSinInt x
   rw [show (Real.sqrt π : ℂ) * (1 - I) / 2 * x = fresnelZeta x from rfl] at hCS
-  rw [erfcFn, fresnelZeta_sq, show -(I * ((π : ℂ) * (x : ℂ) ^ 2 / 2)) =
+  rw [erfc, fresnelZeta_sq, show -(I * ((π : ℂ) * (x : ℂ) ^ 2 / 2)) =
     ((-(π * x ^ 2 / 2) : ℝ) : ℂ) * I by push_cast; ring, Complex.exp_mul_I,
     ← Complex.ofReal_cos, ← Complex.ofReal_sin, Real.cos_neg, Real.sin_neg, fresnelAuxG,
     fresnelAuxF]
@@ -73,7 +76,7 @@ theorem fresnelAuxG_add_I_mul_fresnelAuxF (x : ℝ) :
     Complex.ofReal_one, Complex.ofReal_ofNat, Complex.ofReal_neg]
   generalize (Real.cos (π * x ^ 2 / 2) : ℂ) = c at *
   generalize (Real.sin (π * x ^ 2 / 2) : ℂ) = sn at *
-  linear_combination (-(c - I * sn)) * hCS + (sn / 2 - sn * fresnelS x) * Complex.I_sq
+  linear_combination (-(c - I * sn)) * hCS + (sn / 2 - sn * Real.fresnelSinInt x) * Complex.I_sq
 
 lemma re_fresnelZeta (x : ℝ) : (fresnelZeta x).re = Real.sqrt π / 2 * x := by
   simp [fresnelZeta]
@@ -125,7 +128,7 @@ theorem hasAsymptoticExpansion_fresnelAuxG_add_I_mul_fresnelAuxF :
     intro h; have := congrArg im h; simp at this
   have hc2 : c ^ 2 = -(I * (π / 2)) := by
     rw [hc, div_pow, mul_pow, hsπ2]; ring_nf; rw [Complex.I_sq]; ring
-  have hU := (hasAsymptoticExpansion_confluentU_rotSector (1 / 2) (1 / 2) (δ := 1 / 2)
+  have hU := (hasAsymptoticExpansion_kummerU_rotSector (1 / 2) (1 / 2) (δ := 1 / 2)
     (α := π / 4) (by norm_num)
     (by rw [abs_of_pos (by positivity)]; linarith [Real.pi_pos])).comp_tendsto
     tendsto_fresnelZeta_sq
@@ -135,7 +138,7 @@ theorem hasAsymptoticExpansion_fresnelAuxG_add_I_mul_fresnelAuxF :
     · filter_upwards [eventually_gt_atTop 0] with x hx
       have hre : 0 < (fresnelZeta x).re := by rw [re_fresnelZeta]; positivity
       simp only [Function.comp_apply, Pi.smul_apply, smul_eq_mul]
-      rw [confluentU_erfcFn (Complex.mem_slitPlane_iff.mpr (Or.inl hre)) hre,
+      rw [kummerU_erfc (Complex.mem_slitPlane_iff.mpr (Or.inl hre)) hre,
         fresnelAuxG_add_I_mul_fresnelAuxF]
       field_simp
     · funext m

@@ -15,8 +15,8 @@ public import AAR.Hypergeometric.Elementary
 * The substitution `t = sin θ` (by the one-dimensional change of variables for set integrals,
   which handles the integrable singularity at `t = 1`) gives
   `∫₀ˣ dt/√((1-t²)(1-mt²)) = F(arcsin x|m)` for `0 ≤ x ≤ 1`, hence `K = ∫₀¹`. It also gives
-  Jacobi's `arcsn = F ∘ arcsin` with `sn ∘ arcsn = id` and `arcsn' = ((1-x²)(1-mx²))^{-1/2}`
-  (Duverney Thm 5.9).
+  Jacobi's `arcsn = F ∘ arcsin` with `sn ∘ arcsn = id` and
+  `arcsn' = ((1-x²)(1-mx²))^{-1/2}` (Duverney Thm 5.9).
 * `K(1/2) = Γ(1/4)²/(4√π)`, by Gauss's second summation theorem and the reflection formula.
   With `K = π/(2M)` this gives Gauss's constant `Γ(1/4)² M(1, 1/√2) = 2π^{3/2}`, and with
   Legendre's relation the value of `E(1/2)` (Duverney (5.38), Ex. 5.9).
@@ -51,9 +51,10 @@ lemma sin_image_Ioo_arcsin {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
 
 /-- **The algebraic form of `F`** (Duverney Thm 5.9, DLMF 19.2.4 with `t = sin θ`): for
 `0 ≤ x ≤ 1`, `∫₀ˣ dt/√((1-t²)(1-mt²)) = F(arcsin x|m)`. -/
-theorem integral_inv_sqrt_eq_ellipticF {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
+theorem Real.integral_inv_sqrt_eq_incEllIntFm {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0 ≤ x)
+    (hx1 : x ≤ 1) :
     ∫ t in (0 : ℝ)..x, 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)) =
-      ellipticF (arcsin x) m := by
+      Real.incEllIntFm (arcsin x) m := by
   have hb0 : 0 ≤ arcsin x := arcsin_nonneg.mpr hx0
   have hb : arcsin x ≤ π / 2 := arcsin_le_pi_div_two x
   have hcv := integral_image_eq_integral_abs_deriv_smul (f := sin) (f' := cos)
@@ -63,7 +64,7 @@ theorem integral_inv_sqrt_eq_ellipticF {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0
       (⟨by linarith [hθ.1, pi_pos], by linarith [hθ.2]⟩ : θ ∈ Icc (-(π / 2)) (π / 2)))
     (fun t => 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)))
   rw [sin_image_Ioo_arcsin hx0 hx1] at hcv
-  rw [intervalIntegral.integral_of_le hx0, integral_Ioc_eq_integral_Ioo, hcv, ellipticF,
+  rw [intervalIntegral.integral_of_le hx0, integral_Ioc_eq_integral_Ioo, hcv, Real.incEllIntFm,
     intervalIntegral.integral_of_le hb0, integral_Ioc_eq_integral_Ioo]
   refine setIntegral_congr_fun measurableSet_Ioo fun θ hθ => ?_
   have hc : 0 < cos θ := cos_pos_of_mem_Ioo ⟨by linarith [hθ.1, pi_pos], by linarith [hθ.2]⟩
@@ -75,35 +76,37 @@ theorem integral_inv_sqrt_eq_ellipticF {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0
 
 /-- `K(m) = ∫₀¹ dt/√((1-t²)(1-mt²))` (DLMF 19.2.8, Duverney (5.8)). -/
 @[dlmf 19.2.E8]
-theorem ellipticK_eq_integral_algebraic {m : ℝ} (hm : m < 1) :
-    ellipticK m = ∫ t in (0 : ℝ)..1, 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)) := by
-  rw [integral_inv_sqrt_eq_ellipticF hm zero_le_one le_rfl, arcsin_one, ellipticF_pi_div_two]
+theorem Real.compEllIntKm_eq_integral_algebraic {m : ℝ} (hm : m < 1) :
+    Real.compEllIntKm m = ∫ t in (0 : ℝ)..1, 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)) := by
+  rw [Real.integral_inv_sqrt_eq_incEllIntFm hm zero_le_one le_rfl, arcsin_one,
+      Real.incEllIntFm_pi_div_two]
 
 /-- Jacobi's inverse function `arcsn(x|m) = F(arcsin x|m)` (Duverney (5.56)). -/
-def jacobiArcsn (x m : ℝ) : ℝ := ellipticF (arcsin x) m
+def Real.jacobiArcsnm (x m : ℝ) : ℝ := Real.incEllIntFm (arcsin x) m
 
 /-- `sn(arcsn x) = x` for `|x| ≤ 1`. -/
-theorem jacobiSn_jacobiArcsn {m : ℝ} (hm : m < 1) {x : ℝ} (hx : -1 ≤ x) (hx1 : x ≤ 1) :
-    jacobiSn (jacobiArcsn x m) m = x := by
-  rw [jacobiSn, jacobiArcsn, jacobiAm_ellipticF hm, sin_arcsin hx hx1]
+theorem Real.jacobiSnm_jacobiArcsnm {m : ℝ} (hm : m < 1) {x : ℝ} (hx : -1 ≤ x) (hx1 : x ≤ 1) :
+    Real.jacobiSnm (Real.jacobiArcsnm x m) m = x := by
+  rw [Real.jacobiSnm, Real.jacobiArcsnm, Real.jacobiAmm_incEllIntFm hm, sin_arcsin hx hx1]
 
 /-- `arcsn(sn u) = u` for `|u| ≤ K`. -/
-theorem jacobiArcsn_jacobiSn {m : ℝ} (hm : m < 1) {u : ℝ} (hu : |u| ≤ ellipticK m) :
-    jacobiArcsn (jacobiSn u m) m = u := by
-  have hmono : StrictMono fun u => jacobiAm u m := by
-    simp only [jacobiAm, hm, ↓reduceDIte]; exact (ellipticFOrderIso hm).symm.strictMono
-  have h1 : jacobiAm u m ≤ π / 2 := by
-    rw [← jacobiAm_ellipticK hm]; exact hmono.monotone (le_of_abs_le hu)
-  have h2 : -(π / 2) ≤ jacobiAm u m := by
-    rw [← jacobiAm_ellipticK hm, ← jacobiAm_neg hm]
+theorem Real.jacobiArcsnm_jacobiSnm {m : ℝ} (hm : m < 1) {u : ℝ} (hu : |u| ≤ Real.compEllIntKm m) :
+    Real.jacobiArcsnm (Real.jacobiSnm u m) m = u := by
+  have hmono : StrictMono fun u => Real.jacobiAmm u m := by
+    simp only [Real.jacobiAmm, hm, ↓reduceDIte]; exact (Real.incEllIntFmOrderIso hm).symm.strictMono
+  have h1 : Real.jacobiAmm u m ≤ π / 2 := by
+    rw [← Real.jacobiAmm_compEllIntKm hm]; exact hmono.monotone (le_of_abs_le hu)
+  have h2 : -(π / 2) ≤ Real.jacobiAmm u m := by
+    rw [← Real.jacobiAmm_compEllIntKm hm, ← Real.jacobiAmm_neg hm]
     exact hmono.monotone (neg_le_of_abs_le hu)
-  rw [jacobiArcsn, jacobiSn, arcsin_sin h2 h1, ellipticF_jacobiAm hm]
+  rw [Real.jacobiArcsnm, Real.jacobiSnm, arcsin_sin h2 h1, Real.incEllIntFm_jacobiAmm hm]
 
 /-- `d arcsn/dx = ((1-x²)(1-mx²))^{-1/2}` for `|x| < 1` (Duverney (5.57)). -/
-theorem hasDerivAt_jacobiArcsn {m : ℝ} (hm : m < 1) {x : ℝ} (hx : -1 < x) (hx1 : x < 1) :
-    HasDerivAt (fun x => jacobiArcsn x m) (1 / Real.sqrt ((1 - x ^ 2) * (1 - m * x ^ 2))) x := by
+theorem Real.hasDerivAt_jacobiArcsnm {m : ℝ} (hm : m < 1) {x : ℝ} (hx : -1 < x) (hx1 : x < 1) :
+    HasDerivAt (fun x => Real.jacobiArcsnm x m)
+      (1 / Real.sqrt ((1 - x ^ 2) * (1 - m * x ^ 2))) x := by
   have ha := hasDerivAt_arcsin hx.ne' hx1.ne
-  have h := (hasDerivAt_ellipticF hm (arcsin x)).comp x ha
+  have h := (Real.hasDerivAt_incEllIntFm hm (arcsin x)).comp x ha
   refine h.congr_deriv ?_
   have hp : 0 < 1 - m * x ^ 2 := by
     have := one_sub_mul_sin_sq_pos hm (arcsin x); rwa [sin_arcsin hx.le hx1.le] at this
@@ -113,9 +116,9 @@ theorem hasDerivAt_jacobiArcsn {m : ℝ} (hm : m < 1) {x : ℝ} (hx : -1 < x) (h
 
 /-- `K(1/2) = Γ(1/4)²/(4√π)` (Duverney (5.38)), from Gauss's second
 summation theorem and the reflection formula. -/
-theorem ellipticK_one_half :
-    ellipticK (1 / 2) = Real.Gamma (1 / 4) ^ 2 / (4 * Real.sqrt π) := by
-  have hK := ellipticK_eq_ordinaryHypergeometric (m := 1 / 2) (by norm_num [abs_of_pos])
+theorem Real.compEllIntKm_one_half :
+    Real.compEllIntKm (1 / 2) = Real.Gamma (1 / 4) ^ 2 / (4 * Real.sqrt π) := by
+  have hK := Real.compEllIntKm_eq_ordinaryHypergeometric (m := 1 / 2) (by norm_num [abs_of_pos])
   have hc : ∀ k : ℕ, ((1 / 2 : ℂ) + 1 / 2 + 1) / 2 ≠ -(k : ℂ) := by
     intro k h
     rw [show ((1 / 2 : ℂ) + 1 / 2 + 1) / 2 = 1 by norm_num] at h
@@ -125,7 +128,7 @@ theorem ellipticK_one_half :
     show ((1 / 2 : ℂ) + 1) / 2 = ((3 / 4 : ℝ) : ℂ) by push_cast; norm_num,
     Complex.Gamma_ofReal] at hg
   rw [show ((1 / 2 : ℝ) : ℂ) = 1 / 2 by push_cast; ring, hg] at hK
-  have hK' : ellipticK (1 / 2) =
+  have hK' : Real.compEllIntKm (1 / 2) =
       π / 2 * (Real.sqrt π * 1 / (Real.Gamma (3 / 4) * Real.Gamma (3 / 4))) := by
     exact_mod_cast hK
   have hr := Real.Gamma_mul_Gamma_one_sub (1 / 4)
@@ -149,8 +152,8 @@ theorem ellipticK_one_half :
 theorem Gamma_one_fourth_sq_mul_agm :
     Real.Gamma (1 / 4) ^ 2 * (NNReal.agm 1 (NNReal.sqrt (1 - 1 / 2 : ℝ).toNNReal) : ℝ) =
       2 * π * Real.sqrt π := by
-  have h := ellipticK_eq_pi_div_agm (m := 1 / 2) (by norm_num)
-  rw [ellipticK_one_half] at h
+  have h := Real.compEllIntKm_eq_pi_div_agm (m := 1 / 2) (by norm_num)
+  rw [Real.compEllIntKm_one_half] at h
   have hM : 0 < (NNReal.agm 1 (NNReal.sqrt (1 - 1 / 2 : ℝ).toNNReal) : ℝ) := by
     exact_mod_cast NNReal.agm_pos one_pos (NNReal.sqrt_pos.mpr (by norm_num))
   have hs0 : 0 < Real.sqrt π := Real.sqrt_pos.mpr pi_pos
@@ -159,11 +162,11 @@ theorem Gamma_one_fourth_sq_mul_agm :
 
 /-- `E(1/2) = π^{3/2}/Γ(1/4)² + Γ(1/4)²/(8√π)` (Duverney Ex. 5.9), from Legendre's relation at
 `m = 1/2`. -/
-theorem ellipticE_one_half :
-    ellipticE (1 / 2) = π * Real.sqrt π / Real.Gamma (1 / 4) ^ 2 +
+theorem Real.compEllIntEm_one_half :
+    Real.compEllIntEm (1 / 2) = π * Real.sqrt π / Real.Gamma (1 / 4) ^ 2 +
       Real.Gamma (1 / 4) ^ 2 / (8 * Real.sqrt π) := by
   have hL := legendre_relation (m := 1 / 2) (by norm_num) (by norm_num)
-  rw [show (1 : ℝ) - 1 / 2 = 1 / 2 by norm_num, ellipticK_one_half] at hL
+  rw [show (1 : ℝ) - 1 / 2 = 1 / 2 by norm_num, Real.compEllIntKm_one_half] at hL
   have h14 : 0 < Real.Gamma (1 / 4) := Real.Gamma_pos_of_pos (by norm_num)
   have hs0 : 0 < Real.sqrt π := Real.sqrt_pos.mpr pi_pos
   have hspi : Real.sqrt π ^ 2 = π := Real.sq_sqrt pi_pos.le
@@ -171,8 +174,9 @@ theorem ellipticE_one_half :
   nlinarith [hL, hspi]
 
 /-- `K(-1) = K(1/2)/√2`, from `K = π/(2M)` and the homogeneity of the AGM. -/
-theorem ellipticK_neg_one : ellipticK (-1) = ellipticK (1 / 2) / Real.sqrt 2 := by
-  rw [ellipticK_eq_pi_div_agm (by norm_num), ellipticK_eq_pi_div_agm (by norm_num)]
+theorem Real.compEllIntKm_neg_one :
+    Real.compEllIntKm (-1) = Real.compEllIntKm (1 / 2) / Real.sqrt 2 := by
+  rw [Real.compEllIntKm_eq_pi_div_agm (by norm_num), Real.compEllIntKm_eq_pi_div_agm (by norm_num)]
   have h2 : (NNReal.sqrt (1 - (-1) : ℝ).toNNReal) = NNReal.sqrt 2 := by norm_num
   have h12 : (NNReal.sqrt (1 - 1 / 2 : ℝ).toNNReal) = (NNReal.sqrt 2)⁻¹ := by
     rw [show (1 - 1 / 2 : ℝ) = 2⁻¹ by norm_num, Real.toNNReal_inv]
@@ -194,12 +198,13 @@ The lemniscate `r² = a² cos 2θ` has length `4a` times this integral. -/
 theorem integral_inv_sqrt_one_sub_pow_four :
     ∫ t in (0 : ℝ)..1, 1 / Real.sqrt (1 - t ^ 4) =
       Real.Gamma (1 / 4) ^ 2 / (4 * Real.sqrt (2 * π)) := by
-  have h := ellipticK_eq_integral_algebraic (m := -1) (by norm_num)
+  have h := Real.compEllIntKm_eq_integral_algebraic (m := -1) (by norm_num)
   have hcongr : ∫ t in (0 : ℝ)..1, 1 / Real.sqrt (1 - t ^ 4) =
       ∫ t in (0 : ℝ)..1, 1 / Real.sqrt ((1 - t ^ 2) * (1 - (-1) * t ^ 2)) :=
     intervalIntegral.integral_congr fun t _ => by
       simp only [show (1 - t ^ 2) * (1 - (-1) * t ^ 2) = 1 - t ^ 4 by ring]
-  rw [hcongr, ← h, ellipticK_neg_one, ellipticK_one_half, Real.sqrt_mul (by norm_num)]
+  rw [hcongr, ← h, Real.compEllIntKm_neg_one, Real.compEllIntKm_one_half,
+      Real.sqrt_mul (by norm_num)]
   have hs2 : 0 < Real.sqrt 2 := by positivity
   field_simp
 
@@ -210,11 +215,11 @@ def ellipsePerimeter (a b : ℝ) : ℝ :=
 /-- The perimeter of an ellipse with semi-axes `a ≥ b > 0` is `4a E(e²)`, `e² = 1 - b²/a²`
 (Duverney (5.4)). -/
 theorem ellipsePerimeter_eq {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
-    ellipsePerimeter a b = 4 * a * ellipticE (1 - b ^ 2 / a ^ 2) := by
+    ellipsePerimeter a b = 4 * a * Real.compEllIntEm (1 - b ^ 2 / a ^ 2) := by
   have hcongr : ∫ θ in (0 : ℝ)..(π / 2), Real.sqrt (a ^ 2 * cos θ ^ 2 + b ^ 2 * sin θ ^ 2) =
       ∫ θ in (0 : ℝ)..(π / 2), a * (1 - (1 - b ^ 2 / a ^ 2) * sin θ ^ 2) ^ (1 / 2 : ℝ) :=
     intervalIntegral.integral_congr fun θ _ => ?_
-  · rw [ellipsePerimeter, ellipticE, hcongr, intervalIntegral.integral_const_mul]; ring
+  · rw [ellipsePerimeter, Real.compEllIntEm, hcongr, intervalIntegral.integral_const_mul]; ring
   have hpos : 0 ≤ 1 - (1 - b ^ 2 / a ^ 2) * sin θ ^ 2 := by
     have := sin_sq_le_one θ
     have hb' : 0 ≤ b ^ 2 / a ^ 2 := by positivity
@@ -238,7 +243,7 @@ theorem ellipsePerimeter_eq_ordinaryHypergeometric {a b : ℝ} (ha : 0 < a) (hb 
     have h2 : b ^ 2 / a ^ 2 ≤ 1 := by
       rw [div_le_one (by positivity)]; nlinarith
     rw [abs_lt]; constructor <;> linarith
-  rw [ellipsePerimeter_eq ha hb, Complex.ofReal_mul, ellipticE_eq_ordinaryHypergeometric he]
+  rw [ellipsePerimeter_eq ha hb, Complex.ofReal_mul, Real.compEllIntEm_eq_ordinaryHypergeometric he]
   push_cast
   ring
 

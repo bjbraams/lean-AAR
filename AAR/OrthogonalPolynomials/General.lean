@@ -37,6 +37,8 @@ open scoped Real ENNReal
 
 noncomputable section
 
+namespace AAR.OrthogonalPolynomials
+
 /-- A sequence of real polynomials orthogonal with respect to a Borel measure. -/
 @[dlmf 18.2.E4_5]
 def IsOrthogonalPolynomials (μ : Measure ℝ) (p : ℕ → ℝ[X]) : Prop :=
@@ -887,3 +889,5 @@ theorem integral_eval_U_mul_self {n : ℕ} :
     simpa using Real.sin_nat_mul_pi (n + 1)
   rw [hsin]
   field [hn1]
+
+end AAR.OrthogonalPolynomials

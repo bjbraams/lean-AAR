@@ -23,6 +23,7 @@ as `z → ∞` in every closed sector `|arg z| ≤ π - ε`.
 
 open Complex Filter Asymptotics Set AAR.Confluent
 open scoped Real Topology
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -72,7 +73,7 @@ theorem hasAsymptoticExpansion_besselK (ν : ℂ) {δ α : ℝ} (hδ : 0 < δ) (
       (fun (n : ℕ) (z : ℂ) => (2 * z) ^ (-((n : ℂ) + 1 / 2)))
       (fun n => (Real.sqrt π : ℂ) * tricomiCoeff (ν + 1 / 2) (2 * ν + 1) n)
       (fun z => exp z * besselK ν z) := by
-  have hU := (hasAsymptoticExpansion_confluentU_rotSector (ν + 1 / 2) (2 * ν + 1) hδ
+  have hU := (hasAsymptoticExpansion_kummerU_rotSector (ν + 1 / 2) (2 * ν + 1) hδ
     hα).comp_tendsto
     (tendsto_two_mul_rotSectorAtTop δ α)
   have h1 := hU.mul_left (fun z => (Real.sqrt π : ℂ) * (2 * z) ^ ν)
@@ -91,7 +92,7 @@ theorem hasAsymptoticExpansion_besselK (ν : ℂ) {δ α : ℝ} (hδ : 0 < δ) (
   have hpow : (2 * z) ^ ν * (2 * z) ^ (-ν) = 1 := by
     rw [cpow_neg, mul_inv_cancel₀ (cpow_ne_zero_iff.mpr (Or.inl h2z))]
   simp only [Function.comp, smul_eq_mul]
-  rw [confluentU_besselK ν z hz]
+  rw [kummerU_besselK ν z hz]
   field_simp
   linear_combination besselK ν z * hpow
 /-- Halving does not change the argument. -/
@@ -113,17 +114,17 @@ lemma besselI_neg_I_mul {z : ℂ} (hz : z ≠ 0) (harg : -(π / 2) < arg z) (ν 
   have hc := cpow_mul_exp_mul_I hz2 (α := -(π / 2)) (by rw [arg_div_two]; linarith)
     (by rw [arg_div_two]; linarith [arg_le_pi z, Real.pi_pos]) ν
   rw [exp_neg_pi_div_two_mul_I'] at hc
-  rw [besselI, besselJ, show -I * z / 2 = z / 2 * -I by ring, hc,
+  rw [besselI, besselJ_eq_regularized, show -I * z / 2 = z / 2 * -I by ring, hc,
     show (-I * z) ^ 2 / 4 = -(z ^ 2 / 4) by ring_nf; rw [I_sq]; ring]
   push_cast
   ring_nf
 
 /-- The Hankel–Macdonald connection at noninteger order. -/
-lemma besselH1_eq_besselK_of_not_int {ν z : ℂ} (hν : ∀ k : ℤ, ν ≠ k) (hz : z ≠ 0)
+lemma hankelH1_eq_besselK_of_not_int {ν z : ℂ} (hν : ∀ k : ℤ, ν ≠ k) (hz : z ≠ 0)
     (harg : -(π / 2) < arg z) :
-    besselH1 ν z = 2 / (π * I) * exp (-(I * ν * π / 2)) * besselK ν (-I * z) := by
+    hankelH1 ν z = 2 / (π * I) * exp (-(I * ν * π / 2)) * besselK ν (-I * z) := by
   have hν' : ∀ k : ℤ, -ν ≠ k := fun k h => hν (-k) (by push_cast; linear_combination -h)
-  rw [besselH1, besselY_eq_of_not_int hν, besselK_eq_of_not_int hν, besselE, besselD,
+  rw [hankelH1, besselY_eq_of_not_int hν, besselK_eq_of_not_int hν, besselE, besselD,
     besselI_neg_I_mul hz harg, besselI_neg_I_mul hz harg]
   have hs := sin_mul_pi_ne_zero hν
   have hpi : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
@@ -156,7 +157,7 @@ lemma besselI_I_mul {z : ℂ} (hz : z ≠ 0) (harg : arg z ≤ π / 2) (ν : ℂ
   have hc := cpow_mul_exp_mul_I hz2 (α := π / 2)
     (by rw [arg_div_two]; linarith [neg_pi_lt_arg z, Real.pi_pos]) (by rw [arg_div_two]; linarith) ν
   rw [exp_pi_div_two_mul_I'] at hc
-  rw [besselI, besselJ, show I * z / 2 = z / 2 * I by ring, hc,
+  rw [besselI, besselJ_eq_regularized, show I * z / 2 = z / 2 * I by ring, hc,
     show (I * z) ^ 2 / 4 = -(z ^ 2 / 4) by ring_nf; rw [I_sq]; ring]
   push_cast
   ring_nf
@@ -241,11 +242,11 @@ lemma mem_slitPlane_neg_I_mul_of_arg {z : ℂ} (hz : z ∈ slitPlane) (harg : -(
 /-- `H_ν^{(1)}(z) = (2/(πi)) e^{-iνπ/2} K_ν(-iz)` (DLMF 10.27.8) for `-π/2 < arg z < π`;
 the boundary ray `arg z = π` is excluded by the principal branches. -/
 @[dlmf 10.27.E8]
-theorem besselH1_eq_besselK (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (harg : -(π / 2) < arg z) :
-    besselH1 ν z = 2 / (π * I) * exp (-(I * ν * π / 2)) * besselK ν (-I * z) := by
-  refine eq_of_continuousAt_of_integerComplement (f := fun μ => besselH1 μ z)
+theorem hankelH1_eq_besselK (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (harg : -(π / 2) < arg z) :
+    hankelH1 ν z = 2 / (π * I) * exp (-(I * ν * π / 2)) * besselK ν (-I * z) := by
+  refine eq_of_continuousAt_of_integerComplement (f := fun μ => hankelH1 μ z)
     (g := fun μ => 2 / (π * I) * exp (-(I * μ * π / 2)) * besselK μ (-I * z)) ?_ ?_
-    (fun c hc => besselH1_eq_besselK_of_not_int (forall_of_mem_integerComplement hc)
+    (fun c hc => hankelH1_eq_besselK_of_not_int (forall_of_mem_integerComplement hc)
       (slitPlane_ne_zero hz) harg)
   · exact (continuousAt_besselJ_order (fun μ => μ) continuous_id ν hz).add
       (continuousAt_const.mul (continuousAt_besselY_order (fun μ => μ) continuous_id ν hz))
@@ -313,11 +314,11 @@ lemma half_le_re_I_mul_exp : 1 / 2 ≤ (I * exp ((-(π / 4) : ℝ) * I)).re := b
 /-- **Hankel's expansion of `H_ν^{(1)}`** on the positive axis (DLMF 10.17.5): with `w = -ix`,
 `e^{-ix} H_ν^{(1)}(x) ~ (2/(πi)) e^{-iνπ/2} √π ∑ₖ (-1)^k (ν+½)ₖ (½-ν)ₖ / k! · (2w)^{-k-½}`. -/
 @[dlmf 10.17.E5]
-theorem hasAsymptoticExpansion_besselH1 (ν : ℂ) :
+theorem hasAsymptoticExpansion_hankelH1 (ν : ℂ) :
     HasAsymptoticExpansion atTop (fun (n : ℕ) (x : ℝ) => (2 * (-I * x)) ^ (-((n : ℂ) + 1 / 2)))
       (fun n => 2 / (π * I) * exp (-(I * ν * π / 2)) *
         ((Real.sqrt π : ℂ) * tricomiCoeff (ν + 1 / 2) (2 * ν + 1) n))
-      (fun x : ℝ => exp (-I * x) * besselH1 ν x) := by
+      (fun x : ℝ => exp (-I * x) * hankelH1 ν x) := by
   have hpi := Real.pi_pos
   have h := ((hasAsymptoticExpansion_besselK ν (by norm_num : (0 : ℝ) < 1 / 2) (α := π / 4)
     (by rw [abs_of_pos (by positivity)]; linarith)).comp_tendsto
@@ -329,7 +330,7 @@ theorem hasAsymptoticExpansion_besselH1 (ν : ℂ) :
   have harg : -(π / 2) < arg (x : ℂ) := by
     rw [arg_ofReal_of_nonneg hx.le]; linarith
   simp only [Pi.smul_apply, Function.comp, smul_eq_mul]
-  rw [besselH1_eq_besselK ν hs harg]
+  rw [hankelH1_eq_besselK ν hs harg]
   ring
 
 /-- `(2 x e^{iα})^{-1/2} = (2x)^{-1/2} e^{-iα/2}` for `x > 0`, `|α| ≤ π/2`. -/
@@ -436,7 +437,8 @@ lemma besselJ_ofReal_eq_re (ν x : ℝ) (hx : 0 < x) :
     besselJ ν x = ((besselJ ν x).re : ℂ) := by
   have h : besselJ ν x = (((x / 2) ^ ν * ∑' n : ℕ, (-(x ^ 2 / 4)) ^ n / n.factorial *
       (Real.Gamma (ν + 1 + n))⁻¹ : ℝ) : ℂ) := by
-    rw [besselJ, regularized0F1_eq_tsum, ofReal_mul, ofReal_cpow (by positivity), ofReal_tsum]
+    rw [besselJ_eq_regularized, regularized0F1_eq_tsum, ofReal_mul, ofReal_cpow (by positivity),
+      ofReal_tsum]
     push_cast
     congr 1
     refine tsum_congr fun n => ?_
@@ -582,10 +584,10 @@ theorem exists_besselJ_zero_between {ν a b : ℝ} (ha : 0 < a) (hab : a < b)
     re_ofReal_mul] at hc0
   rw [hreal, (mul_eq_zero.mp hc0).resolve_left (Real.rpow_pos_of_pos hc' _).ne', ofReal_zero]
 
-end AAR.Bessel
-
 /-- For real `ν > -1` and `x > 0`, `J_ν(x)` has infinitely many positive zeros (AAR §4.14).
 The restriction `ν > -1` is not needed; see `AAR.Bessel.besselJ_infinite_zeros_of_real`. -/
 theorem besselJ_infinite_zeros {ν : ℝ} (_hν : -1 < ν) :
     Set.Infinite {x : ℝ | 0 < x ∧ besselJ ν x = 0} :=
-  AAR.Bessel.besselJ_infinite_zeros_of_real ν
+  besselJ_infinite_zeros_of_real ν
+
+end AAR.Bessel

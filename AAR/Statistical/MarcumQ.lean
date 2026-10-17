@@ -35,6 +35,7 @@ generalized Marcum Q-function `Q_μ(√(2x), √(2y))`.
 
 open Complex Filter Set
 open scoped Real Nat Topology
+open AAR.Bessel
 
 noncomputable section
 

@@ -22,6 +22,8 @@ hypergeometric definitions do not implement continuation in singular parameters.
 
 open Complex Polynomial MeasureTheory Filter
 open scoped Real Nat Topology
+open AAR.Hypergeometric
+open AAR.Confluent
 
 noncomputable section
 
@@ -75,7 +77,7 @@ def freudWeight (α : ℝ) (Q : ℝ → ℝ) (x : ℝ) : ℝ :=
 /-- Degree `n + 1`: exceptional Laguerre has no degree-zero member. -/
 @[dlmf 18.36.E5]
 def exceptionalLaguerre (k : ℂ) (n : ℕ) (x : ℂ) : ℂ :=
-  -(x + k + 1) * laguerre k n x + if n = 0 then 0 else laguerre k (n - 1) x
+  -(x + k + 1) * laguerrePolyL k n x + if n = 0 then 0 else laguerrePolyL k (n - 1) x
 
 @[dlmf 18.36.E3]
 def exceptionalLaguerreWeight (k x : ℝ) : ℝ := x ^ k * Real.exp (-x) / (x + k) ^ 2
@@ -84,8 +86,8 @@ def exceptionalLaguerreWeight (k x : ℝ) : ℝ := x ^ k * Real.exp (-x) / (x + 
 @[dlmf 18.36.E9]
 def exceptionalHermite : Option ℕ → ℝ → ℝ
   | none, _ => (2 : ℝ) ^ (3 / 2 : ℝ) * Real.pi ^ (-1 / 4 : ℝ)
-  | some n, x => ((4 * x ^ 2 + 2) * aeval x (hermitePhys (n + 1)) +
-      8 * x * aeval x (hermitePhys n)) /
+  | some n, x => ((4 * x ^ 2 + 2) * aeval x (hermitePolyH (n + 1)) +
+      8 * x * aeval x (hermitePolyH n)) /
       (Real.pi ^ (1 / 4 : ℝ) * Real.sqrt (2 ^ (n + 1) * (n + 3) * n.factorial))
 
 @[dlmf 18.30.E2]
@@ -93,7 +95,7 @@ theorem associated_zero (A B C : ℝ → ℂ) (c : ℝ) (x : ℂ) : associated A
   rfl
 
 @[dlmf 18.30.E19]
-theorem associatedPollaczek_limit_laguerre (lam : ℂ) {c : ℝ} (hc : 0 ≤ c) (n : ℕ) (x : ℂ) :
+theorem associatedPollaczek_limit_laguerrePolyL (lam : ℂ) {c : ℝ} (hc : 0 ≤ c) (n : ℕ) (x : ℂ) :
     Tendsto (fun phi : ℝ => associatedMeixnerPollaczek ((lam + 1) / 2) phi c n (-x / (2 * sin (phi : ℂ))))
       (𝓝[>] 0) (𝓝 (associatedLaguerre lam c n x)) := by
   have hcos : Tendsto (fun phi : ℝ => cos (phi : ℂ)) (𝓝[>] 0) (𝓝 1) := by
@@ -213,7 +215,7 @@ lemma poch_reflect (r : ℂ) (k : ℕ) : poch (1 - r - k) k = (-1) ^ k * poch r 
   ring
 
 @[dlmf 18.34.E1]
-theorem besselPolynomial_eq_laguerre (a : ℂ) (n : ℕ) {x : ℂ} (hx : x ≠ 0) :
+theorem besselPolynomial_eq_laguerrePolyL (a : ℂ) (n : ℕ) {x : ℂ} (hx : x ≠ 0) :
     besselPolynomial a n x = (n.factorial : ℂ) * (-x / 2) ^ n * laguerreExtended (1 - a - 2 * n) n (2 / x) := by
   unfold besselPolynomial terminatingHG laguerreExtended
   simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
@@ -431,7 +433,8 @@ theorem besselPolynomial_finite_orthogonality {a : ℝ} (m n : ℕ) (ha : a < 1 
 
 @[dlmf 18.34.E8]
 theorem jacobi_limit_besselPolynomial (a : ℂ) (n : ℕ) (x : ℂ) :
-    Tendsto (fun α : ℝ => jacobiP α (a - α - 2) n (1 + α * x) / jacobiP α (a - α - 2) n 1) atTop
+    Tendsto (fun α : ℝ => jacobiPolyP α (a - α - 2) n (1 + α * x) / jacobiPolyP α (a - α - 2) n 1)
+        atTop
       (𝓝 (besselPolynomial a n x)) := by
   unfold besselPolynomial terminatingHG
   have hlim : Tendsto (fun α : ℝ => ∑ k ∈ Finset.range (n + 1),
@@ -452,7 +455,7 @@ theorem jacobi_limit_besselPolynomial (a : ℂ) (n : ℕ) (x : ℂ) :
     have h0 : ₂F₁ (-(n : ℂ)) (n + α + (a - α - 2) + 1) (α + 1) (0 : ℂ) = 1 := by
       rw [ordinaryHypergeometric_eq_sum_neg_nat, Finset.sum_range_succ']
       simp [gaussHGCoeff, poch_zero]
-    unfold jacobiP
+    unfold jacobiPolyP
     rw [show ((1 : ℂ) - 1) / 2 = 0 by ring, h0, mul_one, mul_div_cancel_left₀ _ hp,
       ordinaryHypergeometric_eq_sum_neg_nat]
     refine Finset.sum_congr rfl fun k _ => ?_
@@ -564,13 +567,13 @@ theorem pollaczek_generating_function (lam a b : ℂ) (θ : ℝ) (hθ : Real.sin
     congr 2 <;> ring
 
 @[dlmf 18.35.E8]
-theorem pollaczek_eq_gegenbauer {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    pollaczek lam 0 0 0 n x = gegenbauer lam n x := by
+theorem pollaczek_eq_ultrasphPoly {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    pollaczek lam 0 0 0 n x = ultrasphPoly lam n x := by
   induction n using Nat.twoStepInduction with
   | zero => simp [pollaczek, associated]
-  | one => simp [pollaczek, associated, gegenbauer_one_eq hlam]
+  | one => simp [pollaczek, associated, ultrasphPoly_one_eq hlam]
   | more n ih0 ih1 =>
-    have hr := gegenbauer_recurrence hlam n x
+    have hr := ultrasphPoly_recurrence hlam n x
     have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast (by omega : n + 2 ≠ 0)
     simp only [pollaczek, associated] at ih0 ih1 ⊢
     rw [ih0, ih1]
@@ -616,13 +619,14 @@ theorem pollaczek_eq_associatedMeixnerPollaczek (lam phi x : ℂ) (c : ℝ) (n :
     ring
 
 @[dlmf 18.36.E2]
-theorem laguerre_negative_integer_parameter {n k : ℕ} (hk : k ≤ n) (x : ℂ) :
-    laguerreExtended (-(k : ℂ)) n x = (-1 : ℂ) ^ k * (n - k).factorial / n.factorial * x ^ k * laguerre k (n - k) x := by
+theorem laguerrePolyL_negative_integer_parameter {n k : ℕ} (hk : k ≤ n) (x : ℂ) :
+    laguerreExtended (-(k : ℂ)) n x = (-1 : ℂ) ^ k * (n - k).factorial / n.factorial * x ^ k
+        * laguerrePolyL k (n - k) x := by
   have hα : ∀ j : ℕ, (k : ℂ) + 1 ≠ -(j : ℂ) := by
     intro j h
     have : ((k + 1 + j : ℕ) : ℂ) = 0 := by push_cast; linear_combination h
     exact absurd (by exact_mod_cast this : k + 1 + j = 0) (by omega)
-  rw [laguerre_eq_sum hα]
+  rw [laguerrePolyL_eq_sum hα]
   unfold laguerreExtended
   obtain ⟨N, rfl⟩ : ∃ N, n = k + N := ⟨n - k, by omega⟩
   rw [show k + N + 1 = k + (N + 1) by ring, Finset.sum_range_add, Nat.add_sub_cancel_left]
@@ -658,25 +662,26 @@ theorem laguerre_negative_integer_parameter {n k : ℕ} (hk : k ≤ n) (x : ℂ)
   rw [q1, q2, pow_add, show (-x) ^ k = (-1) ^ k * x ^ k by ring]
   field_simp
 
-lemma analyticAt_laguerre {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    AnalyticAt ℂ (laguerre α n) x := by
+lemma analyticAt_laguerrePolyL {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
+    AnalyticAt ℂ (laguerrePolyL α n) x := by
   have hc : ∀ k : ℕ, α + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]; linarith)
-  have he : laguerre α n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
-      confluentM (-(n : ℂ)) (α + 1) z := rfl
+  have he : laguerrePolyL α n = fun z => poch (α + 1) n / (n.factorial : ℂ) *
+      kummerM (-(n : ℂ)) (α + 1) z := rfl
   rw [he]
-  exact analyticAt_const.mul ((hasFPowerSeriesOnBall_confluentM (a := -(n : ℂ)) hc).analyticAt_of_mem
+  exact analyticAt_const.mul ((hasFPowerSeriesOnBall_kummerM (a := -(n : ℂ)) hc).analyticAt_of_mem
     (by simp))
 
 /-- `L'_{m+1} - L'_m + L_m = 0`. -/
-lemma laguerre_deriv_succ_sub {α : ℂ} (hα : -1 < α.re) (m : ℕ) (x : ℂ) :
-    deriv (laguerre α (m + 1)) x - deriv (laguerre α m) x + laguerre α m x = 0 := by
+lemma laguerrePolyL_deriv_succ_sub {α : ℂ} (hα : -1 < α.re) (m : ℕ) (x : ℂ) :
+    deriv (laguerrePolyL α (m + 1)) x - deriv (laguerrePolyL α m) x + laguerrePolyL α m x = 0 := by
   rcases m with _ | j
-  · have h0 : laguerre α 0 = fun _ => 1 := funext fun x => laguerre_zero α x
-    rw [laguerre_derivative hα 0, h0, deriv_const, laguerre_zero]
-    simp [laguerre_zero]
+  · have h0 : laguerrePolyL α 0 = fun _ => 1 := funext fun x => laguerrePolyL_zero α x
+    rw [laguerrePolyL_derivative hα 0, h0, deriv_const, laguerrePolyL_zero]
+    simp [laguerrePolyL_zero]
   · have hα1 : -1 < (α + 1).re := by simp; linarith
-    rw [laguerre_derivative hα (j + 1), laguerre_derivative hα j, laguerre_raise_parameter hα j]
+    rw [laguerrePolyL_derivative hα (j + 1), laguerrePolyL_derivative hα j,
+        laguerrePolyL_raise_parameter hα j]
     ring
 
 @[dlmf 18.36.E6]
@@ -691,25 +696,28 @@ theorem exceptionalLaguerre_differential_equation {k : ℝ} (hk : 0 < k) (n : �
       ((x + k + 1) * deriv (exceptionalLaguerre k n) x - exceptionalLaguerre k n x) =
       n * exceptionalLaguerre k n x := by
   have hα : -1 < (k : ℂ).re := by simp; linarith
-  have hL : ∀ j y, HasDerivAt (laguerre (k : ℂ) j) (deriv (laguerre (k : ℂ) j) y) y := fun j y =>
-    (analyticAt_laguerre hα j y).differentiableAt.hasDerivAt
-  have hL' : ∀ j y, HasDerivAt (deriv (laguerre (k : ℂ) j)) (deriv (deriv (laguerre (k : ℂ) j)) y) y :=
-    fun j y => (analyticAt_laguerre hα j y).deriv.differentiableAt.hasDerivAt
+  have hL : ∀ j y,
+      HasDerivAt (laguerrePolyL (k : ℂ) j) (deriv (laguerrePolyL (k : ℂ) j) y) y := fun j y =>
+    (analyticAt_laguerrePolyL hα j y).differentiableAt.hasDerivAt
+  have hL' : ∀ j y,
+      HasDerivAt (deriv (laguerrePolyL (k : ℂ) j)) (deriv (deriv (laguerrePolyL (k : ℂ) j)) y) y :=
+    fun j y => (analyticAt_laguerrePolyL hα j y).deriv.differentiableAt.hasDerivAt
   rcases n with _ | m
   · have he : exceptionalLaguerre k 0 = fun y : ℂ => -(y + (k : ℂ) + 1) := by
-      funext y; simp [exceptionalLaguerre, laguerre_zero]
+      funext y; simp [exceptionalLaguerre, laguerrePolyL_zero]
     have hd : deriv (exceptionalLaguerre k 0) = fun _ => -1 := by
       rw [he]; funext y
       have := ((hasDerivAt_id y).add_const ((k : ℂ) + 1)).neg
       simpa [add_assoc] using this.deriv
     rw [hd, he, deriv_const]
     push_cast; ring
-  · have he : exceptionalLaguerre k (m + 1) = fun y => -(y + k + 1) * laguerre (k : ℂ) (m + 1) y +
-        laguerre (k : ℂ) m y := by
+  · have he : exceptionalLaguerre k (m + 1) = fun y => -(y + k + 1)
+      * laguerrePolyL (k : ℂ) (m + 1) y +
+        laguerrePolyL (k : ℂ) m y := by
       funext y; simp [exceptionalLaguerre]
     have hd1 : ∀ y, HasDerivAt (exceptionalLaguerre k (m + 1))
-        (-laguerre (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y +
-          deriv (laguerre (k : ℂ) m) y) y := by
+        (-laguerrePolyL (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerrePolyL (k : ℂ) (m + 1)) y +
+          deriv (laguerrePolyL (k : ℂ) m) y) y := by
       intro y
       rw [he]
       have := ((((hasDerivAt_id y).add_const ((k : ℂ) + 1)).neg).mul (hL (m + 1) y)).add (hL m y)
@@ -717,18 +725,18 @@ theorem exceptionalLaguerre_differential_equation {k : ℝ} (hk : 0 < k) (n : �
       · funext z; simp only [Pi.add_apply, Pi.mul_apply, Pi.neg_apply, id]; ring
       · simp; ring
     have hd : deriv (exceptionalLaguerre k (m + 1)) = fun y =>
-        -laguerre (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y +
-          deriv (laguerre (k : ℂ) m) y := funext fun y => (hd1 y).deriv
+        -laguerrePolyL (k : ℂ) (m + 1) y - (y + k + 1) * deriv (laguerrePolyL (k : ℂ) (m + 1)) y +
+          deriv (laguerrePolyL (k : ℂ) m) y := funext fun y => (hd1 y).deriv
     have hd2 : deriv (deriv (exceptionalLaguerre k (m + 1))) x =
-        -2 * deriv (laguerre (k : ℂ) (m + 1)) x -
-          (x + k + 1) * deriv (deriv (laguerre (k : ℂ) (m + 1))) x +
-          deriv (deriv (laguerre (k : ℂ) m)) x := by
+        -2 * deriv (laguerrePolyL (k : ℂ) (m + 1)) x -
+          (x + k + 1) * deriv (deriv (laguerrePolyL (k : ℂ) (m + 1))) x +
+          deriv (deriv (laguerrePolyL (k : ℂ) m)) x := by
       rw [hd]
-      have h2 : HasDerivAt (fun y => -laguerre (k : ℂ) (m + 1) y -
-          (y + k + 1) * deriv (laguerre (k : ℂ) (m + 1)) y + deriv (laguerre (k : ℂ) m) y)
-          (-2 * deriv (laguerre (k : ℂ) (m + 1)) x -
-          (x + k + 1) * deriv (deriv (laguerre (k : ℂ) (m + 1))) x +
-          deriv (deriv (laguerre (k : ℂ) m)) x) x := by
+      have h2 : HasDerivAt (fun y => -laguerrePolyL (k : ℂ) (m + 1) y -
+          (y + k + 1) * deriv (laguerrePolyL (k : ℂ) (m + 1)) y + deriv (laguerrePolyL (k : ℂ) m) y)
+          (-2 * deriv (laguerrePolyL (k : ℂ) (m + 1)) x -
+          (x + k + 1) * deriv (deriv (laguerrePolyL (k : ℂ) (m + 1))) x +
+          deriv (deriv (laguerrePolyL (k : ℂ) m)) x) x := by
         have := (((hL (m + 1) x).neg.sub (((hasDerivAt_id x).add_const ((k : ℂ) + 1)).mul
           (hL' (m + 1) x))).add (hL' m x))
         convert this using 1
@@ -736,9 +744,9 @@ theorem exceptionalLaguerre_differential_equation {k : ℝ} (hk : 0 < k) (n : �
         · simp; ring
       exact h2.deriv
     rw [hd2, (hd1 x).deriv, he]
-    have E1 := laguerre_differential_equation hα (m + 1) x
-    have E2 := laguerre_differential_equation hα m x
-    have R2 := laguerre_deriv_succ_sub hα m x
+    have E1 := laguerrePolyL_differential_equation hα (m + 1) x
+    have E2 := laguerrePolyL_differential_equation hα m x
+    have R2 := laguerrePolyL_deriv_succ_sub hα m x
     field_simp
     push_cast at E1 E2 ⊢
     linear_combination (x + k) * (x + k + 1) * E1 - (x + k) * E2 - 2 * x * R2
@@ -772,12 +780,107 @@ def morsePolynomialFunction (lam : ℝ) (n : ℕ) (x : ℝ) : ℂ :=
   Real.exp (-lam * Real.exp (-x)) * (2 * lam * Real.exp (-x) : ℂ) ^ (lam - 1 / 2 : ℂ) *
     besselPolynomial (2 - 2 * lam) n (lam⁻¹ * Real.exp x) / n.factorial
 
+/-- The Bessel polynomial is the evaluation of a polynomial. -/
+lemma exists_besselPolynomial_eq_eval (a : ℂ) (n : ℕ) :
+    ∃ p : ℂ[X], besselPolynomial a n = fun x => p.eval x := by
+  refine ⟨∑ k ∈ Finset.range (n + 1), C (poch (-(n : ℂ)) k * poch (n + a - 1) k *
+    (-1 / 2) ^ k / (k.factorial : ℂ)) * X ^ k, ?_⟩
+  funext x
+  unfold besselPolynomial terminatingHG
+  simp only [eval_finsetSum, eval_mul, eval_C, eval_pow, eval_X, List.map_cons,
+    List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [show -x / 2 = (-1 / 2) * x by ring, mul_pow]; ring
+
 @[dlmf 18.34.E7_2]
 theorem morsePolynomialFunction_ode {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (x : ℝ) :
     deriv (deriv (morsePolynomialFunction lam n)) x -
       (lam ^ 2 * (Real.exp (-2 * x) - 2 * Real.exp (-x)) + (lam - (n + 1 / 2)) ^ 2 : ℝ) *
         morsePolynomialFunction lam n x = 0 := by
-  sorry
+  obtain ⟨p, hp⟩ := exists_besselPolynomial_eq_eval (2 - 2 * lam) n
+  have hO := besselPolynomial_differential_equation (2 - 2 * lam) n
+  set Y : ℂ → ℂ := besselPolynomial (2 - 2 * lam) n
+  set Y' : ℂ → ℂ := fun w => (derivative p).eval w
+  set Y'' : ℂ → ℂ := fun w => (derivative (derivative p)).eval w
+  have hY : ∀ w, HasDerivAt Y (Y' w) w := fun w => by rw [hp]; exact p.hasDerivAt w
+  have hY' : ∀ w, HasDerivAt Y' (Y'' w) w := fun w => (derivative p).hasDerivAt w
+  have hdY : deriv Y = Y' := funext fun w => (hY w).deriv
+  have hdY' : deriv Y' = Y'' := funext fun w => (hY' w).deriv
+  rw [hdY, hdY'] at hO
+  -- the real phase and the argument of the polynomial
+  set H : ℝ → ℝ := fun t => -lam * Real.exp (-t) - (lam - 1 / 2) * t
+  set H' : ℝ → ℝ := fun t => lam * Real.exp (-t) - (lam - 1 / 2)
+  set U : ℝ → ℂ := fun t => ((lam⁻¹ * Real.exp t : ℝ) : ℂ)
+  set K : ℂ := (((2 * lam) ^ (lam - 1 / 2) : ℝ) : ℂ) / n.factorial
+  have hψ : morsePolynomialFunction lam n = fun t => K * Complex.exp (H t) * Y (U t) := by
+    funext t
+    unfold morsePolynomialFunction
+    have hb : (2 * (lam : ℂ) * (Real.exp (-t) : ℂ)) ^ ((lam : ℂ) - 1 / 2) =
+        (((2 * lam) ^ (lam - 1 / 2) : ℝ) : ℂ) * Complex.exp (((-(lam - 1 / 2) * t : ℝ)) : ℂ) := by
+      rw [show 2 * (lam : ℂ) * (Real.exp (-t) : ℂ) = ((2 * lam * Real.exp (-t) : ℝ) : ℂ) by
+          push_cast; ring,
+        show (lam : ℂ) - 1 / 2 = ((lam - 1 / 2 : ℝ) : ℂ) by push_cast; ring,
+        ← Complex.ofReal_cpow (by positivity),
+        Real.mul_rpow (by positivity) (Real.exp_pos _).le, ← Real.exp_mul,
+        ← Complex.ofReal_exp]
+      push_cast; ring_nf
+    rw [hb]
+    simp only [K, H, U, Y]
+    push_cast
+    rw [show -(lam : ℂ) * Complex.exp (-(t : ℂ)) - ((lam : ℂ) - 1 / 2) * t =
+      -(lam : ℂ) * Complex.exp (-(t : ℂ)) + (-((lam : ℂ) - 1 / 2) * t) by ring, Complex.exp_add]
+    ring
+  -- derivatives of the pieces
+  have hHr : ∀ t, HasDerivAt H (H' t) t := by
+    intro t
+    have h : HasDerivAt (fun y => -lam * Real.exp (-y) - (lam - 1 / 2) * y)
+        (-lam * (Real.exp (-t) * -1) - (lam - 1 / 2) * 1) t :=
+      ((hasDerivAt_neg t).exp.const_mul (-lam)).sub ((hasDerivAt_id' t).const_mul _)
+    convert h using 1; simp only [H']; ring
+  have hH'r : ∀ t, HasDerivAt H' (-lam * Real.exp (-t)) t := by
+    intro t
+    have h : HasDerivAt (fun y => lam * Real.exp (-y) - (lam - 1 / 2))
+        (lam * (Real.exp (-t) * -1)) t :=
+      ((hasDerivAt_neg t).exp.const_mul lam).sub_const _
+    convert h using 1; ring
+  have hUr : ∀ t, HasDerivAt U (U t) t := by
+    intro t
+    have h := ((Real.hasDerivAt_exp t).const_mul lam⁻¹).ofReal_comp
+    simpa [U] using h
+  have hE : ∀ t, HasDerivAt (fun t => Complex.exp (H t)) (Complex.exp (H t) * H' t) t :=
+    fun t => (hHr t).ofReal_comp.cexp
+  have hYU : ∀ t, HasDerivAt (fun t => Y (U t)) (Y' (U t) * U t) t :=
+    fun t => (hY (U t)).comp t (hUr t)
+  have hY'U : ∀ t, HasDerivAt (fun t => Y' (U t)) (Y'' (U t) * U t) t :=
+    fun t => (hY' (U t)).comp t (hUr t)
+  set ψ1 : ℝ → ℂ := fun t => K * Complex.exp (H t) * (H' t * Y (U t) + U t * Y' (U t))
+  have hd1 : ∀ t, HasDerivAt (fun t => K * Complex.exp (H t) * Y (U t)) (ψ1 t) t := by
+    intro t
+    convert ((hE t).const_mul K).mul (hYU t) using 1
+    simp only [ψ1]; ring
+  have hd2 : ∀ t, HasDerivAt ψ1 (K * Complex.exp (H t) * (H' t * (H' t * Y (U t) + U t * Y' (U t))
+      + ((-lam * Real.exp (-t) : ℝ) * Y (U t) + H' t * (Y' (U t) * U t) + U t * Y' (U t)
+        + U t * (Y'' (U t) * U t)))) t := by
+    intro t
+    have h := ((hE t).const_mul K).mul ((((hH'r t).ofReal_comp).mul (hYU t)).add
+      ((hUr t).mul (hY'U t)))
+    convert h using 1
+    simp only [Pi.mul_apply, Pi.add_apply]
+    ring
+  have hψd : deriv (morsePolynomialFunction lam n) = ψ1 := by
+    rw [hψ]; funext t; exact (hd1 t).deriv
+  rw [hψd, (hd2 x).deriv, hψ]
+  have hO' := hO (U x)
+  have hl : (lam : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hlam.ne'
+  have hex : (Real.exp x : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (Real.exp_pos x).ne'
+  have he2 : Real.exp (-2 * x) = (Real.exp x)⁻¹ ^ 2 := by
+    rw [show -2 * x = -x + -x by ring, Real.exp_add, Real.exp_neg]; ring
+  simp only [H', U] at hO' ⊢
+  rw [he2, Real.exp_neg]
+  simp only [Complex.ofReal_sub, Complex.ofReal_mul, Complex.ofReal_neg, Complex.ofReal_pow,
+    Complex.ofReal_add, Complex.ofReal_inv, Complex.ofReal_natCast, Complex.ofReal_one,
+    Complex.ofReal_ofNat, Complex.ofReal_div] at hO' ⊢
+  linear_combination (norm := (field_simp; ring)) (K * Complex.exp (H x)) * hO'
 
 @[dlmf 18.34.E7_3]
 theorem morsePolynomialFunction_orthogonality {lam : ℝ} (m n : ℕ) (hm : (m : ℝ) < lam - 1 / 2) (hn : (n : ℝ) < lam - 1 / 2) :

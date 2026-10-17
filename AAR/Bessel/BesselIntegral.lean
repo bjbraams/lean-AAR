@@ -24,6 +24,8 @@ open scoped Real
 
 noncomputable section
 
+namespace AAR.Bessel
+
 /-- The Jacobi–Anger expansion `e^{iz sin θ} = ∑ₘ Jₘ(z) e^{imθ}` (DLMF 10.12.1). -/
 @[dlmf 10.12.E1]
 theorem hasSum_besselJ_jacobiAnger (z : ℂ) (θ : ℝ) :
@@ -140,3 +142,5 @@ theorem besselJ_int_eq_integral_cos (n : ℤ) (z : ℂ) :
 theorem besselJ_zero_eq_integral_cos (z : ℂ) :
     besselJ 0 z = (1 / π) * ∫ θ in (0 : ℝ)..π, cos (z * sin θ) := by
   simpa using besselJ_int_eq_integral_cos 0 z
+
+end AAR.Bessel

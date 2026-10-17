@@ -22,6 +22,8 @@ open scoped Topology ENNReal
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- Adding a natural number preserves exclusion of the nonpositive integers. -/
 lemma not_neg_nat_add_nat {a : ℂ} (ha : ∀ k : ℕ, a ≠ -k) (m : ℕ) :
     ∀ k : ℕ, a + m ≠ -k := by
@@ -36,7 +38,7 @@ lemma poch_succ_left (a : ℂ) (n : ℕ) : poch a (n + 1) = a * poch (a + 1) n :
 
 /-- Termwise differentiation, as a direct scalar specialization of Mathlib's
 `HasFPowerSeriesOnBall.fderiv`. -/
-theorem HasFPowerSeriesOnBall.deriv_ofScalars {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
+theorem _root_.HasFPowerSeriesOnBall.deriv_ofScalars {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
     (h : HasFPowerSeriesOnBall f (ofScalars ℂ c) 0 r) :
     HasFPowerSeriesOnBall (deriv f) (ofScalars ℂ (fun n => (n + 1) * c (n + 1))) 0 r := by
   have hd := (ContinuousLinearMap.apply ℂ ℂ (1 : ℂ)).comp_hasFPowerSeriesOnBall h.fderiv
@@ -51,13 +53,13 @@ theorem HasFPowerSeriesOnBall.deriv_ofScalars {f : ℂ → ℂ} {c : ℕ → ℂ
     fderiv_eq_deriv_mul, mul_one] using hd
 
 /-- Scalar coefficients give the usual series sum on the ball. -/
-theorem HasFPowerSeriesOnBall.hasSum_mul_pow {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
+theorem _root_.HasFPowerSeriesOnBall.hasSum_mul_pow {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
     (h : HasFPowerSeriesOnBall f (ofScalars ℂ c) 0 r) {z : ℂ}
     (hz : z ∈ Metric.eball (0 : ℂ) r) : HasSum (fun n => c n * z ^ n) (f z) := by
   simpa only [ofScalars_apply_eq, smul_eq_mul, zero_add] using h.hasSum hz
 
 /-- Shifting a power series after multiplication by its variable. -/
-theorem HasSum.mul_pow_shift {c : ℕ → ℂ} {s z : ℂ}
+theorem _root_.HasSum.mul_pow_shift {c : ℕ → ℂ} {s z : ℂ}
     (h : HasSum (fun n => c (n + 1) * z ^ n) s) (h0 : c 0 = 0) :
     HasSum (fun n => c n * z ^ n) (z * s) := by
   rw [← hasSum_nat_add_iff' 1]
@@ -65,7 +67,7 @@ theorem HasSum.mul_pow_shift {c : ℕ → ℂ} {s z : ℂ}
     h.mul_left z
 
 /-- Multiplying the differentiated series by `z` restores its original indexing. -/
-theorem HasFPowerSeriesOnBall.hasSum_z_mul_deriv {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
+theorem _root_.HasFPowerSeriesOnBall.hasSum_z_mul_deriv {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
     (h : HasFPowerSeriesOnBall f (ofScalars ℂ c) 0 r) {z : ℂ}
     (hz : z ∈ Metric.eball (0 : ℂ) r) :
     HasSum (fun n : ℕ => (n : ℂ) * c n * z ^ n) (z * deriv f z) := by
@@ -74,7 +76,7 @@ theorem HasFPowerSeriesOnBall.hasSum_z_mul_deriv {f : ℂ → ℂ} {c : ℕ → 
 
 /-- A quadratic coefficient recurrence gives a second-order differential equation.
 This applies to both the Gauss and confluent hypergeometric series. -/
-theorem HasFPowerSeriesOnBall.ode_of_recurrence {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
+theorem _root_.HasFPowerSeriesOnBall.ode_of_recurrence {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
     (h : HasFPowerSeriesOnBall f (ofScalars ℂ c) 0 r) {A B C D : ℂ}
     (hrec : ∀ n : ℕ, (n + 1 : ℂ) * (D + n) * c (n + 1) =
       (A * n * (n - 1) + B * n + C) * c n) {z : ℂ}
@@ -225,3 +227,5 @@ lemma poch_ofReal (x : ℝ) (n : ℕ) :
     rw [poch_succ, ascPochhammer_succ_eval, ih]
     push_cast
     ring
+
+end AAR.Hypergeometric

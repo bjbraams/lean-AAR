@@ -19,6 +19,7 @@ coefficient limit through the sum, using a fixed positive Gauss majorant.
 
 open Complex Filter
 open scoped Real Topology
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -27,8 +28,8 @@ namespace AAR.Confluent
 /-- Normalize Gauss coefficients by an independent scaling parameter. -/
 private lemma gaussHGCoeff_mul_scaled_pow (a b c z t : ℂ) (n : ℕ) :
     gaussHGCoeff a b c n * (z / t) ^ n =
-      (confluentHGCoeff a c n * z ^ n) * (poch b n / t ^ n) := by
-  simp only [gaussHGCoeff, confluentHGCoeff, div_eq_mul_inv, mul_inv_rev]
+      (kummerMCoeff a c n * z ^ n) * (poch b n / t ^ n) := by
+  simp only [gaussHGCoeff, kummerMCoeff, div_eq_mul_inv, mul_inv_rev]
   ring
 
 /-- A fixed positive shifted Pochhammer majorizes every sufficiently large parameter. -/
@@ -65,7 +66,7 @@ lemma norm_poch_add_div_pow_le (d : ℂ) {T t : ℝ} (hT : 0 < T) (ht : T ≤ t)
 
 /-- Gauss confluence with a fixed complex shift of the large real upper parameter. -/
 theorem tendsto_ordinaryHypergeometric_add_div_atTop (a c d z : ℂ) :
-    Tendsto (fun t : ℝ => ₂F₁ a (d + t) c (z / t)) atTop (𝓝 (confluentM a c z)) := by
+    Tendsto (fun t : ℝ => ₂F₁ a (d + t) c (z / t)) atTop (𝓝 (kummerM a c z)) := by
   let T : ℝ := ‖z‖ + 1
   have hT : 0 < T := by dsimp [T]; positivity
   have harg : ‖z / (T : ℂ)‖ < 1 := by
@@ -78,9 +79,9 @@ theorem tendsto_ordinaryHypergeometric_add_div_atTop (a c d z : ℂ) :
     ((T + ‖d‖ : ℝ) : ℂ) c).hasSum_mul_pow
       (mem_eball_one_of_norm_lt_one harg)).summable.norm
   have hlim (n : ℕ) : Tendsto (fun t => F t n) atTop
-      (𝓝 (confluentHGCoeff a c n * z ^ n)) := by
+      (𝓝 (kummerMCoeff a c n * z ^ n)) := by
     simpa only [F, gaussHGCoeff_mul_scaled_pow, mul_one] using
-      (tendsto_poch_add_div_pow d n).const_mul (confluentHGCoeff a c n * z ^ n)
+      (tendsto_poch_add_div_pow d n).const_mul (kummerMCoeff a c n * z ^ n)
   have hbound : ∀ᶠ t : ℝ in atTop, ∀ n, ‖F t n‖ ≤ G n := by
     filter_upwards [eventually_ge_atTop T] with t ht n
     dsimp only [F, G]
@@ -92,7 +93,7 @@ theorem tendsto_ordinaryHypergeometric_add_div_atTop (a c d z : ℂ) :
     intro n
     simp only [F, gaussHGCoeff, poch, smul_eq_mul, div_eq_mul_inv, mul_inv_rev]
     ring
-  simpa only [← he, confluentM, confluentHGCoeff] using
+  simpa only [← he, kummerM, kummerMCoeff] using
     tendsto_tsum_of_dominated_convergence hG hlim hbound
 
 end AAR.Confluent

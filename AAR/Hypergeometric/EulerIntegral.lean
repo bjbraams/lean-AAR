@@ -31,6 +31,8 @@ open scoped Real
 
 noncomputable section
 
+namespace AAR.Hypergeometric
+
 /-- Helper lemma for `ordinaryHypergeometric_eq_integral`. -/
 lemma re_c_pos_of {b c : ℂ} (hb : 0 < b.re) (hcb : 0 < (c - b).re) : 0 < c.re := by
   have : c.re = b.re + (c - b).re := by simp [sub_re]
@@ -529,3 +531,5 @@ theorem chu_vandermonde (n : ℕ) {b c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) :
   refine (Finset.sum_congr rfl fun k hk => ?_).trans (chu_vandermonde_sum n b c)
   convert hterm k hk using 1
   ring
+
+end AAR.Hypergeometric

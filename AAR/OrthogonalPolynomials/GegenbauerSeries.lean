@@ -16,10 +16,10 @@ public import Mathlib.RingTheory.PowerSeries.Derivative
 Let `G_λ = ∑ (λ)_n / n! Xⁿ` be the formal binomial series `(1 - X)^{-λ}`. The product
 `G_λ(wX) G_λ(X/w)` is the formal Gegenbauer generating function at `x = (w + w⁻¹)/2`.
 It satisfies the generating-function differential equation, whose coefficients give the
-three-term recurrence. Comparing with `gegenbauer_recurrence` identifies its coefficients
+three-term recurrence. Comparing with `ultrasphPoly_recurrence` identifies its coefficients
 with `C_n^{(λ)}((w + w⁻¹)/2)` for `Re λ > -1/2`. This gives the trigonometric sum
-DLMF 18.5.11 (`gegenbauer_cos_sum`) and, with `|w| = 1` and binomial series, the
-generating functions. The explicit sum DLMF 18.5.10 (`gegenbauer_finite_sum`) is proved
+DLMF 18.5.11 (`ultrasphPoly_cos_sum`) and, with `|w| = 1` and binomial series, the
+generating functions. The explicit sum DLMF 18.5.10 (`ultrasphPoly_finite_sum`) is proved
 separately: its terms satisfy the same three-term recurrence. Comparing coefficients
 with the Jacobi hypergeometric sum in `x²` then gives the quadratic transformations
 DLMF 18.7.15–18.7.16; the Jacobi forms 18.7.13–18.7.14 follow by the Gegenbauer–Jacobi
@@ -31,6 +31,7 @@ relation, extended to `α = -1/2` by continuity in `α`. The multiplicativity `G
 
 open Complex
 open scoped Nat
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -73,15 +74,15 @@ lemma coeff_one_gegenbauerSeries (lam w : ℂ) :
 
 open PowerSeries in
 /-- The Gegenbauer polynomial at `(w + w⁻¹)/2` is the `n`-th coefficient of `G_λ(wX) G_λ(X/w)`. -/
-theorem gegenbauer_eq_coeff_gegenbauerSeries {lam : ℂ} (hlam : -1 / 2 < lam.re) {w : ℂ}
+theorem ultrasphPoly_eq_coeff_gegenbauerSeries {lam : ℂ} (hlam : -1 / 2 < lam.re) {w : ℂ}
     (hw : w ≠ 0) (n : ℕ) :
-    gegenbauer lam n ((w + w⁻¹) / 2) = coeff n (gegenbauerSeries lam w) := by
+    ultrasphPoly lam n ((w + w⁻¹) / 2) = coeff n (gegenbauerSeries lam w) := by
   induction n using Nat.strong_induction_on with
   | _ n ih =>
     rcases n with _ | _ | n
     · simp [coeff_zero_gegenbauerSeries]
-    · rw [gegenbauer_one_eq hlam, coeff_one_gegenbauerSeries]; ring
-    · have hrec := gegenbauer_recurrence hlam n ((w + w⁻¹) / 2)
+    · rw [ultrasphPoly_one_eq hlam, coeff_one_gegenbauerSeries]; ring
+    · have hrec := ultrasphPoly_recurrence hlam n ((w + w⁻¹) / 2)
       have hser := coeff_gegenbauerSeries_recurrence lam hw n
       rw [ih n (by omega), ih (n + 1) (by omega)] at hrec
       have hn2 : (n + 2 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero (n + 1)
@@ -107,8 +108,8 @@ lemma coeff_gegenbauerSeries (lam w : ℂ) (n : ℕ) :
 
 /-- Gegenbauer polynomials as a trigonometric sum, DLMF 18.5.11, for complex angles. -/
 @[dlmf 18.5.E11]
-theorem gegenbauer_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : ℂ) :
-    gegenbauer lam n (cos θ) = ∑ k ∈ Finset.range (n + 1),
+theorem ultrasphPoly_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : ℂ) :
+    ultrasphPoly lam n (cos θ) = ∑ k ∈ Finset.range (n + 1),
       poch lam k * poch lam (n - k) / ((k.factorial : ℂ) * (n - k).factorial) *
         cos (((n : ℂ) - 2 * k) * θ) := by
   set w := exp (θ * I) with hw
@@ -116,7 +117,7 @@ theorem gegenbauer_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ : 
   have hwinv : w⁻¹ = exp (-θ * I) := by rw [hw, ← Complex.exp_neg]; ring_nf
   have hcos : cos θ = (w + w⁻¹) / 2 := by
     rw [hwinv, hw, Complex.cos]
-  rw [hcos, gegenbauer_eq_coeff_gegenbauerSeries hlam hw0, coeff_gegenbauerSeries]
+  rw [hcos, ultrasphPoly_eq_coeff_gegenbauerSeries hlam hw0, coeff_gegenbauerSeries]
   have hterm : ∀ k ∈ Finset.range (n + 1), cos (((n : ℂ) - 2 * k) * θ) =
       (w ^ (n - k) * w⁻¹ ^ k + w ^ k * w⁻¹ ^ (n - k)) / 2 := by
     intro k hk
@@ -249,7 +250,7 @@ def gegenbauerCoeff (lam : ℂ) (n k : ℕ) : ℂ :=
   else 0
 
 /-- The explicit sum of DLMF 18.5.10 over any range containing `0, …, n/2`. -/
-lemma gegenbauer_sum_eq_sum_coeff (lam y : ℂ) (n M : ℕ) (hM : n / 2 + 1 ≤ M) :
+lemma ultrasphPoly_sum_eq_sum_coeff (lam y : ℂ) (n M : ℕ) (hM : n / 2 + 1 ≤ M) :
     ∑ k ∈ Finset.range (n / 2 + 1), (-1 : ℂ) ^ k * poch lam (n - k) /
         ((k.factorial : ℂ) * (n - 2 * k).factorial) * y ^ (n - 2 * k) =
       ∑ k ∈ Finset.range M, gegenbauerCoeff lam n k * y ^ (n - 2 * k) := by
@@ -337,9 +338,9 @@ lemma gegenbauerExplicit_rec (lam y : ℂ) (n : ℕ) :
             y ^ (n + 1 - 2 * k) -
         (n + 2 * lam) * ∑ k ∈ Finset.range (n / 2 + 1), (-1 : ℂ) ^ k * poch lam (n - k) /
           ((k.factorial : ℂ) * (n - 2 * k).factorial) * y ^ (n - 2 * k) := by
-  rw [gegenbauer_sum_eq_sum_coeff lam y (n + 2) (n + 3) (by omega),
-    gegenbauer_sum_eq_sum_coeff lam y (n + 1) (n + 3) (by omega),
-    gegenbauer_sum_eq_sum_coeff lam y n (n + 2) (by omega),
+  rw [ultrasphPoly_sum_eq_sum_coeff lam y (n + 2) (n + 3) (by omega),
+    ultrasphPoly_sum_eq_sum_coeff lam y (n + 1) (n + 3) (by omega),
+    ultrasphPoly_sum_eq_sum_coeff lam y n (n + 2) (by omega),
     Finset.sum_range_succ' _ (n + 2), Finset.sum_range_succ' _ (n + 2)]
   have key : ∀ k ∈ Finset.range (n + 2),
       (n + 2 : ℂ) * (gegenbauerCoeff lam (n + 2) (k + 1) * y ^ (n + 2 - 2 * (k + 1))) =
@@ -358,17 +359,17 @@ lemma gegenbauerExplicit_rec (lam y : ℂ) (n : ℕ) :
 
 /-- The explicit Gegenbauer sum, DLMF 18.5.10. -/
 @[dlmf 18.5.E10]
-theorem gegenbauer_finite_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam n x = ∑ k ∈ Finset.range (n / 2 + 1),
+theorem ultrasphPoly_finite_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    ultrasphPoly lam n x = ∑ k ∈ Finset.range (n / 2 + 1),
       (-1 : ℂ) ^ k * poch lam (n - k) /
         ((k.factorial : ℂ) * (n - 2 * k).factorial) * (2 * x) ^ (n - 2 * k) := by
   induction n using Nat.strong_induction_on with
   | _ n ih =>
     rcases n with _ | _ | n
     · simp [poch_zero]
-    · simp [gegenbauer_one_eq hlam, poch_succ, poch_zero]
+    · simp [ultrasphPoly_one_eq hlam, poch_succ, poch_zero]
       ring
-    · have hrec := gegenbauer_recurrence hlam n x
+    · have hrec := ultrasphPoly_recurrence hlam n x
       have hexp := gegenbauerExplicit_rec lam (2 * x) n
       rw [ih n (by omega), ih (n + 1) (by omega)] at hrec
       have hn2 : (n + 2 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero (n + 1)
@@ -379,12 +380,13 @@ theorem gegenbauer_finite_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x 
 /-! ### Quadratic transformations DLMF 18.7.13–18.7.16 -/
 
 @[dlmf 18.7.E15]
-theorem gegenbauer_quadratic_even {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam (2 * n) x = poch lam n / poch (1 / 2) n * jacobiP (lam - 1 / 2) (-1 / 2) n (2 * x ^ 2 - 1) := by
+theorem ultrasphPoly_quadratic_even {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    ultrasphPoly lam (2 * n) x = poch lam n / poch (1 / 2) n
+        * jacobiPolyP (lam - 1 / 2) (-1 / 2) n (2 * x ^ 2 - 1) := by
   have hα : -1 < (lam - 1 / 2).re := by simp; linarith
   have hβ : -1 < (-1 / 2 : ℂ).re := by norm_num
   rw [show 2 * x ^ 2 - 1 = -(1 - 2 * x ^ 2) by ring, jacobi_reflection hα hβ,
-    gegenbauer_finite_sum hlam, jacobiP, ordinaryHypergeometric_eq_sum_neg_nat,
+    ultrasphPoly_finite_sum hlam, jacobiPolyP, ordinaryHypergeometric_eq_sum_neg_nat,
     show (1 - (1 - 2 * x ^ 2)) / 2 = x ^ 2 by ring, Finset.mul_sum, Finset.mul_sum,
     show 2 * n / 2 = n by omega, Finset.mul_sum]
   refine (Finset.sum_range_reflect _ (n + 1)).symm.trans (Finset.sum_congr rfl fun k hk => ?_)
@@ -413,13 +415,13 @@ theorem gegenbauer_quadratic_even {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ)
   ring
 
 @[dlmf 18.7.E16]
-theorem gegenbauer_quadratic_odd {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
-    gegenbauer lam (2 * n + 1) x = poch lam (n + 1) / poch (1 / 2) (n + 1) * x *
-      jacobiP (lam - 1 / 2) (1 / 2) n (2 * x ^ 2 - 1) := by
+theorem ultrasphPoly_quadratic_odd {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (x : ℂ) :
+    ultrasphPoly lam (2 * n + 1) x = poch lam (n + 1) / poch (1 / 2) (n + 1) * x *
+      jacobiPolyP (lam - 1 / 2) (1 / 2) n (2 * x ^ 2 - 1) := by
   have hα : -1 < (lam - 1 / 2).re := by simp; linarith
   have hβ : -1 < (1 / 2 : ℂ).re := by norm_num
   rw [show 2 * x ^ 2 - 1 = -(1 - 2 * x ^ 2) by ring, jacobi_reflection hα hβ,
-    gegenbauer_finite_sum hlam, jacobiP, ordinaryHypergeometric_eq_sum_neg_nat,
+    ultrasphPoly_finite_sum hlam, jacobiPolyP, ordinaryHypergeometric_eq_sum_neg_nat,
     show (1 - (1 - 2 * x ^ 2)) / 2 = x ^ 2 by ring, Finset.mul_sum, Finset.mul_sum,
     show (2 * n + 1) / 2 = n by omega, Finset.mul_sum]
   refine (Finset.sum_range_reflect _ (n + 1)).symm.trans (Finset.sum_congr rfl fun k hk => ?_)
@@ -450,10 +452,10 @@ theorem gegenbauer_quadratic_odd {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) 
 
 open Filter Topology in
 /-- `α ↦ P_n^{(α, g α)}(y)` is continuous where `Re α > -1`. -/
-lemma continuousAt_jacobiP {g : ℂ → ℂ} (hg : Continuous g) (n : ℕ) (y : ℂ) {α₀ : ℂ}
-    (h0 : -1 < α₀.re) : ContinuousAt (fun α => jacobiP α (g α) n y) α₀ := by
+lemma continuousAt_jacobiPolyP {g : ℂ → ℂ} (hg : Continuous g) (n : ℕ) (y : ℂ) {α₀ : ℂ}
+    (h0 : -1 < α₀.re) : ContinuousAt (fun α => jacobiPolyP α (g α) n y) α₀ := by
   have hU : IsOpen {α : ℂ | -1 < α.re} := isOpen_lt continuous_const Complex.continuous_re
-  have heq : (fun α => jacobiP α (g α) n y) =ᶠ[𝓝 α₀] fun α => ∑ k ∈ Finset.range (n + 1),
+  have heq : (fun α => jacobiPolyP α (g α) n y) =ᶠ[𝓝 α₀] fun α => ∑ k ∈ Finset.range (n + 1),
       poch (n + α + g α + 1) k * poch (α + k + 1) (n - k) /
         ((k.factorial : ℂ) * (n - k).factorial) * ((y - 1) / 2) ^ k := by
     filter_upwards [hU.mem_nhds h0] with α hα
@@ -490,12 +492,12 @@ lemma eq_at_neg_half {F G : ℂ → ℂ} (hF : ContinuousAt F (-1 / 2)) (hG : Co
 
 @[dlmf 18.7.E13]
 theorem jacobi_quadratic_even {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α α (2 * n) x / jacobiP α α (2 * n) 1 =
-      jacobiP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (-1 / 2) n 1 := by
+    jacobiPolyP α α (2 * n) x / jacobiPolyP α α (2 * n) 1 =
+      jacobiPolyP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (-1 / 2) n 1 := by
   -- the generic case, from the Gegenbauer form
   have generic : ∀ α : ℂ, -1 < α.re → α ≠ -1 / 2 →
-      jacobiP α α (2 * n) x / jacobiP α α (2 * n) 1 =
-        jacobiP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (-1 / 2) n 1 := by
+      jacobiPolyP α α (2 * n) x / jacobiPolyP α α (2 * n) 1 =
+        jacobiPolyP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (-1 / 2) n 1 := by
     intro α hα hα2
     set lam := α + 1 / 2 with hlamdef
     have hlam : -1 / 2 < lam.re := by simp [lam]; linarith
@@ -509,38 +511,38 @@ theorem jacobi_quadratic_even {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) 
       have := two_mul_add_one_ne_neg_nat hα hα2 (2 * k)
       apply this; simp only [lam] at hk; push_cast; linear_combination 2 * hk) _
     have hph : poch (1 / 2 : ℂ) n ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) _
-    have hg := fun y => gegenbauer_eq_jacobiP (lam := lam) (2 * n) y hp1
-    have hq := fun y => gegenbauer_quadratic_even hlam n y
+    have hg := fun y => ultrasphPoly_eq_jacobiPolyP (lam := lam) (2 * n) y hp1
+    have hq := fun y => ultrasphPoly_quadratic_even hlam n y
     have hαl : lam - 1 / 2 = α := by simp [lam]
     rw [hαl] at hg hq
-    have hJ : ∀ y, jacobiP α α (2 * n) y =
-        poch (lam + 1 / 2) (2 * n) / poch (2 * lam) (2 * n) * gegenbauer lam (2 * n) y := by
+    have hJ : ∀ y, jacobiPolyP α α (2 * n) y =
+        poch (lam + 1 / 2) (2 * n) / poch (2 * lam) (2 * n) * ultrasphPoly lam (2 * n) y := by
       intro y; rw [hg y, ← mul_assoc, div_mul_div_comm, mul_comm (poch (lam + 1 / 2) (2 * n)),
         div_self (mul_ne_zero hp2 hp1), one_mul]
     rw [hJ, hJ, hq, hq, show (2 : ℂ) * 1 ^ 2 - 1 = 1 by norm_num]
-    have h1 := jacobiP_one_ne_zero (β := -1 / 2) hα n
+    have h1 := jacobiPolyP_one_ne_zero (β := -1 / 2) hα n
     rw [mul_div_mul_left _ _ (div_ne_zero hp1 hp2), mul_div_mul_left _ _ (div_ne_zero hpl hph)]
   rcases eq_or_ne α (-1 / 2) with rfl | hα2
   · have hc : ∀ y : ℂ, ∀ g : ℂ → ℂ, Continuous g → ∀ m,
-        ContinuousAt (fun α => jacobiP α (g α) m y) (-1 / 2) :=
-      fun y g hg m => continuousAt_jacobiP hg m y (by norm_num)
-    refine eq_at_neg_half (F := fun α => jacobiP α α (2 * n) x / jacobiP α α (2 * n) 1)
-      (G := fun α => jacobiP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (-1 / 2) n 1) ?_ ?_
+        ContinuousAt (fun α => jacobiPolyP α (g α) m y) (-1 / 2) :=
+      fun y g hg m => continuousAt_jacobiPolyP hg m y (by norm_num)
+    refine eq_at_neg_half (F := fun α => jacobiPolyP α α (2 * n) x / jacobiPolyP α α (2 * n) 1)
+      (G := fun α => jacobiPolyP α (-1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (-1 / 2) n 1) ?_ ?_
       generic
     · exact (hc x id continuous_id _).div (hc 1 id continuous_id _)
-        (jacobiP_one_ne_zero (by norm_num) _)
+        (jacobiPolyP_one_ne_zero (by norm_num) _)
     · exact (hc _ _ continuous_const _).div (hc 1 _ continuous_const _)
-        (jacobiP_one_ne_zero (by norm_num) _)
+        (jacobiPolyP_one_ne_zero (by norm_num) _)
   · exact generic α hα hα2
 
 @[dlmf 18.7.E14]
 theorem jacobi_quadratic_odd {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
-    jacobiP α α (2 * n + 1) x / jacobiP α α (2 * n + 1) 1 =
-      x * jacobiP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (1 / 2) n 1 := by
+    jacobiPolyP α α (2 * n + 1) x / jacobiPolyP α α (2 * n + 1) 1 =
+      x * jacobiPolyP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (1 / 2) n 1 := by
   -- the generic case, from the Gegenbauer form
   have generic : ∀ α : ℂ, -1 < α.re → α ≠ -1 / 2 →
-      jacobiP α α (2 * n + 1) x / jacobiP α α (2 * n + 1) 1 =
-        x * jacobiP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (1 / 2) n 1 := by
+      jacobiPolyP α α (2 * n + 1) x / jacobiPolyP α α (2 * n + 1) 1 =
+        x * jacobiPolyP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (1 / 2) n 1 := by
     intro α hα hα2
     set lam := α + 1 / 2 with hlamdef
     have hlam : -1 / 2 < lam.re := by simp [lam]; linarith
@@ -554,30 +556,31 @@ theorem jacobi_quadratic_odd {α : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :
       have := two_mul_add_one_ne_neg_nat hα hα2 (2 * k)
       apply this; simp only [lam] at hk; push_cast; linear_combination 2 * hk) _
     have hph : poch (1 / 2 : ℂ) (n + 1) ≠ 0 := poch_ne_zero_of_re_pos (by norm_num) _
-    have hg := fun y => gegenbauer_eq_jacobiP (lam := lam) (2 * n + 1) y hp1
-    have hq := fun y => gegenbauer_quadratic_odd hlam n y
+    have hg := fun y => ultrasphPoly_eq_jacobiPolyP (lam := lam) (2 * n + 1) y hp1
+    have hq := fun y => ultrasphPoly_quadratic_odd hlam n y
     have hαl : lam - 1 / 2 = α := by simp [lam]
     rw [hαl] at hg hq
-    have hJ : ∀ y, jacobiP α α (2 * n + 1) y =
+    have hJ : ∀ y, jacobiPolyP α α (2 * n + 1) y =
         poch (lam + 1 / 2) (2 * n + 1) / poch (2 * lam) (2 * n + 1) *
-          gegenbauer lam (2 * n + 1) y := by
+          ultrasphPoly lam (2 * n + 1) y := by
       intro y; rw [hg y, ← mul_assoc, div_mul_div_comm, mul_comm (poch (lam + 1 / 2) (2 * n + 1)),
         div_self (mul_ne_zero hp2 hp1), one_mul]
     rw [hJ, hJ, hq, hq, show (2 : ℂ) * 1 ^ 2 - 1 = 1 by norm_num]
-    have h1 := jacobiP_one_ne_zero (β := 1 / 2) hα n
+    have h1 := jacobiPolyP_one_ne_zero (β := 1 / 2) hα n
     rw [mul_div_mul_left _ _ (div_ne_zero hp1 hp2), mul_one, mul_assoc,
       mul_div_mul_left _ _ (div_ne_zero hpl hph)]
   rcases eq_or_ne α (-1 / 2) with rfl | hα2
   · have hc : ∀ y : ℂ, ∀ g : ℂ → ℂ, Continuous g → ∀ m,
-        ContinuousAt (fun α => jacobiP α (g α) m y) (-1 / 2) :=
-      fun y g hg m => continuousAt_jacobiP hg m y (by norm_num)
-    refine eq_at_neg_half (F := fun α => jacobiP α α (2 * n + 1) x / jacobiP α α (2 * n + 1) 1)
-      (G := fun α => x * jacobiP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiP α (1 / 2) n 1) ?_ ?_
+        ContinuousAt (fun α => jacobiPolyP α (g α) m y) (-1 / 2) :=
+      fun y g hg m => continuousAt_jacobiPolyP hg m y (by norm_num)
+    refine eq_at_neg_half
+        (F := fun α => jacobiPolyP α α (2 * n + 1) x / jacobiPolyP α α (2 * n + 1) 1)
+      (G := fun α => x * jacobiPolyP α (1 / 2) n (2 * x ^ 2 - 1) / jacobiPolyP α (1 / 2) n 1) ?_ ?_
       generic
     · exact (hc x id continuous_id _).div (hc 1 id continuous_id _)
-        (jacobiP_one_ne_zero (by norm_num) _)
+        (jacobiPolyP_one_ne_zero (by norm_num) _)
     · exact (continuousAt_const.mul (hc _ _ continuous_const _)).div (hc 1 _ continuous_const _)
-        (jacobiP_one_ne_zero (by norm_num) _)
+        (jacobiPolyP_one_ne_zero (by norm_num) _)
   · exact generic α hα hα2
 
 /-! ### Analytic generating functions -/
@@ -607,7 +610,7 @@ theorem hasSum_coeff_gegenbauerSeries_mul_pow (lam : ℂ) (θ : ℝ) {z : ℂ} (
       rw [hwdef, ← Complex.exp_neg, Complex.ofReal_cos, Complex.cos]; ring_nf
     have : w * w⁻¹ = 1 := mul_inv_cancel₀ hw0
     linear_combination (-z) * hcos - z ^ 2 * this
-  rw [hx, _root_.mul_cpow_of_re_pos (re_one_sub_mul_pos_of_norm_eq_one hw hz)
+  rw [hx, AAR.Hypergeometric.mul_cpow_of_re_pos (re_one_sub_mul_pos_of_norm_eq_one hw hz)
     (re_one_sub_mul_pos_of_norm_eq_one hwi hz)]
   exact hasSum_coeff_binomProductSeries_mul_pow lam lam h1 h2
 

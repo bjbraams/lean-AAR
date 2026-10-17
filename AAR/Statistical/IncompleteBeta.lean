@@ -21,21 +21,21 @@ For complex `a, b` with positive real parts and `0 ≤ x ≤ 1`,
 `B_x(a,b) = ∫₀ˣ t^{a-1} (1-t)^{b-1} dt`,  `I_x(a,b) = B_x(a,b) / B(a,b)`,
 
 where `B(a,b)` is Mathlib's `Complex.betaIntegral` (DLMF 8.17.1–8.17.2). TauCeti treats the real
-case; `regIncompleteBeta_ofReal` identifies the two.
+case; `Real.normIncBetaI_ofReal` identifies the two.
 
 ## Main results
 
-* `incompleteBeta_one`, `regIncompleteBeta_one`: `B_1(a,b) = B(a,b)`, `I_1(a,b) = 1`.
-* `incompleteBeta_add_incompleteBeta_one_sub`, `regIncompleteBeta_symm`:
+* `Real.incBeta_one`, `Real.normIncBetaI_one`: `B_1(a,b) = B(a,b)`, `I_1(a,b) = 1`.
+* `Real.incBeta_add_incBeta_one_sub`, `Real.normIncBetaI_symm`:
   `I_x(a,b) + I_{1-x}(b,a) = 1` (DLMF 8.17.4).
-* `incompleteBeta_one_right`, `regIncompleteBeta_one_right`: `I_x(a,1) = x^a`.
-* `incompleteBeta_eq_add`: `B_x(a,b) = B_x(a+1,b) + B_x(a,b+1)`.
-* `incompleteBeta_parts`: `a B_x(a,b+1) - b B_x(a+1,b) = x^a (1-x)^b`.
-* `regIncompleteBeta_add_one_left`, `regIncompleteBeta_add_one_right`: the recurrences
+* `Real.incBeta_one_right`, `Real.normIncBetaI_one_right`: `I_x(a,1) = x^a`.
+* `Real.incBeta_eq_add`: `B_x(a,b) = B_x(a+1,b) + B_x(a,b+1)`.
+* `Real.incBeta_parts`: `a B_x(a,b+1) - b B_x(a+1,b) = x^a (1-x)^b`.
+* `Real.normIncBetaI_add_one_left`, `Real.normIncBetaI_add_one_right`: the recurrences
   DLMF 8.17.20–8.17.21.
-* `regIncompleteBeta_nat`: the binomial sum `I_p(m, n-m+1) = ∑_{j=m}^n C(n,j) p^j (1-p)^{n-j}`
+* `Real.normIncBetaI_nat`: the binomial sum `I_p(m, n-m+1) = ∑_{j=m}^n C(n,j) p^j (1-p)^{n-j}`
   (DLMF 8.17.5).
-* `incompleteBeta_eq_ordinaryHypergeometric`: `B_x(a,b) = xᵃ/a · F(a, 1-b; a+1; x)` for
+* `Real.incBeta_eq_ordinaryHypergeometric`: `B_x(a,b) = xᵃ/a · F(a, 1-b; a+1; x)` for
   `0 < x < 1` (DLMF 8.17.7), from Euler's integral.
 -/
 
@@ -43,6 +43,7 @@ case; `regIncompleteBeta_ofReal` identifies the two.
 
 open Complex Set MeasureTheory intervalIntegral
 open scoped Real
+open AAR.Hypergeometric
 
 noncomputable section
 
@@ -50,12 +51,12 @@ namespace AAR.Statistical
 
 /-- The incomplete Beta function `B_x(a,b) = ∫₀ˣ t^{a-1} (1-t)^{b-1} dt` (DLMF 8.17.1). -/
 @[dlmf 8.17.E1]
-def incompleteBeta (a b : ℂ) (x : ℝ) : ℂ :=
+def Real.incBeta (a b : ℂ) (x : ℝ) : ℂ :=
   ∫ t in (0 : ℝ)..x, (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - 1)
 
 /-- The regularized incomplete Beta function `I_x(a,b) = B_x(a,b)/B(a,b)` (DLMF 8.17.2). -/
 @[dlmf 8.17.E2]
-def regIncompleteBeta (a b : ℂ) (x : ℝ) : ℂ := incompleteBeta a b x / betaIntegral a b
+def Real.normIncBetaI (a b : ℂ) (x : ℝ) : ℂ := Real.incBeta a b x / betaIntegral a b
 
 /-- The Beta integrand is integrable on every subinterval of `[0, 1]`. -/
 lemma intervalIntegrable_beta {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {u v : ℝ}
@@ -72,60 +73,60 @@ lemma betaIntegral_ne_zero {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) : betaInt
   exact mul_ne_zero (Gamma_ne_zero_of_re_pos ha) (Gamma_ne_zero_of_re_pos hb) this
 
 /-- `B_1(a,b) = B(a,b)`. -/
-theorem incompleteBeta_one (a b : ℂ) : incompleteBeta a b 1 = betaIntegral a b := rfl
+theorem Real.incBeta_one (a b : ℂ) : Real.incBeta a b 1 = betaIntegral a b := rfl
 
 /-- `I_1(a,b) = 1`. -/
-theorem regIncompleteBeta_one {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) :
-    regIncompleteBeta a b 1 = 1 := by
-  rw [regIncompleteBeta, incompleteBeta_one, div_self (betaIntegral_ne_zero ha hb)]
+theorem Real.normIncBetaI_one {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) :
+    Real.normIncBetaI a b 1 = 1 := by
+  rw [Real.normIncBetaI, Real.incBeta_one, div_self (betaIntegral_ne_zero ha hb)]
 
 /-- `B_0(a,b) = 0`. -/
 @[simp]
-theorem incompleteBeta_zero (a b : ℂ) : incompleteBeta a b 0 = 0 := by
-  simp [incompleteBeta]
+theorem Real.incBeta_zero (a b : ℂ) : Real.incBeta a b 0 = 0 := by
+  simp [Real.incBeta]
 
 /-- `B_x(a,b) + B_{1-x}(b,a) = B(a,b)` for `0 ≤ x ≤ 1`. -/
-theorem incompleteBeta_add_incompleteBeta_one_sub {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re)
+theorem Real.incBeta_add_incBeta_one_sub {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re)
     {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
-    incompleteBeta a b x + incompleteBeta b a (1 - x) = betaIntegral a b := by
+    Real.incBeta a b x + Real.incBeta b a (1 - x) = betaIntegral a b := by
   have h := intervalIntegral.integral_comp_sub_left (a := 0) (b := 1 - x)
     (fun t : ℝ => (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - 1)) 1
   simp only [sub_sub_cancel, sub_zero] at h
-  have h' : incompleteBeta b a (1 - x) =
+  have h' : Real.incBeta b a (1 - x) =
       ∫ t in x..1, (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - 1) := by
-    rw [incompleteBeta, ← h]
+    rw [Real.incBeta, ← h]
     refine intervalIntegral.integral_congr fun t _ => ?_
     push_cast
     rw [sub_sub_cancel]
     ring
-  rw [h', incompleteBeta, intervalIntegral.integral_add_adjacent_intervals
+  rw [h', Real.incBeta, intervalIntegral.integral_add_adjacent_intervals
     (intervalIntegrable_beta ha hb ⟨le_rfl, zero_le_one⟩ hx)
     (intervalIntegrable_beta ha hb hx ⟨zero_le_one, le_rfl⟩)]
   rfl
 
 /-- **Symmetry** `I_x(a,b) + I_{1-x}(b,a) = 1` (DLMF 8.17.4). -/
 @[dlmf 8.17.E4]
-theorem regIncompleteBeta_symm {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
+theorem Real.normIncBetaI_symm {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    regIncompleteBeta a b x + regIncompleteBeta b a (1 - x) = 1 := by
-  rw [regIncompleteBeta, regIncompleteBeta, betaIntegral_symm a b, ← add_div,
-    incompleteBeta_add_incompleteBeta_one_sub ha hb hx,
+    Real.normIncBetaI a b x + Real.normIncBetaI b a (1 - x) = 1 := by
+  rw [Real.normIncBetaI, Real.normIncBetaI, betaIntegral_symm a b, ← add_div,
+    Real.incBeta_add_incBeta_one_sub ha hb hx,
     div_self (betaIntegral_ne_zero ha hb)]
 
 /-- `B_x(a,1) = x^a / a`. -/
-theorem incompleteBeta_one_right {a : ℂ} (ha : 0 < a.re) (x : ℝ) :
-    incompleteBeta a 1 x = (x : ℂ) ^ a / a := by
+theorem Real.incBeta_one_right {a : ℂ} (ha : 0 < a.re) (x : ℝ) :
+    Real.incBeta a 1 x = (x : ℂ) ^ a / a := by
   have ha0 : a ≠ 0 := fun h => by simp [h] at ha
-  rw [incompleteBeta]
+  rw [Real.incBeta]
   simp only [sub_self, cpow_zero, mul_one]
   rw [integral_cpow (Or.inl (by simp; linarith)), sub_add_cancel, ofReal_zero,
     zero_cpow ha0, sub_zero]
 
 /-- `I_x(a,1) = x^a`. -/
-theorem regIncompleteBeta_one_right {a : ℂ} (ha : 0 < a.re) (x : ℝ) :
-    regIncompleteBeta a 1 x = (x : ℂ) ^ a := by
+theorem Real.normIncBetaI_one_right {a : ℂ} (ha : 0 < a.re) (x : ℝ) :
+    Real.normIncBetaI a 1 x = (x : ℂ) ^ a := by
   have ha0 : a ≠ 0 := fun h => by simp [h] at ha
-  rw [regIncompleteBeta, incompleteBeta_one_right ha x, betaIntegral_eval_one_right ha]
+  rw [Real.normIncBetaI, Real.incBeta_one_right ha x, betaIntegral_eval_one_right ha]
   field_simp
 
 /-- `t^a = t^{a-1} t` for `a ≠ 0`, including `t = 0`. -/
@@ -137,13 +138,13 @@ lemma cpow_eq_cpow_sub_one_mul {a : ℂ} (ha : a ≠ 0) (t : ℂ) : t ^ a = t ^ 
 lemma re_add_one_pos {a : ℂ} (ha : 0 < a.re) : 0 < (a + 1).re := by simp; linarith
 
 /-- `B_x(a,b) = B_x(a+1,b) + B_x(a,b+1)`, from `t + (1 - t) = 1`. -/
-theorem incompleteBeta_eq_add {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
+theorem Real.incBeta_eq_add {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    incompleteBeta a b x = incompleteBeta (a + 1) b x + incompleteBeta a (b + 1) x := by
+    Real.incBeta a b x = Real.incBeta (a + 1) b x + Real.incBeta a (b + 1) x := by
   have ha0 : a ≠ 0 := fun h => by simp [h] at ha
   have hb0 : b ≠ 0 := fun h => by simp [h] at hb
   have h0 : (0 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
-  rw [incompleteBeta, incompleteBeta, incompleteBeta, ← intervalIntegral.integral_add
+  rw [Real.incBeta, Real.incBeta, Real.incBeta, ← intervalIntegral.integral_add
     (intervalIntegrable_beta (re_add_one_pos ha) hb h0 hx)
     (intervalIntegrable_beta ha (re_add_one_pos hb) h0 hx)]
   refine intervalIntegral.integral_congr fun t _ => ?_
@@ -152,9 +153,9 @@ theorem incompleteBeta_eq_add {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : �
   ring
 
 /-- Integration by parts: `a B_x(a,b+1) - b B_x(a+1,b) = x^a (1-x)^b` for `0 ≤ x ≤ 1`. -/
-theorem incompleteBeta_parts {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
+theorem Real.incBeta_parts {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    a * incompleteBeta a (b + 1) x - b * incompleteBeta (a + 1) b x =
+    a * Real.incBeta a (b + 1) x - b * Real.incBeta (a + 1) b x =
       (x : ℂ) ^ a * (1 - (x : ℂ)) ^ b := by
   have ha0 : a ≠ 0 := fun h => by simp [h] at ha
   have h0 : (0 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
@@ -194,27 +195,27 @@ theorem incompleteBeta_parts {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : �
     ((intervalIntegrable_beta ha (re_add_one_pos hb) h0 hx).const_mul a)
     ((intervalIntegrable_beta (re_add_one_pos ha) hb h0 hx).const_mul b),
     intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul] at hftc
-  rw [incompleteBeta, incompleteBeta, hftc]
+  rw [Real.incBeta, Real.incBeta, hftc]
   simp [hF, zero_cpow ha0]
 
 /-- **Recurrence in `a`** (DLMF 8.17.20): `I_x(a+1,b) = I_x(a,b) - x^a (1-x)^b / (a B(a,b))`. -/
 @[dlmf 8.17.E20]
-theorem regIncompleteBeta_add_one_left {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
+theorem Real.normIncBetaI_add_one_left {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    regIncompleteBeta (a + 1) b x =
-      regIncompleteBeta a b x - (x : ℂ) ^ a * (1 - (x : ℂ)) ^ b / (a * betaIntegral a b) := by
+    Real.normIncBetaI (a + 1) b x =
+      Real.normIncBetaI a b x - (x : ℂ) ^ a * (1 - (x : ℂ)) ^ b / (a * betaIntegral a b) := by
   have ha0 : a ≠ 0 := fun h => by simp [h] at ha
-  have hS := incompleteBeta_eq_add ha hb hx
-  have hR := incompleteBeta_parts ha hb hx
-  have hB := incompleteBeta_eq_add ha hb ⟨zero_le_one, le_rfl⟩
+  have hS := Real.incBeta_eq_add ha hb hx
+  have hR := Real.incBeta_parts ha hb hx
+  have hB := Real.incBeta_eq_add ha hb ⟨zero_le_one, le_rfl⟩
   have hrec := betaIntegral_recurrence ha hb
   have hp := betaIntegral_ne_zero (re_add_one_pos ha) hb
   have hB0 := betaIntegral_ne_zero ha hb
-  simp only [incompleteBeta_one] at hB
-  rw [regIncompleteBeta, regIncompleteBeta]
-  generalize incompleteBeta (a + 1) b x = U at *
-  generalize incompleteBeta a (b + 1) x = V at *
-  generalize incompleteBeta a b x = S at *
+  simp only [Real.incBeta_one] at hB
+  rw [Real.normIncBetaI, Real.normIncBetaI]
+  generalize Real.incBeta (a + 1) b x = U at *
+  generalize Real.incBeta a (b + 1) x = V at *
+  generalize Real.incBeta a b x = S at *
   generalize betaIntegral (a + 1) b = P at *
   generalize betaIntegral a (b + 1) = Q at *
   generalize betaIntegral a b = B at *
@@ -224,22 +225,22 @@ theorem regIncompleteBeta_add_one_left {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.r
 
 /-- **Recurrence in `b`** (DLMF 8.17.21): `I_x(a,b+1) = I_x(a,b) + x^a (1-x)^b / (b B(a,b))`. -/
 @[dlmf 8.17.E21]
-theorem regIncompleteBeta_add_one_right {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
+theorem Real.normIncBetaI_add_one_right {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    regIncompleteBeta a (b + 1) x =
-      regIncompleteBeta a b x + (x : ℂ) ^ a * (1 - (x : ℂ)) ^ b / (b * betaIntegral a b) := by
+    Real.normIncBetaI a (b + 1) x =
+      Real.normIncBetaI a b x + (x : ℂ) ^ a * (1 - (x : ℂ)) ^ b / (b * betaIntegral a b) := by
   have hb0 : b ≠ 0 := fun h => by simp [h] at hb
-  have hS := incompleteBeta_eq_add ha hb hx
-  have hR := incompleteBeta_parts ha hb hx
-  have hB := incompleteBeta_eq_add ha hb ⟨zero_le_one, le_rfl⟩
+  have hS := Real.incBeta_eq_add ha hb hx
+  have hR := Real.incBeta_parts ha hb hx
+  have hB := Real.incBeta_eq_add ha hb ⟨zero_le_one, le_rfl⟩
   have hrec := betaIntegral_recurrence ha hb
   have hq := betaIntegral_ne_zero ha (re_add_one_pos hb)
   have hB0 := betaIntegral_ne_zero ha hb
-  simp only [incompleteBeta_one] at hB
-  rw [regIncompleteBeta, regIncompleteBeta]
-  generalize incompleteBeta (a + 1) b x = U at *
-  generalize incompleteBeta a (b + 1) x = V at *
-  generalize incompleteBeta a b x = S at *
+  simp only [Real.incBeta_one] at hB
+  rw [Real.normIncBetaI, Real.normIncBetaI]
+  generalize Real.incBeta (a + 1) b x = U at *
+  generalize Real.incBeta a (b + 1) x = V at *
+  generalize Real.incBeta a b x = S at *
   generalize betaIntegral (a + 1) b = P at *
   generalize betaIntegral a (b + 1) = Q at *
   generalize betaIntegral a b = B at *
@@ -258,11 +259,11 @@ lemma betaIntegral_ofReal {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
 
 /-- For real positive parameters and `0 ≤ x ≤ 1`, `I_x(a,b)` is TauCeti's
 `regularizedIncompleteBeta`. -/
-theorem regIncompleteBeta_ofReal {a b : ℝ} (ha : 0 < a) (hb : 0 < b) {x : ℝ}
+theorem Real.normIncBetaI_ofReal {a b : ℝ} (ha : 0 < a) (hb : 0 < b) {x : ℝ}
     (hx : x ∈ Icc (0 : ℝ) 1) :
-    regIncompleteBeta a b x = (TauCeti.regularizedIncompleteBeta a b x : ℂ) := by
+    Real.normIncBetaI a b x = (TauCeti.regularizedIncompleteBeta a b x : ℂ) := by
   rw [TauCeti.regularizedIncompleteBeta_def_of_mem_Icc ha hb hx, ofReal_div,
-    ← betaIntegral_ofReal ha hb, regIncompleteBeta, incompleteBeta,
+    ← betaIntegral_ofReal ha hb, Real.normIncBetaI, Real.incBeta,
     ← intervalIntegral.integral_ofReal]
   congr 1
   refine intervalIntegral.integral_congr fun t ht => ?_
@@ -275,38 +276,38 @@ theorem regIncompleteBeta_ofReal {a b : ℝ} (ha : 0 < a) (hb : 0 < b) {x : ℝ}
 /-- **The binomial sum** (DLMF 8.17.5): for `1 ≤ m ≤ n` and `0 ≤ p ≤ 1`,
 `I_p(m, n-m+1) = ∑_{j=m}^n C(n,j) p^j (1-p)^{n-j}`. -/
 @[dlmf 8.17.E5]
-theorem regIncompleteBeta_nat {m n : ℕ} (hm : 1 ≤ m) (hmn : m ≤ n) {p : ℝ}
+theorem Real.normIncBetaI_nat {m n : ℕ} (hm : 1 ≤ m) (hmn : m ≤ n) {p : ℝ}
     (hp : p ∈ Icc (0 : ℝ) 1) :
-    regIncompleteBeta m ((n : ℂ) - m + 1) p =
+    Real.normIncBetaI m ((n : ℂ) - m + 1) p =
       ∑ k ∈ Finset.Icc m n, (n.choose k : ℂ) * (p : ℂ) ^ k * (1 - (p : ℂ)) ^ (n - k) := by
   have hm' : (0 : ℝ) < m := by exact_mod_cast hm
   have hb : (0 : ℝ) < (n : ℝ) - m + 1 := by
     have : (m : ℝ) ≤ n := by exact_mod_cast hmn
     linarith
   have h := TauCeti.Probability.sum_Icc_choose_mul_pow_eq_regularizedIncompleteBeta hmn ⟨p, hp⟩
-  rw [show regIncompleteBeta (m : ℂ) ((n : ℂ) - m + 1) p =
-      regIncompleteBeta ((m : ℝ) : ℂ) (((n : ℝ) - m + 1 : ℝ) : ℂ) p by push_cast; rfl,
-    regIncompleteBeta_ofReal hm' hb hp, ← h]
+  rw [show Real.normIncBetaI (m : ℂ) ((n : ℂ) - m + 1) p =
+      Real.normIncBetaI ((m : ℝ) : ℂ) (((n : ℝ) - m + 1 : ℝ) : ℂ) p by push_cast; rfl,
+    Real.normIncBetaI_ofReal hm' hb hp, ← h]
   push_cast
   rfl
 
 /-- The hypergeometric form `B_x(a,b) = xᵃ/a · F(a, 1-b; a+1; x)` for `0 < x < 1`
 (DLMF 8.17.7), from Euler's integral after the substitution `t = xs`. -/
 @[dlmf 8.17.E7]
-theorem incompleteBeta_eq_ordinaryHypergeometric {a : ℂ} (ha : 0 < a.re) (b : ℂ) {x : ℝ}
+theorem Real.incBeta_eq_ordinaryHypergeometric {a : ℂ} (ha : 0 < a.re) (b : ℂ) {x : ℝ}
     (hx0 : 0 < x) (hx1 : x < 1) :
-    incompleteBeta a b x = (x : ℂ) ^ a / a * ₂F₁ a (1 - b) (a + 1) (x : ℂ) := by
+    Real.incBeta a b x = (x : ℂ) ^ a / a * ₂F₁ a (1 - b) (a + 1) (x : ℂ) := by
   have ha0 : a ≠ 0 := fun h => by rw [h] at ha; simp at ha
   have hxn : ‖(x : ℂ)‖ < 1 := by rw [norm_real, Real.norm_of_nonneg hx0.le]; exact hx1
   have hE := ordinaryHypergeometric_eq_integral (a := 1 - b) (b := a) (c := a + 1)
     ha (by simp) hxn
   rw [show a + 1 - a = 1 by ring, Gamma_one, mul_one, Gamma_add_one a ha0] at hE
-  have hsub : incompleteBeta a b x = (x : ℂ) * ∫ s in (0 : ℝ)..1,
+  have hsub : Real.incBeta a b x = (x : ℂ) * ∫ s in (0 : ℝ)..1,
       ((x * s : ℝ) : ℂ) ^ (a - 1) * (1 - ((x * s : ℝ) : ℂ)) ^ (b - 1) := by
     have h := intervalIntegral.integral_comp_mul_left
       (fun t : ℝ => (t : ℂ) ^ (a - 1) * (1 - (t : ℂ)) ^ (b - 1)) (a := 0) (b := 1) hx0.ne'
     rw [mul_zero, mul_one] at h
-    rw [incompleteBeta, h, real_smul, ← mul_assoc, ← ofReal_mul, mul_inv_cancel₀ hx0.ne',
+    rw [Real.incBeta, h, real_smul, ← mul_assoc, ← ofReal_mul, mul_inv_cancel₀ hx0.ne',
       ofReal_one, one_mul]
   have hΓ : Gamma a ≠ 0 := Gamma_ne_zero_of_re_pos ha
   rw [hsub, AAR.Hypergeometric.ordinaryHypergeometric_symm, hE, mul_div_assoc, div_self hΓ,

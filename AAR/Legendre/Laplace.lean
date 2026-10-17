@@ -45,9 +45,9 @@ lemma one_sub_inv_sq_mem_cutPlane {z : ℂ} (hz : 0 < z.re) : 1 - 1 / z ^ 2 ∈ 
 
 /-- Near `x ∈ (1, √2)`, Gauss's quadratic transformation and Pfaff's transformation give
 `P_ν(x) = x^ν F(-ν/2, (1-ν)/2; 1; 1 - 1/x²)`. -/
-lemma legendreFunP_eq_pfaff_real (ν : ℂ) {x : ℝ} (hx1 : 1 < x) (hx2 : x ^ 2 < 2) :
-    legendreFunP ν x = (x : ℂ) ^ ν *
-      gaussHGCut (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / (x : ℂ) ^ 2) := by
+lemma legendreP_eq_pfaff_real (ν : ℂ) {x : ℝ} (hx1 : 1 < x) (hx2 : x ^ 2 < 2) :
+    legendreP ν x = (x : ℂ) ^ ν *
+      regularizedGaussHG (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / (x : ℂ) ^ 2) := by
   have h1 : ∀ k : ℕ, (1 : ℂ) ≠ -(k : ℂ) := fun k h => by
     have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
   set w : ℂ := (1 - x) / 2 with hw
@@ -67,13 +67,13 @@ lemma legendreFunP_eq_pfaff_real (ν : ℂ) {x : ℝ} (hx1 : 1 < x) (hx2 : x ^ 2
   have hu : ((1 - x ^ 2 : ℝ) : ℂ) ∈ cutPlane := by
     rw [mem_cutPlane, show (1 : ℂ) - ((1 - x ^ 2 : ℝ) : ℂ) = ((x ^ 2 : ℝ) : ℂ) by push_cast; ring]
     exact Or.inl (by simp only [ofReal_re]; positivity)
-  have hpf := gaussHGCut_pfaff (-ν / 2) ((ν + 1) / 2) 1 hu
+  have hpf := regularizedGaussHG_pfaff (-ν / 2) ((ν + 1) / 2) 1 hu
   have hu1 : ‖((1 - x ^ 2 : ℝ) : ℂ)‖ < 1 := by rw [← hq]; exact hqn
-  have e1 : legendreFunP ν x = ₂F₁ (-ν) (ν + 1) 1 w := by
-    rw [ordinaryHypergeometric_eq_Gamma_mul_gaussHGCut h1 hwn, Gamma_one, one_mul]; rfl
+  have e1 : legendreP ν x = ₂F₁ (-ν) (ν + 1) 1 w := by
+    rw [ordinaryHypergeometric_eq_Gamma_mul_regularizedGaussHG h1 hwn, Gamma_one, one_mul]; rfl
   have e2 : ₂F₁ (-ν / 2) ((ν + 1) / 2) 1 (((1 - x ^ 2 : ℝ) : ℂ)) =
-      gaussHGCut (-ν / 2) ((ν + 1) / 2) 1 (((1 - x ^ 2 : ℝ) : ℂ)) := by
-    rw [ordinaryHypergeometric_eq_Gamma_mul_gaussHGCut h1 hu1, Gamma_one, one_mul]
+      regularizedGaussHG (-ν / 2) ((ν + 1) / 2) 1 (((1 - x ^ 2 : ℝ) : ℂ)) := by
+    rw [ordinaryHypergeometric_eq_Gamma_mul_regularizedGaussHG h1 hu1, Gamma_one, one_mul]
   have hxc : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx0.ne'
   have hpow : (1 - ((1 - x ^ 2 : ℝ) : ℂ)) ^ (-(-ν / 2)) = (x : ℂ) ^ ν := by
     rw [show (1 - ((1 - x ^ 2 : ℝ) : ℂ)) = (x : ℂ) ^ (2 : ℕ) by push_cast; ring,
@@ -87,21 +87,21 @@ lemma legendreFunP_eq_pfaff_real (ν : ℂ) {x : ℝ} (hx1 : 1 < x) (hx2 : x ^ 2
 
 /-- `P_ν(z) = z^ν 𝐅(-ν/2, (1-ν)/2; 1; 1 - 1/z²)` for `Re z > 0`, from Gauss's quadratic
 transformation (DLMF 15.8.18) and Pfaff's transformation, extended by the identity principle. -/
-theorem legendreFunP_eq_cpow_mul (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
-    legendreFunP ν z = z ^ ν * gaussHGCut (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / z ^ 2) := by
+theorem legendreP_eq_cpow_mul (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    legendreP ν z = z ^ ν * regularizedGaussHG (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / z ^ 2) := by
   set U : Set ℂ := {z | 0 < z.re}
   have hU : IsPreconnected U := (convex_halfSpace_re_gt 0).isPreconnected
-  have hf : AnalyticOnNhd ℂ (legendreFunP ν) U := by
+  have hf : AnalyticOnNhd ℂ (legendreP ν) U := by
     intro w hw
     have hs : 1 + w ∈ slitPlane := Or.inl (by simp; linarith [show 0 < w.re from hw])
-    exact (analyticAt_gaussHGCut _ _ _ (mem_cutPlane_of_one_add hs)).comp_of_eq
+    exact (analyticAt_regularizedGaussHG _ _ _ (mem_cutPlane_of_one_add hs)).comp_of_eq
       (by fun_prop) rfl
   have hg : AnalyticOnNhd ℂ
-      (fun z : ℂ => z ^ ν * gaussHGCut (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / z ^ 2)) U := by
+      (fun z : ℂ => z ^ ν * regularizedGaussHG (-ν / 2) ((1 - ν) / 2) 1 (1 - 1 / z ^ 2)) U := by
     intro w hw
     have hw0 : w ≠ 0 := by rintro rfl; simp [U] at hw
     exact (analyticAt_id.cpow analyticAt_const (Or.inl hw)).mul
-      ((analyticAt_gaussHGCut _ _ _ (one_sub_inv_sq_mem_cutPlane hw)).comp_of_eq
+      ((analyticAt_regularizedGaussHG _ _ _ (one_sub_inv_sq_mem_cutPlane hw)).comp_of_eq
         (by fun_prop (disch := exact pow_ne_zero 2 hw0)) rfl)
   have hx0 : ((6 / 5 : ℝ) : ℂ) ∈ U := by simp [U]
   refine hf.eqOn_of_preconnected_of_frequently_eq hg hU hx0 ?_ hz
@@ -114,7 +114,7 @@ theorem legendreFunP_eq_cpow_mul (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
   apply Eventually.frequently
   filter_upwards [nhdsWithin_le_nhds (Ioo_mem_nhds (show (1 : ℝ) < 6 / 5 by norm_num)
     (show (6 / 5 : ℝ) < 7 / 5 by norm_num))] with r hr
-  exact legendreFunP_eq_pfaff_real ν hr.1 (by nlinarith [hr.1, hr.2])
+  exact legendreP_eq_pfaff_real ν hr.1 (by nlinarith [hr.1, hr.2])
 
 
 /-- Duplication for Pochhammer symbols: `(a)₂ₘ = 4ᵐ (a/2)ₘ ((a+1)/2)ₘ`. -/
@@ -225,8 +225,8 @@ lemma integral_one_add_mul_cos_cpow (ν : ℂ) {r : ℝ} (hr0 : 0 ≤ r) (hr : r
 
 /-- **Laplace's first integral** `P_ν(x) = π⁻¹ ∫₀^π (x + √(x²-1) cos φ)^ν dφ` for real `x ≥ 1`
 and every complex `ν` (Temme §8.6). -/
-theorem legendreFunP_laplace (ν : ℂ) {x : ℝ} (hx : 1 ≤ x) :
-    legendreFunP ν x =
+theorem legendreP_laplace (ν : ℂ) {x : ℝ} (hx : 1 ≤ x) :
+    legendreP ν x =
       1 / π * ∫ φ in (0 : ℝ)..π, (((x + Real.sqrt (x ^ 2 - 1) * Real.cos φ : ℝ)) : ℂ) ^ ν := by
   have hx0 : (0 : ℝ) < x := by linarith
   set r := Real.sqrt (1 - 1 / x ^ 2) with hr
@@ -251,10 +251,10 @@ theorem legendreFunP_laplace (ν : ℂ) {x : ℝ} (hx : 1 ≤ x) :
   have hrc : ‖((r : ℂ)) ^ 2‖ < 1 := by
     rw [norm_pow, norm_real, Real.norm_of_nonneg hr0]; nlinarith
   rw [hint, integral_one_add_mul_cos_cpow ν hr0 hr1,
-    legendreFunP_eq_cpow_mul ν (by simpa using hx0)]
+    legendreP_eq_cpow_mul ν (by simpa using hx0)]
   have harg : 1 - 1 / (x : ℂ) ^ 2 = (r : ℂ) ^ 2 := by
     rw [show (r : ℂ) ^ 2 = ((r ^ 2 : ℝ) : ℂ) by push_cast; ring, hr2]; push_cast; ring
-  rw [harg, gaussHGCut_eq_regularized _ _ _ hrc]
+  rw [harg, regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hrc]
   have hpi : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   field_simp
 
