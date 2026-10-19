@@ -188,7 +188,7 @@ lemma natDegree_reflectedPolynomial_le (n : ℕ) (f : ℂ[X]) :
 lemma coeff_reflectedPolynomial (n : ℕ) (f : ℂ[X]) (j : ℕ) :
     (reflectedPolynomial n f).coeff j = if j ≤ n then star (f.coeff (n - j)) else 0 := by
   unfold reflectedPolynomial
-  rw [finset_sum_coeff]
+  rw [finsetSum_coeff]
   simp only [coeff_C_mul_X_pow]
   split_ifs with hj
   · rw [Finset.sum_eq_single j]

@@ -5,6 +5,10 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.PSeriesComplex
+
+public import Mathlib.Analysis.Complex.LocallyUniformLimit
+
 public import AAR.Gamma.Basic
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.ZetaValues

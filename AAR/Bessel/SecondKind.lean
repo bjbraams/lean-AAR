@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Calculus.UniformLimitsDeriv
+
 public import AAR.Bessel.Theorems
 public import AAR.Confluent.BasicProperties
 

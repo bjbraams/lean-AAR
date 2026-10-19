@@ -15,6 +15,9 @@ public import ToMathlib.Analysis.Asymptotics.AsymptoticExpansion
 public import ToMathlib.Analysis.Asymptotics.Watson
 public import ToMathlib.Analysis.Integral.Laplace
 public import ToMathlib.Analysis.Complex.Carlson
+public import ToMathlib.Analysis.ODE.SturmComparison
+public import ToMathlib.Analysis.ODE.SoninePolya
+public import ToMathlib.Analysis.ODE.Volterra
 
 /-!
 # Supporting results for Mathlib
@@ -29,4 +32,9 @@ the namespaces of the Mathlib APIs they extend. These modules import Mathlib onl
 * `ToMathlib.Analysis.Asymptotics.Watson`: Watson's lemma for Laplace transforms.
 * `ToMathlib.Analysis.Integral.Laplace`: quantitative Laplace asymptotics with a quadratic
   phase (a copy of the `lean-codes` module of the same path).
+* `ToMathlib.Analysis.ODE.SturmComparison`: Sturm's comparison and separation theorems for
+  `(p y')' + q y = 0`.
+* `ToMathlib.Analysis.ODE.SoninePolya`: the Sonine–Pólya theorem on relative maxima.
+* `ToMathlib.Analysis.ODE.Volterra`: the Volterra integral equation and Gronwall-type
+  perturbation estimate for `u'' + ω² u = g u`.
 -/

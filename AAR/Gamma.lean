@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.Gamma.RatioBounds
 public import AAR.Gamma.Basic
 public import AAR.Gamma.Digamma
 public import AAR.Gamma.Dirichlet

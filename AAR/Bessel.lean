@@ -8,10 +8,15 @@ module
 public import AAR.Bessel.Asymptotics
 public import AAR.Bessel.Basic
 public import AAR.Bessel.BesselIntegral
+public import AAR.Bessel.Elementary
 public import AAR.Bessel.KIntegrals
+public import AAR.Bessel.IntegralTransforms
+public import AAR.Bessel.LaplaceTransform
+public import AAR.Bessel.LargeOrder
 public import AAR.Bessel.Lommel
 public import AAR.Bessel.Modified
 public import AAR.Bessel.SecondKind
+public import AAR.Bessel.SturmZeros
 public import AAR.Bessel.Theorems
 public import AAR.Bessel.WeberSeries
 public import AAR.Bessel.Zeros

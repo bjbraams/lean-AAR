@@ -8,6 +8,7 @@ module
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
+public import AAR.Confluent.MobiusTaylor
 public import Mathlib.Analysis.Complex.TaylorSeries
 
 /-!
@@ -16,6 +17,11 @@ public import Mathlib.Analysis.Complex.TaylorSeries
 For U and Whittaker addition formulas, `Re x > 0` keeps the Taylor domain
 on the principal branch. Downward shifts of ordinary M exclude integer denominator
 parameters: the old formulas at `b = 1` discarded nonzero limiting terms as `0 * 0`.
+The product proofs use the Mathlib contributors’ zero-derivative constancy and
+complex-power calculus, together with the local Kummer contiguous relations.
+First-parameter additions use the unit-disk Taylor expansions in `MobiusTaylor`.
+Their four Whittaker adapters check the principal powers with positive-real-part
+ratios, retaining the original convergence and exceptional-parameter hypotheses.
 -/
 
 @[expose] public section
@@ -169,13 +175,140 @@ lemma div_cpow_mul_eq_taylor {F : ℂ → ℂ} (hF : Differentiable ℂ F) {x y 
     simp only [hg]; rw [hw]; field_simp
   rw [heq.iteratedDeriv_eq, iteratedDeriv_const_mul_field]
 
+/-- Principal powers in the first-parameter addition prefactor. -/
+lemma cpow_first_parameter_prefactor {x y : ℂ} (hx : 0 < x.re)
+    (hy : -1 / 2 < (y / x).re) (s a : ℂ) :
+    (x + y) ^ s * (x / (x + y)) ^ a = ((x + y) / x) ^ (s - a) * x ^ s := by
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hr : 0 < ((x + y) / x).re := by
+    rw [add_div, div_self hx0]; simp only [add_re, one_re]; linarith
+  have hr0 := slitPlane_ne_zero (Or.inl hr : (x + y) / x ∈ slitPlane)
+  have harg : ((x + y) / x).arg ≠ Real.pi := by
+    have := abs_lt.mp (abs_arg_lt_pi_div_two_iff.mpr (Or.inl hr)); linarith [Real.pi_pos]
+  have hp : (x + y) ^ s = ((x + y) / x) ^ s * x ^ s := by
+    rw [← cpow_mul_of_re_pos hr hx, div_mul_cancel₀ _ hx0]
+  rw [hp, show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    inv_cpow _ _ harg, ← cpow_neg, mul_right_comm _ (x ^ s), ← cpow_add _ _ hr0,
+    sub_eq_add_neg]
+
+/-- The reverse-ratio form of the same first-parameter prefactor. -/
+lemma cpow_first_parameter_prefactor_inv {x y : ℂ} (hx : 0 < x.re)
+    (hy : -1 / 2 < (y / x).re) (s a : ℂ) :
+    (x + y) ^ s * (x / (x + y)) ^ a = (x / (x + y)) ^ (a - s) * x ^ s := by
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hr : 0 < ((x + y) / x).re := by
+    rw [add_div, div_self hx0]; simp only [add_re, one_re]; linarith
+  have harg : ((x + y) / x).arg ≠ Real.pi := by
+    have := abs_lt.mp (abs_arg_lt_pi_div_two_iff.mpr (Or.inl hr)); linarith [Real.pi_pos]
+  rw [cpow_first_parameter_prefactor hx hy,
+    show x / (x + y) = ((x + y) / x)⁻¹ from (inv_div _ _).symm,
+    inv_cpow _ _ harg, ← cpow_neg, neg_sub]
+
 @[dlmf 13.12.E1]
 theorem kummerM_product {a b z : ℂ} (hb : ∀ k : ℕ, b ≠ -k) (hb1 : ∀ k : ℕ, 1 - b ≠ -k)
     (hb0 : b ≠ 0) (hb2 : b ≠ 1) (hb3 : b ≠ -1) :
     kummerM a b z * kummerM (-a) (-b) (-z) +
       a * (a - b) * z ^ 2 / (b ^ 2 * (1 - b ^ 2)) *
         kummerM (1 + a) (2 + b) z * kummerM (1 - a) (2 - b) (-z) = 1 := by
-  sorry
+  have hmb : ∀ k : ℕ, -b ≠ -(k : ℂ) := by
+    intro k hk
+    cases k with
+    | zero => exact hb0 (by simpa using hk)
+    | succ k =>
+      apply hb1 k
+      push_cast at hk
+      linear_combination hk
+  have hbp : ∀ k : ℕ, b + 1 ≠ -(k : ℂ) := by simpa using not_neg_nat_add_nat hb 1
+  have hbpp : ∀ k : ℕ, b + 2 ≠ -(k : ℂ) := not_neg_nat_add_nat hb 2
+  have hqb : ∀ k : ℕ, 2 - b ≠ -(k : ℂ) := by
+    simpa only [Nat.cast_one, show 1 - b + (1 : ℂ) = 2 - b by ring] using not_neg_nat_add_nat hb1 1
+  let U := kummerM a b
+  let V : ℂ → ℂ := fun w => kummerM (-a) (-b) (-w)
+  let P := kummerM (a + 1) (b + 2)
+  let Q : ℂ → ℂ := fun w => kummerM (1 - a) (2 - b) (-w)
+  let c := a * (a - b) / (b ^ 2 * (1 - b ^ 2))
+  let F : ℂ → ℂ := fun w => U w * V w + c * w ^ 2 * P w * Q w
+  have hder (w : ℂ) : HasDerivAt F
+      ((a / b * kummerM (a + 1) (b + 1) w) * V w +
+        U w * (-(a / b) * kummerM (1 - a) (1 - b) (-w)) +
+        c * 2 * w * P w * Q w + c * w ^ 2 * deriv P w * Q w +
+        c * w ^ 2 * P w * deriv Q w) w := by
+    have hU := hasDerivAt_kummerM_shift (a := a) hb w
+    have hV := (hasDerivAt_kummerM_shift (a := -a) hmb (-w)).comp w (hasDerivAt_neg w)
+    have hP := (hasDerivAt_kummerM_shift (a := a + 1) hbpp w).differentiableAt.hasDerivAt
+    have hQ : HasDerivAt Q (deriv Q w) w :=
+      ((hasDerivAt_kummerM_shift (a := 1 - a) hqb (-w)).comp w
+        (hasDerivAt_neg w)).differentiableAt.hasDerivAt
+    have hV' : HasDerivAt V (-(a / b) * kummerM (1 - a) (1 - b) (-w)) w := by
+      convert hV using 1 <;> simp only [V, Function.comp_def,
+        show -a + 1 = 1 - a by ring, show -b + 1 = 1 - b by ring] <;> ring
+    change HasDerivAt F _ w
+    convert (hU.mul hV').add (((((hasDerivAt_id w).pow 2).const_mul c).mul hP).mul hQ) using 1
+    · rfl
+    · simp only [Pi.mul_apply, Pi.pow_apply, id_eq, Nat.cast_ofNat, mul_one]
+      dsimp only [P, U]
+      ring
+  have hzder (w : ℂ) (hw : w ≠ 0) : deriv F w = 0 := by
+    have hP := z_mul_deriv_kummerM_eq_shift_b_pred (a := a + 1) (b := b + 2)
+      (by simpa only [show b + 2 - 1 = b + 1 by ring] using hbp) w
+    have hQ := z_mul_deriv_kummerM_eq_shift_b_pred (a := 1 - a) (b := 2 - b)
+      (by simpa only [show 2 - b - 1 = 1 - b by ring] using hb1) (-w)
+    have hs := kummerM_contiguous_up_shift_aux (a := a + 1) (b := b + 1)
+      (by simpa using hb) (z := w)
+    have ht := kummerM_contiguous_up_shift_aux (a := 1 - a) (b := 1 - b)
+      (by simpa using hmb) (z := -w)
+    have hQd : deriv Q w = -deriv (kummerM (1 - a) (2 - b)) (-w) := by
+      exact (((hasDerivAt_kummerM_shift (a := 1 - a) hqb (-w)).comp w
+        (hasDerivAt_neg w)).deriv).trans (by
+          rw [(hasDerivAt_kummerM_shift (a := 1 - a) hqb (-w)).deriv]; ring)
+    rw [(hder w).deriv]
+    dsimp [U, V, P, c]
+    rw [hQd]
+    simp only [show a + 1 - 1 = a by ring, show b + 1 - 1 = b by ring,
+      show 1 - a - 1 = -a by ring, show 1 - b - 1 = -b by ring,
+      show (b + 2 : ℂ) - 1 = b + 1 by ring,
+      show (2 : ℂ) - b - 1 = 1 - b by ring,
+      show (b + 1 : ℂ) + 1 = b + 2 by ring,
+      show (1 : ℂ) - b + 1 = 2 - b by ring] at hP hQ hs ht
+    dsimp [Q]
+    have hbpm : 1 - b ^ 2 ≠ 0 := by
+      intro hh
+      have : (b - 1) * (b + 1) = 0 := by linear_combination -hh
+      rcases mul_eq_zero.mp this with he | he
+      · exact hb2 (by linear_combination he)
+      · exact hb3 (by linear_combination he)
+    have hbplus : b + 1 ≠ 0 := by simpa using hbp 0
+    have hbminus : b - 1 ≠ 0 := sub_ne_zero.mpr hb2
+    have hs' : kummerM (a + 1) (b + 1) w = kummerM a b w +
+        (b - a) * w / (b * (b + 1)) * kummerM (a + 1) (b + 2) w := by
+      field_simp
+      linear_combination -hs
+    have ht' : kummerM (1 - a) (1 - b) (-w) = kummerM (-a) (-b) (-w) +
+        (b - a) * w / (b * (b - 1)) * kummerM (1 - a) (2 - b) (-w) := by
+      field_simp
+      linear_combination -ht
+    have hP' : deriv (kummerM (a + 1) (b + 2)) w = (b + 1) / w *
+        (kummerM (a + 1) (b + 1) w - kummerM (a + 1) (b + 2) w) := by
+      field_simp
+      linear_combination hP
+    have hQ' : deriv (kummerM (1 - a) (2 - b)) (-w) = (b - 1) / w *
+        (kummerM (1 - a) (1 - b) (-w) - kummerM (1 - a) (2 - b) (-w)) := by
+      field_simp
+      linear_combination -hQ
+    rw [hP', hQ', hs', ht']
+    field_simp [hb0, hbpm, hbplus, hbminus, hw]
+    ring
+  have hzero : deriv F 0 = 0 := by
+    rw [(hder 0).deriv]
+    simp [U, V, P, Q]
+  have hconst : ∀ w : ℂ, deriv F w = 0 := fun w => by
+    by_cases hw : w = 0
+    · simpa [hw] using hzero
+    · exact hzder w hw
+  -- Mathlib’s constancy theorem identifies this entire expression from its value at zero.
+  have he := is_const_of_deriv_eq_zero (fun w => (hder w).differentiableAt) hconst z 0
+  simpa [F, U, V, P, Q, c, show (1 : ℂ) + a = a + 1 by ring,
+    show (2 : ℂ) + b = b + 2 by ring, div_mul_eq_mul_div, mul_assoc] using he
 
 @[dlmf 13.13.E1]
 theorem kummerM_addition {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
@@ -220,7 +353,11 @@ theorem kummerM_addition_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
     kummerM a b (x + y) =
       (x / (x + y)) ^ a *
         ∑' n : ℕ, poch a n * y ^ n / (n.factorial * (x + y) ^ n) * kummerM (a + n) b x := by
-  sorry
+  have hx0 := slitPlane_ne_zero hx
+  have hxy0 := slitPlane_ne_zero hxy
+  have ht := kummerM_mobius_taylor (a := a) (x := x) hb (norm_div_add_lt_one hx0 hxy0 hy)
+  simpa only [Nat.cast_zero, add_zero] using
+    (of_mobius_taylor (F := fun n => kummerM (a + n) b) hx0 hxy0 (by simpa using ht))
 
 @[dlmf 13.13.E4]
 theorem kummerM_addition_exp {a b x y : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
@@ -251,7 +388,26 @@ theorem kummerM_addition_exp_shift_a {a b x y : ℂ} (hx : x ∈ slitPlane)
       exp y * (x / (x + y)) ^ (b - a) *
         ∑' n : ℕ, poch (b - a) n * y ^ n / (n.factorial * (x + y) ^ n) *
           kummerM (a - n) b x := by
-  sorry
+  have hx0 := slitPlane_ne_zero hx
+  have hxy0 := slitPlane_ne_zero hxy
+  have hy' : -1 / 2 < (y / x).re := by
+    rw [add_div, div_self hx0] at hy
+    simp only [add_re, one_re] at hy
+    linarith
+  have ht := kummerM_exp_mobius_taylor (a := a) (x := x) hb (norm_div_add_lt_one hx0 hxy0 hy')
+  have he := of_mobius_taylor (s := b - a) (C := poch (b - a))
+    (F := fun n z => exp (-z) * kummerM (a - n) b z)
+    hx0 hxy0 (by simpa using ht)
+  simp only [Nat.cast_zero, sub_zero] at he
+  have he' := congrArg (fun z : ℂ => exp (x + y) * z) he
+  simp only [← mul_assoc, ← exp_add, add_neg_cancel, exp_zero, one_mul] at he'
+  rw [he']
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  have hex : exp (x + y) * exp (-x) = exp y := by rw [← exp_add]; congr 1; ring
+  linear_combination ((x / (x + y)) ^ (b - a) *
+    (poch (b - a) n * y ^ n / (n.factorial * (x + y) ^ n)) * kummerM (a - n) b x) * hex
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E6]
@@ -330,7 +486,11 @@ theorem kummerU_addition_shift_a {a b x y : ℂ} (hx : 0 < x.re)
       (x / (x + y)) ^ a *
         ∑' n : ℕ, poch a n * poch (1 + a - b) n * y ^ n / (n.factorial * (x + y) ^ n) *
           kummerU (a + n) b x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hxy0 := slitPlane_ne_zero hxy
+  have ht := kummerU_mobius_taylor a b hx (norm_div_add_lt_one hx0 hxy0 hy)
+  simpa only [Nat.cast_zero, add_zero] using
+    (of_mobius_taylor (F := fun n => kummerU (a + n) b) hx0 hxy0 (by simpa using ht))
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E10]
@@ -360,7 +520,23 @@ theorem kummerU_addition_exp_shift_a {a b x y : ℂ} (hx : 0 < x.re)
     kummerU a b (x + y) =
       exp y * (x / (x + y)) ^ (b - a) *
         ∑' n : ℕ, (-y) ^ n / (n.factorial * (x + y) ^ n) * kummerU (a - n) b x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hxy0 := slitPlane_ne_zero hxy
+  have ht := kummerU_exp_mobius_taylor a b hx (norm_div_add_lt_one hx0 hxy0 hy)
+  have he := of_mobius_taylor (s := b - a) (C := fun n => (-1 : ℂ) ^ n)
+    (F := fun n z => exp (-z) * kummerU (a - n) b z)
+    hx0 hxy0 (by simpa using ht)
+  simp only [Nat.cast_zero, sub_zero] at he
+  have he' := congrArg (fun z : ℂ => exp (x + y) * z) he
+  simp only [← mul_assoc, ← exp_add, add_neg_cancel, exp_zero, one_mul] at he'
+  rw [he']
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  rw [neg_pow]
+  have hex : exp (x + y) * exp (-x) = exp y := by rw [← exp_add]; congr 1; ring
+  linear_combination ((x / (x + y)) ^ (b - a) *
+    ((-1 : ℂ) ^ n * y ^ n / (n.factorial * (x + y) ^ n)) * kummerU (a - n) b x) * hex
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.13.E12]
@@ -390,7 +566,74 @@ theorem whittakerM_product {κ μ z : ℂ} (hμ : ∀ k : ℕ, 2 * μ ≠ -k)
     whittakerM κ μ z * whittakerM κ (-μ - 1) z +
       (1 / 2 + μ + κ) * (1 / 2 + μ - κ) / (4 * μ * (1 + μ) * (1 + 2 * μ) ^ 2) *
         whittakerM κ (μ + 1) z * whittakerM κ (-μ) z = 1 := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  let a := μ - κ + 1 / 2
+  let b := 1 + 2 * μ
+  have hb : ∀ k : ℕ, b ≠ -(k : ℂ) := by
+    simpa only [b, Nat.cast_one, add_comm] using not_neg_nat_add_nat hμ 1
+  have hmb : ∀ k : ℕ, -b ≠ -(k : ℂ) := by
+    intro k hk
+    cases k with
+    | zero => exact hμ3 (by dsimp [b] at hk; norm_num at hk; linear_combination -hk)
+    | succ k =>
+      cases k with
+      | zero => exact hμ1 (by dsimp [b] at hk; norm_num at hk; exact hk)
+      | succ k =>
+        apply hμpos k
+        dsimp [b] at hk
+        push_cast at hk ⊢
+        linear_combination -hk
+  have h1b : ∀ k : ℕ, 1 - b ≠ -(k : ℂ) := by
+    intro k hk
+    cases k with
+    | zero => exact hμ1 (by dsimp [b] at hk; norm_num at hk; exact hk)
+    | succ k =>
+      apply hμpos k
+      dsimp [b] at hk
+      push_cast at hk ⊢
+      linear_combination -hk
+  have h2b : ∀ k : ℕ, 2 - b ≠ -(k : ℂ) := by
+    simpa only [Nat.cast_one, show 1 - b + 1 = 2 - b by ring] using not_neg_nat_add_nat h1b 1
+  have hE : exp (-z / 2) * exp (-z / 2) * exp z = 1 := by
+    rw [← exp_add, ← exp_add, show -z / 2 + -z / 2 + z = 0 by ring, exp_zero]
+  have hpair1 : whittakerM κ μ z * whittakerM κ (-μ - 1) z =
+      kummerM a b z * kummerM (-a) (-b) (-z) := by
+    unfold whittakerM
+    rw [show 1 + 2 * (-μ - 1) = -b by dsimp [b]; ring,
+      kummerM_kummer_transform hmb]
+    rw [show -b - (-μ - 1 - κ + 1 / 2) = -a by dsimp [a, b]; ring]
+    calc
+      _ = (exp (-z / 2) * exp (-z / 2) * exp z) *
+          (z ^ (μ + 1 / 2) * z ^ (-μ - 1 + 1 / 2)) *
+          (kummerM a b z * kummerM (-a) (-b) (-z)) := by dsimp [a, b]; ring
+      _ = _ := by rw [hE, ← cpow_add _ _ hz0, show μ + 1 / 2 + (-μ - 1 + 1 / 2) = 0 by ring]; simp
+  have hpair2 : whittakerM κ (μ + 1) z * whittakerM κ (-μ) z =
+      z ^ 2 * kummerM (1 + a) (2 + b) z * kummerM (1 - a) (2 - b) (-z) := by
+    unfold whittakerM
+    rw [show 1 + 2 * -μ = 2 - b by dsimp [b]; ring,
+      kummerM_kummer_transform h2b]
+    rw [show 2 - b - (-μ - κ + 1 / 2) = 1 - a by dsimp [a, b]; ring]
+    calc
+      _ = (exp (-z / 2) * exp (-z / 2) * exp z) *
+          (z ^ (μ + 1 + 1 / 2) * z ^ (-μ + 1 / 2)) *
+          (kummerM (1 + a) (2 + b) z * kummerM (1 - a) (2 - b) (-z)) := by dsimp [a, b]; ring
+      _ = _ := by
+        rw [hE, ← cpow_add _ _ hz0, show μ + 1 + 1 / 2 + (-μ + 1 / 2) = (2 : ℂ) by ring]
+        simp [cpow_ofNat, mul_assoc]
+  rw [hpair1, mul_assoc _ (whittakerM κ (μ + 1) z), hpair2]
+  have hb0 : b ≠ 0 := hμ3
+  have hb2 : b ≠ 1 := by dsimp [b]; intro he; apply hμ1; linear_combination he / 2
+  have hb3 : b ≠ -1 := by dsimp [b]; intro he; apply hμ2; linear_combination he / 2
+  have h := kummerM_product (a := a) (z := z) hb h1b hb0 hb2 hb3
+  have hc : (1 / 2 + μ + κ) * (1 / 2 + μ - κ) /
+      (4 * μ * (1 + μ) * (1 + 2 * μ) ^ 2) = a * (a - b) / (b ^ 2 * (1 - b ^ 2)) := by
+    dsimp [a, b]
+    rw [show 1 - (1 + 2 * μ) ^ 2 = -4 * μ * (1 + μ) by ring]
+    have hp : 1 + μ ≠ 0 := by intro he; apply hμ2; linear_combination he
+    field_simp [hμ1, hp, hμ3]
+    ring
+  rw [hc]
+  convert h using 1 <;> ring
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E1]
@@ -448,7 +691,21 @@ theorem whittakerM_addition_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (-y / 2) * ((x + y) / x) ^ κ *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n * y ^ n / (n.factorial * (x + y) ^ n) *
           whittakerM (κ - n) μ x := by
-  sorry
+  simp only [whittakerM]
+  rw [kummerM_addition_shift_a (Or.inl hx) hxy hy hμ]
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  rw [show μ - (κ - n) + 1 / 2 = μ - κ + 1 / 2 + n by ring,
+    show 1 / 2 + μ - κ = μ - κ + 1 / 2 by ring]
+  have hp := cpow_first_parameter_prefactor hx hy (μ + 1 / 2) (μ - κ + 1 / 2)
+  rw [show μ + 1 / 2 - (μ - κ + 1 / 2) = κ by ring] at hp
+  have he : exp (-(x + y) / 2) = exp (-y / 2) * exp (-x / 2) := by
+    rw [← exp_add]; congr 1; ring
+  rw [he]
+  linear_combination (exp (-y / 2) * exp (-x / 2) *
+    (poch (μ - κ + 1 / 2) n * y ^ n / (n.factorial * (x + y) ^ n)) *
+      kummerM (μ - κ + 1 / 2 + n) (1 + 2 * μ) x) * hp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E4]
@@ -508,7 +765,27 @@ theorem whittakerM_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (y / 2) * (x / (x + y)) ^ κ *
         ∑' n : ℕ, poch (1 / 2 + μ + κ) n * y ^ n / (n.factorial * (x + y) ^ n) *
           whittakerM (κ + n) μ x := by
-  sorry
+  have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
+  have hy' : -1 / 2 < (y / x).re := by
+    rw [add_div, div_self hx0] at hy
+    simp only [add_re, one_re] at hy; linarith
+  simp only [whittakerM]
+  rw [kummerM_addition_exp_shift_a (Or.inl hx) hxy hy hμ]
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  rw [show μ - (κ + n) + 1 / 2 = μ - κ + 1 / 2 - n by ring,
+    show 1 + 2 * μ - (μ - κ + 1 / 2) = 1 / 2 + μ + κ by ring]
+  have hp := cpow_first_parameter_prefactor_inv hx hy' (μ + 1 / 2) (1 / 2 + μ + κ)
+  rw [show (1 / 2 + μ + κ) - (μ + 1 / 2) = κ by ring] at hp
+  have he : exp (-(x + y) / 2) * exp y = exp (y / 2) * exp (-x / 2) := by
+    rw [← exp_add, ← exp_add]; congr 1; ring
+  linear_combination (exp (-(x + y) / 2) * exp y *
+    (poch (1 / 2 + μ + κ) n * y ^ n / (n.factorial * (x + y) ^ n)) *
+      kummerM (μ - κ + 1 / 2 - n) (1 + 2 * μ) x) * hp +
+    ((x / (x + y)) ^ κ * x ^ (μ + 1 / 2) *
+      (poch (1 / 2 + μ + κ) n * y ^ n / (n.factorial * (x + y) ^ n)) *
+      kummerM (μ - κ + 1 / 2 - n) (1 + 2 * μ) x) * he
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E7]
@@ -566,7 +843,21 @@ theorem whittakerW_addition_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
       exp (-y / 2) * ((x + y) / x) ^ κ *
         ∑' n : ℕ, poch (1 / 2 + μ - κ) n * poch (1 / 2 - μ - κ) n / n.factorial *
           (y / (x + y)) ^ n * whittakerW (κ - n) μ x := by
-  sorry
+  simp only [whittakerW]
+  rw [kummerU_addition_shift_a hx hxy hy]
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  rw [show 1 / 2 + μ - (κ - n) = 1 / 2 + μ - κ + n by ring,
+    show 1 + (1 / 2 + μ - κ) - (1 + 2 * μ) = 1 / 2 - μ - κ by ring, div_pow]
+  have hp := cpow_first_parameter_prefactor hx hy (1 / 2 + μ) (1 / 2 + μ - κ)
+  rw [show 1 / 2 + μ - (1 / 2 + μ - κ) = κ by ring] at hp
+  have he : exp (-(x + y) / 2) = exp (-y / 2) * exp (-x / 2) := by
+    rw [← exp_add]; congr 1; ring
+  rw [he]
+  linear_combination (exp (-y / 2) * exp (-x / 2) *
+    (poch (1 / 2 + μ - κ) n * poch (1 / 2 - μ - κ) n * y ^ n /
+      (n.factorial * (x + y) ^ n)) * kummerU (1 / 2 + μ - κ + n) (1 + 2 * μ) x) * hp
 
 /-- Addition theorem; the series converges for `‖y‖ < ‖x‖`. -/
 @[dlmf 13.26.E10]
@@ -624,6 +915,22 @@ theorem whittakerW_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
     whittakerW κ μ (x + y) =
       exp (y / 2) * (x / (x + y)) ^ κ *
         ∑' n : ℕ, (1 / n.factorial) * (-y / (x + y)) ^ n * whittakerW (κ + n) μ x := by
-  sorry
+  simp only [whittakerW]
+  rw [kummerU_addition_exp_shift_a hx hxy hy]
+  simp only [← tsum_mul_left]
+  apply tsum_congr
+  intro n
+  rw [show 1 / 2 + μ - (κ + n) = 1 / 2 + μ - κ - n by ring,
+    show 1 + 2 * μ - (1 / 2 + μ - κ) = 1 / 2 + μ + κ by ring, div_pow]
+  have hp := cpow_first_parameter_prefactor_inv hx hy (1 / 2 + μ) (1 / 2 + μ + κ)
+  rw [show (1 / 2 + μ + κ) - (1 / 2 + μ) = κ by ring] at hp
+  have he : exp (-(x + y) / 2) * exp y = exp (y / 2) * exp (-x / 2) := by
+    rw [← exp_add, ← exp_add]; congr 1; ring
+  linear_combination (exp (-(x + y) / 2) * exp y *
+    ((-y) ^ n / (n.factorial * (x + y) ^ n)) *
+      kummerU (1 / 2 + μ - κ - n) (1 + 2 * μ) x) * hp +
+    ((x / (x + y)) ^ κ * x ^ (1 / 2 + μ) *
+      ((-y) ^ n / (n.factorial * (x + y) ^ n)) *
+      kummerU (1 / 2 + μ - κ - n) (1 + 2 * μ) x) * he
 
 end AAR.Confluent

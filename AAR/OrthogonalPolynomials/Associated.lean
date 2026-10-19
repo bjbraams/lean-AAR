@@ -10,8 +10,14 @@ public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Hahn
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.Gamma.IntegralRepresentations
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 /-!
 # Associated, Bessel, Pollaczek, Freud, and exceptional polynomials
+
+Finite Bessel orthogonality expands into reciprocal Gamma moments and a finite
+Pochhammer Vandermonde convolution. Mathlib’s inverse-power and exponential changes
+of variables justify the integrals and transfer the Bessel norm to the Morse functions.
 
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
@@ -423,13 +429,282 @@ theorem besselPolynomial_differential_equation (a : ℂ) (n : ℕ) (x : ℂ) :
   have := congrArg (eval x) hQ
   simpa [eval_add, eval_sub, eval_mul] using this
 
+section FiniteBesselOrthogonality
+
+open Set
+
+set_option maxHeartbeats 1000000
+
+/-- A reciprocal Gamma moment, with integrability, from the inverse substitution. -/
+lemma inverse_gamma_moment {s : ℝ} (hs : 0 < s) :
+    IntegrableOn (fun x : ℝ => (x : ℂ) ^ (-s - 1 : ℂ) * exp (-2 / x)) (Ioi 0) ∧
+    (∫ x : ℝ in Ioi 0, (x : ℂ) ^ (-s - 1 : ℂ) * exp (-2 / x)) =
+      (2 : ℂ) ^ (-(s : ℂ)) * Gamma (s : ℂ) := by
+  let g : ℝ → ℝ := fun u => u ^ (s - 1) * Real.exp (-(2 * u))
+  have hg : IntegrableOn g (Ioi 0) := by
+    simpa only [g, Real.rpow_one, neg_mul] using
+      (integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) (s := s - 1) (b := 2)
+        (by linarith) one_pos (by norm_num))
+  have he (x : ℝ) (hx : 0 < x) :
+      (|(-1 : ℝ)| * x ^ ((-1 : ℝ) - 1)) * g (x ^ (-1 : ℝ)) =
+        x ^ (-s - 1) * Real.exp (-2 / x) := by
+    dsimp only [g]
+    rw [show (-1 : ℝ) - 1 = -2 by ring, abs_neg, abs_one, one_mul,
+      Real.rpow_neg_one, Real.inv_rpow hx.le, ← Real.rpow_neg hx.le,
+      ← mul_assoc, ← Real.rpow_add hx]
+    congr 2 <;> ring
+  -- Mathlib's inverse-power substitution transfers integrability as well as the integral.
+  have hi := (integrableOn_Ioi_comp_rpow_iff g (p := (-1 : ℝ)) (by norm_num)).mpr hg
+  simp only [smul_eq_mul] at hi
+  have hi' := hi.congr_fun he measurableSet_Ioi
+  have hreal : (∫ x : ℝ in Ioi 0, x ^ (-s - 1) * Real.exp (-2 / x)) =
+      (2 : ℝ) ^ (-s) * Real.Gamma s := by
+    have h := integral_comp_rpow_Ioi g (p := (-1 : ℝ)) (by norm_num)
+    simp only [smul_eq_mul] at h
+    rw [setIntegral_congr_fun measurableSet_Ioi he] at h
+    rw [h, Real.integral_rpow_mul_exp_neg_mul_Ioi hs (by norm_num)]
+    rw [one_div, Real.inv_rpow (by norm_num : (0 : ℝ) ≤ 2), Real.rpow_neg (by norm_num)]
+  have hc (x : ℝ) (hx : 0 < x) :
+      (x : ℂ) ^ (-s - 1 : ℂ) * exp (-2 / x) =
+        ((x ^ (-s - 1) * Real.exp (-2 / x) : ℝ) : ℂ) := by
+    rw [show (-(s : ℂ) - 1) = ((-s - 1 : ℝ) : ℂ) by push_cast; ring, ← ofReal_cpow hx.le]
+    push_cast
+    rfl
+  refine ⟨hi'.ofReal.congr (ae_restrict_of_forall_mem measurableSet_Ioi (fun x hx => (hc x hx).symm)), ?_⟩
+  rw [setIntegral_congr_fun measurableSet_Ioi hc, integral_complex_ofReal, hreal,
+    ofReal_mul, ofReal_cpow (by norm_num : (0 : ℝ) ≤ 2), ← Gamma_ofReal]
+  norm_cast
+
+/-- A monomial moment of the finite Bessel weight. -/
+lemma bessel_weight_moment {a : ℝ} (j : ℕ) (ha : a + j < 1) :
+    IntegrableOn (fun x : ℝ => (x : ℂ) ^ j *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) (Ioi 0) ∧
+    (∫ x : ℝ in Ioi 0, (x : ℂ) ^ j *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
+      (2 : ℂ) ^ (a + j - 1 : ℂ) * Gamma (1 - a - j : ℂ) := by
+  have hs : 0 < 1 - a - j := by linarith
+  have h := inverse_gamma_moment hs
+  have he (x : ℝ) (hx : 0 < x) : (x : ℂ) ^ j *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ) =
+      (x : ℂ) ^ (-(1 - a - j : ℝ) - 1 : ℂ) * exp (-2 / x) := by
+    rw [ofReal_mul]
+    rw [show ((Real.rpow x (a - 2) : ℝ) : ℂ) = (x : ℂ) ^ ((a : ℂ) - 2) by
+      convert ofReal_cpow hx.le (a - 2) using 1 ; push_cast ; rfl,
+      ofReal_exp]
+    push_cast
+    rw [← cpow_natCast, ← mul_assoc, ← cpow_add _ _ (ofReal_ne_zero.mpr hx.ne')]
+    congr 2
+    ring
+  refine ⟨h.1.congr (ae_restrict_of_forall_mem measurableSet_Ioi (fun x hx => (he x hx).symm)), ?_⟩
+  rw [setIntegral_congr_fun measurableSet_Ioi he, h.2]
+  push_cast
+  congr 2 ; ring
+
+/-- Binomial form of the finite Bessel polynomial. -/
+lemma bessel_binomial_sum (a : ℂ) (n : ℕ) (x : ℂ) :
+    besselPolynomial a n x = ∑ k ∈ Finset.range (n + 1),
+      (n.choose k : ℂ) * poch (n + a - 1) k * (x / 2) ^ k := by
+  unfold besselPolynomial terminatingHG
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, div_one]
+  apply Finset.sum_congr rfl
+  intro k _
+  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose]
+  push_cast
+  rw [neg_div, neg_pow]
+  have hs : (-1 : ℂ) ^ k * (-1) ^ k = 1 := by rw [← mul_pow]; simp
+  have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  calc
+    _ = ((-1 : ℂ) ^ k * (-1) ^ k) * (n.choose k : ℂ) * poch (n + a - 1) k * (x / 2) ^ k := by
+      field_simp
+      simp only [one_pow, neg_pow (x / 2 : ℂ) k]
+      ring
+    _ = _ := by rw [hs]; ring
+
+/-- Orthogonal moments of a Bessel polynomial; Vandermonde supplies the finite cancellation. -/
+lemma bessel_monomial_moment {a : ℝ} (m j : ℕ) (ha : a + j + m < 1) :
+    IntegrableOn (fun x : ℝ => besselPolynomial a m x * (x : ℂ) ^ j *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) (Ioi 0) ∧
+    (∫ x : ℝ in Ioi 0, besselPolynomial a m x * (x : ℂ) ^ j *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
+      (2 : ℂ) ^ (a + j - 1 : ℂ) * Gamma (1 - a - j - m : ℂ) * poch (-(j : ℂ)) m := by
+  let W : ℝ → ℂ := fun x => (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)
+  have hpos : 0 < 1 - a - j - m := by linarith
+  have heq : (fun x : ℝ => besselPolynomial a m x * (x : ℂ) ^ j * W x) =
+      fun x : ℝ => ∑ k ∈ Finset.range (m + 1),
+        ((m.choose k : ℂ) * poch (m + (a : ℂ) - 1) k / 2 ^ k) * ((x : ℂ) ^ (j + k) * W x) := by
+    funext x
+    rw [bessel_binomial_sum]
+    simp only [Finset.sum_mul, div_pow]
+    apply Finset.sum_congr rfl
+    intro k _
+    rw [pow_add]
+    ring
+  have hM (k : ℕ) (hk : k ∈ Finset.range (m + 1)) :=
+    bessel_weight_moment (a := a) (j + k) (by
+      have hkm : k ≤ m := Nat.le_of_lt_succ (Finset.mem_range.mp hk)
+      push_cast
+      have hkr : (k : ℝ) ≤ m := by exact_mod_cast hkm
+      linarith)
+  refine ⟨?_, ?_⟩
+  · change IntegrableOn (fun x : ℝ => besselPolynomial a m x * (x : ℂ) ^ j * W x) (Ioi 0)
+    rw [heq]
+    exact integrable_finsetSum _ fun k hk => (hM k hk).1.const_mul _
+  · change (∫ x : ℝ in Ioi 0, besselPolynomial a m x * (x : ℂ) ^ j * W x) = _
+    rw [heq, integral_finsetSum _ fun k hk => (hM k hk).1.const_mul _]
+    simp only [integral_const_mul]
+    have hterm (k : ℕ) (hk : k ∈ Finset.range (m + 1)) :
+        ((m.choose k : ℂ) * poch (m + (a : ℂ) - 1) k / 2 ^ k) *
+          (∫ x : ℝ in Ioi 0, (x : ℂ) ^ (j + k) * W x) =
+        ((2 : ℂ) ^ (a + j - 1 : ℂ) * Gamma (1 - a - j - m : ℂ)) *
+          ((m.choose k : ℂ) * poch (m + (a : ℂ) - 1) k * poch (1 - a - j - m : ℂ) (m - k)) := by
+      have hkm : k ≤ m := Nat.le_of_lt_succ (Finset.mem_range.mp hk)
+      rw [(hM k hk).2]
+      have hg : Gamma (1 - a - (j + k : ℕ) : ℂ) =
+          poch (1 - a - j - m : ℂ) (m - k) * Gamma (1 - a - j - m : ℂ) := by
+        have hp : 0 < (1 - (a : ℂ) - j - m).re := by simpa using hpos
+        have h := Complex.Gamma_add_nat_div_Gamma_eq (n := m - k) (1 - a - j - m : ℂ)
+          (not_neg_nat_of_re_pos hp)
+        have hΓ := Gamma_ne_zero_of_re_pos hp
+        rw [div_eq_iff hΓ] at h
+        convert h using 1 ; push_cast [Nat.cast_sub hkm] ; congr 1 ; ring
+      have hp : (2 : ℂ) ^ (a + (j + k : ℕ) - 1 : ℂ) = (2 : ℂ) ^ (a + j - 1 : ℂ) * 2 ^ k := by
+        rw [show (a : ℂ) + (j + k : ℕ) - 1 = ((a : ℂ) + j - 1) + k by push_cast; ring,
+          cpow_add _ _ two_ne_zero, cpow_natCast]
+      rw [hg, hp]
+      field_simp
+    rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum, ← poch_add_eq_sum]
+    rw [show (m : ℂ) + a - 1 + (1 - a - j - m) = -j by ring]
+
+/-- Product moments reduce to the top monomial after finite orthogonality. -/
+lemma bessel_product_integral_of_le {a : ℝ} (m n : ℕ) (hnm : n ≤ m) (ha : a + 2 * m < 1) :
+    (∫ x : ℝ in Ioi 0, besselPolynomial a m x * besselPolynomial a n x *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
+      if m = n then (2 : ℂ) ^ (a - 1 : ℂ) * Gamma (1 - a - 2 * n : ℂ) *
+        poch (2 - a - 2 * n : ℂ) n * n ! else 0 := by
+  let W : ℝ → ℂ := fun x => (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)
+  have heq : (fun x : ℝ => besselPolynomial a m x * besselPolynomial a n x * W x) =
+      fun x : ℝ => ∑ k ∈ Finset.range (n + 1),
+        ((n.choose k : ℂ) * poch (n + (a : ℂ) - 1) k / 2 ^ k) *
+          (besselPolynomial a m x * (x : ℂ) ^ k * W x) := by
+    funext x
+    conv_lhs => arg 1; arg 2; rw [bessel_binomial_sum]
+    simp only [Finset.mul_sum, Finset.sum_mul, div_pow]
+    apply Finset.sum_congr rfl
+    intro k _
+    ring
+  have hM (k : ℕ) (hk : k ∈ Finset.range (n + 1)) :=
+    bessel_monomial_moment (a := a) m k (by
+      have hkm : (k : ℝ) ≤ m := by exact_mod_cast (Nat.le_of_lt_succ (Finset.mem_range.mp hk)).trans hnm
+      linarith)
+  change (∫ x : ℝ in Ioi 0, besselPolynomial a m x * besselPolynomial a n x * W x) = _
+  rw [heq, integral_finsetSum _ fun k hk => (hM k hk).1.const_mul _]
+  simp only [integral_const_mul]
+  rw [Finset.sum_congr rfl (g := fun k =>
+    ((n.choose k : ℂ) * poch (n + (a : ℂ) - 1) k / 2 ^ k) *
+      ((2 : ℂ) ^ (a + k - 1 : ℂ) * Gamma (1 - a - k - m : ℂ) * poch (-(k : ℂ)) m))
+    (fun k hk => by rw [(hM k hk).2])]
+  split_ifs with hmn
+  · subst m
+    rw [Finset.sum_eq_single n]
+    · simp only [Nat.choose_self, Nat.cast_one, one_mul]
+      rw [poch_neg_coe_nat, Nat.descFactorial_self]
+      have hp : (2 : ℂ) ^ (a + n - 1 : ℂ) = (2 : ℂ) ^ (a - 1 : ℂ) * 2 ^ n := by
+        rw [show (a : ℂ) + n - 1 = ((a : ℂ) - 1) + n by ring,
+          cpow_add _ _ two_ne_zero, cpow_natCast]
+      have hpoch : poch (2 - a - 2 * n : ℂ) n = (-1 : ℂ) ^ n * poch (n + (a : ℂ) - 1) n := by
+        convert poch_reflect ((n : ℂ) + a - 1) n using 1 ; congr 1 ; ring
+      rw [hp, hpoch]
+      field_simp
+      ; ring
+    · intro k hk hkn
+      have hlt : k < n := by have := Finset.mem_range.mp hk; omega
+      rw [poch_neg_nat_eq_zero hlt]
+      simp
+    · simp
+  · apply Finset.sum_eq_zero
+    intro k hk
+    have hlt : k < m := by have := Finset.mem_range.mp hk; omega
+    rw [poch_neg_nat_eq_zero hlt]
+    simp
+
+/-- The Pochhammer cancellation in the finite Bessel squared norm. -/
+lemma bessel_norm_pochhammer (s : ℂ) (n : ℕ) :
+    s * poch (s + 1) n * poch (s + n + 1) n = (s + 2 * n) * poch s (2 * n) := by
+  calc
+    _ = s * poch (s + 1) (n + n) := by
+      rw [poch_add, show s + 1 + (n : ℂ) = s + n + 1 by ring]
+      ring
+    _ = _ := by
+      rw [← two_mul n, ← poch_succ_left, poch_succ]
+      push_cast
+      ring
+
+/-- Gamma form of the finite Bessel norm cancellation. -/
+lemma bessel_norm_gamma {s : ℝ} (hs : 0 < s) (n : ℕ) :
+    Gamma (s : ℂ) * poch (s + 1 : ℂ) n / Gamma (s + 2 * n : ℂ) =
+      (s + 2 * n : ℂ) / ((s : ℂ) * poch (s + n + 1 : ℂ) n) := by
+  have hp : 0 < (s : ℂ).re := by simpa using hs
+  have hG := Gamma_ne_zero_of_re_pos hp
+  have hP : poch (s : ℂ) (2 * n) ≠ 0 := poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos hp) _
+  have hQ : poch (s + n + 1 : ℂ) n ≠ 0 :=
+    poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos (by simp; positivity)) _
+  have hs0 : (s : ℂ) ≠ 0 := ofReal_ne_zero.mpr hs.ne'
+  have hg : Gamma (s + 2 * n : ℂ) = poch (s : ℂ) (2 * n) * Gamma (s : ℂ) := by
+    have h := Gamma_add_nat_div_Gamma_eq (n := 2 * n) (s : ℂ) (not_neg_nat_of_re_pos hp)
+    rw [div_eq_iff hG] at h
+    push_cast at h
+    exact h
+  rw [hg]
+  field_simp
+  simpa only [mul_comm] using bessel_norm_pochhammer (s : ℂ) n
+
 @[dlmf 18.34.E5_5]
 theorem besselPolynomial_finite_orthogonality {a : ℝ} (m n : ℕ) (ha : a < 1 - 2 * max m n) :
     (2 : ℂ) ^ (1 - (a : ℂ)) / Gamma (1 - (a : ℂ)) *
       (∫ x : ℝ in Set.Ioi 0, besselPolynomial a m x * besselPolynomial a n x *
         (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
       if m = n then (1 - a) / (1 - a - 2 * (n : ℂ)) * n.factorial / poch (2 - a - n) n else 0 := by
-  sorry
+  have hm : a + 2 * m < 1 := by
+    have hmax : (m : ℝ) ≤ max m n := by exact_mod_cast le_max_left m n
+    linarith
+  have hn : a + 2 * n < 1 := by
+    have hmax : (n : ℝ) ≤ max m n := by exact_mod_cast le_max_right m n
+    linarith
+  have hi : (∫ x : ℝ in Ioi 0, besselPolynomial a m x * besselPolynomial a n x *
+      (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
+      if m = n then (2 : ℂ) ^ (a - 1 : ℂ) * Gamma (1 - a - 2 * n : ℂ) *
+        poch (2 - a - 2 * n : ℂ) n * n ! else 0 := by
+    rcases le_total n m with hnm | hmn
+    · exact bessel_product_integral_of_le m n hnm hm
+    · have heq : (∫ x : ℝ in Ioi 0, besselPolynomial a m x * besselPolynomial a n x *
+          (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
+        ∫ x : ℝ in Ioi 0, besselPolynomial a n x * besselPolynomial a m x *
+          (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ) := by
+        apply integral_congr_ae
+        exact Filter.Eventually.of_forall fun x => by dsimp only; ring
+      rw [heq, bessel_product_integral_of_le n m hmn hn]
+      by_cases he : m = n
+      · subst n; simp
+      · simp only [ite_eq_right he, ite_eq_right (Ne.symm he)]
+  rw [hi]
+  split_ifs with hmn
+  · subst m
+    have hs : 0 < 1 - a - 2 * n := by linarith
+    have hpow : (2 : ℂ) ^ (1 - (a : ℂ)) * (2 : ℂ) ^ (a - 1 : ℂ) = 1 := by
+      rw [← cpow_add _ _ two_ne_zero, sub_add_sub_cancel, sub_self, cpow_zero]
+    have hratio := bessel_norm_gamma hs n
+    push_cast at hratio
+    have h0 : (1 - (a : ℂ) - 2 * n) + 1 = 2 - a - 2 * n := by ring
+    have h1 : (1 - (a : ℂ) - 2 * n) + 2 * n = 1 - a := by ring
+    have h2 : (1 - (a : ℂ) - 2 * n) + n + 1 = 2 - a - n := by ring
+    rw [h0, h1, h2] at hratio
+    calc
+      _ = ((2 : ℂ) ^ (1 - (a : ℂ)) * (2 : ℂ) ^ (a - 1 : ℂ)) *
+          (Gamma (1 - a - 2 * n : ℂ) * poch (2 - a - 2 * n : ℂ) n / Gamma (1 - a : ℂ)) * n ! := by ring
+      _ = _ := by rw [hpow, one_mul, hratio]; simp only [div_eq_mul_inv, mul_inv]; ring
+  · simp
+
+end FiniteBesselOrthogonality
 
 @[dlmf 18.34.E8]
 theorem jacobi_limit_besselPolynomial (a : ℂ) (n : ℕ) (x : ℂ) :
@@ -882,11 +1157,170 @@ theorem morsePolynomialFunction_ode {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (x : 
     Complex.ofReal_ofNat, Complex.ofReal_div] at hO' ⊢
   linear_combination (norm := (field_simp; ring)) (K * Complex.exp (H x)) * hO'
 
+section MorseOrthogonality
+
+open Set
+
+set_option maxHeartbeats 1000000
+
+/-- The product of two Morse functions is a pulled-back finite Bessel weight. -/
+lemma morse_product_weight {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) (x : ℝ) :
+    morsePolynomialFunction lam m x * morsePolynomialFunction lam n x =
+      (2 : ℂ) ^ (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) *
+      (Real.exp x / lam : ℝ) *
+      (besselPolynomial (2 - 2 * lam : ℂ) m (Real.exp x / lam) *
+        besselPolynomial (2 - 2 * lam : ℂ) n (Real.exp x / lam) *
+        (Real.rpow (Real.exp x / lam) (-2 * lam) * Real.exp (-2 / (Real.exp x / lam)) : ℝ)) := by
+  let u : ℝ := Real.exp x / lam
+  have hu : 0 < u := div_pos (Real.exp_pos x) hlam
+  have hu0 : (u : ℂ) ≠ 0 := ofReal_ne_zero.mpr hu.ne'
+  have hb : (2 * lam * Real.exp (-x) : ℝ) = 2 / u := by
+    dsimp only [u]
+    rw [Real.exp_neg]
+    field_simp
+  have he : exp (-lam * Real.exp (-x)) * exp (-lam * Real.exp (-x)) = exp (-2 / (u : ℂ)) := by
+    rw [← exp_add]
+    congr 1
+    have hbc : (2 * lam * Real.exp (-x) : ℂ) = 2 / u := by exact_mod_cast hb
+    linear_combination -hbc
+  have hp : (2 / (u : ℂ)) ^ (lam - 1 / 2 : ℂ) * (2 / (u : ℂ)) ^ (lam - 1 / 2 : ℂ) =
+      (2 : ℂ) ^ (2 * lam - 1 : ℂ) * (u : ℂ) * (u : ℂ) ^ (-2 * lam : ℂ) := by
+    rw [← cpow_add _ _ (div_ne_zero two_ne_zero hu0),
+      show (lam - 1 / 2 : ℂ) + (lam - 1 / 2 : ℂ) = 2 * lam - 1 by ring,
+      show (2 / (u : ℂ)) ^ (2 * lam - 1 : ℂ) =
+        (2 : ℂ) ^ (2 * lam - 1 : ℂ) / (u : ℂ) ^ (2 * lam - 1 : ℂ) by
+          convert Complex.div_cpow_ofReal_nonneg (by norm_num : (0 : ℝ) ≤ 2) hu.le (2 * lam - 1 : ℂ) using 1]
+    have hpow : (u : ℂ) * (u : ℂ) ^ (-2 * lam : ℂ) = (u : ℂ) ^ (-(2 * lam - 1 : ℂ)) := by
+      conv_lhs => arg 1; rw [← cpow_one (u : ℂ)]
+      rw [← cpow_add _ _ hu0]
+      congr 1
+      ring
+    rw [mul_assoc, hpow, cpow_neg]
+    ring
+  have hbase : (2 * lam * Real.exp (-x) : ℂ) = 2 / (u : ℂ) := by exact_mod_cast hb
+  have harg : (((lam⁻¹ : ℝ) : ℂ) * (Real.exp x : ℂ)) = (u : ℂ) := by dsimp only [u]; push_cast; ring
+  unfold morsePolynomialFunction
+  rw [hbase, harg]
+  have hquot : (Real.exp x : ℂ) / (lam : ℂ) = (u : ℂ) := by
+    dsimp only [u]
+    rw [Complex.ofReal_div]
+  rw [hquot]
+  change _ = (2 : ℂ) ^ (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) * (u : ℂ) *
+    (besselPolynomial (2 - 2 * lam : ℂ) m u * besselPolynomial (2 - 2 * lam : ℂ) n u *
+      (Real.rpow u (-2 * lam) * Real.exp (-2 / u) : ℝ))
+  rw [ofReal_mul]
+  rw [show ((Real.rpow u (-2 * lam) : ℝ) : ℂ) = (u : ℂ) ^ (-2 * lam : ℂ) by
+    convert Complex.ofReal_cpow hu.le (-2 * lam) using 1 ; push_cast ; rfl,
+    ofReal_exp]
+  push_cast
+  push_cast at he
+  calc
+    _ = (exp (-(lam : ℂ) * exp (-(x : ℂ))) * exp (-(lam : ℂ) * exp (-(x : ℂ)))) *
+        ((2 / (u : ℂ)) ^ (lam - 1 / 2 : ℂ) * (2 / (u : ℂ)) ^ (lam - 1 / 2 : ℂ)) *
+        besselPolynomial (2 - 2 * lam : ℂ) m u * besselPolynomial (2 - 2 * lam : ℂ) n u /
+        ((m ! : ℂ) * n !) := by ring
+    _ = _ := by rw [he, hp]; ring
+
+/-- Exponential substitution in the product of two Morse functions. -/
+lemma morse_product_integral {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) :
+    (∫ x : ℝ, morsePolynomialFunction lam m x * morsePolynomialFunction lam n x) =
+      (2 : ℂ) ^ (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) *
+      ∫ u : ℝ in Ioi 0, besselPolynomial (2 - 2 * lam : ℂ) m u *
+        besselPolynomial (2 - 2 * lam : ℂ) n u *
+        (Real.rpow u (-2 * lam) * Real.exp (-2 / u) : ℝ) := by
+  let H : ℝ → ℂ := fun u => besselPolynomial (2 - 2 * lam : ℂ) m u *
+    besselPolynomial (2 - 2 * lam : ℂ) n u *
+    (Real.rpow u (-2 * lam) * Real.exp (-2 / u) : ℝ)
+  have hscale : (∫ u : ℝ in Ioi 0, H (u / lam)) = (lam : ℂ) * ∫ u : ℝ in Ioi 0, H u := by
+    have h := integral_comp_mul_left_Ioi H 0 (inv_pos.mpr hlam)
+    simpa [div_eq_mul_inv, mul_comm, Complex.real_smul] using h
+  have he : (∫ x : ℝ, (Real.exp x : ℂ) * H (Real.exp x / lam)) =
+      (lam : ℂ) * ∫ u : ℝ in Ioi 0, H u := by
+    -- Mathlib's exponential substitution transports the unnormalized Bessel weight.
+    have h := integral_comp_exp (fun u : ℝ => H (u / lam))
+    rw [hscale] at h
+    simpa only [Complex.real_smul] using h
+  have hf : (fun x : ℝ => morsePolynomialFunction lam m x * morsePolynomialFunction lam n x) =
+      fun x : ℝ => ((2 : ℂ) ^ (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) / lam) *
+        ((Real.exp x : ℂ) * H (Real.exp x / lam)) := by
+    funext x
+    rw [morse_product_weight hlam]
+    dsimp only [H]
+    push_cast
+    ring
+  rw [hf, integral_const_mul, he]
+  have hlam0 : (lam : ℂ) ≠ 0 := ofReal_ne_zero.mpr hlam.ne'
+  change _ = (2 : ℂ) ^ (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) * ∫ u : ℝ in Ioi 0, H u
+  field_simp [hlam0]
+
 @[dlmf 18.34.E7_3]
 theorem morsePolynomialFunction_orthogonality {lam : ℝ} (m n : ℕ) (hm : (m : ℝ) < lam - 1 / 2) (hn : (n : ℝ) < lam - 1 / 2) :
     ∫ x : ℝ, morsePolynomialFunction lam m x * morsePolynomialFunction lam n x =
       if m = n then Gamma (2 * (lam : ℂ) - n) / ((2 * lam - 2 * n - 1) * n.factorial) else 0 := by
-  sorry
+  have hlam : 0 < lam := by linarith [Nat.cast_nonneg (α := ℝ) m]
+  have hmax : ((max m n : ℕ) : ℝ) < lam - 1 / 2 := by simpa only [Nat.cast_max] using max_lt hm hn
+  have ha : 2 - 2 * lam < 1 - 2 * (max m n : ℕ) := by linarith
+  have hB := besselPolynomial_finite_orthogonality (a := 2 - 2 * lam) m n ha
+  rw [morse_product_integral hlam]
+  have hW : (fun u : ℝ => besselPolynomial (2 - 2 * lam : ℂ) m u *
+      besselPolynomial (2 - 2 * lam : ℂ) n u *
+      (Real.rpow u (-2 * lam) * Real.exp (-2 / u) : ℝ)) =
+    fun u : ℝ => besselPolynomial ((2 - 2 * lam : ℝ) : ℂ) m u *
+      besselPolynomial ((2 - 2 * lam : ℝ) : ℂ) n u *
+      (Real.rpow u ((2 - 2 * lam) - 2) * Real.exp (-2 / u) : ℝ) := by
+    funext u
+    push_cast
+    rw [show 2 - 2 * lam - 2 = -2 * lam by ring]
+  rw [hW]
+  have hG : Gamma (2 * lam - 1 : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith [Nat.cast_nonneg (α := ℝ) n])
+  have hpow : (2 : ℂ) ^ (2 * lam - 1 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have he1 : (1 - ((2 - 2 * lam : ℝ) : ℂ)) = 2 * lam - 1 := by push_cast; ring
+  rw [he1] at hB
+  have hprod : (2 : ℂ) ^ (2 * lam - 1 : ℂ) /
+      ((m ! : ℂ) * n !) *
+      (∫ u : ℝ in Ioi 0, besselPolynomial ((2 - 2 * lam : ℝ) : ℂ) m u *
+        besselPolynomial ((2 - 2 * lam : ℝ) : ℂ) n u *
+        (Real.rpow u ((2 - 2 * lam) - 2) * Real.exp (-2 / u) : ℝ)) =
+      Gamma (2 * lam - 1 : ℂ) / ((m ! : ℂ) * n !) *
+        (if m = n then (1 - ((2 - 2 * lam : ℝ) : ℂ)) /
+          (1 - ((2 - 2 * lam : ℝ) : ℂ) - 2 * n) * n ! /
+          poch (2 - ((2 - 2 * lam : ℝ) : ℂ) - n) n else 0) := by
+    rw [he1, ← hB]
+    field_simp
+  rw [hprod]
+  split_ifs with hmn
+  · subst m
+    have hs : 0 < 2 * lam - n := by linarith [Nat.cast_nonneg (α := ℝ) n]
+    have hG2 : Gamma (2 * lam - n : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using hs)
+    have hP : poch (2 * lam - n : ℂ) n ≠ 0 :=
+      poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos (by simpa using hs)) n
+    have hΓ : Gamma (2 * lam : ℂ) = poch (2 * lam - n : ℂ) n * Gamma (2 * lam - n : ℂ) := by
+      have h := Complex.Gamma_add_nat_div_Gamma_eq (n := n) (2 * lam - n : ℂ)
+        (not_neg_nat_of_re_pos (by simpa using hs))
+      rw [div_eq_iff hG2] at h
+      convert h using 1 ; congr 1 ; ring
+    have hΓ1 : Gamma (2 * lam : ℂ) = (2 * lam - 1 : ℂ) * Gamma (2 * lam - 1 : ℂ) := by
+      have h0 : (2 * lam - 1 : ℂ) ≠ 0 := ne_zero_of_re_pos (by simp; linarith [Nat.cast_nonneg (α := ℝ) n])
+      convert Gamma_add_one (2 * lam - 1 : ℂ) h0 using 1 ; congr 1 ; ring
+    push_cast
+    rw [show 1 - (2 - 2 * (lam : ℂ)) = 2 * lam - 1 by ring,
+      show 2 - (2 - 2 * (lam : ℂ)) - n = 2 * lam - n by ring,
+      show (2 * lam - 1 - 2 * n : ℂ) = 2 * lam - 2 * n - 1 by ring]
+    have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    have hGammaProduct : (2 * lam - 1 : ℂ) * Gamma (2 * lam - 1 : ℂ) =
+        poch (2 * lam - n : ℂ) n * Gamma (2 * lam - n : ℂ) := hΓ1.symm.trans hΓ
+    calc
+      _ = ((2 * lam - 1 : ℂ) * Gamma (2 * lam - 1 : ℂ)) /
+          (poch (2 * lam - n : ℂ) n * ((2 * lam - 2 * n - 1 : ℂ) * n !)) := by
+        simp only [div_eq_mul_inv, mul_inv]
+        field_simp [hf]
+
+      _ = _ := by
+        rw [hGammaProduct]
+        exact mul_div_mul_left _ _ hP
+  · simp
+
+end MorseOrthogonality
 
 
 end AAR.OrthogonalPolynomials

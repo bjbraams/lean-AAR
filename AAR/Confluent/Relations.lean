@@ -8,6 +8,7 @@ module
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
+public import AAR.Confluent.Continuation
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Bessel.SecondKind
@@ -24,6 +25,9 @@ Parabolic-cylinder identities 13.6.12–13.6.15 and 13.18.11–13.18.13, Airy
 identities 13.6.11 and 13.18.10, and Coulomb-wave identities in 13.6(vii) are
 deferred here. Parabolic cylinder and Coulomb wave functions are now defined in
 `AAR.Confluent.ParabolicCylinder` and `AAR.Confluent.Coulomb`.
+The finite Kummer–Bessel proofs reuse the Mathlib contributors’ reciprocal-Gamma
+recurrence, binomial identities and complex identity principle, with the local
+regularized Kummer and Bessel APIs.
 -/
 
 @[expose] public section
@@ -337,6 +341,220 @@ theorem kummerU_besselK (ν z : ℂ) (hz : z ∈ slitPlane) :
   have := key (2 * ν)
   rwa [show 2 * ν / 2 = ν by ring] at this
 
+/-- Entire coefficient for the normalized finite Kummer–Bessel expansion. -/
+noncomputable def kummerBesselCoeff (ν : ℂ) (n k : ℕ) : ℂ :=
+  (-1) ^ k * (n.choose k : ℂ) * poch (2 * ν) k * (ν + k) *
+    (1 / Gamma (2 * ν + 1 + n + k))
+
+/-- Pascal's identity combined with the reciprocal-Gamma recurrence. -/
+lemma kummerBesselCoeff_succ (ν : ℂ) (n k : ℕ) :
+    kummerBesselCoeff ν n (k + 1) - 2 * ν * (2 * ν + 1) * kummerBesselCoeff (ν + 1) n k =
+      (2 * ν + 1 + n) * kummerBesselCoeff ν (n + 1) (k + 1) := by
+  have hG := one_div_Gamma_eq_self_mul_one_div_Gamma_add_one (2 * ν + 1 + n + (k + 1))
+  have hP : 2 * ν * (2 * ν + 1) * poch (2 * (ν + 1)) k =
+      poch (2 * ν) (k + 1) * (2 * ν + (k + 1)) := by
+    calc
+      _ = poch (2 * ν) (k + 2) := by
+        rw [show k + 2 = k + 1 + 1 by omega, poch_succ_left (2 * ν) (k + 1),
+          poch_succ_left (2 * ν + 1) k]
+        rw [show 2 * ν + 1 + 1 = 2 * (ν + 1) by ring]
+        ring
+      _ = _ := by rw [show k + 2 = k + 1 + 1 by omega, poch_succ]; push_cast; ring
+  have hc : (n.choose (k + 1) : ℂ) * (k + 1) = (n.choose k : ℂ) * ((n - k : ℕ) : ℂ) := by
+    exact_mod_cast Nat.choose_succ_right_eq n k
+  have hcz : (n.choose (k + 1) : ℂ) * (k + 1) = (n.choose k : ℂ) * ((n : ℂ) - k) := by
+    by_cases hk : k ≤ n
+    · simpa only [Nat.cast_sub hk] using hc
+    · have hk' : n < k := Nat.lt_of_not_ge hk
+      simp [Nat.choose_eq_zero_of_lt hk', Nat.choose_eq_zero_of_lt (hk'.trans (Nat.lt_succ_self k))]
+  simp only [kummerBesselCoeff, Nat.cast_add, Nat.cast_one, one_div]
+  rw [Nat.choose_succ_succ, Nat.cast_add, hG]
+  have harg : 2 * ν + 1 + n + (↑k + 1) + 1 = 2 * (ν + 1) + 1 + n + k := by ring
+  rw [harg, show 2 * ν + 1 + (n + 1) + (k + 1) =
+      2 * (ν + 1) + 1 + n + k by ring, pow_succ]
+  have hp := hP
+  linear_combination
+    -((-1 : ℂ) ^ k * (ν + (k + 1)) * (1 / Gamma (2 * (ν + 1) + 1 + n + k)) * (n.choose k : ℂ)) * hp -
+    ((-1 : ℂ) ^ k * (ν + (k + 1)) * (1 / Gamma (2 * (ν + 1) + 1 + n + k)) * poch (2 * ν) (k + 1)) * hcz
+
+/-- The zero coefficient satisfies the same finite-sum recurrence. -/
+lemma kummerBesselCoeff_succ_zero (ν : ℂ) (n : ℕ) :
+    kummerBesselCoeff ν n 0 = (2 * ν + 1 + n) * kummerBesselCoeff ν (n + 1) 0 := by
+  simp only [kummerBesselCoeff, pow_zero, Nat.choose_zero_right, Nat.cast_one, one_mul,
+    poch_zero, mul_one, Nat.cast_zero, add_zero, Nat.cast_add, Nat.cast_one, one_div]
+  rw [one_div_Gamma_eq_self_mul_one_div_Gamma_add_one (2 * ν + 1 + n)]
+  ring
+
+/-- The normalized finite expansion on a parameter half-plane. -/
+lemma regularizedConfluent_bessel_sum_pos (n : ℕ) {ν : ℂ} (hν : 0 < ν.re) (z : ℂ) :
+    regularizedHGFun {ν + 1 / 2} {2 * ν + 1 + n} (2 * z) * (1 / Gamma ν) =
+      exp z * ∑ k ∈ Finset.range (n + 1), kummerBesselCoeff ν n k * (z / 2) ^ k *
+        regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+  induction n generalizing ν with
+  | zero =>
+    have hb : ∀ k : ℕ, 2 * ν + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by simp; linarith)
+    have hb' : ∀ k : ℕ, ν + 1 ≠ -(k : ℂ) := not_neg_nat_of_re_pos (by simp; linarith)
+    have hv : ν ≠ 0 := by intro he; simp [he] at hν
+    have h := kummerM_eq_exp_mul_regularized0F1 (ν := ν) (z := 2 * z) hb' hb
+    rw [kummerM_eq_mul_regularizedHGFun hb] at h
+    rw [Gamma_add_one ν hv] at h
+    simp only [Nat.zero_add, Nat.cast_zero, add_zero, Finset.sum_range_one, kummerBesselCoeff, pow_zero,
+      Nat.choose_zero_right, Nat.cast_one, one_mul, poch_zero, mul_one]
+    have hG : Gamma (2 * ν + 1) ≠ 0 := Gamma_ne_zero hb
+    have hGν : Gamma ν ≠ 0 := Gamma_ne_zero_of_re_pos hν
+    rw [show (2 * z) ^ 2 / 16 = z ^ 2 / 4 by ring, show 2 * z / 2 = z by ring] at h
+    field_simp at h ⊢
+    linear_combination h
+  | succ n ih =>
+    have hν' : 0 < (ν + 1).re := by simp; linarith
+    have hrec := regularizedConfluent_contiguous_mixed_b_pred (ν + 1 / 2)
+      (2 * ν + 1 + (n + 1)) (2 * z)
+    have hG := one_div_Gamma_eq_self_mul_one_div_Gamma_add_one ν
+    have h1 := ih hν
+    have h2 := ih hν'
+    have hβ : 2 * ν + 1 + n ≠ 0 := by
+      intro he
+      have hh := congrArg re he
+      simp at hh
+      linarith [Nat.cast_nonneg (α := ℝ) n]
+    have hsum :
+        (∑ k ∈ Finset.range (n + 1), kummerBesselCoeff ν n k * (z / 2) ^ k *
+          regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4)) -
+        ν * (2 * ν + 1) * z *
+        (∑ k ∈ Finset.range (n + 1), kummerBesselCoeff (ν + 1) n k * (z / 2) ^ k *
+          regularizedHGFun ∅ {ν + 1 + k + 1} (z ^ 2 / 4)) =
+        (2 * ν + 1 + n) *
+        ∑ k ∈ Finset.range (n + 1 + 1), kummerBesselCoeff ν (n + 1) k * (z / 2) ^ k *
+          regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+      let f : ℂ → ℕ → ℕ → ℂ := fun v N k => kummerBesselCoeff v N k * (z / 2) ^ k *
+        regularizedHGFun ∅ {v + k + 1} (z ^ 2 / 4)
+      change (∑ k ∈ Finset.range (n + 1), f ν n k) - ν * (2 * ν + 1) * z *
+        (∑ k ∈ Finset.range (n + 1), f (ν + 1) n k) =
+        (2 * ν + 1 + n) * ∑ k ∈ Finset.range (n + 1 + 1), f ν (n + 1) k
+      have hzcoef : f ν n (n + 1) = 0 := by
+        simp [f, kummerBesselCoeff]
+      have hleft : (∑ k ∈ Finset.range (n + 1), f ν n k) =
+          (∑ k ∈ Finset.range (n + 1), f ν n (k + 1)) + f ν n 0 := by
+        have he := Finset.sum_range_succ' (f := f ν n) (n := n + 1)
+        rw [Finset.sum_range_succ, hzcoef, add_zero] at he
+        exact he
+      have hterm (k : ℕ) : f ν n (k + 1) - ν * (2 * ν + 1) * z * f (ν + 1) n k =
+          (2 * ν + 1 + n) * f ν (n + 1) (k + 1) := by
+        dsimp [f]
+        push_cast
+        rw [show ν + (k + 1) + 1 = ν + 1 + k + 1 by ring, pow_succ]
+        linear_combination ((z / 2) ^ k * (z / 2) *
+          regularizedHGFun ∅ {ν + 1 + k + 1} (z ^ 2 / 4)) * kummerBesselCoeff_succ ν n k
+      have hhead : f ν n 0 = (2 * ν + 1 + n) * f ν (n + 1) 0 := by
+        dsimp [f]
+        rw [kummerBesselCoeff_succ_zero]
+        ring
+      rw [hleft, Finset.mul_sum, show (∑ k ∈ Finset.range (n + 1), f ν n (k + 1)) + f ν n 0 -
+          (∑ k ∈ Finset.range (n + 1), ν * (2 * ν + 1) * z * f (ν + 1) n k) =
+          (∑ k ∈ Finset.range (n + 1), (f ν n (k + 1) - ν * (2 * ν + 1) * z * f (ν + 1) n k)) + f ν n 0 by
+        rw [Finset.sum_sub_distrib]; ring]
+      simp_rw [hterm]
+      rw [← Finset.mul_sum, hhead, ← mul_add, ← Finset.sum_range_succ']
+    apply mul_left_cancel₀ hβ
+    have hrec' := congrArg (fun v : ℂ => v * (1 / Gamma ν)) hrec
+    simp only [Nat.cast_add, Nat.cast_one] at hrec' ⊢
+    rw [show 2 * ν + 1 + (n + 1) - 1 = 2 * ν + 1 + n by ring,
+      show ν + 1 / 2 + 1 = (ν + 1) + 1 / 2 by ring,
+      show 2 * ν + 1 + (n + 1) + 1 = 2 * (ν + 1) + 1 + n by ring] at hrec'
+    linear_combination hrec' + h1 - ν * (2 * ν + 1) * z * h2 + exp z * hsum -
+      (2 * ν + 1) * z * regularizedHGFun {ν + 1 + 1 / 2} {2 * (ν + 1) + 1 + n} (2 * z) * hG
+
+/-- The normalized finite expansion is entire in the order parameter. -/
+lemma regularizedConfluent_bessel_sum_all (n : ℕ) (ν z : ℂ) :
+    regularizedHGFun {ν + 1 / 2} {2 * ν + 1 + n} (2 * z) * (1 / Gamma ν) =
+      exp z * ∑ k ∈ Finset.range (n + 1), kummerBesselCoeff ν n k * (z / 2) ^ k *
+        regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+  have hL : AnalyticOnNhd ℂ (fun v : ℂ => regularizedHGFun {v + 1 / 2} {2 * v + 1 + n}
+      (2 * z) * (1 / Gamma v)) Set.univ := by
+    intro v hv
+    convert! ((differentiable_regularizedConfluent_comp
+      (A := fun v : ℂ => v + 1 / 2) (B := fun v : ℂ => 2 * v + 1 + n)
+      (by fun_prop) (by fun_prop) (2 * z)).mul differentiable_one_div_Gamma).analyticAt v using 1 <;> (funext v; simp only [one_div, Pi.mul_apply, Function.comp_apply, id_eq])
+  have hR : AnalyticOnNhd ℂ (fun v : ℂ => exp z * ∑ k ∈ Finset.range (n + 1),
+      kummerBesselCoeff v n k * (z / 2) ^ k *
+        regularizedHGFun ∅ {v + k + 1} (z ^ 2 / 4)) Set.univ := by
+    have hc (k : ℕ) : Differentiable ℂ (fun v : ℂ => kummerBesselCoeff v n k) := by
+      have hp : Differentiable ℂ (fun v : ℂ => poch (2 * v) k) :=
+        (Polynomial.differentiable (ascPochhammer ℂ k)).comp (by fun_prop)
+      unfold kummerBesselCoeff
+      convert! (((hp.const_mul ((-1 : ℂ) ^ k * (n.choose k : ℂ))).mul
+        (differentiable_id.add_const (k : ℂ))).mul
+        (differentiable_one_div_Gamma.comp
+          (by fun_prop : Differentiable ℂ (fun v : ℂ => 2 * v + 1 + n + k)))) using 1 <;> (funext v; simp only [one_div, Pi.mul_apply, Function.comp_apply, id_eq])
+    have hd : Differentiable ℂ (fun v : ℂ => exp z * ∑ k ∈ Finset.range (n + 1),
+        kummerBesselCoeff v n k * (z / 2) ^ k *
+          regularizedHGFun ∅ {v + k + 1} (z ^ 2 / 4)) := by
+      apply Differentiable.const_mul
+      apply Differentiable.fun_sum
+      intro k hk
+      exact ((hc k).mul_const _).mul ((differentiable_regularized0F1_param _).comp (by fun_prop))
+    exact fun v hv => hd.analyticAt v
+  have he : (fun v : ℂ => regularizedHGFun {v + 1 / 2} {2 * v + 1 + n} (2 * z) * (1 / Gamma v))
+      =ᶠ[𝓝 (1 : ℂ)] (fun v : ℂ => exp z * ∑ k ∈ Finset.range (n + 1),
+        kummerBesselCoeff v n k * (z / 2) ^ k *
+          regularizedHGFun ∅ {v + k + 1} (z ^ 2 / 4)) := by
+    filter_upwards [continuous_re.continuousAt.eventually
+      (show Set.Ioi (0 : ℝ) ∈ 𝓝 (1 : ℂ).re by simpa using Ioi_mem_nhds (by norm_num : (0 : ℝ) < 1))]
+      with v hv
+    exact regularizedConfluent_bessel_sum_pos n hv z
+  -- Mathlib’s complex identity principle extends the finite expansion in the order.
+  exact hL.eqOn_of_preconnected_of_eventuallyEq hR isPreconnected_univ (Set.mem_univ 1) he (Set.mem_univ ν)
+
+/-- Terminating Pochhammer coefficients as binomial coefficients, including zero tails. -/
+lemma poch_neg_nat_div_factorial_eq (n k : ℕ) :
+    poch (-(n : ℂ)) k / (k.factorial : ℂ) = (-1) ^ k * (n.choose k : ℂ) := by
+  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose]
+  push_cast
+  field_simp [Nat.cast_ne_zero.mpr k.factorial_ne_zero]
+
+/-- A finite Kummer expansion in entire `₀F₁` functions of its argument. -/
+lemma kummerM_finite_regularized0F1 (ν : ℂ) (n : ℕ) (z : ℂ)
+    (hb : ∀ k : ℕ, 2 * ν + 1 + n ≠ -(k : ℂ)) (hΓ : ∀ k : ℕ, ν ≠ -(k : ℂ)) :
+    kummerM (ν + 1 / 2) (2 * ν + 1 + n) (2 * z) =
+      Gamma ν * exp z * ∑ k ∈ Finset.range (n + 1),
+        poch (-(n : ℂ)) k * poch (2 * ν) k * (ν + k) /
+          (poch (2 * ν + 1 + n) k * k.factorial) * (z / 2) ^ k *
+            regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+  have hGν := Gamma_ne_zero hΓ
+  have hGβ := Gamma_ne_zero hb
+  have h := regularizedConfluent_bessel_sum_all n ν z
+  rw [kummerM_eq_mul_regularizedHGFun hb]
+  have hsum : (∑ k ∈ Finset.range (n + 1),
+        poch (-(n : ℂ)) k * poch (2 * ν) k * (ν + k) /
+          (poch (2 * ν + 1 + n) k * k.factorial) * (z / 2) ^ k *
+            regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4)) =
+      Gamma (2 * ν + 1 + n) * ∑ k ∈ Finset.range (n + 1),
+        kummerBesselCoeff ν n k * (z / 2) ^ k * regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro k hk
+    have hG : Gamma (2 * ν + 1 + n + k) = poch (2 * ν + 1 + n) k * Gamma (2 * ν + 1 + n) := by
+      have hh := Gamma_add_nat_div_Gamma_eq (n := k) (2 * ν + 1 + n) hb
+      exact (div_eq_iff hGβ).mp hh
+    have hp := poch_ne_zero_of_not_neg_nat hb k
+    rw [kummerBesselCoeff, hG]
+    have hbin := poch_neg_nat_div_factorial_eq n k
+    field_simp at hbin ⊢
+    linear_combination (poch (2 * ν) k * (ν + k) * (z / 2) ^ k *
+      regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4)) * hbin
+  rw [hsum]
+  rw [mul_one_div] at h
+  rw [(div_eq_iff hGν).mp h]
+  ring
+
+/-- Remove the order power from a shifted modified Bessel function. -/
+lemma cpow_neg_mul_besselI_shift (ν : ℂ) (k : ℕ) {z : ℂ} (hz : z ≠ 0) :
+    (z / 2) ^ (-ν) * besselI (ν + k) z = (z / 2) ^ k *
+      regularizedHGFun ∅ {ν + k + 1} (z ^ 2 / 4) := by
+  rw [besselI, ← mul_assoc, ← cpow_add _ _ (div_ne_zero hz two_ne_zero),
+    show -ν + (ν + k) = (k : ℂ) by ring, cpow_natCast]
+
+
 /-- Finite Kummer–Bessel expansion away from the Gamma-prefactor poles.
 The former statement included `ν = 0, n = 0`, where totalized `Gamma 0`
 made the right-hand side zero. -/
@@ -349,7 +567,14 @@ theorem kummerM_besselI_sum (ν : ℂ) (n : ℕ) (z : ℂ)
         ∑ k ∈ Finset.range (n + 1),
           poch (-(n : ℂ)) k * poch (2 * ν) k * (ν + k) /
             (poch (2 * ν + 1 + n) k * k.factorial) * besselI (ν + k) z := by
-  sorry
+  rw [kummerM_finite_regularized0F1 ν n z hν hΓ]
+  rw [mul_assoc (Gamma ν * exp z)]
+  congr 1
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro k hk
+  rw [mul_left_comm _ _ (besselI _ _), cpow_neg_mul_besselI_shift ν k (slitPlane_ne_zero hz)]
+  ring
 
 /-- Negative-shift finite Kummer–Bessel expansion away from all poles of
 `Gamma (ν - n)`; excluding only `ν = 0` would not suffice. -/
@@ -362,7 +587,32 @@ theorem kummerM_besselI_sum_neg (ν : ℂ) (n : ℕ) (z : ℂ)
         ∑ k ∈ Finset.range (n + 1),
           (-1 : ℂ) ^ k * poch (-(n : ℂ)) k * poch (2 * ν - 2 * n) k * (ν - n + k) /
             (poch (2 * ν + 1 - n) k * k.factorial) * besselI (ν + k - n) z := by
-  sorry
+  have hβ : ∀ k : ℕ, 2 * (ν - n) + 1 + n ≠ -(k : ℂ) := by
+    simpa only [show 2 * (ν - n) + 1 + n = 2 * ν + 1 - n by ring] using hν
+  have h := kummerM_finite_regularized0F1 (ν - n) n (-z) hβ hΓ
+  rw [show 2 * (ν - n) + 1 + n = 2 * ν + 1 - n by ring,
+    show 2 * (ν - n) = 2 * ν - 2 * n by ring] at h
+  rw [kummerM_kummer_transform hν,
+    show 2 * ν + 1 - n - (ν + 1 / 2) = ν - n + 1 / 2 by ring,
+    show -(2 * z) = 2 * -z by ring, h]
+  have hE : exp (2 * z) * exp (-z) = exp z := by rw [← exp_add]; congr 1; ring
+  have hassoc (s : ℂ) : exp (2 * z) * (Gamma (ν - n) * exp (-z) * s) =
+      Gamma (ν - n) * (exp (2 * z) * exp (-z)) * s := by ring
+  rw [hassoc, hE, mul_assoc (Gamma (ν - n) * exp z)]
+  congr 1
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro k hk
+  rw [show ν + k - n = (ν - n) + k by ring,
+    show (n : ℂ) - ν = -(ν - n) by ring]
+  have hc := cpow_neg_mul_besselI_shift (ν - n) k (slitPlane_ne_zero hz)
+  rw [show (-(z : ℂ)) ^ 2 / 4 = z ^ 2 / 4 by ring,
+    show -z / 2 = -(z / 2) by ring, neg_pow]
+  calc
+    _ = ((-1 : ℂ) ^ k * poch (-(n : ℂ)) k * poch (2 * ν - 2 * n) k * (ν - n + k) /
+          (poch (2 * ν + 1 - n) k * k.factorial)) *
+        ((z / 2) ^ (-(ν - n)) * besselI (ν - n + k) z) := by rw [hc]; ring
+    _ = _ := by ring
 
 /-- `hermitePolyHEval` is the algebra evaluation. -/
 lemma hermitePolyHEval_eq_aeval (n : ℕ) (z : ℂ) :

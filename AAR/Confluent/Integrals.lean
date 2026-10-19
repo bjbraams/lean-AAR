@@ -9,9 +9,11 @@ public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
 public import AAR.Confluent.Growth
+public import AAR.Confluent.TricomiLaplace
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Hypergeometric.EulerIntegral
+public import AAR.Hypergeometric.Boundary
 public import AAR.Hypergeometric.ArgumentContinuation
 public import AAR.Hypergeometric.IntegralRepresentations
 public import AAR.Gamma.IntegralRepresentations
@@ -37,6 +39,11 @@ Tricomi's Mellin transform follows from its Laplace representation and Mathlib's
 Fubini theorem. Absolute convergence of the double kernel reduces to the Tau Ceti
 contributors' second Beta integrability theorem; the local proved Gamma and Beta
 integral formulas evaluate the exchanged integrals.
+
+The boundary Mellin transform uses a summable Gamma-moment majorant from the
+proved Gamma-ratio asymptotics. Regularized Gauss summation, including singular
+denominator parameters, evaluates the resulting series; the regularized Whittaker
+M transform follows by combining positive-real powers and exponential factors.
 
 Indefinite integrals are stated as derivative identities. Laplace, Mellin, and
 Bessel transforms use real half-lines. Hankel-loop formulas 13.10.8–13.10.9 and
@@ -124,7 +131,7 @@ lemma laplace_regularizedHGFun_of_norm_lt {a b c k z : ℂ}
       (Measurable.aestronglyMeasurable (by dsimp [F]; fun_prop))
     filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
     rw [hnorm n t ht]
-    simp only [neg_mul, le_refl]
+    simp only [one_mul, neg_mul, le_refl]
   have hInorm (n : ℕ) : (∫ t : ℝ in Set.Ioi 0, ‖F n t‖) =
       ‖e n‖ * (r ^ (b.re + n) * Real.Gamma (b.re + n)) := by
     rw [setIntegral_congr_fun measurableSet_Ioi (fun t ht => hnorm n t ht), integral_const_mul,
@@ -186,7 +193,7 @@ lemma laplace_regularizedHGFun_of_norm_lt {a b c k z : ℂ}
         AAR.Hypergeometric.regularizedGaussHGFun_eq_tsum]
 
 /-- The transformed argument stays on the Gauss cut plane throughout the Laplace half-plane. -/
-private lemma kummerLaplace_argument_mem_cutPlane {k z : ℂ}
+lemma kummerLaplace_argument_mem_cutPlane {k z : ℂ}
     (hz : k.re < z.re) (hz0 : 0 < z.re) :
     k / z ∈ AAR.Hypergeometric.cutPlane := by
   have hzN : z ≠ 0 := by intro h; simp [h] at hz0
@@ -262,13 +269,94 @@ theorem laplace_regularizedHGFun_self {a b z : ℂ} (hb : 0 < b.re) (hz : 1 < z.
       (fun k hk => hc k (by linear_combination hk)) harg]
   field [Gamma_ne_zero hc]
 
+/-- Absolute Gamma moments of the regularized Kummer coefficients at the boundary.
+The proved Gamma-ratio estimate retains the exact convergence inequality. -/
+lemma summable_kummer_gamma_moments (a c : ℂ) {b : ℝ} (hb : 0 < b)
+    (h : b < (c - a).re) :
+    Summable (fun n : ℕ => ‖regularizedHGFunCoeff {a} {c} n‖ * Real.Gamma (b + n)) := by
+  by_cases ha : ∀ k : ℕ, a ≠ -k
+  · have hs := (AAR.Hypergeometric.CarlsonAux.summable_norm_Gamma_ratio a b c 1
+      (by simp only [sub_re, add_re, ofReal_re, one_re] at h ⊢; linarith)).mul_left ‖Gamma a‖⁻¹
+    refine hs.congr fun n => ?_
+    have hg := (div_eq_iff (Gamma_ne_zero ha)).mp (Gamma_add_nat_div_Gamma_eq (n := n) a ha)
+    rw [show (n : ℂ) + a = a + n by ring, hg,
+      show (n : ℂ) + (b : ℂ) = ((b + n : ℝ) : ℂ) by push_cast; ring,
+      Gamma_ofReal, Gamma_nat_eq_factorial, regularizedHGFunCoeff_singleton]
+    simp only [norm_mul, norm_inv, Complex.norm_natCast, norm_real, norm_div,
+      Real.norm_of_nonneg (Real.Gamma_pos_of_pos (by positivity : 0 < b + n)).le]
+    rw [show (n : ℂ) + c = c + n by ring]
+    field_simp [norm_ne_zero_iff.mpr (Gamma_ne_zero ha)]
+  · push_neg at ha
+    obtain ⟨m, rfl⟩ := ha
+    apply (summable_nat_add_iff (m + 1)).mp
+    have he : (fun n : ℕ => ‖regularizedHGFunCoeff {-(m : ℂ)} {c} (n + (m + 1))‖ *
+        Real.Gamma (b + (n + (m + 1) : ℕ))) = fun _ : ℕ => 0 := by
+      funext n
+      simp [regularizedHGFunCoeff_singleton, poch_neg_nat_eq_zero (show m < n + (m + 1) by omega)]
+    rw [he]
+    exact summable_zero
+
 @[dlmf 13.10.E5]
 theorem mellin_regularizedHGFun_exp {a b c : ℂ}
     (hb : 0 < b.re) (h : b.re < (c - a).re) :
     ∫ t : ℝ in Set.Ioi 0,
         exp (-(t : ℂ)) * (t : ℂ) ^ (b - 1) * regularizedHGFun {a} {c} t =
       Gamma b * Gamma (c - a - b) / (Gamma (c - a) * Gamma (c - b)) := by
-  sorry
+  let e : ℕ → ℂ := fun n => regularizedHGFunCoeff {a} {c} n
+  let F : ℕ → ℝ → ℂ := fun n t => e n * ((t : ℂ) ^ (b + n - 1) * exp (-(t : ℂ)))
+  have hbn (n : ℕ) : 0 < (b + n).re := by simp; positivity
+  have hnorm (n : ℕ) (t : ℝ) (ht : 0 < t) :
+      ‖F n t‖ = ‖e n‖ * (t ^ (b.re + n - 1) * Real.exp (-t)) := by
+    simp only [F, norm_mul, norm_cpow_eq_rpow_re_of_pos ht, Complex.norm_exp]
+    simp
+  have hFi (n : ℕ) : IntegrableOn (F n) (Set.Ioi 0) := by
+    have hreal := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1)
+      (s := b.re + n - 1) (b := 1) (by have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n; linarith)
+        one_pos one_pos
+    simp only [Real.rpow_one] at hreal
+    apply Integrable.mono' (hreal.const_mul ‖e n‖)
+      (Measurable.aestronglyMeasurable (by dsimp [F]; fun_prop))
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    rw [hnorm n t ht]
+    simp only [one_mul, neg_mul, le_refl]
+  have hInorm (n : ℕ) : (∫ t : ℝ in Set.Ioi 0, ‖F n t‖) =
+      ‖e n‖ * Real.Gamma (b.re + n) := by
+    rw [setIntegral_congr_fun measurableSet_Ioi (fun t ht => hnorm n t ht), integral_const_mul]
+    have hi := Real.integral_rpow_mul_exp_neg_mul_Ioi (a := b.re + n) (r := 1) (by positivity) one_pos
+    simpa using congrArg (fun u : ℝ => ‖e n‖ * u) hi
+  have hsum : Summable (fun n => ∫ t : ℝ in Set.Ioi 0, ‖F n t‖) := by
+    simp_rw [hInorm]
+    exact summable_kummer_gamma_moments a c hb h
+  have hI (n : ℕ) : (∫ t : ℝ in Set.Ioi 0, F n t) =
+      Gamma b * (poch a n * poch b n / (n.factorial * Gamma (c + n))) := by
+    rw [integral_const_mul]
+    have hi := AAR.Gamma.integral_cpow_mul_exp_neg_mul_Ioi (hbn n) (z := 1) (by simp)
+    simp only [one_mul, one_cpow, mul_one] at hi
+    rw [hi]
+    have hg := (div_eq_iff (Gamma_ne_zero (not_neg_nat_of_re_pos hb))).mp
+      (Gamma_add_nat_div_Gamma_eq (n := n) b (not_neg_nat_of_re_pos hb))
+    rw [hg]
+    dsimp only [e]
+    rw [regularizedHGFunCoeff_singleton]
+    ring
+  have ht (t : ℝ) (ht : 0 < t) : (∑' n, F n t) =
+      exp (-(t : ℂ)) * (t : ℂ) ^ (b - 1) * regularizedHGFun {a} {c} t := by
+    rw [regularizedHGFun_eq_tsum, ← tsum_mul_left]
+    apply tsum_congr
+    intro n
+    dsimp [F, e]
+    rw [show b + n - 1 = (b - 1) + n by ring,
+      cpow_add _ _ (ofReal_ne_zero.mpr ht.ne'), cpow_natCast]
+    ring
+  have hs := hasSum_integral_of_summable_integral_norm hFi hsum
+  calc
+    _ = ∫ t : ℝ in Set.Ioi 0, ∑' n, F n t :=
+      setIntegral_congr_fun measurableSet_Ioi (fun t ht' => (ht t ht').symm)
+    _ = ∑' n, ∫ t : ℝ in Set.Ioi 0, F n t := hs.tsum_eq.symm
+    _ = _ := by
+      simp_rw [hI]
+      rw [tsum_mul_left, (AAR.Hypergeometric.hasSum_regularizedGauss_one (by simp at h ⊢; linarith)).tsum_eq]
+      ring
 
 /-- A Gaussian-weighted Laplace transform of `𝐌`; it converges for `0 < Re z`. -/
 @[dlmf 13.10.E6]
@@ -288,7 +376,20 @@ theorem laplace_kummerU {a b c z : ℂ}
         exp (-z * t) * (t : ℂ) ^ (b - 1) * kummerU a c t =
       Gamma b * Gamma (b - c + 1) * z ^ (-b) *
         AAR.Hypergeometric.regularizedGaussHG a b (a + b - c + 1) (1 - z⁻¹) := by
-  sorry
+  have hm := (laplace_kummerU_gauss (a := a) hb hbc hz).2
+  change (∫ t : ℝ in Set.Ioi 0, tricomiLaplaceKernel a b c z t) = _
+  rw [hm]
+  have hz0 : z ≠ 0 := slitPlane_ne_zero (Or.inl hz)
+  have hw : 1 - z ∈ AAR.Hypergeometric.cutPlane := by
+    change 1 - (1 - z) ∈ slitPlane
+    rw [sub_sub_cancel]; exact Or.inl hz
+  have hp := AAR.Hypergeometric.regularizedGaussHG_pfaff b (b - c + 1) (a + b - c + 1) hw
+  have hs := AAR.Hypergeometric.regularizedGaussHG_symm b a (a + b - c + 1)
+    (AAR.Hypergeometric.div_sub_one_mem_cutPlane hw)
+  rw [show (1 - z) / (1 - z - 1) = 1 - z⁻¹ by field_simp [hz0]; ring] at hp hs
+  rw [sub_sub_cancel, show (a + b - c + 1) - (b - c + 1) = a by ring] at hp
+  rw [hp, hs]
+  ring
 
 @[dlmf 13.10.E10]
 theorem mellin_regularizedHGFun {a b lam : ℂ} (hlam : 0 < lam.re) (ha : lam.re < a.re) :
@@ -568,7 +669,7 @@ theorem laplace_whittakerM {κ μ ν z : ℂ}
       rw [show B + n - 1 = (B - 1) + n by ring, cpow_add _ _ ht0, cpow_natCast,
         neg_mul]
       ring
-    rw [setIntegral_congr_fun measurableSet_Ioi hpt, integral_finset_sum _ fun n _ => hFi n,
+    rw [setIntegral_congr_fun measurableSet_Ioi hpt, integral_finsetSum _ fun n _ => hFi n,
       hF, Finset.mul_sum]
     refine Finset.sum_congr rfl fun n _ => ?_
     rw [integral_const_mul, AAR.Gamma.integral_cpow_mul_exp_neg_mul_Ioi (hBn n) hZ]
@@ -642,14 +743,33 @@ theorem laplace_whittakerM_closed {κ μ z : ℂ}
   linear_combination Gamma (2 * μ + 1) * (z + 1 / 2) ^ (-κ - μ - 1 / 2) *
     (z - 1 / 2) ^ (κ - μ - 1 / 2) * hc
 
+/-- The Mellin transform uses regularized M, including exceptional second parameters. -/
 @[dlmf 13.23.E3]
 theorem mellin_whittakerM {κ μ ν : ℂ}
     (h0 : -1 / 2 - μ.re < ν.re) (h1 : ν.re < κ.re) :
-    ∫ t : ℝ in Set.Ioi 0, exp (-(t : ℂ) / 2) * (t : ℂ) ^ (ν - 1) * whittakerM κ μ t /
-        Gamma (1 + 2 * μ) =
+    ∫ t : ℝ in Set.Ioi 0, exp (-(t : ℂ) / 2) * (t : ℂ) ^ (ν - 1) *
+        regularizedWhittakerM κ μ t =
       Gamma (μ + ν + 1 / 2) * Gamma (κ - ν) /
         (Gamma (1 / 2 + μ + κ) * Gamma (1 / 2 + μ - ν)) := by
-  sorry
+  have hm := mellin_regularizedHGFun_exp (a := μ - κ + 1 / 2)
+    (b := μ + ν + 1 / 2) (c := 1 + 2 * μ) (by simp; linarith) (by simp; linarith)
+  have he : ∀ t ∈ Set.Ioi (0 : ℝ),
+      exp (-(t : ℂ) / 2) * (t : ℂ) ^ (ν - 1) * regularizedWhittakerM κ μ t =
+      exp (-(t : ℂ)) * (t : ℂ) ^ (μ + ν + 1 / 2 - 1) *
+        regularizedHGFun {μ - κ + 1 / 2} {1 + 2 * μ} t := by
+    intro t ht
+    have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    have hp : (t : ℂ) ^ (ν - 1) * (t : ℂ) ^ (μ + 1 / 2) =
+        (t : ℂ) ^ (μ + ν + 1 / 2 - 1) := by
+      rw [← cpow_add _ _ ht0]; congr 1; ring
+    have hx : exp (-(t : ℂ) / 2) * exp (-(t : ℂ) / 2) = exp (-(t : ℂ)) := by
+      rw [← exp_add]; congr 1; ring
+    rw [regularizedWhittakerM, ← hp, ← hx]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi he, hm,
+    show (1 + 2 * μ) - (μ - κ + 1 / 2) - (μ + ν + 1 / 2) = κ - ν by ring,
+    show (1 + 2 * μ) - (μ - κ + 1 / 2) = 1 / 2 + μ + κ by ring,
+    show (1 + 2 * μ) - (μ + ν + 1 / 2) = 1 / 2 + μ - ν by ring]
 
 @[dlmf 13.23.E4]
 theorem laplace_whittakerW {κ μ ν z : ℂ}
@@ -658,7 +778,30 @@ theorem laplace_whittakerW {κ μ ν z : ℂ}
       Gamma (1 / 2 + μ + ν) * Gamma (1 / 2 - μ + ν) *
         AAR.Hypergeometric.regularizedGaussHG (1 / 2 - μ + ν) (1 / 2 + μ + ν) (ν - κ + 1)
             (1 / 2 - z) := by
-  sorry
+  have hμ := abs_le.mp (le_refl |μ.re|)
+  have hm := (laplace_kummerU_gauss (a := 1 / 2 + μ - κ) (b := μ + ν + 1 / 2)
+    (c := 1 + 2 * μ) (z := z + 1 / 2) (by simp; linarith)
+      (by simp; linarith) (by simp; linarith)).2
+  have he : ∀ t ∈ Set.Ioi (0 : ℝ),
+      exp (-z * t) * (t : ℂ) ^ (ν - 1) * whittakerW κ μ t =
+        tricomiLaplaceKernel (1 / 2 + μ - κ) (μ + ν + 1 / 2) (1 + 2 * μ) (z + 1 / 2) t := by
+    intro t ht
+    have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    have hp : (t : ℂ) ^ (ν - 1) * (t : ℂ) ^ (1 / 2 + μ) =
+        (t : ℂ) ^ (μ + ν + 1 / 2 - 1) := by
+      rw [← cpow_add _ _ ht0]; congr 1; ring
+    have hx : exp (-z * t) * exp (-(t : ℂ) / 2) = exp (-(z + 1 / 2) * t) := by
+      rw [← exp_add]; congr 1; ring
+    rw [whittakerW, tricomiLaplaceKernel, ← hp, ← hx]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi he, hm,
+    show μ + ν + 1 / 2 = 1 / 2 + μ + ν by ring,
+    show (1 / 2 + μ + ν) - (1 + 2 * μ) + 1 = 1 / 2 - μ + ν by ring,
+    show (1 / 2 + μ - κ) + (1 / 2 + μ + ν) - (1 + 2 * μ) + 1 = ν - κ + 1 by ring,
+    show 1 - (z + 1 / 2) = 1 / 2 - z by ring,
+    AAR.Hypergeometric.regularizedGaussHG_symm _ _ _ (by
+      change 1 - (1 / 2 - z) ∈ slitPlane
+      left; simp; linarith)]
 
 @[dlmf 13.23.E5]
 theorem mellin_whittakerW {κ μ ν : ℂ}
@@ -689,7 +832,7 @@ theorem mellin_whittakerW {κ μ ν : ℂ}
     ring
   · rw [show 1 / 2 + μ - κ - (1 + 2 * μ) + 1 = 1 / 2 - μ - κ by ring]
 
-/-- A cosine transform of Whittaker M. For `κ + μ ≤ 0` the integral converges only
+/-- A cosine transform of regularized Whittaker M. For `κ + μ ≤ 0` the integral converges only
 conditionally, which Lean's integral does not capture, so `0 < κ + μ` is required. -/
 @[dlmf 13.23.E8]
 theorem cosine_whittakerM {κ μ x : ℝ} (hx : 0 < x)
@@ -697,35 +840,35 @@ theorem cosine_whittakerM {κ μ x : ℝ} (hx : 0 < x)
     ∫ t : ℝ in Set.Ioi 0,
         Complex.cos (2 * x * t) * exp (-(t : ℂ) ^ 2 / 2) *
           (t : ℂ) ^ (-(2 * (μ : ℂ) + 1)) *
-          whittakerM κ μ ((t : ℂ) ^ 2) / Gamma (1 + 2 * (μ : ℂ)) =
+          regularizedWhittakerM κ μ ((t : ℂ) ^ 2) =
       (Real.sqrt π : ℂ) * exp (-(x : ℂ) ^ 2 / 2) * (x : ℂ) ^ ((μ : ℂ) + κ - 1) /
         (2 * Gamma (1 / 2 + (μ : ℂ) + κ)) *
         whittakerW (κ / 2 - 3 * μ / 2) (κ / 2 + μ / 2) (x ^ 2) := by
   sorry
 
-/-- A Hankel-type transform of Whittaker M, for real `x > 0`. For non-real `x` the Bessel kernel
+/-- A Hankel-type transform of regularized Whittaker M, for real `x > 0`. For non-real `x` the Bessel kernel
 grows like `exp (c √t)`; the parameter bound makes the integrand absolutely integrable, as
 required for Lean's integral. -/
 @[dlmf 13.23.E9]
 theorem bessel_whittakerM {κ μ ν x : ℂ} (hx : 0 < x.re) (hxi : x.im = 0)
     (hμ : -1 / 2 < μ.re) (hμ' : μ.re < κ.re + ν.re / 2 - 1 / 4) :
     ∫ t : ℝ in Set.Ioi 0,
-        exp (-(t : ℂ) / 2) * (t : ℂ) ^ (μ - (ν + 1) / 2) * whittakerM κ μ t *
+        exp (-(t : ℂ) / 2) * (t : ℂ) ^ (μ - (ν + 1) / 2) * regularizedWhittakerM κ μ t *
           besselJ ν (2 * (x * t) ^ (1 / 2 : ℂ)) =
-      Gamma (1 + 2 * μ) / Gamma (1 / 2 - μ + κ + ν) * exp (-x / 2) *
+      exp (-x / 2) *
         x ^ ((κ - μ - 3 / 2) / 2) *
-        whittakerM ((κ + 3 * μ - ν + 1 / 2) / 2) ((κ - μ + ν - 1 / 2) / 2) x := by
+        regularizedWhittakerM ((κ + 3 * μ - ν + 1 / 2) / 2) ((κ - μ + ν - 1 / 2) / 2) x := by
   sorry
 
-/-- A Hankel-type transform of Whittaker M in terms of W, for real `x > 0`. For non-real `x` the
+/-- A Hankel-type transform of regularized Whittaker M in terms of W, for real `x > 0`. For non-real `x` the
 Bessel kernel grows like `exp (c √t)`; the parameter bound makes the integrand absolutely
 integrable, as required for Lean's integral. -/
 @[dlmf 13.23.E10]
 theorem bessel_whittakerM_W {κ μ ν x : ℂ} (hx : 0 < x.re) (hxi : x.im = 0)
     (hν0 : -1 < ν.re) (hν1 : ν.re < 2 * (κ + μ).re - 1 / 2) :
     ∫ t : ℝ in Set.Ioi 0,
-        exp (-(t : ℂ) / 2) * (t : ℂ) ^ ((ν - 1) / 2 - μ) * whittakerM κ μ t *
-          besselJ ν (2 * (x * t) ^ (1 / 2 : ℂ)) / Gamma (1 + 2 * μ) =
+        exp (-(t : ℂ) / 2) * (t : ℂ) ^ ((ν - 1) / 2 - μ) * regularizedWhittakerM κ μ t *
+          besselJ ν (2 * (x * t) ^ (1 / 2 : ℂ)) =
       exp (-x / 2) * x ^ ((κ + μ - 3 / 2) / 2) / Gamma (1 / 2 + μ + κ) *
         whittakerW ((κ - 3 * μ + ν + 1 / 2) / 2) ((κ + μ - ν - 1 / 2) / 2) x := by
   sorry
@@ -744,15 +887,16 @@ theorem bessel_whittakerW {κ μ ν x : ℂ} (hx : 0 < x.re) (hxi : x.im = 0)
         whittakerW ((κ + 3 * μ - ν - 1 / 2) / 2) ((κ - μ + ν + 1 / 2) / 2) x := by
   sorry
 
+/-- The output M is regularized; Gamma poles in its second parameter are retained. -/
 @[dlmf 13.23.E12]
 theorem bessel_whittakerW_M {κ μ ν x : ℂ} (hx : 0 < x.re)
     (hν0 : (2 * μ.re - 1) < ν.re) (hν1 : -1 < ν.re) :
     ∫ t : ℝ in Set.Ioi 0,
         exp (-(t : ℂ) / 2) * (t : ℂ) ^ ((ν - 1) / 2 - μ) * whittakerW κ μ t *
           besselJ ν (2 * (x * t) ^ (1 / 2 : ℂ)) =
-      Gamma (ν - 2 * μ + 1) / Gamma (3 / 2 - μ - κ + ν) * exp (-x / 2) *
+      Gamma (ν - 2 * μ + 1) * exp (-x / 2) *
         x ^ ((μ + κ - 3 / 2) / 2) *
-        whittakerM ((κ - 3 * μ + ν + 1 / 2) / 2) ((ν - μ - κ + 1 / 2) / 2) x := by
+        regularizedWhittakerM ((κ - 3 * μ + ν + 1 / 2) / 2) ((ν - μ - κ + 1 / 2) / 2) x := by
   sorry
 
 end AAR.Confluent

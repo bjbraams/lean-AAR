@@ -262,7 +262,8 @@ lemma tendsto_one_sub_rpow_div (t : ℝ) :
     Tendsto (fun q : ℝ => (1 - q ^ t) / (1 - q)) (𝓝[<] 1) (𝓝 t) := by
   have hd : HasDerivAt (fun q : ℝ => q ^ t) t 1 := by
     simpa using Real.hasDerivAt_rpow_const (x := 1) (p := t) (Or.inl one_ne_zero)
-  have hs := hd.tendsto_slope.mono_left (nhdsWithin_mono _ (fun q (hq : q < 1) => hq.ne))
+  have hs := hd.tendsto_slope.mono_left
+    (nhdsWithin_mono (s := Set.Iio (1 : ℝ)) _ (fun q (hq : q < 1) => hq.ne))
   refine hs.congr' (eventually_nhdsWithin_of_forall fun q (hq : q < 1) => ?_)
   rw [slope_def_field, Real.one_rpow]
   have : q - 1 ≠ 0 := sub_ne_zero.mpr hq.ne

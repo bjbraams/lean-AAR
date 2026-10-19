@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.Hypergeometric.EulerHalfLine
+public import AAR.Hypergeometric.Boundary
 public import AAR.Hypergeometric.AnalyticProperties
 public import AAR.Hypergeometric.Asymptotics
 public import AAR.Hypergeometric.Basic
@@ -28,6 +30,7 @@ public import AAR.Hypergeometric.BarnesAux
 public import AAR.Hypergeometric.Generalized
 public import AAR.Hypergeometric.LoopIntegral
 public import AAR.Hypergeometric.Saalschutz
+public import AAR.Hypergeometric.FiniteConvolution
 public import AAR.Hypergeometric.GeneralizedCalculus
 public import AAR.Hypergeometric.GeneralizedIntegral
 public import AAR.Hypergeometric.Clausen

@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Convex.Deriv
+
 public import AAR.QSeries.Pochhammer
 public import AAR.QSeries.Identities
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
@@ -346,7 +348,7 @@ lemma tendsto_qNum (t : ℝ) : Tendsto (fun q : ℝ => qNum q t) (𝓝[<] 1) (�
     Real.hasDerivAt_rpow_const (Or.inl one_ne_zero)
   rw [Real.one_rpow, mul_one] at hd
   have hs := (hasDerivAt_iff_tendsto_slope.1 hd).mono_left
-    (nhdsWithin_mono _ fun y (hy : y < 1) => (ne_of_lt hy : y ≠ 1))
+    (nhdsWithin_mono (s := Iio (1 : ℝ)) (t := {1}ᶜ) 1 fun y (hy : y < 1) => (ne_of_lt hy : y ≠ 1))
   refine hs.congr' ?_
   filter_upwards [self_mem_nhdsWithin] with y (hy : y < 1)
   have h1 : y - 1 ≠ 0 := sub_ne_zero.2 hy.ne

@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Data.Nat.Choose.Cast
+
 public import AAR.Hypergeometric.Series
 public import AAR.Hypergeometric.DiffEq
 public import AAR.Hypergeometric.Continuation

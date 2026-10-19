@@ -77,7 +77,7 @@ or error function. Project definitions `erf`, `lowerIncGamma`,
 | 13.7.E5–E9, 13.7.E11–E13 | Remainder-region constants `R₁,R₂,R₃`, `χ(n)`, incomplete-gamma remainder |
 | 13.8.E4–E5, 13.8.E8–E16 | Uniform parabolic-cylinder / Bessel / `envJ` approximations |
 | 13.6.E11, 13.18.E10 | Airy function not in the project API |
-| 13.6.E12–E15, 13.18.E11–E13 | Parabolic cylinder `U(a,z)` (DLMF Chapter 12) |
+| 13.6.E12–E15, 13.18.E11–E13 | Kummer forms of parabolic cylinder functions; `U(a,z)` and `V(a,z)` now exist (see the Chapter 12 index below) but these relations are not yet stated |
 | 13.6(vii) Coulomb | Coulomb wave functions (DLMF Chapter 33) |
 | 13.9.E8, 13.22.E1 | Indexed Bessel zeros `j_{ν,r}` |
 | 13.20, 13.21 | Uniform Airy/Bessel turning-point expansions in `μ` and `κ` |
@@ -123,22 +123,71 @@ definitions in `Basic.lean` and `Whittaker.lean`.
 | [13.25](https://dlmf.nist.gov/13.25) | 1 / 1 | Product identity. |
 | [13.26](https://dlmf.nist.gov/13.26) | 12 / 12 | Addition theorems. |
 
+## DLMF Chapter 12: parabolic cylinder functions
+
+[ParabolicCylinder.lean](ParabolicCylinder.lean) defines `U(a,z)` through Tricomi's `U` (12.7.14),
+`V(a,z)` through its initial values with reciprocal Gamma factors (entire in `a` and `z`), and
+`D_ν`. All tagged statements below are proved (2026-10-17). The Wronskian 12.2.12 was checked
+against the DLMF website. The connection formula for `U(-a, ±iz)` is 12.2.17; its classical
+form needs `1/2 + a ∉ -ℕ`. Not yet stated: the large-`x` behaviour of `V` (12.9.2), the
+remaining connection formulas 12.2.18–19, and the uniform expansions of §§12.10–12.11.
+
+| DLMF | Declaration | Status |
+| --- | --- | --- |
+| [12.2.E2](https://dlmf.nist.gov/12.2.E2) | [hasDerivAt_pcfUDeriv](ParabolicCylinder.lean) (line 161); [hasDerivAt_pcfVDeriv](ParabolicCylinder.lean) (line 1072) | proved |
+| [12.2.E5](https://dlmf.nist.gov/12.2.E5) | [pcfD](ParabolicCylinder.lean) (line 154) | definition |
+| [12.2.E6](https://dlmf.nist.gov/12.2.E6) | [pcfU_zero](ParabolicCylinder.lean) (line 176) | proved |
+| [12.2.E7](https://dlmf.nist.gov/12.2.E7) | [pcfUDeriv_zero](ParabolicCylinder.lean) (line 184) | proved |
+| [12.2.E8](https://dlmf.nist.gov/12.2.E8) | [pcfV_zero](ParabolicCylinder.lean) (line 1093) | proved |
+| [12.2.E9](https://dlmf.nist.gov/12.2.E9) | [pcfVDeriv_zero](ParabolicCylinder.lean) (line 1102) | proved |
+| [12.2.E10](https://dlmf.nist.gov/12.2.E10) | [pcfV_wronskian](ParabolicCylinder.lean) (line 1154) | proved |
+| [12.2.E11](https://dlmf.nist.gov/12.2.E11) | [pcfU_wronskian_neg](ParabolicCylinder.lean) (line 813) | proved |
+| [12.2.E12](https://dlmf.nist.gov/12.2.E12) | [pcfU_wronskian_mul_I](ParabolicCylinder.lean) (line 869); [pcfU_wronskian_mul_neg_I](ParabolicCylinder.lean) (line 907) | proved |
+| [12.2.E13](https://dlmf.nist.gov/12.2.E13) | [pcfU_neg_nat_sub_half_neg](ParabolicCylinder.lean) (line 1310) | proved |
+| [12.2.E14](https://dlmf.nist.gov/12.2.E14) | [pcfV_nat_add_half_neg](ParabolicCylinder.lean) (line 1321) | proved |
+| [12.2.E15](https://dlmf.nist.gov/12.2.E15) | [pcfU_neg_eq](ParabolicCylinder.lean) (line 1203) | proved |
+| [12.2.E16](https://dlmf.nist.gov/12.2.E16) | [pcfV_neg_eq](ParabolicCylinder.lean) (line 1252) | proved |
+| [12.2.E17](https://dlmf.nist.gov/12.2.E17) | [pcfU_connection_mul_I](ParabolicCylinder.lean) (line 957); [pcfU_connection_mul_neg_I](ParabolicCylinder.lean) (line 1042) | proved |
+| [12.2.E20](https://dlmf.nist.gov/12.2.E20) | [pcfV_eq_mul_I](ParabolicCylinder.lean) (line 1357); [pcfV_eq_mul_neg_I](ParabolicCylinder.lean) (line 1419) | proved |
+| [12.4.E1](https://dlmf.nist.gov/12.4.E1) | [pcfU](ParabolicCylinder.lean) (line 142) | definition |
+| [12.4.E2](https://dlmf.nist.gov/12.4.E2) | [pcfV](ParabolicCylinder.lean) (line 1062) | definition |
+| [12.5.E1](https://dlmf.nist.gov/12.5.E1) | [pcfU_eq_integral](ParabolicCylinder.lean) (line 694) | proved |
+| [12.7.E1](https://dlmf.nist.gov/12.7.E1) | [pcfU_neg_half](ParabolicCylinder.lean) (line 193) | proved |
+| [12.7.E2](https://dlmf.nist.gov/12.7.E2) | [pcfD_nat](ParabolicCylinder.lean) (line 494) | proved |
+| [12.7.E12](https://dlmf.nist.gov/12.7.E12) | [pcfEven](ParabolicCylinder.lean) (line 60) | definition |
+| [12.7.E13](https://dlmf.nist.gov/12.7.E13) | [pcfOdd](ParabolicCylinder.lean) (line 65) | definition |
+| [12.7.E14](https://dlmf.nist.gov/12.7.E14) | [pcfU_eq_kummerU](ParabolicCylinder.lean) (line 211) | proved |
+| [12.8.E1](https://dlmf.nist.gov/12.8.E1) | [pcfU_three_term](ParabolicCylinder.lean) (line 460) | proved |
+| [12.8.E2](https://dlmf.nist.gov/12.8.E2) | [pcfU_recurrence_add](ParabolicCylinder.lean) (line 425) | proved |
+| [12.8.E3](https://dlmf.nist.gov/12.8.E3) | [pcfU_recurrence_sub](ParabolicCylinder.lean) (line 391) | proved |
+| [12.8.E4](https://dlmf.nist.gov/12.8.E4) | [pcfU_deriv_recurrence](ParabolicCylinder.lean) (line 466) | proved |
+| [12.8.E5](https://dlmf.nist.gov/12.8.E5) | [pcfV_three_term](ParabolicCylinder.lean) (line 1562) | proved |
+| [12.8.E6](https://dlmf.nist.gov/12.8.E6) | [pcfV_recurrence_sub](ParabolicCylinder.lean) (line 1520) | proved |
+| [12.8.E7](https://dlmf.nist.gov/12.8.E7) | [pcfV_recurrence_add](ParabolicCylinder.lean) (line 1480) | proved |
+| [12.8.E8](https://dlmf.nist.gov/12.8.E8) | [pcfV_deriv_recurrence](ParabolicCylinder.lean) (line 1568) | proved |
+| [12.9.E1](https://dlmf.nist.gov/12.9.E1) | [hasAsymptoticExpansion_pcfU](ParabolicCylinder.lean) (line 266) | proved |
+
 ## Modules
 
 | Module | Theorems | Definitions | Current `sorry`s |
 | --- | ---: | ---: | ---: |
-| [Basic.lean](Basic.lean) | 29 | 5 | 2 (pre-existing Barnes integral and parabolic zero-free region) |
-| [BasicProperties.lean](BasicProperties.lean) | 35 | 1 | 35 |
-| [Whittaker.lean](Whittaker.lean) | 23 | 2 | 19 |
-| [Recurrence.lean](Recurrence.lean) | 55 | 1 | 55 |
-| [IntegralRepresentations.lean](IntegralRepresentations.lean) | 21 | 0 | 21 |
+| [Basic.lean](Basic.lean) | 29 | 5 | 1 (pre-existing parabolic zero-free region) |
+| [BasicProperties.lean](BasicProperties.lean) | 35 | 1 | 6 |
+| [Whittaker.lean](Whittaker.lean) | 23 | 2 | 0 |
+| [Recurrence.lean](Recurrence.lean) | 55 | 1 | 0 |
+| [IntegralRepresentations.lean](IntegralRepresentations.lean) | 21 | 0 | 9 |
 | [ContinuedFractions.lean](ContinuedFractions.lean) | 4 | 8 | 4 |
-| [Relations.lean](Relations.lean) | 30 | 2 | 30 |
-| [Asymptotics.lean](Asymptotics.lean) | 13 | 2 | 13 |
-| [Zeros.lean](Zeros.lean) | 15 | 2 | 15 |
-| [Integrals.lean](Integrals.lean) | 24 | 0 | 24 |
+| [Relations.lean](Relations.lean) | 30 | 2 | 2 |
+| [Asymptotics.lean](Asymptotics.lean) | 13 | 2 | 5 |
+| [Zeros.lean](Zeros.lean) | 15 | 2 | 10 |
+| [Integrals.lean](Integrals.lean) | 24 | 0 | 16 |
 | [Series.lean](Series.lean) | 6 | 3 | 6 |
-| [ProductsAddition.lean](ProductsAddition.lean) | 26 | 0 | 26 |
+| [ProductsAddition.lean](ProductsAddition.lean) | 26 | 0 | 10 |
 | [MathlibCoverage.lean](MathlibCoverage.lean) | 0 | 0 | 0 |
+
+The last column was refreshed on 2026-10-17 from the build's `sorry` warnings (69 in this
+directory); later modules (`ParabolicCylinder`, `ConnectionWronskians`, `Coulomb*`, `Regularized`,
+`Confluence`, `TricomiRotated`, `AsymptoticConsequences`, `ExpIntegral`, `ErrorFunctions`,
+`IncompleteGamma`, `FresnelAsymptotics`, `Continuation`, `Growth`) contain no admissions.
 
 The acquisition introduced Tricomi's `U` and complementary error/incomplete-gamma helpers, together with about 250 tagged statements. All new identities are admitted except the previously proved theorems in `Basic` and `Whittaker`.

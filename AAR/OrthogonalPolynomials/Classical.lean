@@ -923,14 +923,6 @@ def jacobiMeasure (α β : ℝ) : Measure ℝ :=
   (volume.restrict (Set.Ioo (-1 : ℝ) 1)).withDensity
     (fun x => ENNReal.ofReal ((1 - x) ^ α * (1 + x) ^ β))
 
-/-- Completeness of Jacobi polynomials in `L²((-1,1),(1-x)^α(1+x)^β)` (AAR §6.5). -/
-@[dlmf 18.18.i]
-theorem jacobiPolyP_complete {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {f : ℝ → ℂ}
-    (hf : MemLp f 2 (jacobiMeasure α β))
-    (hcoeff : ∀ n : ℕ, ∫ x, f x * jacobiPolyP α β n x ∂jacobiMeasure α β = 0) :
-    ∀ᵐ x : ℝ, x ∈ Set.Ioo (-1 : ℝ) 1 → f x = 0 := by
-  sorry
-
 /-- Reflection of a Pochhammer symbol: `(1 - y - m)_m = (-1)^m (y)_m`. -/
 lemma poch_one_sub_sub_self (y : ℂ) (m : ℕ) : poch (1 - y - m) m = (-1 : ℂ) ^ m * poch y m := by
   induction m with

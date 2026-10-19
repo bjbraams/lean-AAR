@@ -7,6 +7,7 @@ module
 
 public import AAR.Elliptic.Complete
 public import Mathlib.Analysis.SpecialFunctions.ArithmeticGeometricMean
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
 
 /-!
 # The arithmetic-geometric mean and Landen's transformations (Temme §12.1.2, DLMF §19.8)

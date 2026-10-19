@@ -8,12 +8,15 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import TauCeti.LinearAlgebra.Matrix.CornerMinor
 /-!
 # Kernels, moments, recurrence coefficients, and zeros
 
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+The moment determinant proofs use the Tau Ceti contributors’ corner-minor lemma
+with Mathlib’s column-replacement identity.
 The compact-support expansion uses the Tau Ceti contributors' polynomial
 completeness and weighted Hilbert-basis construction, as in `General`.
 -/
@@ -241,7 +244,124 @@ theorem zeros_interlace {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogona
     ∃ x : Fin n → ℝ, ∃ y : Fin (n + 1) → ℝ, StrictMono x ∧ StrictMono y ∧
       (∀ i, (p n).eval (x i) = 0) ∧ (∀ i, (p (n + 1)).eval (y i) = 0) ∧
       ∀ i : Fin n, y i.castSucc < x i ∧ x i < y i.succ := by
-  sorry
+  classical
+  -- The zeros `y` of `p (n+1)`, listed increasingly, and the factorization over them.
+  set q := p (n + 1) with hq_def
+  have hq0 : q ≠ 0 := h.ne_zero (n + 1)
+  obtain ⟨hcard, hnodup⟩ : q.roots.card = n + 1 ∧ q.roots.Nodup :=
+    orthogonal_polynomials_roots h (n + 1)
+  have hdegq : q.natDegree = n + 1 := h.1 (n + 1)
+  have hs : q.roots.toFinset.card = n + 1 := by
+    rw [Multiset.toFinset_card_of_nodup hnodup, hcard]
+  set y := q.roots.toFinset.orderEmbOfFin hs with hy_def
+  have hymono : StrictMono y := y.strictMono
+  have hyinj : Function.Injective y := y.injective
+  have hyroot (i : Fin (n + 1)) : q.eval (y i) = 0 :=
+    (mem_roots hq0).1 (Multiset.mem_toFinset.1 (Finset.orderEmbOfFin_mem _ hs i))
+  have hfac : q = C q.leadingCoeff * Lagrange.nodal Finset.univ y := by
+    conv_lhs => rw [← C_leadingCoeff_mul_prod_multiset_X_sub_C (hcard.trans hdegq.symm)]
+    congr 1
+    have hm : (q.roots.map fun a => X - C a).prod = ∏ a ∈ q.roots.toFinset, (X - C a) := by
+      rw [Finset.prod_eq_multiset_prod, Multiset.toFinset_val, hnodup.dedup]
+    rw [hm, ← Finset.image_orderEmbOfFin_univ _ hs,
+      Finset.prod_image fun a _ b _ hab => hyinj hab, Lagrange.nodal]
+  -- `d i = ∏_{j ≠ i} (y i - y j)`, so that `q'(y i) = lc · d i`.
+  set d : Fin (n + 1) → ℝ := fun i => ∏ j ∈ Finset.univ.erase i, (y i - y j) with hd_def
+  have hderiv (i : Fin (n + 1)) : (derivative q).eval (y i) = q.leadingCoeff * d i := by
+    conv_lhs => rw [hfac]
+    rw [derivative_C_mul, eval_mul, eval_C,
+      Lagrange.eval_nodal_derivative_eval_node_eq (Finset.mem_univ i), Lagrange.eval_nodal]
+  -- Consecutive values of `d` have opposite signs.
+  have hdd (i : Fin n) : d i.castSucc * d i.succ < 0 := by
+    set a := i.castSucc
+    set b := i.succ
+    have hab : a ≠ b := Fin.castSucc_lt_succ.ne
+    have hlt : y a < y b := hymono Fin.castSucc_lt_succ
+    have hb : b ∈ Finset.univ.erase a := Finset.mem_erase.2 ⟨hab.symm, Finset.mem_univ _⟩
+    have ha : a ∈ Finset.univ.erase b := Finset.mem_erase.2 ⟨hab, Finset.mem_univ _⟩
+    have hda : d a = (y a - y b) * ∏ j ∈ (Finset.univ.erase a).erase b, (y a - y j) :=
+      (Finset.mul_prod_erase _ (fun j => y a - y j) hb).symm
+    have hdb : d b = (y b - y a) * ∏ j ∈ (Finset.univ.erase a).erase b, (y b - y j) := by
+      rw [Finset.erase_right_comm]
+      exact (Finset.mul_prod_erase _ (fun j => y b - y j) ha).symm
+    have hP : 0 < ∏ j ∈ (Finset.univ.erase a).erase b, ((y a - y j) * (y b - y j)) := by
+      refine Finset.prod_pos fun j hj => ?_
+      obtain ⟨hjb, hja⟩ : j ≠ b ∧ j ≠ a := by
+        simp only [Finset.mem_erase] at hj
+        exact ⟨hj.1, hj.2.1⟩
+      have hja' : j.val ≠ i.val := fun h' => hja (Fin.ext (by simp [a, h']))
+      have hjb' : j.val ≠ i.val + 1 := fun h' => hjb (Fin.ext (by simp [b, h']))
+      rcases lt_or_gt_of_ne hja' with hjl | hjg
+      · have h1 : y j < y a := hymono (by simp [Fin.lt_def, a, hjl])
+        exact mul_pos (by linarith) (by linarith)
+      · have h2 : y b < y j := hymono (by simp [Fin.lt_def, b]; omega)
+        exact mul_pos_of_neg_of_neg (by linarith) (by linarith)
+    rw [hda, hdb]
+    have : (y a - y b) * (∏ j ∈ (Finset.univ.erase a).erase b, (y a - y j)) *
+        ((y b - y a) * ∏ j ∈ (Finset.univ.erase a).erase b, (y b - y j)) =
+        -((y b - y a) ^ 2) * ∏ j ∈ (Finset.univ.erase a).erase b, ((y a - y j) * (y b - y j)) := by
+      rw [Finset.prod_mul_distrib]
+      ring
+    rw [this]
+    exact mul_neg_of_neg_of_pos (neg_neg_of_pos (by nlinarith)) hP
+  -- The kernel on the diagonal is positive.
+  have hK (t : ℝ) : 0 < christoffelDarbouxKernel μ p n t t := by
+    unfold christoffelDarbouxKernel
+    rw [Finset.sum_range_succ']
+    refine add_pos_of_nonneg_of_pos (Finset.sum_nonneg fun k _ =>
+      div_nonneg (mul_self_nonneg _) (h.2.2.1 _).le) (div_pos ?_ (h.2.2.1 0))
+    have hp0 : p 0 = C ((p 0).coeff 0) := eq_C_of_natDegree_eq_zero (h.1 0)
+    have hc : (p 0).coeff 0 ≠ 0 := fun hc => h.ne_zero 0 (by rw [hp0, hc, C_0])
+    rw [hp0, eval_C]
+    exact mul_self_pos.2 hc
+  -- Hence `B d_i p_n(y_i) > 0` for a constant `B`.
+  set B := (p n).leadingCoeff / (squaredNorm μ p n * q.leadingCoeff) * q.leadingCoeff with hB
+  have hpos (i : Fin (n + 1)) : 0 < B * d i * (p n).eval (y i) := by
+    have := hK (y i)
+    rw [christoffel_darboux_diagonal h n (y i), ← hq_def, hyroot i, hderiv i] at this
+    convert this using 1
+    rw [hB]
+    ring
+  have hsign (i : Fin n) : (p n).eval (y i.castSucc) * (p n).eval (y i.succ) < 0 := by
+    have h1 := hpos i.castSucc
+    have h2 := hpos i.succ
+    by_contra hge
+    push Not at hge
+    have hprod := mul_pos h1 h2
+    have hBB : 0 ≤ B * B := mul_self_nonneg B
+    have : (B * d i.castSucc * (p n).eval (y i.castSucc)) * (B * d i.succ * (p n).eval (y i.succ))
+        = (B * B) * (d i.castSucc * d i.succ) *
+          ((p n).eval (y i.castSucc) * (p n).eval (y i.succ)) := by ring
+    rw [this] at hprod
+    have := mul_nonpos_of_nonpos_of_nonneg
+      (mul_nonpos_of_nonneg_of_nonpos hBB (hdd i).le) hge
+    linarith
+  -- A zero of `p n` strictly between consecutive zeros of `p (n+1)`.
+  have hex (i : Fin n) : ∃ ξ ∈ Set.Ioo (y i.castSucc) (y i.succ), (p n).eval ξ = 0 := by
+    have hle : y i.castSucc ≤ y i.succ := (hymono Fin.castSucc_lt_succ).le
+    have hcont : ContinuousOn (fun t => (p n).eval t) (Set.Icc (y i.castSucc) (y i.succ)) :=
+      (p n).continuous.continuousOn
+    rcases lt_or_gt_of_ne (show (p n).eval (y i.castSucc) ≠ 0 from fun h0 => by
+        have := hsign i; rw [h0, zero_mul] at this; exact lt_irrefl _ this) with hneg | hpos'
+    · have hpos2 : 0 < (p n).eval (y i.succ) := by
+        by_contra hle'
+        push Not at hle'
+        have := hsign i
+        nlinarith
+      obtain ⟨ξ, hξ, hξ0⟩ := intermediate_value_Ioo hle hcont ⟨hneg, hpos2⟩
+      exact ⟨ξ, hξ, hξ0⟩
+    · have hneg2 : (p n).eval (y i.succ) < 0 := by
+        by_contra hle'
+        push Not at hle'
+        have := hsign i
+        nlinarith
+      obtain ⟨ξ, hξ, hξ0⟩ := intermediate_value_Ioo' hle hcont ⟨hneg2, hpos'⟩
+      exact ⟨ξ, hξ, hξ0⟩
+  choose x hxI hx0 using hex
+  refine ⟨x, y, fun i j hij => ?_, hymono, hx0, hyroot, fun i => hxI i⟩
+  have hle : y i.succ ≤ y j.castSucc :=
+    hymono.monotone (by simp [Fin.le_def]; omega)
+  exact ((hxI i).2.trans_le hle).trans (hxI j).1
 
 @[dlmf 18.2.E21]
 theorem symmetric_measure_parity {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
@@ -406,26 +526,188 @@ theorem kernel_polynomials_orthogonal {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h
         rw [abs_of_pos (by linarith [hx.2])]
       _ = 0 := hs
 
+/-- Integration against a monomial is the corresponding finite sum of moments. -/
+lemma moment_coeff_sum {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
+    (q : ℝ[X]) (n : ℕ) (hq : q.natDegree ≤ n) (i : ℕ) :
+    ∑ j : Fin (n + 1), q.coeff j * moment μ (i + j) =
+      ∫ t, t ^ i * q.eval t ∂μ := by
+  have he (t : ℝ) : t ^ i * q.eval t =
+      ∑ j : Fin (n + 1), q.coeff j * t ^ (i + j) := by
+    rw [eval_eq_sum_range' (lt_of_le_of_lt hq (Nat.lt_succ_self n)), ← Fin.sum_univ_eq_sum_range, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro j hj
+    rw [pow_add]
+    ring
+  simp_rw [he]
+  rw [integral_finsetSum]
+  · simp only [integral_const_mul, moment]
+  · intro j hj
+    exact (show Integrable (fun t : ℝ => t ^ (i + j)) μ by
+      simpa using h.integrable_mul (X ^ (i + j)) 1).const_mul _
+
 @[dlmf 18.2.E29]
 theorem monic_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
     (hmonic : ∀ n, (p n).Monic) (n : ℕ) (x : ℝ) :
     (p n).eval x = Matrix.det (fun i j : Fin (n + 1) =>
       if i.val = n then x ^ j.val else moment μ (i.val + j.val)) / hankelDeterminant μ n := by
-  sorry
+  classical
+  let A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
+    fun i j => if i.val = n then x ^ j.val else moment μ (i.val + j.val)
+  let B := A.updateCol (Fin.last n) (fun i => ∑ j : Fin (n + 1), (p n).coeff j * A i j)
+  have hc : (p n).coeff n = 1 := by simpa only [h.1] using (hmonic n).coeff_natDegree
+  have hdet : B.det = A.det := by
+    simpa only [B, smul_eq_mul, Fin.val_last, hc, one_mul] using
+      Matrix.det_updateCol_sum A (Fin.last n) (fun j => (p n).coeff j)
+  have hlast : B (Fin.last n) (Fin.last n) = (p n).eval x := by
+    change (A.updateCol (Fin.last n) _) _ _ = _
+    rw [Matrix.updateCol_self]
+    simp only [A, Fin.val_last, ↓reduceIte]
+    change (∑ j : Fin (n + 1), (fun k : ℕ => (p n).coeff k * x ^ k) j) = _
+    rw [Fin.sum_univ_eq_sum_range (fun k : ℕ => (p n).coeff k * x ^ k) (n + 1)]
+    rw [← eval_eq_sum_range' (n := n + 1) (by rw [h.1]; omega) x]
+
+  have hzero (i : Fin (n + 1)) (hi : i ≠ Fin.last n) : B i (Fin.last n) = 0 := by
+    have hin : i.val ≠ n := fun he => hi (Fin.ext he)
+    change (A.updateCol (Fin.last n) _) _ _ = _
+    rw [Matrix.updateCol_self]
+    simp only [A, hin, ↓reduceIte]
+    rw [moment_coeff_sum h _ _ (by rw [h.1])]
+    have hil : i.val < n := Nat.lt_of_le_of_ne (Nat.le_of_lt_succ i.isLt) hin
+    simpa only [eval_pow, eval_X] using
+      h.integral_mul_eq_zero_of_degree_lt (q := X ^ i.val) (by
+        rw [degree_X_pow]
+        exact_mod_cast hil)
+  have hminor : B.submatrix Fin.castSucc Fin.castSucc =
+      (fun i j : Fin n => moment μ (i.val + j.val)) := by
+    ext i j
+    have hj : j.castSucc ≠ Fin.last n := Fin.castSucc_ne_last j
+    rw [Matrix.submatrix_apply]
+    change (A.updateCol (Fin.last n) (fun k => ∑ l : Fin (n + 1), (p n).coeff l * A k l)) i.castSucc j.castSucc = _
+    rw [Matrix.updateCol_ne hj]
+    simp [A, Nat.ne_of_lt i.isLt]
+  -- Tau Ceti’s corner-minor formula after the orthogonal column replacement.
+  have hh := Matrix.det_eq_mul_det_submatrix_castSucc_of_col B hzero
+  rw [hdet, hlast, hminor] at hh
+  exact (eq_div_iff (hankelDeterminant_pos h n).ne').mpr hh.symm
+
+/-- The Hankel determinant quotient is the squared norm of the monic polynomial. -/
+lemma hankelDeterminant_succ_eq_squaredNorm_mul {μ : Measure ℝ} {p : ℕ → ℝ[X]}
+    (h : IsOrthogonalPolynomials μ p) (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
+    hankelDeterminant μ (n + 1) = squaredNorm μ p n * hankelDeterminant μ n := by
+  classical
+  let A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ := fun i j => moment μ (i.val + j.val)
+  let B := A.updateCol (Fin.last n)
+    (fun i => ∑ j : Fin (n + 1), (p n).coeff j * A i j)
+  have hc : (p n).coeff n = 1 := by simpa only [h.1] using (hmonic n).coeff_natDegree
+  have hdet : B.det = A.det := by
+    simpa only [B, smul_eq_mul, Fin.val_last, hc, one_mul] using
+      Matrix.det_updateCol_sum A (Fin.last n) (fun j => (p n).coeff j)
+  have hcol (i : Fin (n + 1)) : B i (Fin.last n) = ∫ t, t ^ (i.val) * (p n).eval t ∂μ := by
+    change (A.updateCol (Fin.last n) _) _ _ = _
+    rw [Matrix.updateCol_self]
+    exact moment_coeff_sum h _ _ (by rw [h.1]) _
+  have hzero (i : Fin (n + 1)) (hi : i ≠ Fin.last n) : B i (Fin.last n) = 0 := by
+    rw [hcol]
+    have hil : i.val < n := Nat.lt_of_le_of_ne (Nat.le_of_lt_succ i.isLt)
+      (fun he => hi (Fin.ext he))
+    simpa only [eval_pow, eval_X] using h.integral_mul_eq_zero_of_degree_lt
+      (q := X ^ i.val) (by rw [degree_X_pow]; exact_mod_cast hil)
+  have hlast : B (Fin.last n) (Fin.last n) = squaredNorm μ p n := by
+    rw [hcol]
+    simp only [Fin.val_last]
+    have hdeg : (X ^ n - p n).degree < (n : WithBot ℕ) := by
+      rw [← degree_X_pow (R := ℝ) (n := n)]
+      apply degree_sub_lt_left (by rw [degree_X_pow,
+        degree_eq_natDegree (h.ne_zero n), h.1]) (by simp)
+      simp only [leadingCoeff_X_pow, (hmonic n).leadingCoeff]
+    have hz := h.integral_mul_eq_zero_of_degree_lt hdeg
+    simp only [eval_sub, eval_pow, eval_X, sub_mul] at hz
+    have hi : Integrable (fun t : ℝ => t ^ n * (p n).eval t) μ := by
+      simpa only [eval_pow, eval_X] using h.integrable_mul (X ^ n) (p n)
+    rw [integral_sub hi (h.integrable_mul (p n) (p n))] at hz
+    simp only [← pow_two] at hz
+    change (∫ t, t ^ n * (p n).eval t ∂μ) - squaredNorm μ p n = 0 at hz
+    exact sub_eq_zero.mp hz
+  have hminor : B.submatrix Fin.castSucc Fin.castSucc =
+      (fun i j : Fin n => moment μ (i.val + j.val)) := by
+    ext i j
+    rw [Matrix.submatrix_apply]
+    change (A.updateCol (Fin.last n) _) i.castSucc j.castSucc = _
+    rw [Matrix.updateCol_ne (Fin.castSucc_ne_last j)]
+    rfl
+  -- Tau Ceti’s corner-minor formula after the orthogonal column replacement.
+  have hh := Matrix.det_eq_mul_det_submatrix_castSucc_of_col B hzero
+  rw [hdet, hlast, hminor] at hh
+  exact hh
 
 @[dlmf 18.2.E30]
-theorem monic_diagonal_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
-    (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
-    recurrenceDiagonal h n = shiftedHankelDeterminant μ (n + 1) / hankelDeterminant μ (n + 1) -
-      shiftedHankelDeterminant μ n / hankelDeterminant μ n := by
-  sorry
-
-@[dlmf 18.2.E30]
-theorem monic_offdiagonal_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)
-    (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
+theorem monic_offdiagonal_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]}
+    (h : IsOrthogonalPolynomials μ p) (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
     h.basis.repr (X * p (n + 1)) n =
       hankelDeterminant μ (n + 2) * hankelDeterminant μ n / hankelDeterminant μ (n + 1) ^ 2 := by
-  sorry
+  rw [monic_squaredNorm_ratio h hmonic]
+  have hn := hankelDeterminant_succ_eq_squaredNorm_mul h hmonic n
+  have hn1 := hankelDeterminant_succ_eq_squaredNorm_mul h hmonic (n + 1)
+  have h0 := (hankelDeterminant_pos h n).ne'
+  have h1 := (hankelDeterminant_pos h (n + 1)).ne'
+  have hs := (h.2.2.1 n).ne'
+  change squaredNorm μ p n ≠ 0 at hs
+  rw [show n + 1 + 1 = n + 2 by omega] at hn1
+  rw [hn1, hn]
+  field_simp
+
+/-- The coefficient immediately below the leading term is a shifted moment determinant. -/
+lemma monic_subleading_coeff_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]}
+    (h : IsOrthogonalPolynomials μ p) (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
+    (p (n + 1)).coeff n = -shiftedHankelDeterminant μ (n + 1) / hankelDeterminant μ (n + 1) := by
+  classical
+  let A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ := fun i j => moment μ (i.val + j.val)
+  let v : Fin (n + 1) → ℝ := fun i => moment μ (i.val + (n + 1))
+  have hc : (p (n + 1)).coeff (n + 1) = 1 := by
+    simpa only [h.1] using (hmonic (n + 1)).coeff_natDegree
+  have hcol : (fun i => ∑ j : Fin (n + 1), (p (n + 1)).coeff j * A i j) = (-1 : ℝ) • v := by
+    funext i
+    have hh := moment_coeff_sum h (p (n + 1)) (n + 1) (by rw [h.1]) i.val
+    rw [Fin.sum_univ_castSucc] at hh
+    have hz : (∫ t, t ^ (i.val) * (p (n + 1)).eval t ∂μ) = 0 := by
+      simpa only [eval_pow, eval_X] using h.integral_mul_eq_zero_of_degree_lt
+        (q := X ^ i.val) (k := n + 1) (by rw [degree_X_pow]; exact_mod_cast i.isLt)
+    rw [hz] at hh
+    simp only [Fin.val_castSucc, Fin.val_last, hc, one_mul] at hh
+    change (∑ j : Fin (n + 1), (p (n + 1)).coeff j * moment μ (i.val + j.val)) =
+      -1 * moment μ (i.val + (n + 1))
+    linarith
+  have hshift : (A.updateCol (Fin.last n) v).det = shiftedHankelDeterminant μ (n + 1) := by
+    rw [shiftedHankelDeterminant, ite_eq_right (Nat.succ_ne_zero n)]
+    congr 1
+    ext i j
+    rw [Matrix.updateCol_apply]
+    have hj : j = Fin.last n ↔ j.val + 1 = n + 1 := by
+      rw [Fin.ext_iff, Fin.val_last]
+      omega
+    simp only [hj, v, A]
+    split <;> rfl
+  have hh := Matrix.det_updateCol_sum A (Fin.last n) (fun j => (p (n + 1)).coeff j)
+  simp only [smul_eq_mul, Fin.val_last] at hh
+  rw [hcol, Matrix.det_updateCol_smul, hshift] at hh
+  exact (eq_div_iff (hankelDeterminant_pos h (n + 1)).ne').mpr (by simpa only [A, hankelDeterminant, neg_one_mul] using hh.symm)
+
+@[dlmf 18.2.E30]
+theorem monic_diagonal_moment_determinant {μ : Measure ℝ} {p : ℕ → ℝ[X]}
+    (h : IsOrthogonalPolynomials μ p) (hmonic : ∀ n, (p n).Monic) (n : ℕ) :
+    recurrenceDiagonal h n = shiftedHankelDeterminant μ (n + 1) / hankelDeterminant μ (n + 1) -
+      shiftedHankelDeterminant μ n / hankelDeterminant μ n := by
+  have hs (k : ℕ) : ∑ j ∈ Finset.range (k + 1), recurrenceDiagonal h j =
+      shiftedHankelDeterminant μ (k + 1) / hankelDeterminant μ (k + 1) := by
+    rw [sum_recurrenceDiagonal h, (hmonic (k + 1)).leadingCoeff, div_one,
+      monic_subleading_coeff_moment_determinant h hmonic]
+    ring
+  cases n with
+  | zero => simpa [shiftedHankelDeterminant] using hs 0
+  | succ n =>
+    have hh := hs (n + 1)
+    rw [Finset.sum_range_succ, hs n] at hh
+    linarith
 
 @[dlmf 18.2.E25]
 theorem compact_support_L2_expansion {μ : Measure ℝ} {p : ℕ → ℝ[X]} (h : IsOrthogonalPolynomials μ p)

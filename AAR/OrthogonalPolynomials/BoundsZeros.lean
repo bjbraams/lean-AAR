@@ -8,8 +8,11 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Differential
+public import AAR.OrthogonalPolynomials.Integrals
 public import AAR.OrthogonalPolynomials.JacobiDiscriminant
 public import AAR.OrthogonalPolynomials.GegenbauerSeries
+public import AAR.OrthogonalPolynomials.ClassicalInstances
+public import AAR.OrthogonalPolynomials.SoninePolyaApplications
 
 /-!
 # Bounds, positive sums, zeros, and leading asymptotics
@@ -31,15 +34,93 @@ set_option autoImplicit false
 
 namespace AAR.OrthogonalPolynomials
 
+/-! ### Sonine–Pólya bounds for Jacobi polynomials -/
+
+/-- The real Jacobi polynomial satisfies the Jacobi differential equation. -/
+lemma jacobiPolyPR_ode {α : ℝ} (hα : -1 < α) (β : ℝ) (n : ℕ) (x : ℝ) :
+    (1 - x ^ 2) * (derivative (derivative (jacobiPolyPR α β n))).eval x +
+      (β - α - (α + β + 2) * x) * (derivative (jacobiPolyPR α β n)).eval x +
+      n * (n + α + β + 1) * (jacobiPolyPR α β n).eval x = 0 := by
+  set p := jacobiPolyPR α β n
+  set q := p.map (algebraMap ℝ ℂ)
+  have hfun : jacobiPolyP (α : ℂ) β n = fun z => q.eval z :=
+    funext fun z => (eval_map_jacobiPolyPR hα β n z).symm
+  have hd : deriv (fun z => q.eval z) = fun z => (derivative q).eval z :=
+    funext fun z => Polynomial.deriv q
+  have h := jacobi_differential_equation (α := (α : ℂ)) (β := (β : ℂ)) (by simpa using hα) n x
+  rw [hfun, hd, Polynomial.deriv] at h
+  simp only [q, derivative_map, eval_map_ofReal] at h
+  exact_mod_cast h
+
+/-- Positivity and monotonicity of real Pochhammer symbols. -/
+lemma poch_ofReal_le {r s : ℝ} (hr : 0 < r) (hrs : r ≤ s) (n : ℕ) :
+    ∃ u v : ℝ, 0 < u ∧ u ≤ v ∧ poch (r : ℂ) n = u ∧ poch (s : ℂ) n = v := by
+  induction n with
+  | zero => exact ⟨1, 1, one_pos, le_rfl, by simp [poch_zero], by simp [poch_zero]⟩
+  | succ k ih =>
+    obtain ⟨u, v, hu, huv, h1, h2⟩ := ih
+    refine ⟨u * (r + k), v * (s + k), by positivity, ?_, ?_, ?_⟩
+    · exact mul_le_mul huv (by linarith) (by positivity) (by linarith)
+    · rw [poch_succ, h1]; push_cast; ring
+    · rw [poch_succ, h2]; push_cast; ring
+
 @[dlmf 18.14.E1]
 theorem jacobi_bound_at_one {α β x : ℝ} (hαβ : β ≤ α) (hβ : -1 < β) (hα : -1 / 2 ≤ α) (hx : |x| ≤ 1) (n : ℕ) :
     ‖jacobiPolyP α β n x‖ ≤ (poch (α + 1) n).re / n.factorial := by
-  sorry
+  have hα1 : -1 < α := by linarith
+  obtain ⟨u, v, hu, huv, h1, h2⟩ := poch_ofReal_le (r := β + 1) (s := α + 1) (by linarith)
+    (by linarith) n
+  have hpos : (0 : ℝ) < n.factorial := by exact_mod_cast n.factorial_pos
+  set p := jacobiPolyPR α β n
+  have hnorm : ∀ t : ℝ, ‖jacobiPolyP α β n t‖ = |p.eval t| := fun t => by
+    rw [← eval_jacobiPolyPR hα1, Complex.norm_real, Real.norm_eq_abs]
+  have hone : |p.eval 1| = (poch (α + 1) n).re / n.factorial := by
+    rw [← hnorm, show ((1 : ℝ) : ℂ) = 1 by simp, jacobi_at_one (by simpa using hα1)]
+    have : ((α : ℂ) + 1) = ((α + 1 : ℝ) : ℂ) := by push_cast; ring
+    rw [this, h2, norm_div, Complex.norm_real, Complex.norm_natCast, Real.norm_of_nonneg
+      (hu.le.trans huv)]
+    simp
+  have hneg : |p.eval (-1)| ≤ |p.eval 1| := by
+    rw [← hnorm, ← hnorm, show ((-1 : ℝ) : ℂ) = -1 by simp,
+      jacobi_reflection (by simpa using hα1) (by simpa using hβ),
+      show ((1 : ℝ) : ℂ) = 1 by simp, jacobi_at_one (by simpa using hβ),
+      jacobi_at_one (by simpa using hα1)]
+    have e1 : ((β : ℂ) + 1) = ((β + 1 : ℝ) : ℂ) := by push_cast; ring
+    have e2 : ((α : ℂ) + 1) = ((α + 1 : ℝ) : ℂ) := by push_cast; ring
+    rw [e1, e2, h1, h2, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul, norm_div,
+      norm_div, Complex.norm_real, Complex.norm_real, Real.norm_of_nonneg hu.le,
+      Real.norm_of_nonneg (hu.le.trans huv)]
+    exact div_le_div_of_nonneg_right huv (by positivity)
+  rw [hnorm, ← hone]
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · simp [p, jacobiPolyPR]
+  have hlam : 0 < (n : ℝ) * (n + α + β + 1) := by
+    have : (1 : ℝ) ≤ n := by exact_mod_cast hn
+    have : 0 < (n : ℝ) + α + β + 1 := by linarith
+    positivity
+  have hy : ∀ t ∈ Set.Icc (-1 : ℝ) 1, HasDerivAt (fun t => p.eval t) ((derivative p).eval t) t :=
+    fun t _ => p.hasDerivAt t
+  have hy' : ∀ t ∈ Set.Icc (-1 : ℝ) 1, HasDerivAt (fun t => (derivative p).eval t)
+      ((derivative (derivative p)).eval t) t := fun t _ => (derivative p).hasDerivAt t
+  have hode : ∀ t ∈ Set.Ioo (-1 : ℝ) 1, (1 - t ^ 2) * (derivative (derivative p)).eval t +
+      (β - α - (α + β + 2) * t) * (derivative p).eval t +
+        (n * (n + α + β + 1)) * p.eval t = 0 := fun t _ => by
+    have := jacobiPolyPR_ode hα1 β n t
+    linear_combination this
+  have hxI : x ∈ Set.Icc (-1 : ℝ) 1 := abs_le.mp hx
+  rcases lt_or_ge 0 (α + β + 1) with hs | hs
+  · exact (jacobi_ode_abs_le_max hlam hs hy hy' hode x hxI).trans (max_le hneg le_rfl)
+  · refine jacobi_ode_abs_le_right hlam (fun t ht => ?_) hy hy' hode x hxI
+    nlinarith [ht.2]
+
 
 @[dlmf 18.14.E2]
 theorem jacobi_bound_at_neg_one {α β x : ℝ} (hαβ : α ≤ β) (hα : -1 < α) (hβ : -1 / 2 ≤ β) (hx : |x| ≤ 1) (n : ℕ) :
     ‖jacobiPolyP α β n x‖ ≤ (poch (β + 1) n).re / n.factorial := by
-  sorry
+  rw [show (x : ℂ) = -((-x : ℝ) : ℂ) by push_cast; ring,
+    jacobi_reflection (by simpa using hα) (by simpa using hα.trans_le hαβ), norm_mul, norm_pow,
+    norm_neg, norm_one, one_pow, one_mul]
+  exact jacobi_bound_at_one hαβ hα hβ (by rwa [abs_neg]) n
 
 @[dlmf 18.14.E3]
 theorem jacobi_bernstein_bound {α β x : ℝ} (hα : α ∈ Set.Icc (-1 / 2) (1 / 2))
@@ -99,18 +180,160 @@ theorem ultrasphPoly_bound_at_one {lam x : ℝ} (hlam : 0 < lam) (hx : |x| ≤ 1
         rw [h]
         simp
 
+/-! ### Sonine–Pólya bounds for Gegenbauer polynomials with `-1/2 < λ < 0` -/
+
+/-- Gegenbauer polynomials with `-1/2 < λ` as a real multiple of a real Jacobi polynomial. -/
+lemma ultrasphPoly_eq_mul_jacobiPolyPR {lam : ℝ} (hlam : -1 / 2 < lam) (m : ℕ) :
+    ∃ c : ℂ, ∀ z : ℂ, ultrasphPoly lam m z =
+      c * (((jacobiPolyPR (lam - 1 / 2) (lam - 1 / 2) m).map (algebraMap ℝ ℂ)).eval z) := by
+  obtain ⟨u, -, hu, -, h1, -⟩ := poch_ofReal_le (r := lam + 1 / 2) (s := lam + 1 / 2)
+    (by linarith) le_rfl m
+  have hp : poch ((lam : ℂ) + 1 / 2) m ≠ 0 := by
+    have : ((lam : ℂ) + 1 / 2) = ((lam + 1 / 2 : ℝ) : ℂ) := by push_cast; ring
+    rw [this, h1]; exact_mod_cast hu.ne'
+  refine ⟨poch (2 * (lam : ℂ)) m / poch ((lam : ℂ) + 1 / 2) m, fun z => ?_⟩
+  rw [ultrasphPoly_eq_jacobiPolyP m z hp, eval_map_jacobiPolyPR (by linarith)]
+  push_cast
+  ring_nf
+
+/-- An even polynomial has zero derivative at `0`. -/
+lemma derivative_eval_zero_of_even {p : ℝ[X]} (h : ∀ t, p.eval (-t) = p.eval t) :
+    (derivative p).eval 0 = 0 := by
+  have h1 : HasDerivAt (fun t => p.eval (-t)) ((derivative p).eval (-0) * (-1)) 0 :=
+    (p.hasDerivAt (-0)).comp 0 (hasDerivAt_neg 0)
+  have h2 : (fun t => p.eval (-t)) = fun t => p.eval t := funext h
+  rw [h2, neg_zero] at h1
+  have := h1.unique (p.hasDerivAt 0)
+  linarith
+
 @[dlmf 18.14.E5]
 theorem ultrasphPoly_even_bound {lam x : ℝ} (hlam : -1 / 2 < lam) (hlam0 : lam < 0) (hx : |x| ≤ 1)
     (n : ℕ) :
     ‖ultrasphPoly lam (2 * n) x‖ ≤ ‖poch lam n / (n.factorial : ℂ)‖ := by
-  sorry
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · simp [poch_zero]
+  set a := lam - 1 / 2 with ha
+  have ha1 : -1 < a := by linarith
+  obtain ⟨c, hc⟩ := ultrasphPoly_eq_mul_jacobiPolyPR hlam (2 * n)
+  set p := jacobiPolyPR a a (2 * n)
+  have hz : ‖poch (lam : ℂ) n / (n.factorial : ℂ)‖ = ‖ultrasphPoly lam (2 * n) 0‖ := by
+    rw [ultrasphPoly_even_at_zero (by simpa using hlam), mul_div_assoc, norm_mul, norm_pow,
+      norm_neg, norm_one, one_pow, one_mul]
+  rw [hz, hc, hc, eval_map_ofReal, show (0 : ℂ) = ((0 : ℝ) : ℂ) by simp, eval_map_ofReal,
+    norm_mul, norm_mul, Complex.norm_real, Complex.norm_real]
+  refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
+  rw [Real.norm_eq_abs, Real.norm_eq_abs]
+  have heven : ∀ t, p.eval (-t) = p.eval t := fun t => by
+    have h := jacobi_reflection (α := (a : ℂ)) (β := (a : ℂ)) (by simpa using ha1)
+      (by simpa using ha1) (2 * n) (t : ℂ)
+    rw [← eval_jacobiPolyPR ha1, show -(t : ℂ) = ((-t : ℝ) : ℂ) by push_cast; ring,
+      ← eval_jacobiPolyPR ha1, pow_mul, neg_one_sq, one_pow, one_mul] at h
+    exact_mod_cast h
+  have hd0 := derivative_eval_zero_of_even heven
+  have hlamJ : 0 < ((2 * n : ℕ) : ℝ) * ((2 * n : ℕ) + a + a + 1) := by
+    have : (1 : ℝ) ≤ n := by exact_mod_cast hn
+    push_cast
+    have : 0 < 2 * (n : ℝ) + a + a + 1 := by linarith
+    positivity
+  have key := jacobi_ode_sq_le_zero (a := a) (y := fun t => p.eval t)
+    (y' := fun t => (derivative p).eval t)
+    (y'' := fun t => (derivative (derivative p)).eval t) hlamJ (by linarith)
+    (fun t _ => p.hasDerivAt t) (fun t _ => (derivative p).hasDerivAt t)
+    (fun t _ => by linear_combination jacobiPolyPR_ode ha1 a (2 * n) t) x (abs_le.mp hx)
+  simp only [hd0] at key
+  have : p.eval x ^ 2 ≤ p.eval 0 ^ 2 := by
+    have h0 : (0 : ℝ) ^ 2 / (((2 * n : ℕ) : ℝ) * ((2 * n : ℕ) + a + a + 1)) = 0 := by simp
+    linarith [key, h0]
+  exact sq_le_sq.mp this
 
 @[dlmf 18.14.E6]
 theorem ultrasphPoly_odd_bound {lam x : ℝ} (hlam : -1 / 2 < lam) (hlam0 : lam < 0) (hx : |x| ≤ 1)
     (n : ℕ) :
     ‖ultrasphPoly lam (2 * n + 1) x‖ < -2 * (poch lam (n + 1)).re /
       (Real.sqrt ((2 * n + 1) * (2 * lam + 2 * n + 1)) * n.factorial) := by
-  sorry
+  set a := lam - 1 / 2 with ha
+  have ha1 : -1 < a := by linarith
+  obtain ⟨c, hc⟩ := ultrasphPoly_eq_mul_jacobiPolyPR hlam (2 * n + 1)
+  set p := jacobiPolyPR a a (2 * n + 1)
+  have hodd : ∀ t, p.eval (-t) = -p.eval t := fun t => by
+    have h := jacobi_reflection (α := (a : ℂ)) (β := (a : ℂ)) (by simpa using ha1)
+      (by simpa using ha1) (2 * n + 1) (t : ℂ)
+    rw [← eval_jacobiPolyPR ha1, show -(t : ℂ) = ((-t : ℝ) : ℂ) by push_cast; ring,
+      ← eval_jacobiPolyPR ha1, pow_succ, pow_mul, neg_one_sq, one_pow, one_mul] at h
+    exact_mod_cast (by linear_combination h : (((p.eval (-t)) : ℝ) : ℂ) = -((p.eval t : ℝ) : ℂ))
+  have hp0 : p.eval 0 = 0 := by have := hodd 0; rw [neg_zero] at this; linarith
+  -- the derivative at `0`
+  obtain ⟨u, -, hu, -, hu1, -⟩ := poch_ofReal_le (r := lam + 1) (s := lam + 1) (by linarith)
+    le_rfl n
+  have hfac : (0 : ℝ) < n.factorial := by exact_mod_cast n.factorial_pos
+  set q := p.map (algebraMap ℝ ℂ)
+  have hfun : ultrasphPoly (lam : ℂ) (2 * n + 1) = fun z => c * q.eval z := funext hc
+  have hder : deriv (ultrasphPoly (lam : ℂ) (2 * n + 1)) 0 =
+      c * (((derivative p).eval 0 : ℝ) : ℂ) := by
+    rw [hfun, ((q.hasDerivAt 0).const_mul c).deriv, derivative_map,
+      show (0 : ℂ) = ((0 : ℝ) : ℂ) by simp, eval_map_ofReal]
+  have hder' := ultrasphPoly_derivative (lam := (lam : ℂ)) (by simpa using hlam) (2 * n) 0
+  rw [ultrasphPoly_even_at_zero (by simp; linarith), hder] at hder'
+  have hlam1 : ((lam : ℂ) + 1) = ((lam + 1 : ℝ) : ℂ) := by push_cast; ring
+  rw [hlam1, hu1] at hder'
+  set D := (derivative p).eval 0
+  have hK : ‖c‖ * |D| = 2 * (-lam) * u / n.factorial := by
+    have := congrArg norm hder'
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs] at this
+    rw [this, mul_div_assoc, mul_div_assoc, norm_mul, norm_mul, norm_mul, norm_pow, norm_neg,
+      norm_one, one_pow, one_mul, norm_div, Complex.norm_real, Complex.norm_natCast,
+      Complex.norm_real, Real.norm_of_nonneg hu.le, Real.norm_eq_abs, abs_of_neg hlam0]
+    norm_num
+  have hKpos : 0 < 2 * (-lam) * u / n.factorial := by
+    have : 0 < -lam := by linarith
+    positivity
+  have hD : D ≠ 0 := fun h => by rw [h, abs_zero, mul_zero] at hK; linarith
+  have hc0 : 0 < ‖c‖ := by
+    rcases (norm_nonneg c).lt_or_eq with h | h
+    · exact h
+    · rw [← h, zero_mul] at hK; linarith
+  -- the Sonine bound
+  set Lm := ((2 * n + 1 : ℕ) : ℝ) * ((2 * n + 1 : ℕ) + a + a + 1) with hLm
+  have hLmpos : 0 < Lm := by
+    rw [hLm]; push_cast
+    have : 0 < 2 * (n : ℝ) + 1 + a + a + 1 := by linarith
+    positivity
+  have hLmeq : (2 * n + 1) * (2 * lam + 2 * n + 1) = Lm := by rw [hLm, ha]; push_cast; ring
+  have hpoch : (poch (lam : ℂ) (n + 1)).re = lam * u := by
+    rw [poch_succ_left, hlam1, hu1]; simp
+  rw [hpoch, hLmeq]
+  have hRHS : -2 * (lam * u) / (Real.sqrt Lm * n.factorial) = ‖c‖ * |D| / Real.sqrt Lm := by
+    rw [hK]; field_simp
+  rw [hRHS, hc, eval_map_ofReal, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+  have hsqrt : 0 < Real.sqrt Lm := Real.sqrt_pos.mpr hLmpos
+  rw [mul_div_assoc]
+  refine mul_lt_mul_of_pos_left ?_ hc0
+  have habs : |p.eval x| = |p.eval (|x|)| := by
+    rcases le_total 0 x with h | h
+    · rw [abs_of_nonneg h]
+    · rw [abs_of_nonpos h, hodd, abs_neg]
+  rw [habs]
+  rcases (abs_nonneg x).lt_or_eq with hx0 | hx0
+  · have hnz : ∀ s t : ℝ, 0 ≤ s → s < t → t ≤ 1 → ∃ v ∈ Set.Ioo s t, (derivative p).eval v ≠ 0 := by
+      intro s t _ hst _
+      by_contra! hall
+      have : derivative p = 0 := Polynomial.eq_zero_of_infinite_isRoot _
+        ((Set.Ioo_infinite hst).mono fun v hv => hall v hv)
+      exact hD (by simp [D, this])
+    have key := jacobi_ode_sq_lt_zero (a := a) (y := fun t => p.eval t)
+      (y' := fun t => (derivative p).eval t) (y'' := fun t => (derivative (derivative p)).eval t)
+      hLmpos (by linarith) (fun t _ => p.hasDerivAt t) (fun t _ => (derivative p).hasDerivAt t)
+      (fun t _ => by linear_combination jacobiPolyPR_ode ha1 a (2 * n + 1) t) hnz (|x|)
+      ⟨hx0, hx⟩
+    simp only [hp0] at key
+    have h2 : p.eval (|x|) ^ 2 < (|D| / Real.sqrt Lm) ^ 2 := by
+      rw [div_pow, sq_abs, Real.sq_sqrt hLmpos.le]; linarith
+    exact abs_lt_of_sq_lt_sq' h2 (by positivity) |>.2 |> fun h => by
+      rcases le_total 0 (p.eval (|x|)) with h' | h'
+      · rw [abs_of_nonneg h']; exact h
+      · rw [abs_of_nonpos h']; linarith [(abs_lt_of_sq_lt_sq' h2 (by positivity)).1]
+  · rw [← hx0, hp0, abs_zero]
+    exact div_pos (abs_pos.mpr hD) hsqrt
 
 @[dlmf 18.14.E7]
 theorem ultrasphPoly_bernstein_bound {lam x : ℝ} (hlam : 0 < lam) (hlam1 : lam < 1) (hx : |x| ≤ 1)
@@ -119,10 +342,113 @@ theorem ultrasphPoly_bernstein_bound {lam x : ℝ} (hlam : 0 < lam) (hlam1 : lam
       (2 : ℝ) ^ (1 - lam) / Real.Gamma lam := by
   sorry
 
+/-- The parameter-zero Laguerre estimate is the norm bound for a positive cosine transform. -/
+lemma laguerrePolyL_zero_parameter_bound (n : ℕ) {x : ℝ} (hx : 0 ≤ x) :
+    Real.exp (-x / 2) * ‖laguerrePolyL 0 n x‖ ≤ 1 := by
+  let y := Real.sqrt x
+  let w : ℝ → ℝ := fun t => Real.exp (-(t ^ 2) / 2) * (aeval t (hermite n) : ℝ) ^ 2
+  have hw : IntegrableOn w (Set.Ioi 0) := by
+    have hi := (TauCeti.integrable_aeval_mul_gaussian ((hermite n) ^ 2)).restrict (s := Set.Ioi 0)
+    apply hi.congr
+    filter_upwards [] with t
+    simp only [w, map_pow]
+    rw [show -(t ^ 2 / 2) = -(t ^ 2) / 2 by ring]
+    ring
+  have hw0 (t : ℝ) : 0 ≤ w t := by dsimp [w]; positivity
+  have hcast (t : ℝ) : (aeval (t : ℂ) (hermite n) : ℂ) =
+      ((aeval t (hermite n) : ℝ) : ℂ) :=
+    aeval_algHom_apply (IsScalarTower.toAlgHom ℤ ℝ ℂ) t (hermite n)
+  have hF (v t : ℝ) : exp (-(t : ℂ) ^ 2 / 2) * (aeval (t : ℂ) (hermite n) : ℂ) *
+      aeval (t : ℂ) (hermite n) * Real.cos (t * v) =
+      ((w t : ℝ) : ℂ) * (Real.cos (t * v) : ℂ) := by
+    rw [hcast]
+    have he : exp (-(t : ℂ) ^ 2 / 2) = (Real.exp (-(t ^ 2) / 2) : ℂ) := by
+      rw [ofReal_exp]; congr 1; push_cast; ring
+    rw [he]
+    simp only [w, ofReal_mul, ofReal_pow]
+    ring
+  have hT (v : ℝ) := hermite_product_cosine_transform 0 n v
+  have hL0 : laguerrePolyL 0 n 0 = 1 := by
+    rw [laguerrePolyL_at_zero]
+    simp [Nat.factorial_ne_zero]
+  have hzero := hT 0
+  norm_num only [Nat.cast_zero, mul_zero, add_zero, zero_add, pow_zero, one_mul,
+    Complex.ofReal_zero, zero_pow (by norm_num : (2 : ℕ) ≠ 0),
+    neg_zero, zero_div, exp_zero, mul_one, hL0, Real.cos_zero, ofReal_one] at hzero
+  have hF0 (t : ℝ) := hF 0 t
+  simp only [mul_zero, Real.cos_zero, ofReal_one, mul_one] at hF0
+  simp_rw [hF0] at hzero
+  have hwval : ∫ t : ℝ in Set.Ioi 0, w t = Real.sqrt (Real.pi / 2) * n.factorial := by
+    apply Complex.ofReal_injective
+    simpa only [integral_complex_ofReal, ofReal_mul, ofReal_natCast] using hzero
+  have hbound : ‖∫ t : ℝ in Set.Ioi 0, ((w t : ℝ) : ℂ) * (Real.cos (t * y) : ℂ)‖ ≤
+      ∫ t : ℝ in Set.Ioi 0, w t := by
+    apply norm_integral_le_of_norm_le hw
+    filter_upwards [] with t
+    rw [norm_mul, Complex.norm_real, Complex.norm_real, Real.norm_of_nonneg (hw0 t),
+      Real.norm_eq_abs]
+    exact mul_le_of_le_one_right (hw0 t) (Real.abs_cos_le_one _)
+  have hy := hT y
+  norm_num only [Nat.cast_zero, mul_zero, add_zero, zero_add, pow_zero, one_mul, mul_one] at hy
+  simp_rw [hF] at hy
+  rw [hy, hwval] at hbound
+  simp only [norm_mul, Complex.norm_real, Complex.norm_natCast,
+    Real.norm_of_nonneg (Real.sqrt_nonneg _)] at hbound
+  have hy2 : y ^ 2 = x := Real.sq_sqrt hx
+  rw [← ofReal_pow, hy2, Complex.norm_exp] at hbound
+  norm_num only [div_re, neg_re, ofReal_re, re_ofNat, im_ofNat,
+    mul_zero, add_zero, Complex.normSq_ofNat] at hbound
+  rw [show -x * 2 / 4 = -x / 2 by ring] at hbound
+  have hpos : 0 < Real.sqrt (Real.pi / 2) * (n.factorial : ℝ) := by positivity
+  nlinarith
+
 @[dlmf 18.14.E8]
 theorem laguerrePolyL_bound {α x : ℝ} (hα : 0 ≤ α) (hx : 0 ≤ x) (n : ℕ) :
     Real.exp (-x / 2) * ‖laguerrePolyL α n x‖ ≤ (poch (α + 1) n).re / n.factorial := by
-  sorry
+  have hc : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := by
+    intro k hk
+    have h := congrArg Complex.re hk
+    simp at h
+    linarith [Nat.cast_nonneg (α := ℝ) k]
+  have hz : ∀ k : ℕ, (0 : ℂ) + 1 ≠ -(k : ℂ) := by
+    intro k hk
+    have h := congrArg Complex.re hk
+    simp at h
+    linarith [Nat.cast_nonneg (α := ℝ) k]
+  let c : ℕ → ℝ := fun k => (ascPochhammer ℝ (n - k)).eval α / (n - k).factorial
+  have hc0 (k : ℕ) : 0 ≤ c k := div_nonneg (ascPochhammer_eval_nonneg hα _) (by positivity)
+  have hcoeff (k : ℕ) : poch (α : ℂ) (n - k) / ((n - k).factorial : ℂ) = (c k : ℂ) := by
+    rw [poch_ofReal]
+    simp only [c, ofReal_div, ofReal_natCast]
+  have hconn (t : ℂ) : laguerrePolyL α n t = ∑ k ∈ Finset.range (n + 1),
+      (c k : ℂ) * laguerrePolyL 0 k t := by
+    have hh := laguerrePolyL_connection 0 (α : ℂ) n t
+    rw [laguerreExtended_eq hc] at hh
+    simpa only [sub_zero, hcoeff, laguerreExtended_eq hz] using hh
+  have hsum : ∑ k ∈ Finset.range (n + 1), c k = (poch (α + 1) n).re / n.factorial := by
+    have hL0 (k : ℕ) : laguerrePolyL 0 k 0 = 1 := by
+      rw [laguerrePolyL_at_zero]
+      simp [Nat.factorial_ne_zero]
+    have hh := congrArg Complex.re (hconn 0)
+    simp only [hL0, mul_one, Complex.re_sum, ofReal_re] at hh
+    rw [laguerrePolyL_at_zero] at hh
+    simpa only [← ofReal_natCast, Complex.div_ofReal_re] using hh.symm
+  rw [hconn]
+  calc
+    _ ≤ Real.exp (-x / 2) * ∑ k ∈ Finset.range (n + 1), ‖(c k : ℂ) * laguerrePolyL 0 k x‖ :=
+      mul_le_mul_of_nonneg_left (norm_sum_le _ _) (Real.exp_pos _).le
+    _ = ∑ k ∈ Finset.range (n + 1), c k *
+        (Real.exp (-x / 2) * ‖laguerrePolyL 0 k x‖) := by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro k hk
+      rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg (hc0 k)]
+      ring
+    _ ≤ ∑ k ∈ Finset.range (n + 1), c k := by
+      apply Finset.sum_le_sum
+      intro k hk
+      exact mul_le_of_le_one_right (hc0 k) (laguerrePolyL_zero_parameter_bound k hx)
+    _ = _ := hsum
 
 @[dlmf 18.14.E9]
 theorem hermitePolyH_bound (n : ℕ) (x : ℝ) :
@@ -202,20 +528,20 @@ theorem laguerrePolyL_positive_weighted_sum {β lam x : ℝ} (hβ : -1 / 2 ≤ �
 @[dlmf 18.16.i]
 theorem jacobi_zeros {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) (n : ℕ) :
     ∃ x : Fin n → ℝ, StrictMono x ∧ (∀ i, x i ∈ Set.Ioo (-1) 1) ∧
-      ∀ z : ℂ, jacobiPolyP α β n z = 0 ↔ ∃ i, z = (x i : ℂ) := by
-  sorry
+      ∀ z : ℂ, jacobiPolyP α β n z = 0 ↔ ∃ i, z = (x i : ℂ) :=
+  jacobiPolyP_zeros_Ioo hα hβ n
 
 @[dlmf 18.16.iv]
 theorem laguerrePolyL_zeros {α : ℝ} (hα : -1 < α) (n : ℕ) :
     ∃ x : Fin n → ℝ, StrictMono x ∧ (∀ i, 0 < x i) ∧
-      ∀ z : ℂ, laguerrePolyL α n z = 0 ↔ ∃ i, z = (x i : ℂ) := by
-  sorry
+      ∀ z : ℂ, laguerrePolyL α n z = 0 ↔ ∃ i, z = (x i : ℂ) :=
+  laguerrePolyL_zeros_pos hα n
 
 @[dlmf 18.16.E16]
 theorem hermitePolyH_zeros (n : ℕ) :
     ∃ x : Fin n → ℝ, StrictMono x ∧ (∀ i, |x i| < Real.sqrt (2 * n + 1)) ∧
-      ∀ z : ℂ, (aeval z (hermitePolyH n) : ℂ) = 0 ↔ ∃ i, z = (x i : ℂ) := by
-  sorry
+      ∀ z : ℂ, (aeval z (hermitePolyH n) : ℂ) = 0 ↔ ∃ i, z = (x i : ℂ) :=
+  hermitePolyH_zeros_bound n
 
 @[dlmf 18.15.E4_5]
 theorem jacobi_darboux_asymptotic {α β θ : ℝ} (hα : -1 < α) (hβ : -1 < β)
@@ -232,18 +558,200 @@ theorem jacobi_weighted_bound {α β x : ℝ} (hα : 0 ≤ α) (hβ : 0 ≤ β) 
   sorry
 
 
+/-! ### Laguerre's inequality and the Laguerre zero bounds -/
+
+/-- Cauchy–Schwarz for a multiset of reals: `(∑ a)² ≤ #t ∑ a²`. -/
+lemma multiset_sq_sum_le_card_mul_sum_sq (t : Multiset ℝ) :
+    t.sum ^ 2 ≤ t.card * (t.map (· ^ 2)).sum := by
+  have hexp : ∀ c S : ℝ, (t.map fun a => (c * a - S) ^ 2).sum =
+      c ^ 2 * (t.map (· ^ 2)).sum - 2 * c * S * t.sum + t.card * S ^ 2 := by
+    intro c S
+    induction t using Multiset.induction_on with
+    | empty => simp
+    | cons a t ih =>
+      simp only [Multiset.map_cons, Multiset.sum_cons, Multiset.card_cons, ih]
+      push_cast; ring
+  have h0 : 0 ≤ (t.map fun a => ((t.card : ℝ) * a - t.sum) ^ 2).sum :=
+    Multiset.sum_nonneg fun x hx => by
+      obtain ⟨a, -, rfl⟩ := Multiset.mem_map.mp hx
+      positivity
+  rw [hexp] at h0
+  rcases Nat.eq_zero_or_pos t.card with h | h
+  · rw [Multiset.card_eq_zero.mp h]; simp
+  · have hc : (0 : ℝ) < t.card := by exact_mod_cast h
+    nlinarith
+
+/-- Derivative of `t ↦ ∑_{z ∈ s} 1/(t - z)` away from `s`. -/
+lemma hasDerivAt_multiset_sum_inv_sub (s : Multiset ℝ) {x : ℝ} (hx : x ∉ s) :
+    HasDerivAt (fun t => (s.map fun z => 1 / (t - z)).sum)
+      (-(s.map fun z => 1 / (x - z) ^ 2).sum) x := by
+  induction s using Multiset.induction_on with
+  | empty => simpa using hasDerivAt_const x (0 : ℝ)
+  | cons a s ih =>
+    have ha : x - a ≠ 0 := sub_ne_zero.mpr fun h => hx (h ▸ Multiset.mem_cons_self _ _)
+    have hs : x ∉ s := fun h => hx (Multiset.mem_cons_of_mem h)
+    have h1 : HasDerivAt (fun t => 1 / (t - a)) (-(1 / (x - a) ^ 2)) x := by
+      have := ((hasDerivAt_id x).sub_const a).inv ha
+      convert this using 1
+      · ext t; simp [one_div]
+      · simp [neg_div, one_div]
+    simp only [Multiset.map_cons, Multiset.sum_cons, neg_add]
+    exact h1.add (ih hs)
+
+/-- **Laguerre's inequality** for a real polynomial with only real zeros, at a point where it
+does not vanish: `(m - 1) g'² - m g g'' ≥ 0` with `m = deg g`. -/
+theorem laguerre_inequality {g : ℝ[X]} (hs : g.Splits) {x : ℝ} (hx : g.eval x ≠ 0) :
+    0 ≤ ((g.natDegree : ℝ) - 1) * (derivative g).eval x ^ 2 -
+      g.natDegree * g.eval x * (derivative (derivative g)).eval x := by
+  set s := g.roots
+  set L : ℝ → ℝ := fun t => (s.map fun z => 1 / (t - z)).sum
+  set P : ℝ → ℝ := fun t => (s.map fun z => 1 / (t - z) ^ 2).sum
+  have hxs : x ∉ s := fun h => hx ((mem_roots'.mp h).2)
+  have h1 : (derivative g).eval x = g.eval x * L x := hs.eval_derivative_eq_eval_mul_sum hx
+  -- second derivative
+  have hev : ∀ᶠ t in 𝓝 x, (derivative g).eval t = g.eval t * L t := by
+    filter_upwards [g.continuous.continuousAt.eventually_ne hx] with t ht
+    exact hs.eval_derivative_eq_eval_mul_sum ht
+  have hd1 : HasDerivAt (fun t => g.eval t * L t)
+      ((derivative g).eval x * L x + g.eval x * (-P x)) x :=
+    (g.hasDerivAt x).mul (hasDerivAt_multiset_sum_inv_sub s hxs)
+  have hd2 : HasDerivAt (fun t => (derivative g).eval t)
+      ((derivative (derivative g)).eval x) x := (derivative g).hasDerivAt x
+  have h2 : (derivative (derivative g)).eval x =
+      (derivative g).eval x * L x + g.eval x * (-P x) :=
+    hd2.unique (hd1.congr_of_eventuallyEq hev)
+  have hm : (g.natDegree : ℝ) = (s.card : ℝ) := by rw [hs.natDegree_eq_card_roots]
+  have hCS : L x ^ 2 ≤ s.card * P x := by
+    have := multiset_sq_sum_le_card_mul_sum_sq (s.map fun z => 1 / (x - z))
+    simpa [L, P, Multiset.map_map, Function.comp_def, div_pow] using this
+  rw [h2, h1, hm]
+  have : ((s.card : ℝ) - 1) * (g.eval x * L x) ^ 2 -
+      s.card * g.eval x * (g.eval x * L x * L x + g.eval x * -P x) =
+        g.eval x ^ 2 * (s.card * P x - L x ^ 2) := by ring
+  rw [this]
+  exact mul_nonneg (sq_nonneg _) (by linarith)
+
+/-- The real Laguerre polynomial satisfies Laguerre's differential equation. -/
+lemma laguerrePolyLR_ode {α : ℝ} (hα : -1 < α) (n : ℕ) (x : ℝ) :
+    x * (derivative (derivative (laguerrePolyLR α n))).eval x +
+      (α + 1 - x) * (derivative (laguerrePolyLR α n)).eval x +
+      n * (laguerrePolyLR α n).eval x = 0 := by
+  set p := laguerrePolyLR α n
+  set q := p.map (algebraMap ℝ ℂ)
+  have hfun : laguerrePolyL (α : ℂ) n = fun z => q.eval z :=
+    funext fun z => (eval_map_laguerrePolyLR α n z).symm
+  have hd : deriv (fun z => q.eval z) = fun z => (derivative q).eval z :=
+    funext fun z => Polynomial.deriv q
+  have h := laguerrePolyL_differential_equation (α := (α : ℂ)) (by simpa using hα) n x
+  rw [hfun, hd, Polynomial.deriv] at h
+  simp only [q, derivative_map, eval_map_ofReal] at h
+  exact_mod_cast h
+
+/-- The quadratic inequality satisfied by every zero of `L_n^{(α)}`, from Laguerre's
+inequality applied to `L_n^{(α)}(t)/(t - x)` and the differential equation. -/
+theorem laguerrePolyL_zero_quadratic {α : ℝ} (hα : -1 < α) {n : ℕ} {x : ℝ}
+    (hx : laguerrePolyL α n x = 0) :
+    4 * ((n : ℝ) - 1) * ((x - α - 2) * (x - α - 1) + (1 - n) * x) -
+      3 * ((n : ℝ) - 2) * (x - α - 1) ^ 2 ≤ 0 := by
+  set p := laguerrePolyLR α n with hp
+  have hpx : p.eval x = 0 := by
+    have := eval_laguerrePolyLR α n x
+    rw [hx] at this
+    exact_mod_cast this
+  have hODE := laguerrePolyLR_ode hα n
+  -- the differentiated equation, as a polynomial identity
+  have hQ : X * derivative (derivative p) + (C (α + 1) - X) * derivative p + C (n : ℝ) * p = 0 :=
+    Polynomial.funext fun t => by
+      simp only [eval_add, eval_mul, eval_X, eval_sub, eval_C, eval_zero]
+      linear_combination hODE t
+  have hQ' := congrArg (fun q => (derivative q).eval x) hQ
+  simp only [derivative_add, derivative_mul, derivative_X, derivative_sub, derivative_C,
+    eval_add, eval_mul, eval_sub, eval_X, eval_C, eval_one, eval_neg, eval_zero, derivative_zero,
+    zero_mul, one_mul, zero_sub] at hQ'
+  have E1 := hODE x
+  rw [hpx, mul_zero, add_zero] at E1
+  -- the cofactor `g = p / (X - x)`
+  set g := p /ₘ (X - C x) with hg
+  have hpg : (X - C x) * g = p := mul_divByMonic_eq_iff_isRoot.mpr hpx
+  have hp0 : p ≠ 0 := laguerrePolyLR_ne_zero hα n
+  have hg0 : g ≠ 0 := fun h => hp0 (by rw [← hpg, h, mul_zero])
+  have d1 : (derivative p).eval x = g.eval x := by
+    rw [← hpg]; simp [derivative_mul]
+  have d2 : (derivative (derivative p)).eval x = 2 * (derivative g).eval x := by
+    rw [← hpg]; simp [derivative_mul]; ring
+  have d3 : (derivative (derivative (derivative p))).eval x =
+      3 * (derivative (derivative g)).eval x := by
+    rw [← hpg]; simp [derivative_mul]; ring
+  obtain ⟨hcard, hnodup⟩ := orthogonal_polynomials_roots (laguerre_isOrthogonalPolynomials hα) n
+  have hroots : p.roots = x ::ₘ g.roots := by
+    rw [← hpg, roots_mul (by rw [hpg]; exact hp0), roots_X_sub_C, Multiset.singleton_add]
+  rw [hroots, Multiset.nodup_cons] at hnodup
+  have hgx : g.eval x ≠ 0 := fun h => hnodup.1 ((mem_roots hg0).mpr h)
+  have hdeg : p.natDegree = 1 + g.natDegree := by
+    rw [← hpg, natDegree_mul (X_sub_C_ne_zero x) hg0, natDegree_X_sub_C]
+  have hpdeg : p.natDegree = n := laguerrePolyLR_natDegree hα n
+  have hgcard : g.roots.card = g.natDegree := by
+    have : p.roots.card = n := hcard
+    rw [hroots, Multiset.card_cons] at this
+    omega
+  have hm : (g.natDegree : ℝ) = n - 1 := by
+    have : g.natDegree + 1 = n := by omega
+    rw [← this]; push_cast; ring
+  have hL := laguerre_inequality (splits_iff_card_roots.mpr hgcard) hgx
+  rw [hm] at hL
+  set G0 := g.eval x
+  set G1 := (derivative g).eval x
+  set G2 := (derivative (derivative g)).eval x
+  rw [d1, d2] at E1
+  rw [d1, d2, d3] at hQ'
+  have hT : 12 * x ^ 2 * (((n : ℝ) - 1 - 1) * G1 ^ 2 - (n - 1) * G0 * G2) +
+      (4 * ((n : ℝ) - 1) * ((x - α - 2) * (x - α - 1) + (1 - n) * x) -
+        3 * ((n : ℝ) - 2) * (x - α - 1) ^ 2) * G0 ^ 2 = 0 := by
+    linear_combination
+      (G0 * (α * n + 2 * α - n * x + 5 * n - 2 * x - 2) + 3 * (2 * G1) * x * (n - 2)) * E1 +
+        (-4 * ((n : ℝ) - 1) * x * G0) * hQ'
+  have hpos : 0 < G0 ^ 2 := by positivity
+  by_contra! hc
+  have : 0 ≤ 12 * x ^ 2 * (((n : ℝ) - 1 - 1) * G1 ^ 2 - (n - 1) * G0 * G2) :=
+    mul_nonneg (by positivity) hL
+  nlinarith [mul_pos hc hpos]
+
+/-- Both Laguerre zero bounds as a two-sided inequality. -/
+lemma laguerrePolyL_zero_bounds {α : ℝ} (hα : -1 < α) {n : ℕ} (hn : 0 < n) {x : ℝ}
+    (hx : laguerrePolyL α n x = 0) :
+    ((n : ℝ) - 1 - Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 ≤ (n + 2) * x ∧
+      (n + 2) * x ≤ ((n : ℝ) - 1 + Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 := by
+  have hq := laguerrePolyL_zero_quadratic hα hx
+  set r := Real.sqrt (n ^ 2 + (n + 2) * (α + 1))
+  have hr0 : 0 ≤ r := Real.sqrt_nonneg _
+  have hα1 : (0 : ℝ) < α + 1 := by linarith
+  have hr2 : r ^ 2 = n ^ 2 + (n + 2) * (α + 1) := Real.sq_sqrt (by positivity)
+  have hn1 : (1 : ℝ) ≤ n := by exact_mod_cast hn
+  have hsq : ((n + 2) * x + 1 - ((n - 1) ^ 2 + r ^ 2)) ^ 2 ≤ (2 * (n - 1) * r) ^ 2 := by
+    have hid : ((n + 2) * x + 1 - ((n - 1) ^ 2 + r ^ 2)) ^ 2 - (2 * (n - 1) * r) ^ 2 =
+        (n + 2) * (4 * ((n : ℝ) - 1) * ((x - α - 2) * (x - α - 1) + (1 - n) * x) -
+          3 * ((n : ℝ) - 2) * (x - α - 1) ^ 2) := by
+      have : (2 * ((n : ℝ) - 1) * r) ^ 2 = 4 * (n - 1) ^ 2 * r ^ 2 := by ring
+      rw [this]
+      have e : ((n : ℝ) + 2) * x + 1 - ((n - 1) ^ 2 + r ^ 2) =
+          (n + 2) * x + 1 - ((n - 1) ^ 2 + (n ^ 2 + (n + 2) * (α + 1))) := by rw [hr2]
+      rw [e, hr2]; ring
+    nlinarith
+  obtain ⟨h1, h2⟩ := abs_le_of_sq_le_sq' hsq (by positivity)
+  constructor <;> nlinarith
+
 @[dlmf 18.16.E12]
 theorem laguerrePolyL_zero_lower_bound {α : ℝ} (hα : -1 < α) {n : ℕ} (hn : 0 < n) {x : ℝ}
     (hx : laguerrePolyL α n x = 0) :
-    ((n : ℝ) - 1 - Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 ≤ (n + 2) * x := by
-  sorry
+    ((n : ℝ) - 1 - Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 ≤ (n + 2) * x :=
+  (laguerrePolyL_zero_bounds hα hn hx).1
 
 
 @[dlmf 18.16.E13]
 theorem laguerrePolyL_zero_upper_bound {α : ℝ} (hα : -1 < α) {n : ℕ} (hn : 0 < n) {x : ℝ}
     (hx : laguerrePolyL α n x = 0) :
-    ((n : ℝ) - 1 + Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 ≥ (n + 2) * x := by
-  sorry
+    ((n : ℝ) - 1 + Real.sqrt (n ^ 2 + (n + 2) * (α + 1))) ^ 2 - 1 ≥ (n + 2) * x :=
+  (laguerrePolyL_zero_bounds hα hn hx).2
 
 
 /-- Discriminant expressed through a complete root list. The identities below

@@ -7,6 +7,7 @@ module
 
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Regularized
+public import AAR.Confluent.LogSeries
 public import AAR.Hypergeometric.Continuation
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.Complex.CauchyIntegral
@@ -19,8 +20,9 @@ public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 Olver's regularized function `𝐌(a,b,z)` is Mathlib's `regularizedHGFun {a} {b}`.
 The series `kummerM` is entire in `z` at regular denominator parameters; `kummerU`
 uses the connection formula 13.2.42 and parameter limits at integer `b`.
-The proved Kummer transformation currently retains a noninteger hypothesis;
-extending it to the limit branch remains a separate task. Complex powers use the principal branch
+The Kummer transformation includes integer parameters by parameter continuity.
+The integer-denominator logarithmic expansion and its small-argument consequences follow
+from termwise differentiation of the regularized series. Complex powers use the principal branch
 on the slit plane. Numerically satisfactory pairs (13.2.24–13.2.26) are recorded as Wronskian
 identities on the indicated argument sectors.
 
@@ -795,6 +797,100 @@ theorem kummerU_shift_nat_sum (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlan
   field_simp
   linear_combination (z ^ (-a) * (n.choose s : ℂ) * poch a s) * e5
 
+/-- The connection quotient at a natural second parameter is a numerator derivative. -/
+theorem kummerU_nat_eq_deriv (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
+    kummerU a n z = (-1 : ℂ) ^ n * deriv (fun c => tricomiD a c z) n := by
+  have h := kummerU_eq_dslope a hz (n : ℤ) (b := (n : ℂ)) (by simp)
+  simp only [Int.cast_natCast, dslope_same] at h
+  have hs : HasDerivAt (fun c : ℂ => sin (π * c)) (cos (π * n) * π) n := by
+    simpa using ((hasDerivAt_id (n : ℂ)).const_mul (π : ℂ)).csin
+  have hcos : cos (π * (n : ℂ)) = (-1 : ℂ) ^ n := by
+    rw [mul_comm, show (n : ℂ) * π = ((n * π : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cos, Real.cos_nat_mul_pi]
+    push_cast; rfl
+  rw [hs.deriv, hcos] at h
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hσ : ((-1 : ℂ) ^ n) ^ 2 = 1 := by rw [← pow_mul, mul_comm n 2, pow_mul]; simp
+  rw [h]
+  field_simp
+  linear_combination -(deriv (fun c => tricomiD a c z) n) * hσ
+
+/-- Reindexing the finite singular part in descending powers of the argument. -/
+lemma tricomi_finite_sum_eq (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
+    (-1 : ℂ) ^ (n + 1) * z ^ (-(n : ℂ)) * ∑ j ∈ Finset.range n,
+      poch (a - n) j * z ^ j / j.factorial *
+        ((-1 : ℂ) ^ (n - 1 - j) * ((n - 1 - j).factorial : ℂ)) =
+    ∑ k ∈ Finset.Icc 1 n, ((k - 1).factorial : ℂ) * poch (1 - a + k) (n - k) /
+      ((n - k).factorial : ℂ) * z ^ (-(k : ℂ)) := by
+  rw [Finset.mul_sum]
+  refine Finset.sum_bij (fun j _ => n - j) ?_ ?_ ?_ ?_
+  · intro j hj
+    simp only [Finset.mem_range] at hj
+    exact Finset.mem_Icc.mpr ⟨by omega, by omega⟩
+  · intro i hi j hj hij
+    simp only [Finset.mem_range] at hi hj
+    omega
+  · intro k hk
+    obtain ⟨hk1, hkn⟩ := Finset.mem_Icc.mp hk
+    exact ⟨n - k, Finset.mem_range.mpr (by omega), by omega⟩
+  · intro j hj
+    have hjn : j ≤ n := (Finset.mem_range.mp hj).le
+    have hpow : z ^ (-(n : ℂ)) * z ^ j = z ^ (-((n - j : ℕ) : ℂ)) := by
+      rw [← cpow_natCast z j, ← cpow_add _ _ hz]
+      congr 1
+      rw [Nat.cast_sub hjn]; ring
+    have hp : poch (a - n) j = (-1 : ℂ) ^ j * poch (1 - a + ((n - j : ℕ) : ℂ)) j := by
+      rw [show a - (n : ℂ) = 1 - (1 - a + ((n - j : ℕ) : ℂ)) - j by
+        rw [Nat.cast_sub hjn]; ring, poch_one_sub_sub_nat]
+    have hsign : (-1 : ℂ) ^ (n + 1) * (-1 : ℂ) ^ j * (-1 : ℂ) ^ (n - 1 - j) = 1 := by
+      rw [← pow_add, ← pow_add, show n + 1 + j + (n - 1 - j) = 2 * n by
+        have := Finset.mem_range.mp hj; omega, pow_mul]
+      simp
+    rw [show n - (n - j) = j by omega, show n - 1 - j = n - j - 1 by omega, hp]
+    calc
+      _ = ((n - j - 1).factorial : ℂ) * poch (1 - a + ((n - j : ℕ) : ℂ)) j /
+          (j.factorial : ℂ) * (z ^ (-(n : ℂ)) * z ^ j) *
+            ((-1 : ℂ) ^ (n + 1) * (-1 : ℂ) ^ j * (-1 : ℂ) ^ (n - 1 - j)) := by
+              rw [show n - 1 - j = n - j - 1 by omega]; ring
+      _ = _ := by rw [hpow, hsign, mul_one]
+
+/-- At a positive integer second parameter, U is a logarithm times an analytic function,
+an analytic remainder, and a finite singular part. -/
+theorem kummerU_nat_log (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0)
+    (ha : ∀ k : ℕ, a - n ≠ -(k : ℂ)) :
+    kummerU a ((n : ℂ) + 1) z =
+      (-1 : ℂ) ^ (n + 1) * (Gamma (a - n))⁻¹ *
+        (log z * regularizedHGFun {a} {(n : ℂ) + 1} z + tricomiLogSeries a n z) +
+      (-1 : ℂ) ^ (n + 1) * z ^ (-(n : ℂ)) * (Gamma a)⁻¹ *
+        ∑ j ∈ Finset.range n, poch (a - n) j * z ^ j / j.factorial *
+          ((-1 : ℂ) ^ (n - 1 - j) * ((n - 1 - j).factorial : ℂ)) := by
+  have h := kummerU_nat_eq_deriv a (n + 1) hz
+  push_cast at h
+  rw [show (fun c => tricomiD a c z) = (fun c =>
+      regularizedHGFun {a} {c} z * (Gamma (a - c + 1))⁻¹ -
+        z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * (Gamma a)⁻¹) from rfl,
+    deriv_tricomi_numerator_nat a n hz ha, tricomi_log_series_split a n hz ha] at h
+  rw [h]
+  ring
+
+/-- A logarithm dominates constants in a punctured complex neighborhood of zero. -/
+lemma isBigO_one_log_zero :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun _ : ℂ => (1 : ℂ)) log := by
+  refine Asymptotics.IsBigO.of_bound 1 ?_
+  filter_upwards [self_mem_nhdsWithin,
+    nhdsWithin_le_nhds (Metric.ball_mem_nhds (0 : ℂ) (Real.exp_pos (-1)))] with z hz hzn
+  rw [Metric.mem_ball, dist_zero_right] at hzn
+  have hlog : Real.log ‖z‖ < -1 := by
+    calc Real.log ‖z‖ < Real.log (Real.exp (-1)) :=
+      Real.log_lt_log (norm_pos_iff.mpr hz) hzn
+      _ = -1 := Real.log_exp _
+  have hle := (le_abs_self (log z).re).trans (abs_re_le_norm (log z))
+  have hle' := (neg_le_abs (log z).re).trans (abs_re_le_norm (log z))
+  rw [log_re] at hle'
+  simp only [norm_one, one_mul]
+  linarith
+
+
 @[dlmf 13.2.E9]
 theorem kummerU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
     (ha : ∀ k : ℕ, a - n ≠ -k) :
@@ -805,7 +901,39 @@ theorem kummerU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
         1 / Gamma a * ∑ k ∈ Finset.Icc 1 n,
           ((k - 1).factorial : ℂ) * poch (1 - a + k) (n - k) /
             ((n - k).factorial : ℂ) * z ^ (-(k : ℂ)) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have h := deriv_tricomi_numerator_nat a n hz0 ha
+  change deriv (fun c => tricomiD a c z) ((n : ℂ) + 1) = _ at h
+  have hU := kummerU_nat_eq_deriv a (n + 1) hz0
+  push_cast at hU
+  rw [h] at hU
+  have hΓ : ∀ k : ℕ, Gamma ((n : ℂ) + 1 + k) =
+      (n.factorial : ℂ) * poch ((n : ℂ) + 1) k := by
+    intro k
+    have hn : ∀ j : ℕ, (n : ℂ) + 1 ≠ -(j : ℂ) := by
+      intro j hj
+      have := congrArg re hj
+      simp at this
+      linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n), (Nat.cast_nonneg j : (0 : ℝ) ≤ j)]
+    have hG := Gamma_add_nat_div_Gamma_eq (n := k) ((n : ℂ) + 1) hn
+    rw [div_eq_iff (Gamma_ne_zero hn), Gamma_nat_eq_factorial] at hG
+    rw [hG]; ring
+  have htail : (∑' k : ℕ, (poch a k * z ^ k / k.factorial *
+      (Gamma ((n : ℂ) + 1 + k))⁻¹) *
+        (log z + digamma (a + k) - digamma (k + 1) - digamma ((n : ℂ) + 1 + k))) =
+      (n.factorial : ℂ)⁻¹ * ∑' k : ℕ,
+        poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
+          (log z + digamma (a + k) - digamma (1 + k) - digamma (n + k + 1)) := by
+    rw [← tsum_mul_left]
+    refine tsum_congr fun k => ?_
+    rw [hΓ, show (k : ℂ) + 1 = 1 + k by ring,
+      show (n : ℂ) + 1 + k = n + k + 1 by ring]
+    simp only [mul_inv, div_eq_mul_inv]
+    ring
+  rw [htail, mul_add] at hU
+  rw [hU]
+  have hf := tricomi_finite_sum_eq a n hz0
+  linear_combination (Gamma a)⁻¹ * hf
 
 /-- Polynomial specialization at positive integer second parameter, using the continued U. -/
 @[dlmf 13.2.E10]
@@ -1005,7 +1133,45 @@ theorem isBigO_kummerU_at_zero_b_two (a : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => kummerU a 2 z - 1 / Gamma a * z⁻¹)
       (fun z => log z) := by
-  sorry
+  by_cases ha : ∀ k : ℕ, a - (1 : ℕ) ≠ -(k : ℂ)
+  · have hM := ((differentiableAt_regularizedConfluent a ((1 : ℂ) + 1) 0).continuousAt.tendsto.isBigO_one ℂ).mono
+      (nhdsWithin_le_nhds (s := {0}ᶜ))
+    have hT := ((analyticAt_tricomiLogSeries a 1 ha).continuousAt.tendsto.isBigO_one ℂ).mono
+      (nhdsWithin_le_nhds (s := {0}ᶜ))
+    have hLM := (Asymptotics.isBigO_refl log (𝓝[≠] (0 : ℂ))).mul hM
+    simp only [mul_one] at hLM
+    have h := (hLM.add (hT.trans isBigO_one_log_zero)).const_mul_left (Gamma (a - 1))⁻¹
+    refine h.congr' ?_ ?_
+    · filter_upwards [self_mem_nhdsWithin] with z hz
+      rw [show (2 : ℂ) = (1 : ℕ) + 1 by norm_num, kummerU_nat_log a 1 hz ha]
+      simp only [Nat.cast_one, one_add_one_eq_two, pow_two,
+        Finset.sum_range_one, poch_zero, pow_zero, Nat.factorial_zero, Nat.sub_self,
+        Nat.cast_one, div_one, mul_one, cpow_neg_one]
+      ring
+    · filter_upwards with z
+      simp
+  · push Not at ha
+    obtain ⟨k, hk⟩ := ha
+    cases k with
+    | zero =>
+      have ha1 : a = 1 := by push_cast at hk; linear_combination hk
+      subst a
+      refine Asymptotics.isBigO_zero _ _ |>.congr' ?_ (Filter.EventuallyEq.refl _ _)
+      filter_upwards [self_mem_nhdsWithin] with z hz
+      rw [kummerU_kummer_transform_all 1 2 hz]
+      norm_num [kummerU_zero, cpow_neg_one]
+    | succ k =>
+      have hak : a = -(k : ℂ) := by push_cast at hk; linear_combination hk
+      subst a
+      have hc : Continuous (kummerU (-(k : ℂ)) 2) := by
+        have heq : kummerU (-(k : ℂ)) 2 = fun z => (-1 : ℂ) ^ k *
+            ∑ j ∈ Finset.range (k + 1), (k.choose j : ℂ) * poch (2 + j) (k - j) * (-z) ^ j :=
+          funext fun z => kummerU_neg_nat_sum k 2 z
+        rw [heq]
+        fun_prop
+      simpa [Gamma_neg_nat_eq_zero] using
+        ((hc.continuousAt.tendsto.isBigO_one ℂ).mono
+          (nhdsWithin_le_nhds (s := {0}ᶜ))).trans isBigO_one_log_zero
 
 /-- Behaviour of `U` at zero for `1 ≤ Re b < 2`, `b ≠ 1`; at `b = 1` a `log z` term
 appears (see `isBigO_kummerU_at_zero_b_one`). -/
@@ -1049,7 +1215,31 @@ theorem isBigO_kummerU_at_zero_b_one (a : ℂ) (ha : ∀ k : ℕ, a ≠ -k) :
       (fun z => kummerU a 1 z +
         1 / Gamma a * (log z + digamma a + 2 * (Real.eulerMascheroniConstant : ℂ)))
       (fun z => z * log z) := by
-  sorry
+  have ha0 : ∀ k : ℕ, a - (0 : ℕ) ≠ -(k : ℂ) := by simpa using ha
+  have hM0 : regularizedHGFun {a} {(0 : ℂ) + 1} 0 = 1 := by
+    simp [regularizedHGFunCoeff_singleton, poch_zero]
+  have hT0 : tricomiLogSeries a 0 0 = digamma a + 2 * (Real.eulerMascheroniConstant : ℂ) := by
+    rw [tricomiLogSeries_zero]; simp [digamma_one]; ring
+  have hM := ((differentiableAt_regularizedConfluent a ((0 : ℂ) + 1) 0).isBigO_sub).mono
+    (nhdsWithin_le_nhds (s := {0}ᶜ))
+  have hT := ((analyticAt_tricomiLogSeries a 0 ha0).differentiableAt.isBigO_sub).mono
+    (nhdsWithin_le_nhds (s := {0}ᶜ))
+  simp only [sub_zero] at hM hT
+  have hid : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z) (fun z => z * log z) := by
+    simpa using (Asymptotics.isBigO_refl (fun z : ℂ => z) (𝓝[≠] (0 : ℂ))).mul
+      isBigO_one_log_zero
+  have h := ((hM.mul (Asymptotics.isBigO_refl log (𝓝[≠] (0 : ℂ)))).add
+    (hT.trans hid)).const_mul_left (-(Gamma a)⁻¹)
+  refine h.congr' ?_ ?_
+  · filter_upwards [self_mem_nhdsWithin] with z hz
+    have hUz := kummerU_nat_log a 0 hz ha0
+    norm_num only [Nat.cast_zero, zero_add] at hUz
+    rw [hUz]
+    simp only [hM0, hT0]
+    simp only [sub_zero, mul_zero, add_zero]
+    ring
+  · filter_upwards with z
+    simp
 
 @[dlmf 13.2.E20]
 theorem isBigO_kummerU_at_zero_re_zero_to_one (a b : ℂ)
@@ -1089,7 +1279,14 @@ theorem isBigO_kummerU_at_zero_b_zero (a : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => kummerU a 0 z - 1 / Gamma (a + 1))
       (fun z => z * log z) := by
-  sorry
+  have h := (Asymptotics.isBigO_refl (fun z : ℂ => z) (𝓝[≠] (0 : ℂ))).mul
+    (isBigO_kummerU_at_zero_b_two (a + 1))
+  refine h.congr' ?_ (Filter.EventuallyEq.refl _ _)
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  rw [kummerU_kummer_transform_all a 0 hz]
+  simp only [sub_zero, cpow_one, show (2 : ℂ) - 0 = 2 by ring]
+  have hz0 : z ≠ 0 := hz
+  field_simp [hz0]
 
 /-- Behaviour of `U` at zero for `Re b ≤ 0`, `b ≠ 0`; at `b = 0` a `z log z` term
 appears (see `isBigO_kummerU_at_zero_b_zero`). -/

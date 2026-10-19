@@ -8,6 +8,7 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Hahn
+public import AAR.Confluent.Relations
 /-!
 # Wilson, continuous dual Hahn, Racah, and dual Hahn polynomials
 
@@ -369,20 +370,153 @@ theorem continuousDualHahn_central_difference {a b c : ℂ}
   field_simp
   ring
 
+/-- Wilson coefficients are a convolution of two Gauss coefficient sequences. -/
+lemma wilson_coeff_convolution {a b c d : ℂ}
+    (hab : 0 < (a+b).re) (hac : 0 < (a+c).re) (had : 0 < (a+d).re)
+    (hbc : 0 < (b+c).re) (y : ℂ) (n : ℕ) :
+    wilson a b c d n (y^2) / (poch (a+d) n * poch (b+c) n * n !) =
+      ∑ j ∈ Finset.range (n+1), gaussHGCoeff (a+I*y) (d+I*y) (a+d) j *
+        gaussHGCoeff (b-I*y) (c-I*y) (b+c) (n-j) := by
+  have hE := poch_ne_zero_of_re_pos hab
+  have hF := poch_ne_zero_of_re_pos hac
+  have hR := poch_ne_zero_of_re_pos had
+  have hT := poch_ne_zero_of_re_pos hbc
+  have ht := balanced_4F3_convolution (a+I*y) (a-I*y) (n+a+b+c+d-1) (a+b) (a+c) (a+d)
+    hab hac had n (by ring)
+  rw [show a+d-(a-I*y) = d+I*y by ring,
+    show a+d-(n+a+b+c+d-1) = 1-(b+c)-n by ring,
+    show a+b-(a+I*y) = b-I*y by ring,
+    show a+c-(a+I*y) = c-I*y by ring] at ht
+  have he : wilson a b c d n (y^2) / (poch (a+d) n * poch (b+c) n * n !) =
+      poch (a+b) n * poch (a+c) n / (poch (b+c) n * n !) *
+      (∑ k ∈ Finset.range (n+1), poch (-(n : ℂ)) k * poch (a+I*y) k * poch (a-I*y) k *
+        poch (n+a+b+c+d-1) k /
+        (poch (a+d) k * poch (a+b) k * poch (a+c) k * k !)) := by
+    rw [wilson_hypergeometric]
+    simp only [terminatingHG, List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one, one_pow]
+    have hs : (∑ k ∈ Finset.range (n+1),
+        poch (-(n : ℂ)) k * (poch (n+a+b+c+d-1) k *
+          (poch (a+I*y) k * poch (a-I*y) k)) /
+        (poch (a+b) k * (poch (a+c) k * poch (a+d) k)) / k !) =
+        ∑ k ∈ Finset.range (n+1), poch (-(n : ℂ)) k * poch (a+I*y) k * poch (a-I*y) k *
+          poch (n+a+b+c+d-1) k / (poch (a+d) k * poch (a+b) k * poch (a+c) k * k !) := by
+      apply Finset.sum_congr rfl
+      intro k _
+      ring
+    rw [hs]
+    field_simp [hR n]
+  rw [he, ht, Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro j hj
+  have hj' : j ≤ n := by simpa using hj
+  have hEn : poch (a+b) n = poch (a+b) j * poch (a+b+j) (n-j) := by
+    rw [← poch_add, Nat.add_sub_cancel' hj']
+  have hFn : poch (a+c) n = poch (a+c) j * poch (a+c+j) (n-j) := by
+    rw [← poch_add, Nat.add_sub_cancel' hj']
+  have hf : (n.choose j : ℂ) * j ! * (n-j)! = n ! := by
+    exact_mod_cast Nat.choose_mul_factorial_mul_factorial hj'
+  have hpn : poch (1-(b+c)-n) j = (-1)^j * poch (b+c) n / poch (b+c) (n-j) := by
+    apply (eq_div_iff (hT (n-j))).2
+    rw [poch_eq_poch_sub_mul (b+c) hj']
+    have hs : (-1 : ℂ)^j * (-1)^j = 1 := by rw [← mul_pow]; simp
+    linear_combination -(poch (b+c) (n-j) * poch (1-(b+c)-n) j) * hs
+  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose, hEn, hFn, hpn]
+  dsimp only [gaussHGCoeff]
+  have hjf : (j ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr j.factorial_ne_zero
+  have hlf : ((n-j)! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (n-j).factorial_ne_zero
+  have hchoose : (n.choose j : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.choose_pos hj').ne'
+  have hEs := poch_ne_zero_of_re_pos (show 0 < (a+b+j).re by change 0 < (a+b).re + (j : ℝ); exact add_pos_of_pos_of_nonneg hab j.cast_nonneg) (n-j)
+  have hFs := poch_ne_zero_of_re_pos (show 0 < (a+c+j).re by change 0 < (a+c).re + (j : ℝ); exact add_pos_of_pos_of_nonneg hac j.cast_nonneg) (n-j)
+  rw [← hf]
+  push_cast
+  field_simp [hE j, hF j, hR j, hT n, hT (n-j), hjf, hlf, hchoose, hEs, hFs]
+  have hsign : ((-1 : ℂ)^j)^2 = 1 := by rw [← pow_mul, pow_mul']; norm_num
+  simp only [hsign, one_mul]
+
+
 @[dlmf 18.26.E18]
 theorem wilson_generating_function {a b c d : ℂ}
     (hab : 0 < (a + b).re) (hac : 0 < (a + c).re) (had : 0 < (a + d).re)
     (hbc : 0 < (b + c).re) (y : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => wilson a b c d n (y ^ 2) / (poch (a + d) n * poch (b + c) n * n.factorial) * z ^ n)
       (₂F₁ (a + I * y) (d + I * y) (a + d) z * ₂F₁ (b - I * y) (c - I * y) (b + c) z) := by
-  sorry
+  have h1 := (hasFPowerSeriesOnBall_ordinaryHypergeometric (a+I*y) (d+I*y) (a+d)).hasSum_mul_pow
+    (mem_eball_one_of_norm_lt_one hz)
+  have h2 := (hasFPowerSeriesOnBall_ordinaryHypergeometric (b-I*y) (c-I*y) (b+c)).hasSum_mul_pow
+    (mem_eball_one_of_norm_lt_one hz)
+  have h := hasSum_coefficient_convolution h1 h2
+  apply h.congr_fun
+  intro n
+  rw [wilson_coeff_convolution hab hac had hbc]
+
+
+/-- Continuous dual Hahn coefficients are a binomial–Gauss convolution. -/
+lemma dualHahn_coeff_convolution {a b c : ℂ}
+    (hab : 0 < (a + b).re) (hac : 0 < (a + c).re) (y : ℂ) (n : ℕ) :
+    continuousDualHahn a b c n (y ^ 2) / (poch (a + b) n * n.factorial) =
+      ∑ k ∈ Finset.range (n + 1),
+        (poch (a + I * y) k * poch (b + I * y) k / (poch (a + b) k * k !)) *
+        (poch (c - I * y) (n - k) / (n - k)!) := by
+  have hR := poch_ne_zero_of_re_pos hab
+  have hD := poch_ne_zero_of_re_pos hac
+  have ht := terminating_3F2_convolution (a + I * y) (a - I * y) (a + b) (a + c) hR n
+  rw [show a + b - (a - I * y) = b + I * y by ring,
+    show a + c - (a + I * y) = c - I * y by ring] at ht
+  have he : continuousDualHahn a b c n (y ^ 2) / (poch (a + b) n * n.factorial) =
+      (∑ k ∈ Finset.range (n + 1), (-1 : ℂ) ^ k * n.choose k * poch (a + I * y) k *
+        poch (a - I * y) k / poch (a + b) k * poch (a + c + k) (n - k)) / n ! := by
+    unfold continuousDualHahn
+    rw [Finset.mul_sum, Finset.sum_div, Finset.sum_div]
+    apply Finset.sum_congr rfl
+    intro k hk
+    have hk' : k ≤ n := by simpa using hk
+    rw [poch_conjugate_pair, poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose]
+    have hp : poch (a + c) n = poch (a + c) k * poch (a + c + k) (n - k) := by
+      rw [← poch_add, Nat.add_sub_cancel' hk']
+    rw [hp]
+    push_cast
+    field_simp [hR n, hR k, hD k, Nat.cast_ne_zero.mpr k.factorial_ne_zero]
+  rw [he, ht, Finset.sum_div]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hk' : k ≤ n := by simpa using hk
+  have hf : (n.choose k : ℂ) * k ! * (n - k)! = n ! := by
+    exact_mod_cast Nat.choose_mul_factorial_mul_factorial hk'
+  have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hkf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  have hnk : ((n - k)! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (n - k).factorial_ne_zero
+  field_simp [hn, hkf, hnk, hR k]
+  linear_combination (poch (a + I * y) k * poch (b + I * y) k * poch (c - I * y) (n-k)) * hf
+
 
 @[dlmf 18.26.E19]
 theorem continuousDualHahn_generating_function {a b c : ℂ}
     (hab : 0 < (a + b).re) (hac : 0 < (a + c).re) (y : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => continuousDualHahn a b c n (y ^ 2) / (poch (a + b) n * n.factorial) * z ^ n)
       ((1 - z) ^ (-c + I * y) * ₂F₁ (a + I * y) (b + I * y) (a + b) z) := by
-  sorry
+  have hg := (hasFPowerSeriesOnBall_ordinaryHypergeometric (a + I * y) (b + I * y) (a + b)).hasSum_mul_pow
+    (mem_eball_one_of_norm_lt_one hz)
+  have hb := hasSum_one_sub_cpow_neg (c - I * y) hz
+  have h := hasSum_coefficient_convolution hg hb
+  rw [show -(c - I * y) = -c + I * y by ring] at h
+  rw [mul_comm ((1 - z) ^ (-c + I * y))]
+  apply h.congr_fun
+  intro n
+  rw [dualHahn_coeff_convolution hab hac]
+  rfl
 
+
+/-- Charlier polynomials as Laguerre polynomials with a degree-dependent parameter,
+`C_n(z; a) = (-1)ⁿ n! a⁻ⁿ L_n^{(z-n)}(a)`. Both sides are the Tricomi function
+`U(-n, z - n + 1, a)` up to normalization. -/
+theorem charlier_eq_laguerrePolyL {a : ℂ} (ha : a ≠ 0) (n : ℕ) (z : ℂ)
+    (hz : ∀ k : ℕ, z - n + 1 ≠ -k) :
+    charlier a n z = (-1 : ℂ) ^ n * n.factorial / a ^ n * laguerrePolyL (z - n) n a := by
+  have h1 := (kummerU_charlier n z a ha hz).2
+  have h2 := (kummerU_laguerrePolyL n (z - n) a hz).2
+  rw [h1] at h2
+  have han : a ^ n ≠ 0 := pow_ne_zero n ha
+  field_simp
+  linear_combination h2
 
 end AAR.OrthogonalPolynomials

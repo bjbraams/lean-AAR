@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Calculus.UniformLimitsDeriv
+
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas

@@ -1,0 +1,312 @@
+/-
+Copyright (c) 2026 Bastiaan J Braams. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bastiaan J Braams
+-/
+module
+
+public import AAR.ParabolicCylinder.AsymptoticsZeros
+public import AAR.Airy.Basic
+
+/-!
+# Olver and Temme uniform cylinder expansions and coefficient systems
+
+Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
+application notes are excluded. Existing Mathlib results are referenced, not reproved.
+Theorem statements were initially admitted; remaining `sorry` declarations are
+not completed proofs. See `DLMF111214Acquisition.md` for coverage and validation.
+-/
+
+@[expose] public noncomputable section
+open Complex Filter Set MeasureTheory Asymptotics AAR.Hypergeometric AAR.DLMF
+open scoped Real Topology Nat
+namespace AAR.Confluent
+
+open Polynomial
+
+/-- pcfXi. -/
+@[dlmf 12.10.E7]
+def pcfXi (t : ℝ) : ℝ :=
+  (t*Real.sqrt (t^2-1)-Real.log (t+Real.sqrt (t^2-1)))/2
+
+/-- pcfEta. -/
+@[dlmf 12.10.E23]
+def pcfEta (t : ℝ) : ℝ :=
+  (Real.arccos t-t*Real.sqrt (1-t^2))/2
+
+/-- pcfXiBar. -/
+@[dlmf 12.10.E26]
+def pcfXiBar (t : ℝ) : ℝ :=
+  (t*Real.sqrt (t^2+1)+Real.log (t+Real.sqrt (t^2+1)))/2
+
+/-- pcfH. -/
+@[dlmf 12.10.E15]
+def pcfH (μ : ℂ) : ℂ :=
+  2^(-μ^2/4-1/4)*exp (-μ^2/4)*μ^(μ^2/2-1/2)
+
+/-- pcfGammaCoeff. -/
+@[dlmf 12.10.E16]
+def pcfGammaCoeff (s : ℕ) : ℂ :=
+  asymptoticCoeff (fun z : ℝ => Gamma (1/2+z)/((Real.sqrt (2*π):ℂ)*exp (-z)*(z:ℂ)^(z:ℂ))) s
+
+/-- pcfGammaCoeff expansion. -/
+@[dlmf 12.10.E16]
+theorem pcfGammaCoeff_expansion (N : ℕ) :
+    (fun z : ℝ => Gamma (1/2+z)/((Real.sqrt (2*π):ℂ)*exp (-z)*(z:ℂ)^(z:ℂ))-∑ s ∈ Finset.range N, pcfGammaCoeff s/(z:ℂ)^s) =O[atTop] (fun z : ℝ => (z:ℂ)^(-(N:ℤ))) := by
+  sorry
+
+/-- pcfGammaCoeff initial. -/
+@[dlmf 12.10.E17]
+theorem pcfGammaCoeff_initial  :
+    pcfGammaCoeff 0=1 ∧ pcfGammaCoeff 1=-1/24 ∧ pcfGammaCoeff 2=1/1152 ∧ pcfGammaCoeff 3=1003/414720 ∧ pcfGammaCoeff 4=-4027/39813120 := by
+  sorry
+
+/-- Polynomial pairs `(u_s,r_{s-1})`; the polynomial degree condition fixes the integration constant.
+Existence of the chosen polynomial is asserted separately, not inferred from choice. -/
+def pcfOlverPair : ℕ → Polynomial ℝ × Polynomial ℝ
+  | 0 => (1,0)
+  | s+1 =>
+    let q := pcfOlverPair s
+    let r := C (1/8:ℝ)*(C 3*X^2+C 2)*q.1 - C (3/2*(s+1:ℝ))*X*q.2 + C (1/2:ℝ)*(X^2-1)*derivative q.2
+    (Classical.epsilon (fun p : Polynomial ℝ =>
+      (X^2-1)*derivative p-C (3/2*(s+1:ℝ))*X*p=r ∧
+      p.natDegree ≤ if Even (s+1) then 3*(s+1)-2 else 3*(s+1)),r)
+
+/-- pcfOlverU. -/
+@[dlmf 12.10.E11]
+def pcfOlverU (s : ℕ) : Polynomial ℝ :=
+  (pcfOlverPair s).1
+
+/-- pcfOlverR. -/
+@[dlmf 12.10.E12]
+def pcfOlverR (s : ℕ) : Polynomial ℝ :=
+  (pcfOlverPair (s+1)).2
+
+/-- pcfOlverV. -/
+@[dlmf 12.10.E13]
+def pcfOlverV (s : ℕ) : Polynomial ℝ :=
+  if s=0 then 1 else pcfOlverU s+C (1/2:ℝ)*X*pcfOlverU (s-1)-(pcfOlverPair (s-1)).2
+
+/-- pcfOlverU spec. -/
+@[dlmf 12.10.E11]
+theorem pcfOlverU_spec (s : ℕ) :
+    (X^2-1)*derivative (pcfOlverU (s+1))-C (3/2*(s+1:ℝ))*X*pcfOlverU (s+1)=pcfOlverR s ∧ (pcfOlverU (s+1)).natDegree ≤ if Even (s+1) then 3*(s+1)-2 else 3*(s+1) := by
+  sorry
+
+/-- pcfOlverUV initial. -/
+@[dlmf 12.10.E9, dlmf 12.10.E10]
+theorem pcfOlverUV_initial  :
+    pcfOlverU 0=1 ∧ pcfOlverU 1=X*(X^2-C 6)*C (1/24:ℝ) ∧ pcfOlverU 2=(-C 9*X^4+C 249*X^2+C 145)*C (1/1152:ℝ) ∧ pcfOlverV 0=1 ∧ pcfOlverV 1=X*(X^2+C 6)*C (1/24:ℝ) ∧ pcfOlverV 2=(C 15*X^4-C 327*X^2-C 143)*C (1/1152:ℝ) := by
+  sorry
+
+/-- pcfOlverA. -/
+@[dlmf 12.10.E8]
+def pcfOlverA (s : ℕ) (t : ℝ) : ℂ :=
+  (((pcfOlverU s).eval t:ℝ):ℂ)/(t^2-1:ℂ)^(3*(s:ℂ)/2)
+
+/-- pcfOlverATilde. -/
+@[dlmf 12.10.E24]
+def pcfOlverATilde (s : ℕ) (t : ℝ) : ℂ :=
+  (((pcfOlverU s).eval t:ℝ):ℂ)/(1-t^2:ℂ)^(3*(s:ℂ)/2)
+
+/-- pcfOlverUBar. -/
+@[dlmf 12.10.E27]
+def pcfOlverUBar (s : ℕ) (t : ℝ) : ℂ :=
+  I^s*aeval (-I*t) (pcfOlverU s)
+
+/-- pcfOlverB. -/
+@[dlmf 12.10.E8]
+def pcfOlverB (s : ℕ) (t : ℝ) : ℂ :=
+  (((pcfOlverV s).eval t:ℝ):ℂ)/(t^2-1:ℂ)^(3*(s:ℂ)/2)
+
+/-- pcfOlverBTilde. -/
+@[dlmf 12.10.E24]
+def pcfOlverBTilde (s : ℕ) (t : ℝ) : ℂ :=
+  (((pcfOlverV s).eval t:ℝ):ℂ)/(1-t^2:ℂ)^(3*(s:ℂ)/2)
+
+/-- pcfOlverVBar. -/
+@[dlmf 12.10.E30]
+def pcfOlverVBar (s : ℕ) (t : ℝ) : ℂ :=
+  I^s*aeval (-I*t) (pcfOlverV s)
+
+/-- pcfUniformFilter. -/
+def pcfUniformFilter (S : Set ℝ) : Filter (ℝ × ℝ) :=
+  comap Prod.fst atTop ⊓ 𝓟 {p : ℝ × ℝ | p.2 ∈ S}
+
+/-- HasCylinderUniformExpansion. -/
+def HasCylinderUniformExpansion (F : ℝ → ℝ → ℂ) (C : ℕ → ℝ → ℂ) (S : Set ℝ) : Prop :=
+  ∀ N : ℕ, (fun p : ℝ × ℝ => F p.1 p.2-∑ s ∈ Finset.range N, C s p.2/(p.1:ℂ)^(2*s)) =O[pcfUniformFilter S] (fun p : ℝ × ℝ => (p.1:ℂ)^(-(2*N:ℤ)))
+
+/-- IsCylinderGNormalizer. -/
+@[dlmf 12.10.E14]
+def IsCylinderGNormalizer (g : ℝ → ℂ) : Prop :=
+  ∀ N : ℕ, (fun μ : ℝ => g μ/pcfH μ-1-1/2*∑ j ∈ Finset.range N, pcfGammaCoeff (j+1)/(μ^2/2:ℂ)^(j+1)) =O[atTop] (fun μ : ℝ => (μ:ℂ)^(-(2*(N+1):ℤ)))
+
+/-- pcf negative parameter uniform. -/
+@[dlmf 12.10.E3, dlmf 12.10.E4, dlmf 12.10.E5, dlmf 12.10.E6, dlmf 12.10.E14]
+theorem pcf_negative_parameter_uniform  :
+    ∃ g : ℝ → ℂ, IsCylinderGNormalizer g ∧ ∀ δ : ℝ, 0 < δ → HasCylinderUniformExpansion (fun μ t => pcfU (-μ^2/2) (μ*t*Real.sqrt 2)/(g μ*exp (-μ^2*pcfXi t)/(t^2-1:ℂ)^(1/4:ℂ))) (fun s t => pcfOlverA s t) (Ici (1+δ)) ∧ HasCylinderUniformExpansion (fun μ t => pcfUDeriv (-μ^2/2) (μ*t*Real.sqrt 2)/(-(μ:ℂ)/Real.sqrt 2*g μ*(t^2-1:ℂ)^(1/4:ℂ)*exp (-μ^2*pcfXi t))) (fun s t => pcfOlverB s t) (Ici (1+δ)) ∧ HasCylinderUniformExpansion (fun μ t => pcfV (-μ^2/2) (μ*t*Real.sqrt 2)/(2*g μ/Gamma (1/2+μ^2/2)*exp (μ^2*pcfXi t)/(t^2-1:ℂ)^(1/4:ℂ))) (fun s t => (-1)^s*pcfOlverA s t) (Ici (1+δ)) ∧ HasCylinderUniformExpansion (fun μ t => pcfVDeriv (-μ^2/2) (μ*t*Real.sqrt 2)/(Real.sqrt 2*μ*g μ/Gamma (1/2+μ^2/2)*(t^2-1:ℂ)^(1/4:ℂ)*exp (μ^2*pcfXi t))) (fun s t => (-1)^s*pcfOlverB s t) (Ici (1+δ)) := by
+  sorry
+
+/-- pcfKappa. -/
+@[dlmf 12.10.E22]
+def pcfKappa (μ t : ℝ) : ℝ :=
+  μ^2*pcfEta t-π/4
+
+/-- pcfChi. -/
+@[dlmf 12.10.E22]
+def pcfChi (μ t : ℝ) : ℝ :=
+  μ^2*pcfEta t+π/4
+
+/-- pcf oscillatory parameter uniform. -/
+@[dlmf 12.10.E18, dlmf 12.10.E19, dlmf 12.10.E20, dlmf 12.10.E21]
+theorem pcf_oscillatory_parameter_uniform  :
+    ∃ g : ℝ → ℂ, IsCylinderGNormalizer g ∧ ∀ δ : ℝ, 0 < δ → δ < 1 → ∀ N : ℕ, (fun p : ℝ × ℝ => pcfU (-p.1^2/2) (p.1*p.2*Real.sqrt 2)/(2*g p.1/(1-p.2^2:ℂ)^(1/4:ℂ))-∑ s ∈ Finset.range N, Real.cos (pcfKappa p.1 p.2+s*π/2)*pcfOlverATilde s p.2/(p.1:ℂ)^(2*s)) =O[pcfUniformFilter (Icc (-1+δ) (1-δ))] (fun p : ℝ × ℝ => (p.1:ℂ)^(-(2*N:ℤ))) ∧ (fun p : ℝ × ℝ => pcfUDeriv (-p.1^2/2) (p.1*p.2*Real.sqrt 2)/(p.1*Real.sqrt 2*g p.1*(1-p.2^2:ℂ)^(1/4:ℂ))-∑ s ∈ Finset.range N, Real.sin (pcfKappa p.1 p.2+s*π/2)*pcfOlverBTilde s p.2/(p.1:ℂ)^(2*s)) =O[pcfUniformFilter (Icc (-1+δ) (1-δ))] (fun p : ℝ × ℝ => (p.1:ℂ)^(-(2*N:ℤ))) ∧ (fun p : ℝ × ℝ => pcfV (-p.1^2/2) (p.1*p.2*Real.sqrt 2)/(2*g p.1/(Gamma (1/2+p.1^2/2)*(1-p.2^2:ℂ)^(1/4:ℂ)))-∑ s ∈ Finset.range N, Real.cos (pcfChi p.1 p.2+s*π/2)*pcfOlverATilde s p.2/(p.1:ℂ)^(2*s)) =O[pcfUniformFilter (Icc (-1+δ) (1-δ))] (fun p : ℝ × ℝ => (p.1:ℂ)^(-(2*N:ℤ))) ∧ (fun p : ℝ × ℝ => pcfVDeriv (-p.1^2/2) (p.1*p.2*Real.sqrt 2)/(p.1*Real.sqrt 2*g p.1*(1-p.2^2:ℂ)^(1/4:ℂ)/Gamma (1/2+p.1^2/2))-∑ s ∈ Finset.range N, Real.sin (pcfChi p.1 p.2+s*π/2)*pcfOlverBTilde s p.2/(p.1:ℂ)^(2*s)) =O[pcfUniformFilter (Icc (-1+δ) (1-δ))] (fun p : ℝ × ℝ => (p.1:ℂ)^(-(2*N:ℤ))) := by
+  sorry
+
+/-- IsCylinderGBarNormalizer. -/
+@[dlmf 12.10.E28]
+def IsCylinderGBarNormalizer (g : ℝ → ℂ) : Prop :=
+  ∀ N : ℕ, (fun μ : ℝ => g μ*μ*Real.sqrt 2*pcfH μ-1-1/2*∑ j ∈ Finset.range N, (-1)^(j+1)*pcfGammaCoeff (j+1)/(μ^2/2:ℂ)^(j+1)) =O[atTop] (fun μ : ℝ => (μ:ℂ)^(-(2*(N+1):ℤ)))
+
+/-- pcf positive parameter uniform. -/
+@[dlmf 12.10.E25, dlmf 12.10.E29]
+theorem pcf_positive_parameter_uniform  :
+    ∃ g : ℝ → ℂ, IsCylinderGBarNormalizer g ∧ HasCylinderUniformExpansion (fun μ t => pcfU (μ^2/2) (μ*t*Real.sqrt 2)/(g μ*exp (-μ^2*pcfXiBar t)/(t^2+1:ℂ)^(1/4:ℂ))) (fun s t => pcfOlverUBar s t/(t^2+1:ℂ)^(3*(s:ℂ)/2)) univ ∧ HasCylinderUniformExpansion (fun μ t => pcfUDeriv (μ^2/2) (μ*t*Real.sqrt 2)/(-(μ:ℂ)/Real.sqrt 2*g μ*(t^2+1:ℂ)^(1/4:ℂ)*exp (-μ^2*pcfXiBar t))) (fun s t => pcfOlverVBar s t/(t^2+1:ℂ)^(3*(s:ℂ)/2)) univ := by
+  sorry
+
+/-- pcfTau. -/
+@[dlmf 12.10.E32]
+def pcfTau (t : ℝ) : ℝ :=
+  (t/Real.sqrt (t^2-1)-1)/2
+
+/-- Polynomial primitive based at zero. -/
+def pcfPolyPrimitive (p : Polynomial ℝ) : Polynomial ℝ :=
+  p.sum (fun n c => C (c/(n+1))*X^(n+1))
+
+/-- Temme polynomials, with an explicit derivative-integral recursion. -/
+def pcfTemmePoly : ℕ → Polynomial ℝ
+  | 0 => 1
+  | s+1 => -C 4*X^2*(X+1)^2*derivative (pcfTemmePoly s)-C (1/4:ℝ)*pcfPolyPrimitive ((C 20*X^2+C 20*X+C 3)*pcfTemmePoly s)
+
+/-- pcfTemmePoly initial. -/
+@[dlmf 12.10.E34]
+theorem pcfTemmePoly_initial  :
+    pcfTemmePoly 1=-C (1/12:ℝ)*X*(C 20*X^2+C 30*X+C 9) ∧ pcfTemmePoly 2=C (1/288:ℝ)*X^2*(C 6160*X^4+C 18480*X^3+C 19404*X^2+C 8028*X+C 945) := by
+  sorry
+
+/-- pcfTemmePoly recurrence. -/
+@[dlmf 12.10.E33]
+theorem pcfTemmePoly_recurrence (s : ℕ) (τ : ℝ) :
+    (pcfTemmePoly (s+1)).eval τ=-4*τ^2*(τ+1)^2*(derivative (pcfTemmePoly s)).eval τ-1/4*∫ u : ℝ in 0..τ, (20*u^2+20*u+3)*(pcfTemmePoly s).eval u := by
+  sorry
+
+/-- pcfU temme uniform. -/
+@[dlmf 12.10.E31]
+theorem pcfU_temme_uniform {δ : ℝ} (hδ : 0 < δ) :
+    HasCylinderUniformExpansion (fun μ t => pcfU (-μ^2/2) (μ*t*Real.sqrt 2)/(pcfH μ*exp (-μ^2*pcfXi t)/(t^2-1:ℂ)^(1/4:ℂ))) (fun s t => (((pcfTemmePoly s).eval (pcfTau t):ℝ):ℂ)) (Ici (1+δ)) := by
+  sorry
+
+/-- pcfZeta. -/
+@[dlmf 12.10.E39]
+def pcfZeta (t : ℝ) : ℝ :=
+  if 1 ≤ t then (3/2*pcfXi t)^(2/3:ℝ) else -(3/2*pcfEta t)^(2/3:ℝ)
+
+/-- Inverse turning-point coordinate; its domain and uniqueness are asserted separately. -/
+def pcfInverseZeta (ζ : ℝ) : ℝ :=
+  Classical.epsilon (fun t : ℝ => -1 < t ∧ pcfZeta t=ζ)
+
+/-- pcfInverseZeta spec. -/
+@[dlmf 12.10.E39]
+theorem pcfInverseZeta_spec {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    -1 < pcfInverseZeta ζ ∧ pcfZeta (pcfInverseZeta ζ)=ζ ∧ ∀ t : ℝ, -1 < t → pcfZeta t=ζ → t=pcfInverseZeta ζ := by
+  sorry
+
+/-- pcfPhi. -/
+@[dlmf 12.10.E40]
+def pcfPhi (ζ : ℝ) : ℝ :=
+  if ζ=0 then 2^(-1/6:ℝ) else (ζ/((pcfInverseZeta ζ)^2-1))^(1/4:ℝ)
+
+/-- The turning-point coordinate is analytic at the turning point. -/
+theorem pcfZeta_analytic_at_one  :
+    AnalyticAt ℝ pcfZeta 1 := by
+  sorry
+
+/-- pcfInverseZeta taylor. -/
+@[dlmf 12.10.E41]
+theorem pcfInverseZeta_taylor  :
+    (fun ζ : ℝ => let w:=2^(-1/3:ℝ)*ζ; pcfInverseZeta ζ-(1+w-w^2/10+11*w^3/350-823*w^4/63000+150653*w^5/24255000)) =O[𝓝 0] (fun ζ : ℝ => ζ^6) := by
+  sorry
+
+/-- pcfAiryAlpha. -/
+@[dlmf 12.10.E43]
+def pcfAiryAlpha (m : ℕ) : ℝ :=
+  (∏ j ∈ Finset.range (2*m), (2*m+1+2*j:ℝ))/((m.factorial:ℝ)*144^m)
+
+/-- pcfAiryBeta. -/
+@[dlmf 12.10.E43]
+def pcfAiryBeta (m : ℕ) : ℝ :=
+  -(6*m+1:ℝ)/(6*m-1:ℝ)*pcfAiryAlpha m
+
+/-- Continuous coefficient at zero is supplied by a removable limit. -/
+@[dlmf 12.10.E42]
+def pcfAiryA (s : ℕ) (ζ : ℝ) : ℝ :=
+  limUnder (𝓝[≠] ζ) (fun u : ℝ => (∑ m ∈ Finset.range (2*s+1), pcfAiryBeta m*(pcfPhi u)^(6*(2*s-m))*(pcfOlverU (2*s-m)).eval (pcfInverseZeta u))/u^(3*s+0))
+
+/-- pcfAiryA limit. -/
+@[dlmf 12.10.E42]
+theorem pcfAiryA_limit (s : ℕ) {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    Tendsto (fun u : ℝ => (∑ m ∈ Finset.range (2*s+1), pcfAiryBeta m*(pcfPhi u)^(6*(2*s-m))*(pcfOlverU (2*s-m)).eval (pcfInverseZeta u))/u^(3*s+0)) (𝓝[≠] ζ) (𝓝 (pcfAiryA s ζ)) := by
+  sorry
+
+/-- Continuous coefficient at zero is supplied by a removable limit. -/
+@[dlmf 12.10.E42]
+def pcfAiryB (s : ℕ) (ζ : ℝ) : ℝ :=
+  limUnder (𝓝[≠] ζ) (fun u : ℝ => -(∑ m ∈ Finset.range (2*s+1+1), pcfAiryAlpha m*(pcfPhi u)^(6*(2*s+1-m))*(pcfOlverU (2*s+1-m)).eval (pcfInverseZeta u))/u^(3*s+2))
+
+/-- pcfAiryB limit. -/
+@[dlmf 12.10.E42]
+theorem pcfAiryB_limit (s : ℕ) {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    Tendsto (fun u : ℝ => -(∑ m ∈ Finset.range (2*s+1+1), pcfAiryAlpha m*(pcfPhi u)^(6*(2*s+1-m))*(pcfOlverU (2*s+1-m)).eval (pcfInverseZeta u))/u^(3*s+2)) (𝓝[≠] ζ) (𝓝 (pcfAiryB s ζ)) := by
+  sorry
+
+/-- Continuous coefficient at zero is supplied by a removable limit. -/
+@[dlmf 12.10.E46]
+def pcfAiryC (s : ℕ) (ζ : ℝ) : ℝ :=
+  limUnder (𝓝[≠] ζ) (fun u : ℝ => -(∑ m ∈ Finset.range (2*s+1+1), pcfAiryBeta m*(pcfPhi u)^(6*(2*s+1-m))*(pcfOlverV (2*s+1-m)).eval (pcfInverseZeta u))/u^(3*s+1))
+
+/-- pcfAiryC limit. -/
+@[dlmf 12.10.E46]
+theorem pcfAiryC_limit (s : ℕ) {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    Tendsto (fun u : ℝ => -(∑ m ∈ Finset.range (2*s+1+1), pcfAiryBeta m*(pcfPhi u)^(6*(2*s+1-m))*(pcfOlverV (2*s+1-m)).eval (pcfInverseZeta u))/u^(3*s+1)) (𝓝[≠] ζ) (𝓝 (pcfAiryC s ζ)) := by
+  sorry
+
+/-- Continuous coefficient at zero is supplied by a removable limit. -/
+@[dlmf 12.10.E46]
+def pcfAiryD (s : ℕ) (ζ : ℝ) : ℝ :=
+  limUnder (𝓝[≠] ζ) (fun u : ℝ => (∑ m ∈ Finset.range (2*s+1), pcfAiryAlpha m*(pcfPhi u)^(6*(2*s-m))*(pcfOlverV (2*s-m)).eval (pcfInverseZeta u))/u^(3*s+0))
+
+/-- pcfAiryD limit. -/
+@[dlmf 12.10.E46]
+theorem pcfAiryD_limit (s : ℕ) {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    Tendsto (fun u : ℝ => (∑ m ∈ Finset.range (2*s+1), pcfAiryAlpha m*(pcfPhi u)^(6*(2*s-m))*(pcfOlverV (2*s-m)).eval (pcfInverseZeta u))/u^(3*s+0)) (𝓝[≠] ζ) (𝓝 (pcfAiryD s ζ)) := by
+  sorry
+
+/-- pcfAiryChi. -/
+@[dlmf 12.10.E45]
+def pcfAiryChi (ζ : ℝ) : ℝ :=
+  deriv pcfPhi ζ/pcfPhi ζ
+
+/-- pcfAiryChi formula. -/
+@[dlmf 12.10.E45]
+theorem pcfAiryChi_formula {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) (hz : ζ ≠ 0) :
+    pcfAiryChi ζ=(1-2*pcfInverseZeta ζ*(pcfPhi ζ)^6)/(4*ζ) := by
+  sorry
+
+/-- pcfAiryCD derivative. -/
+@[dlmf 12.10.E44]
+theorem pcfAiryCD_derivative (s : ℕ) {ζ : ℝ} (hζ : -(3*π/4)^(2/3:ℝ) < ζ) :
+    pcfAiryC s ζ=pcfAiryChi ζ*pcfAiryA s ζ+deriv (pcfAiryA s) ζ+ζ*pcfAiryB s ζ ∧ pcfAiryD (s+1) ζ=pcfAiryA (s+1) ζ+pcfAiryChi ζ*pcfAiryB s ζ+deriv (pcfAiryB s) ζ := by
+  sorry
+
+end AAR.Confluent

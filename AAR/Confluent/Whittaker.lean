@@ -36,6 +36,20 @@ namespace AAR.Confluent
 def whittakerM (κ μ z : ℂ) : ℂ :=
   exp (-z / 2) * z ^ (μ + 1 / 2) * kummerM (μ - κ + 1 / 2) (1 + 2 * μ) z
 
+/-- Whittaker M regularized in its second parameter. This remains meaningful at
+`1 + 2 * μ = -n`, where dividing the totalized ordinary M by Gamma would give zero. -/
+def regularizedWhittakerM (κ μ z : ℂ) : ℂ :=
+  exp (-z / 2) * z ^ (μ + 1 / 2) *
+    regularizedHGFun {μ - κ + 1 / 2} {1 + 2 * μ} z
+
+/-- Away from Gamma poles, regularized Whittaker M agrees with the ordinary quotient. -/
+theorem regularizedWhittakerM_eq_div_Gamma {κ μ z : ℂ}
+    (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -(k : ℂ)) :
+    regularizedWhittakerM κ μ z = whittakerM κ μ z / Gamma (1 + 2 * μ) := by
+  rw [whittakerM, kummerM_eq_mul_regularizedHGFun hμ]
+  unfold regularizedWhittakerM
+  field_simp [Gamma_ne_zero hμ]
+
 /-- Whittaker's principal-branch W, defined through the continued Tricomi function. -/
 @[dlmf 13.14.E3]
 def whittakerW (κ μ z : ℂ) : ℂ :=

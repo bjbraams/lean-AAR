@@ -16,8 +16,9 @@ area adds. Statements taken from the DLMF record their equation numbers with Mat
 | `Gamma` | 1 | 5 | 23 |
 | `Hypergeometric` | 2–3 | 15 | 20 |
 | `Confluent` | 4.1–4.4 | 13 | 17 |
-| `Bessel` | 4.5–4.15 | 10 | 11 |
-| `Legendre` | (Temme 8) | 14 | 5 |
+| `Bessel` | 4.5–4.15 | 10 | 14 |
+| `Airy` | (Beals–Wong 9.9) | 9 | 17 |
+| `Legendre` | (Temme 8) | 14 | 31 |
 | `Statistical` | (Temme 11) | 7–8 | 3 |
 | `Elliptic` | (Temme 12) | 19, 20, 22 | 4 |
 | `WaveEquation` | (Temme 10) | | 1 |
@@ -31,6 +32,25 @@ area adds. Statements taken from the DLMF record their equation numbers with Mat
 | `Bailey` | 12 | | single file |
 
 `AAR.lean` imports all areas.
+
+The additional DLMF chapter entry points include `Struve` (eight submodules) and
+`ParabolicCylinder` (twelve submodules), extending the original cylinder API in
+`Confluent`. Their acquisition status is recorded below.
+
+The [Beals–Wong inventory](BealsWongInventory.md) records further special-function
+gaps and their implementation status. The 18 October 2026 additions prove discrete
+polynomial addition identities, Rodrigues formulas for the four classical discrete
+families, strict indexed Hermite/Jacobi zero bounds, and Gaussian/Laplace Bessel
+transforms with complex scale and regularized exceptional-order coverage. See
+[the review](REVIEW.md) for parameter restrictions and validation.
+
+[Painlevé II](AAR/Painleve.lean), following Beals–Wong Chapter 15, adds local
+real existence and uniqueness, Bäcklund transformations, rational solutions
+at every integer parameter, and meromorphic Airy-based solutions at every
+half-integer parameter. It also proves conditional pole/residue restrictions,
+Lax compatibility, and the tau-quotient converse. Global continuation, Stokes
+theory, and the real connection formulas remain open; see the
+[inventory](BealsWongInventory.md#chapter-15-painlevé-transcendents).
 
 ## Naming conventions for special functions
 
@@ -86,15 +106,26 @@ Mathlib's `Complex.digamma`; moving it into `AAR.Gamma.Real` is left for a later
 ## Status
 
 Many statements are admitted (`sorry`) and remain proof obligations; the proved
-declarations do not depend on them. Confluent functions and orthogonal polynomials hold
-most of the admissions. Not every admitted statement has been checked for correctness:
+declarations do not depend on them. The acquired DLMF Chapters 6–9 hold most of the admissions; confluent functions
+and orthogonal polynomials contain most of the earlier obligations. Not every admitted statement has been checked for correctness:
 statements found to be false or weaker than intended are repaired as they are reviewed.
 
 ## Dependencies and upstream reuse
 
-The project uses Lean `v4.35.0-rc3`, Mathlib revision
-`5e0c4e5239cb0a2d86d68a884bf52cfd963fce22`, and TauCeti revision
-`a780c7ad6beb23f60a17351a492d177878020ad5`, matching the companion projects.
+The project uses Lean `v4.36.0-rc1`, Mathlib revision
+`911003dd6dea5df215dff57f2717be762e11a6ca`, and TauCeti revision
+`5cdecf40e99d5a5ad0833afff31f5b007d68a149`, matching the companion projects.
+
+The 18 October 2026 upgrade uses Mathlib's development head. TauCeti's own
+Mathlib pin is 65 commits earlier; [TauCeti-4.36.patch](TauCeti-4.36.patch)
+updates one renamed coercion lemma for this snapshot. The shared checkout
+already has this patch. After a fresh dependency checkout, apply it before
+building:
+
+```sh
+git -C .lake/packages/TauCeti apply "$PWD/TauCeti-4.36.patch"
+```
+
 Prefer **Mathlib, then TauCeti, then local code**, preserving theorem hypotheses and the
 meaning of each special-function definition. Import the particular TauCeti module;
 `import TauCeti` is not a library umbrella.
@@ -150,8 +181,74 @@ function `G_ℓ`, `H^±_ℓ = G_ℓ ± iF_ℓ`, the Coulomb Wronskian and the li
 integrals for `₂F₁`, `𝐌`, `U`, `W` and AAR Theorem 4.2.1. The two-sided expansion 13.7.2 and the
 Whittaker connection formula are proved. New results include the loop integral 15.6.2 and the
 generalized hypergeometric equation. There are
-now 266 remaining source admissions; see [REVIEW.md](REVIEW.md) for the current inventory and the corrected
-statements.
+now 1,008 remaining source admissions (2026-10-19), including 363 in Airy and
+528 from the Chapters 6–8 acquisition described below. The first prioritized batch
+removed 11 admissions: the Laguerre and Hermite Mehler–Heine limits, Laguerre–Bessel
+integral and uniform bound, three monic moment determinant identities, disk-polynomial
+polar formula, ball Poisson representation, and the `SU(2) → SO(3)` double cover.
+The next finite-identity batch removed eight more admissions: two finite Kummer–Bessel
+expansions, the Kummer and Whittaker products, three Gegenbauer expansion/connection/
+linearization formulas, and the general Jacobi connection formula.
+Five Whittaker transform statements now use regularized `M` at exceptional parameters;
+the Mellin formula is proved, while the cosine and three Bessel formulas remain admitted. See [REVIEW.md](REVIEW.md#finite-identities-priority-batch-2026-10-18)
+for the completed batches and validation. The
+[further-priorities review](REVIEW.md#further-admission-priorities-2026-10-19)
+describes the proof routes. The
+[six-proof integral and orthogonality batch](REVIEW.md#six-proof-integral-and-orthogonality-batch-2026-10-19)
+implements those targets: the adjacent Jacobi generating function, three Laguerre/Jacobi
+integral formulas, finite Bessel-polynomial orthogonality, and Morse orthogonality.
+The following [endpoint-limit and multivariate batch](REVIEW.md#jacobi-endpoint-limit-and-multivariate-orthogonality-2026-10-19)
+proves Jacobi Mehler–Heine and disk and triangle orthogonality, completing the
+remaining admissions in `Limits.lean` and `Multivariate.lean`.
+The next [generating-function and Legendre batch](REVIEW.md#generating-functions-and-legendre-identities-2026-10-19)
+proves the continuous Hahn, continuous dual Hahn and Wilson generating functions,
+Legendre addition, and its product and singular integrals. All six original
+statements and parameter ranges are retained.
+The [confluent and Hermite batch](REVIEW.md#confluent-additions-boundary-transforms-and-mehler-2026-10-19)
+proves all eight remaining Kummer/Whittaker first-parameter addition formulas,
+the regularized Kummer and Whittaker Mellin transforms, and Mehler's formula.
+A separate sharp Gamma-ratio bound for natural shifts is also proved. The two
+Gamma and two Bessel admissions remain; the review records their proof dependencies
+and the next analytic and polynomial targets.
+The [Tricomi and continuous Hahn batch](REVIEW.md#tricomi-laplace-transforms-and-continuous-hahn-orthogonality-2026-10-19)
+proves the remaining Tricomi/Whittaker Laplace transform pair and continuous Hahn
+orthogonality. The transform proof lowers the unrestricted first parameter by
+contiguous relations; the polynomial proof uses Barnes moments and
+Pfaff–Saalschutz.
+The [integer-parameter Tricomi batch](REVIEW.md#integer-parameter-tricomi-expansion-and-logarithmic-remainders-2026-10-19)
+proves the logarithmic expansion at positive integer second parameter and the
+small-argument bounds at `b=1`, `b=2`, and `b=0`. The two remaining basic U bounds
+and the Jacobi generating functions are the next priorities.
+
+The [Airy acquisition](AiryAcquisition.md) now covers every numbered equation in
+DLMF §§9.2 and 9.4–9.14, together with the mathematical prose and numerical
+tables. Fifteen new modules acquire 399 admitted statements; 36 are already
+proved, including the rotated Wronskians, product equation and Wronskian,
+antiderivative formulas and the general Airy solution. The 363 remaining Airy
+admissions are listed with branches, convergence conventions, a qualification
+for positive-parameter Reid ray integrals and the next proof priorities.
+
+The [Chapters 6–8 acquisition](DLMF678Acquisition.md) covers all 468 active
+numbered equations, explicit mathematical prose and numerical tables, excluding
+graphs and application notes. Thirty new modules provide the expanded theory;
+Mathlib results have comments and precise pointers. Of 547 initially admitted
+statements, 19 are now proved and 528 remain. The inventory records branch and
+convergence conventions and a proved counterexample to the unqualified Beta
+continued-fraction bound following 8.17.23. The entry modules are
+[ExpIntegrals](AAR/ExpIntegrals.lean), [ErrorFunctions](AAR/ErrorFunctions.lean)
+and [IncompleteGamma](AAR/IncompleteGamma.lean).
+
+The [Chapters 11, 12 and 14 acquisition](DLMF111214Acquisition.md) adds Struve,
+Lommel and Anger–Weber theory, expanded parabolic-cylinder theory and associated
+Legendre/Ferrers, conical, toroidal and spherical-harmonic theory. Forty-four new
+modules supply 198 definitions and 626 initially admitted statements; 25 are now
+proved and 601 remain. The ledger accounts for all 601 selected numbered equations,
+excluding graphs and application notes, with Mathlib pointers instead of duplicate
+proofs. It records proved counterexamples to 12.13.6 and the left-cut zero rule in
+§14.27, and explicitly lists domain extensions still to acquire. The entry modules
+are [Struve](AAR/Struve.lean), [ParabolicCylinder](AAR/ParabolicCylinder.lean) and
+[Legendre](AAR/Legendre.lean). The project now has 1,609 explicit admissions;
+the completed public proofs have no dependencies on them.
 
 ## Supporting library `ToMathlib`
 

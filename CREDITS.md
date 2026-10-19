@@ -322,3 +322,330 @@ GammaPochhammer,BetaIntegral,MvBeta,MvBetaIntegral}.lean` are ports of the compa
 `mvBetaIntegral_eq_mvBeta`. The Glaisher–Kinkelin closed form 5.17.7 differentiates the Mathlib
 contributors' `riemannZeta_one_sub` and uses `Complex.hasDerivAt_Gamma_nat`
 (`Mathlib.NumberTheory.Harmonic.GammaDeriv`).
+
+## Beals–Wong additions (2026-10-18)
+
+Beals and Wong, *Special Functions and Orthogonal Polynomials*, second edition
+(Cambridge, 2016), supplies the mathematical targets: the indexed Hermite and
+Jacobi zero estimates in §§5.3 and 5.5, discrete Rodrigues and addition formulas
+in §§6.2–6.5, and Bessel transforms in §9.8. The supplied PDF's filename says
+2015; its copyright page gives 2016 as the publication year.
+
+[DiscreteAddition.lean](AAR/OrthogonalPolynomials/DiscreteAddition.lean) uses
+the Mathlib contributors' formal exponential series and the existing local
+Chu–Vandermonde and terminating-sum APIs.
+[DiscreteRodrigues.lean](AAR/OrthogonalPolynomials/DiscreteRodrigues.lean) uses
+Mathlib's `fwdDiff` and the local Charlier difference equation. The indexed
+zero proofs reuse the local Sturm comparison, Hermite–Laguerre identities,
+and classical root enumerations, with Mathlib's trigonometric calculus.
+[IntegralTransforms.lean](AAR/Bessel/IntegralTransforms.lean) reuses the
+proved local regularized Kummer integral, full Kummer Laplace transform,
+and Bessel–Kummer identity; Mathlib's change-of-variables and complex-power
+APIs handle the Gaussian substitution and scaling. The module headers and
+proofs identify these sources of reuse.
+
+
+The refinement batch uses the same Beals–Wong source for strict Jacobi angle
+bounds and the Meixner, Krawtchouk, and Hahn Rodrigues formulas. The Jacobi proof
+reuses the existing local Sturm comparison theorem. The discrete proofs use the
+Mathlib contributors' binomial expansion of iterated `fwdDiff`, factorial identities,
+and the local terminating-sum and Hahn difference APIs. The complex Gaussian
+transform adapts the regularized `₀F₁` summation argument using the existing complex
+Gamma integral. The new [LaplaceTransform.lean](AAR/Bessel/LaplaceTransform.lean)
+uses the proved Kummer Laplace theorem, the local quadratic Gauss transformation
+and regularized contiguous relations, and Mathlib's analytic identity principle.
+The parameter-lowering argument retains exceptional orders without cancellation
+of singular Gamma factors.
+
+## Painlevé II (2026-10-18)
+
+Beals and Wong, second edition, Chapter 15, supplies the Painlevé II
+normalization, pole analysis, rational and Airy constructions, Bäcklund
+transformations, compatible linear system, energy identity, and quotient
+equations formalized in [AAR/Painleve.lean](AAR/Painleve.lean). The Airy scale
+corrects the substitution on page 407: it must satisfy `k³ = -1/2`.
+
+The local real existence and uniqueness proofs reuse the Mathlib contributors'
+Picard–Lindelöf, continuously differentiable vector-field existence, and locally
+Lipschitz ODE uniqueness results in `Mathlib.Analysis.ODE.ExistUnique`.
+The pole analysis uses Mathlib's `Meromorphic.Order`, including derivative
+orders and analytic factorization. The rational construction uses Mathlib's
+polynomial evaluation, differentiation, and root APIs. The Airy construction
+reuses the proved local [Airy API](AAR/Airy/Basic.lean), with Mathlib's analytic
+and meromorphic calculus. The Lax derivative uses Mathlib's matrix normed-space
+and product-derivative APIs. The new proofs do not adopt any TauCeti Painlevé
+removability theorem, which concerns a different subject.
+
+
+## First admission-priority batch (2026-10-18)
+
+The Laguerre and Hermite Mehler–Heine limits reuse the local regularized confluent
+large-parameter limit, Gamma-ratio asymptotics, and regularized Bessel/trigonometric
+identities. The Laguerre–Bessel integral reuses the local regularized Bessel integral
+and Kummer transformation. Its uniform bound uses the proved Hermite-product cosine
+transform and Laguerre connection coefficients, with the Tau Ceti contributors’
+Gaussian polynomial integrability theorem.
+
+The moment determinant identities in
+[GeneralIdentities.lean](AAR/OrthogonalPolynomials/GeneralIdentities.lean) use the
+Mathlib contributors’ `Matrix.det_updateCol_sum` and the Tau Ceti contributors’
+`Matrix.det_eq_mul_det_submatrix_castSucc_of_col` from
+`TauCeti.LinearAlgebra.Matrix.CornerMinor`, together with the local orthogonal
+polynomial basis and integral APIs. The disk-polynomial polar identity uses the
+local finite Jacobi sum and reflection formula and Mathlib’s factorial and
+Pochhammer identities.
+
+The ball Poisson representation in
+[Theorems.lean](AAR/SphericalHarmonics/Theorems.lean) uses the Tau Ceti contributors’
+`Analysis.PDE.PoissonIntegral.Ball` and `Analysis.InnerProductSpace.Laplacian.Comparison`.
+The continuous extension argument is adapted from their unit-ball Dirichlet proof;
+the final identification uses their Dirichlet uniqueness theorem. The `SU(2)`
+double cover uses their `LinearAlgebra.CliffordAlgebra.Spin.Real.Three`,
+`Spin.Real.Basic`, and
+`LinearAlgebra.QuadraticForm.SpecialOrthogonal.WeightedSumSquares`, including
+`realSpinThreeEquivSpecialUnitary`, positive-definite Spin surjectivity,
+`mem_ker_spinToSpecialOrthogonal_iff`, and the matrix coordinate equivalence.
+
+The Whittaker transform corrections retain the DLMF 13.23 source formulas while
+expressing regularized Whittaker `M` through Mathlib’s regularized confluent
+hypergeometric function, rather than division of a totalized ordinary series at a
+Gamma pole. The regularization bridge is proved; the five corrected transforms
+remain admitted.
+
+
+## Finite identities and connection coefficients (2026-10-18)
+
+The finite Kummer–Bessel expansions in
+[Relations.lean](AAR/Confluent/Relations.lean) follow DLMF 13.6.11₁–13.6.11₂.
+The proofs use the existing local regularized Kummer contiguous relations and
+entire dependence on the parameters, together with the Mathlib contributors’
+reciprocal-Gamma recurrence, Pascal/binomial identities and complex identity
+principle. Expressing the finite sum through regularized `₀F₁` permits the Kummer
+transformation without changing a principal-power branch at a negated argument.
+
+The Kummer and Whittaker product identities in
+[ProductsAddition.lean](AAR/Confluent/ProductsAddition.lean), DLMF 13.12.1 and
+13.25.1, use the existing local derivative and contiguous APIs. Mathlib’s theorem
+that an entire function with zero derivative is constant supplies the final
+Kummer identity; the Whittaker formula follows by the existing Kummer
+transformation and principal-power calculus.
+
+The Jacobi connection formula is AAR Lemma 7.1.1. The Gegenbauer monomial,
+connection and linearization formulas follow DLMF 18.18.17, 18.18.16 and 18.18.22.
+Their implementations in [Topics.lean](AAR/OrthogonalPolynomials/Topics.lean) and
+[Series.lean](AAR/OrthogonalPolynomials/Series.lean) use the local finite Jacobi
+and Gegenbauer series, Gegenbauer recurrence and Pochhammer convolution, with
+Mathlib’s finite-sum, binomial, factorial and polynomial APIs. The finite
+Pochhammer inversion is proved by telescoping, with a separate regular head
+term so that the Jacobi case `α + β = -1` remains included. The linearization
+proof verifies the interior and endpoint coefficient recurrences and then uses
+induction on the smaller polynomial degree.
+
+
+## Six generating-function, integral and orthogonality proofs (2026-10-19)
+
+The adjacent Jacobi generating function follows DLMF 18.12.3_5. The Laguerre
+product Laplace transform is DLMF 18.17.34_5; the Jacobi and Laguerre double
+Laplace integrals are 18.10.3 and 18.10.6. Finite Bessel-polynomial and Morse
+orthogonality are DLMF 18.34.5_5 and 18.34.7_3, in the normalizations already
+acquired in the project.
+
+The new proofs use the Mathlib contributors' Gamma/Pochhammer and Gaussian
+moment results, finite polynomial induction, shifted summation, and real
+change-of-variables APIs. In particular, `integral_comp_rpow_Ioi` and its
+integrability counterpart justify reciprocal moments, the one-dimensional
+Jacobian theorem handles the square-substituted Beta moments, and
+`integral_comp_exp` transports Bessel orthogonality to the Morse functions.
+These uses are identified in the changed module headers and at their points of
+use. The proofs also reuse the project's proved Jacobi parameter-raising and
+binomial formulas, Gegenbauer generating function and angular Laplace
+representation, Laguerre multiplication formula and orthogonality, and finite
+Pochhammer Vandermonde identity. No new TauCeti source was copied or adapted in
+this batch.
+
+
+## Jacobi endpoint limit and multivariate orthogonality (2026-10-19)
+
+Jacobi Mehler–Heine in [Limits.lean](AAR/OrthogonalPolynomials/Limits.lean)
+follows DLMF 18.11.5. The proof uses the Mathlib contributors' Tannery theorem
+(`tendsto_tsum_of_dominated_convergence`), descending-factorial bound
+(`Nat.descFactorial_le_pow`) and continuous sinc function. The project's proved
+Gamma-ratio limit and regularized Bessel series give the normalization. A new
+terminating-series bound handles both numerator parameters varying with degree.
+
+Disk and triangle orthogonality in
+[Multivariate.lean](AAR/OrthogonalPolynomials/Multivariate.lean) follow DLMF
+18.37.2 and 18.37.8. Their proofs use Mathlib's polar-coordinate integral formula,
+Jacobian change-of-variables formulas, separated-product integral formula and
+complex exponential integral. These are applied to the project's proved disk
+polar representation and one-variable Jacobi orthogonality. No TauCeti source
+was copied or adapted in this batch.
+
+
+## Hahn/Wilson generating functions and Legendre identities (2026-10-19)
+
+The continuous Hahn, Wilson and continuous dual Hahn generating functions follow
+DLMF 18.23.6, 18.26.18 and 18.26.19. Their coefficient proofs use the project's
+proved Chu–Vandermonde, Euler convolution and Pfaff–Saalschütz identities.
+[FiniteConvolution.lean](AAR/Hypergeometric/FiniteConvolution.lean) supplies the
+finite `3F2` and balanced `4F3` transformations. Mathlib's absolutely summable
+Cauchy-product API, `hasSum_sum_range_mul_of_summable_norm`, then identifies the
+convergent series. The previously exposed OP convolution helper is retained as
+an adapter to the earlier shared helper.
+
+Legendre addition and its product and singular integrals are DLMF 18.18.9,
+18.17.6 and 18.17.44. The new
+[addition kernel](AAR/OrthogonalPolynomials/LegendreAddition.lean) uses the local
+Jacobi derivative/ladder identities and the Mathlib contributors' analytic
+identity principle, derivative, finite-sum and trigonometric APIs. The product
+integral integrates the resulting finite cosine sum using Mathlib's
+`integral_cos_mul_complex`. The
+[singular-integral proof](AAR/OrthogonalPolynomials/LegendreSingular.lean) uses
+Mathlib's `dslope` continuity and interval-integral congruence and fundamental
+theorem of calculus APIs to justify the split at the diagonal. No TauCeti
+source was copied or adapted in this batch.
+
+
+## Confluent additions, boundary Mellin transforms and Mehler (2026-10-19)
+
+The eight first-parameter Kummer and Whittaker addition formulas in
+[ProductsAddition.lean](AAR/Confluent/ProductsAddition.lean) follow DLMF 13.13.3,
+13.13.5, 13.13.9, 13.13.11, 13.26.3, 13.26.6, 13.26.9 and 13.26.12.
+[MobiusTaylor.lean](AAR/Confluent/MobiusTaylor.lean) uses Mathlib's
+`Complex.taylorSeries_eq_on_ball'`, local differentiation of equal functions,
+and principal complex-power calculus with the project's proved contiguous
+relations. The zero-preserving coefficient recurrence avoids dividing by
+numerator parameters.
+
+The Mellin transforms in [Integrals.lean](AAR/Confluent/Integrals.lean) follow
+DLMF 13.10.5 and 13.23.3. The new
+[regularized boundary summation](AAR/Hypergeometric/Boundary.lean) uses the
+project's proved Gauss summation and inverse Gamma recurrence. The Gamma-moment
+majorant reuses the local proved Gamma-ratio asymptotics and Mathlib's summable
+integral-norm theorem, real Gamma integral and finite-prefix series API.
+
+[Mehler.lean](AAR/OrthogonalPolynomials/Mehler.lean), DLMF 18.18.28, uses the
+Mathlib contributors' complex Taylor theorem, analyticity of derivatives and
+uniqueness of formal multilinear series. The Hermite polynomial recurrence
+identifies the coefficients. Existing scalar-series helpers were extracted from
+`Series` into [ScalarSeries.lean](AAR/OrthogonalPolynomials/ScalarSeries.lean)
+without changing their statements or proofs.
+
+The natural-shift Gamma-ratio estimate in
+[RatioBounds.lean](AAR/Gamma/RatioBounds.lean) uses Mathlib's Gamma recurrence,
+complex norm-square and real-power APIs and the project's finite Pochhammer
+recurrence. It does not use the admitted general ratio inequality. No TauCeti
+source was copied or adapted in this batch.
+
+
+## Tricomi Laplace transforms and continuous Hahn orthogonality (2026-10-19)
+
+The Tricomi and Whittaker transforms in
+[Integrals.lean](AAR/Confluent/Integrals.lean) follow DLMF 13.10.7 and 13.23.4.
+[EulerHalfLine.lean](AAR/Hypergeometric/EulerHalfLine.lean) uses the Mathlib
+contributors' `integral_image_eq_integral_abs_deriv_smul` and
+`integrableOn_image_iff_integrableOn_abs_deriv_smul` to transfer the project's
+continued Euler Gauss integral to the positive half-line. The double integral in
+[TricomiLaplace.lean](AAR/Confluent/TricomiLaplace.lean) uses Mathlib's Fubini and
+integrability-of-iterated-integrals APIs, the Gamma integral and principal-power
+calculus. The local proved Tricomi and regularized Gauss contiguous relations
+extend both the transform and its integrability to unrestricted first parameter.
+The existing continued Pfaff transformation supplies the stated argument.
+
+Continuous Hahn orthogonality in [Hahn.lean](AAR/OrthogonalPolynomials/Hahn.lean)
+follows DLMF 18.19.4. [HahnMoments.lean](AAR/OrthogonalPolynomials/HahnMoments.lean)
+uses the project's proved Barnes four-Gamma lemma, vertical Gamma bound,
+Pfaff–Saalschutz theorem and finite Pochhammer reflection/Vandermonde formulas.
+Mathlib's finite-sum integral and absolute-integrability APIs justify every
+exchange. No TauCeti source was copied or adapted in this batch.
+
+
+## Integer-parameter Tricomi expansion and logarithmic remainders (2026-10-19)
+
+The integer-denominator expansion and the small-argument estimates at second
+parameters one, two and zero in
+[BasicProperties.lean](AAR/Confluent/BasicProperties.lean) follow DLMF 13.2.9,
+13.2.19, 13.2.17 and 13.2.21. The existing parameter-limit definition and
+Kummer transformation retain the principal complex branches.
+
+[ParameterDerivatives.lean](AAR/Confluent/ParameterDerivatives.lean) adapts the
+project's proved Gauss parameter-differentiation argument in
+[ConnectionFormulas.lean](AAR/Hypergeometric/ConnectionFormulas.lean), using the
+confluent majorant from [Regularized.lean](AAR/Confluent/Regularized.lean).
+It reuses Mathlib's `hasSum_deriv_of_summable_norm` and the local proved
+inverse-Gamma and Pochhammer derivative formulas, including inverse-Gamma
+zeros. [LogSeries.lean](AAR/Confluent/LogSeries.lean) uses Mathlib's scalar
+formal power series, convergence radius and analyticity APIs. The remainder
+proofs use Mathlib's derivative-to-Big-O and complex logarithm norm estimates;
+exceptional first parameters use the project's exact polynomial formulas.
+No TauCeti source was copied or adapted in this batch.
+
+
+## Airy theory acquisition and first proofs (2026-10-19)
+
+The new [Airy modules](AAR/Airy.lean) acquire NIST DLMF
+[§9.2](https://dlmf.nist.gov/9.2) and
+[§§9.4–9.14](https://dlmf.nist.gov/9.4), including the Scorer, Swanson–Headley,
+Olver, Smirnov, Reid and incomplete-function conventions cited there.
+[AiryAcquisition.md](AiryAcquisition.md) maps every numbered equation and
+records the qualification of Reid's positive-parameter ray integrals.
+The many admitted statements are source acquisitions, not completed proofs.
+
+The first 36 proofs extend the project's proved Airy series, initial-value,
+Wronskian and rotation theory. They use the Mathlib contributors' complex
+calculus, derivative-of-quotient, Gamma reflection, finite Pochhammer,
+regularized ₀F₁ differentiability, finite sum and algebra APIs. The general
+solution uses the project's proved uniqueness theorem; product Wronskians and
+antiderivatives reduce to its Airy ODE and initial Wronskian. No TauCeti source
+was copied or adapted in this batch.
+
+
+## DLMF Chapters 6–8 acquisition (2026-10-19)
+
+The source of the expanded [exponential integrals](AAR/ExpIntegrals.lean),
+[error/Dawson/Fresnel functions](AAR/ErrorFunctions.lean) and
+[incomplete Gamma and related functions](AAR/IncompleteGamma.lean) is NIST DLMF
+[Chapter 6](https://dlmf.nist.gov/6), [Chapter 7](https://dlmf.nist.gov/7) and
+[Chapter 8](https://dlmf.nist.gov/8), version 1.2.8. Graphs and application notes
+are excluded. [DLMF678Acquisition.md](DLMF678Acquisition.md) records individual
+equations, named normalizations, source qualifications and the proved
+continued-fraction counterexample. Most acquired theorems remain admitted.
+
+[MathlibCoverage.lean](AAR/DLMF/MathlibCoverage.lean) points to the Mathlib
+contributors' complete Beta/Gamma identity, partial Gamma integral and
+recurrence, and Gaussian integrals. No local duplicate of the complete Beta
+identity is added. The continued-fraction helper calls Mathlib's
+`GenContFract.nextConts`, adding termination and argument conventions.
+
+The first 19 proofs reuse Mathlib's Gamma/power, square-root, polynomial and
+finite-sum APIs, the project's proved incomplete Beta symmetry and power
+specialization, and its existing E1/U definitions and bridge. The inverse
+erf/erfc proofs reuse TauCeti's `Real.erfInv` and `Real.erf_erfInv`, via the
+existing complex-to-real erf bridge. These root `Real` declarations are in
+TauCeti's source, not Mathlib. No TauCeti proof source was copied or adapted.
+
+
+## DLMF Chapters 11, 12 and 14 acquisition (2026-10-19)
+
+The expanded [Struve](AAR/Struve.lean), [parabolic-cylinder](AAR/ParabolicCylinder.lean)
+and [Legendre](AAR/Legendre.lean) theory follows NIST DLMF version 1.2.8:
+[Chapter 11](https://dlmf.nist.gov/11), R. B. Paris;
+[Chapter 12](https://dlmf.nist.gov/12), N. M. Temme;
+and [Chapter 14](https://dlmf.nist.gov/14), T. M. Dunster.
+Graphs and application notes are excluded. The
+[acquisition ledger](DLMF111214Acquisition.md) records equations, prose,
+normalizations, domain restrictions and two formally checked source discrepancies.
+Most acquired theorems remain admitted.
+
+The Mathlib contributors supply `Complex.besselJ`, Gamma and digamma, inverse
+hyperbolic functions, Chebyshev and probabilists' Hermite polynomials, complex
+calculus, analytic uniqueness, ordered convergence and finite-sum APIs.
+DLMF 14.7.13 points to `Polynomial.factorial_mul_shiftedLegendre_eq` with the
+existing local normalization bridge; the Gamma ratio in 12.14.22 points to
+`Complex.Gamma_add_nat_div_Gamma_eq`. Neither upstream result is reproved here.
+
+The 25 first proofs extend the project's already proved cylinder, error-function,
+hypergeometric continuation and polynomial theory. The existing cylinder core's
+TauCeti Hermite derivative dependency is retained. No TauCeti proof source was
+copied or adapted in this batch. The two counterexample files use accepted proofs
+without reliance on the newly admitted statements.

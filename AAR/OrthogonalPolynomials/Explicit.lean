@@ -242,6 +242,16 @@ theorem hermitePolyH_finite_sum (n : ℕ) (x : ℂ) :
   · rw [show (2 * m + 1) / 2 = m by omega]
     exact hermitePolyH_odd_sum m x
 
+/-- Gamma normalization of the terminating regularized confluent function. -/
+lemma laguerrePolyL_eq_Gamma_mul_regularized {α : ℂ}
+    (hα : ∀ k : ℕ, α + 1 ≠ -(k : ℂ)) (n : ℕ) (z : ℂ) :
+    laguerrePolyL α n z = Gamma ((n : ℂ) + α + 1) / (n.factorial : ℂ) *
+      regularizedHGFun {-(n : ℂ)} {α + 1} z := by
+  rw [laguerrePolyL, kummerM_eq_mul_regularizedHGFun hα]
+  have hG := Gamma_add_nat_div_Gamma_eq (n := n) (α + 1) hα
+  rw [show (n : ℂ) + α + 1 = (α + 1) + n by ring, poch, ← hG]
+  field_simp [Gamma_ne_zero hα]
+
 @[dlmf 18.6.E1]
 theorem laguerrePolyL_at_zero (α : ℂ) (n : ℕ) : laguerrePolyL α n 0 = poch (α + 1) n
     / n.factorial := by

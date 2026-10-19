@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+
 public import AAR.Hypergeometric.DiffEq
 public import AAR.Hypergeometric.Derivatives
 public import AAR.Hypergeometric.Continuation

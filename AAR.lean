@@ -5,10 +5,19 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.ParabolicCylinder
+public import AAR.Struve
+
+public import AAR.ExpIntegrals
+public import AAR.ErrorFunctions
+public import AAR.IncompleteGamma
+
 public import AAR.Gamma
 public import AAR.Hypergeometric
 public import AAR.Confluent
 public import AAR.Bessel
+public import AAR.Airy
+public import AAR.Painleve
 public import AAR.Legendre
 public import AAR.Statistical
 public import AAR.Elliptic

@@ -8,13 +8,20 @@ module
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.Bessel.Basic
+public import AAR.Confluent.LargeA
 public import AAR.OrthogonalPolynomials.Differential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Sinc
 /-!
 # Limits between families and Mehler–Heine formulas
 
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+
+The Jacobi Mehler–Heine proof uses Mathlib’s dominated convergence theorem for
+series (Tannery), descending-factorial bounds and continuity of the sinc function.
+The terminating range supplies a geometric majorant for the two varying numerator
+parameters; the existing local Gamma-ratio limit supplies the normalization.
 -/
 
 @[expose] public section
@@ -508,32 +515,327 @@ theorem laguerrePolyL_limit_hermite (n : ℕ) (x : ℂ) :
     field_simp
     ring
 
+/-- The normalized terminating numerator Pochhammer symbol has norm at most one. -/
+private lemma norm_poch_neg_nat_div_pow_le_one {n : ℕ} (hn : 0 < n) (k : ℕ) :
+    ‖poch (-(n : ℂ)) k / (n : ℂ) ^ k‖ ≤ 1 := by
+  simp only [poch_neg_coe_nat, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow,
+    one_mul, Complex.norm_natCast]
+  apply (div_le_one (pow_pos (by exact_mod_cast hn) k)).mpr
+  exact_mod_cast Nat.descFactorial_le_pow n k
+
+/-- A bound for the other Jacobi numerator, restricted to its terminating range. -/
+private lemma norm_poch_nat_add_div_pow_le (c : ℂ) {n : ℕ} (hn : 0 < n) {k : ℕ} (hk : k ≤ n) :
+    ‖poch ((n : ℂ) + c) k / (n : ℂ) ^ k‖ ≤ (2 + ‖c‖) ^ k := by
+  have hnR : (1 : ℝ) ≤ n := by exact_mod_cast hn
+  have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih =>
+    have hkn : k ≤ n := by omega
+    have hb : ‖((n : ℂ) + c + k) / n‖ ≤ 2 + ‖c‖ := by
+      rw [norm_div, Complex.norm_natCast, div_le_iff₀ hn0]
+      have ht := norm_add_le ((n : ℂ) + c) (k : ℂ)
+      have ht' := norm_add_le (n : ℂ) c
+      simp only [Complex.norm_natCast] at ht ht'
+      have hkR : (k : ℝ) ≤ n := by exact_mod_cast hkn
+      nlinarith [norm_nonneg c]
+    have he : poch ((n : ℂ) + c) (k + 1) / (n : ℂ) ^ (k + 1) =
+        (poch ((n : ℂ) + c) k / (n : ℂ) ^ k) * (((n : ℂ) + c + k) / n) := by
+      rw [poch_succ, pow_succ]
+      ring
+    rw [he, norm_mul, pow_succ]
+    exact mul_le_mul (ih hkn) hb (norm_nonneg _) (by positivity)
+
+/-- A terminating Gauss series with both numerator parameters growing converges to `₀F̃₁`. -/
+private lemma tendsto_jacobi_scaled_series (c b : ℂ) {wseq : ℕ → ℂ} {w : ℂ}
+    (hw : Tendsto wseq atTop (𝓝 w)) :
+    Tendsto (fun n : ℕ => ∑' k : ℕ,
+      (poch (-(n : ℂ)) k / (n : ℂ) ^ k) *
+      (poch ((n : ℂ) + c) k / (n : ℂ) ^ k) *
+      wseq n ^ k * regularizedHGFunCoeff ∅ {b} k) atTop
+      (𝓝 (regularizedHGFun ∅ {b} (-w))) := by
+  let D : ℝ := 2 + ‖c‖
+  let R : ℝ := ‖w‖ + 1
+  have hsum : Summable (fun k : ℕ => (D * R) ^ k * ‖regularizedHGFunCoeff ∅ {b} k‖) := by
+    have hs := summable_norm_iff.mpr
+      ((hasFPowerSeriesOnBall_regularized0F1 b).hasSum_mul_pow
+        (by simp : ((D * R : ℝ) : ℂ) ∈ Metric.eball (0 : ℂ) ⊤)).summable
+    refine hs.congr fun k => ?_
+    rw [norm_mul, norm_pow, Complex.norm_real, Real.norm_eq_abs,
+      abs_of_nonneg (by dsimp [D, R]; positivity)]
+    ring
+  have hpoint (k : ℕ) : Tendsto (fun n : ℕ =>
+      (poch (-(n : ℂ)) k / (n : ℂ) ^ k) *
+      (poch ((n : ℂ) + c) k / (n : ℂ) ^ k) *
+      wseq n ^ k * regularizedHGFunCoeff ∅ {b} k) atTop
+      (𝓝 ((-1 : ℂ) ^ k * w ^ k * regularizedHGFunCoeff ∅ {b} k)) := by
+    have hn := (tendsto_poch_sub_div_pow 0 k).comp
+      (tendsto_natCast_atTop_atTop (R := ℝ))
+    have hp := (tendsto_poch_add_div_pow c k).comp
+      (tendsto_natCast_atTop_atTop (R := ℝ))
+    simp only [zero_sub, ofReal_neg] at hn hp
+    have h := ((hn.mul hp).mul (hw.pow k)).mul_const (regularizedHGFunCoeff ∅ {b} k)
+    simpa only [Function.comp_apply, ofReal_natCast, mul_one, add_comm c] using h
+  have hbnd : ∀ᶠ (n : ℕ) in atTop, ∀ k : ℕ,
+      ‖(poch (-(n : ℂ)) k / (n : ℂ) ^ k) *
+        (poch ((n : ℂ) + c) k / (n : ℂ) ^ k) *
+        wseq n ^ k * regularizedHGFunCoeff ∅ {b} k‖ ≤
+        (D * R) ^ k * ‖regularizedHGFunCoeff ∅ {b} k‖ := by
+    have hwB : ∀ᶠ n in atTop, ‖wseq n‖ < R :=
+      hw.norm.eventually (gt_mem_nhds (by dsimp [R]; linarith))
+    filter_upwards [eventually_gt_atTop (0 : ℕ), hwB] with n hn hwB k
+    by_cases hk : k ≤ n
+    · have hneg := norm_poch_neg_nat_div_pow_le_one hn k
+      have hpos := norm_poch_nat_add_div_pow_le c hn hk
+      have hprod : ‖poch (-(n : ℂ)) k / (n : ℂ) ^ k‖ *
+          ‖poch ((n : ℂ) + c) k / (n : ℂ) ^ k‖ ≤ D ^ k := by
+        exact (mul_le_mul hneg hpos (norm_nonneg _) zero_le_one).trans_eq (one_mul _)
+      simp only [norm_mul, norm_pow]
+      calc
+        _ ≤ (D ^ k * R ^ k) * ‖regularizedHGFunCoeff ∅ {b} k‖ :=
+          mul_le_mul_of_nonneg_right
+            (mul_le_mul hprod (pow_le_pow_left₀ (norm_nonneg _) hwB.le k)
+              (by positivity) (by dsimp [D]; positivity)) (norm_nonneg _)
+        _ = _ := by rw [mul_pow]
+    · rw [poch_neg_nat_eq_zero (by omega : n < k)]
+      simp only [zero_div, zero_mul, norm_zero]
+      positivity
+  -- Mathlib’s Tannery theorem applies with an entire regularized Bessel series majorant.
+  have ht := tendsto_tsum_of_dominated_convergence hsum hpoint hbnd
+  convert ht using 1
+  rw [regularizedHGFun_eq_tsum]
+  congr 1
+  apply tsum_congr
+  intro k
+  rw [neg_pow]
+  ring
+/-- The finite Jacobi series with reciprocal Gamma coefficients. -/
+private lemma jacobi_eq_Gamma_mul_scaled_series {α : ℝ} (hα : -1 < α) (β : ℂ)
+    {n : ℕ} (hn : 0 < n) (w : ℂ) :
+    jacobiPolyP α β n (1 - 2 * w / (n : ℂ) ^ 2) =
+      Gamma ((n : ℂ) + α + 1) / n.factorial *
+        ∑' k : ℕ, (poch (-(n : ℂ)) k / (n : ℂ) ^ k) *
+          (poch ((n : ℂ) + (α + β + 1)) k / (n : ℂ) ^ k) *
+          w ^ k * regularizedHGFunCoeff ∅ {(α : ℂ) + 1} k := by
+  have hnC : (n : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
+  have ha : 0 < ((α : ℂ) + 1).re := by simp; linarith
+  have hG : Gamma ((α : ℂ) + 1) ≠ 0 := Gamma_ne_zero_of_re_pos ha
+  have hp (k : ℕ) : poch ((α : ℂ) + 1) k ≠ 0 :=
+    poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos ha) k
+  have hGn : Gamma ((n : ℂ) + α + 1) = poch ((α : ℂ) + 1) n * Gamma ((α : ℂ) + 1) := by
+    rw [show (n : ℂ) + α + 1 = ((α : ℂ) + 1) + n by ring]
+    exact AAR.Gamma.Gamma_add_nat_eq_poch_mul_Gamma ha n
+  rw [tsum_eq_sum (s := Finset.range (n + 1)) (fun k hk => by
+    rw [poch_neg_nat_eq_zero (by simp only [Finset.mem_range, not_lt] at hk; omega)]
+    simp), jacobiPolyP, ordinaryHypergeometric_eq_sum_neg_nat,
+    Finset.mul_sum, Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro k hk
+  rw [regularizedHGFunCoeff_empty, gaussHGCoeff, hGn,
+    AAR.Gamma.Gamma_add_nat_eq_poch_mul_Gamma ha k,
+    show (1 - (1 - 2 * w / (n : ℂ) ^ 2)) / 2 = w / (n : ℂ) ^ 2 by ring,
+    show (n : ℂ) + α + β + 1 = n + (α + β + 1) by ring,
+    div_pow, show ((n : ℂ) ^ 2) ^ k = ((n : ℂ) ^ k) ^ 2 by ring]
+  field_simp [hp, hG, hnC]
+
+/-- Jacobi polynomials at a shrinking endpoint scale have a regularized Bessel limit. -/
+lemma jacobi_mehler_heine_regularized {α : ℝ} (hα : -1 < α) (β : ℂ)
+    {wseq : ℕ → ℂ} {w : ℂ} (hw : Tendsto wseq atTop (𝓝 w)) :
+    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) *
+      jacobiPolyP α β n (1 - 2 * wseq n / (n : ℂ) ^ 2)) atTop
+      (𝓝 (regularizedHGFun ∅ {(α : ℂ) + 1} (-w))) := by
+  have hR := (AAR.Gamma.Gamma_ratio_power (a := (α : ℂ) + 1) (b := 1)).comp
+    (tendsto_natCast_atTop_atTop (R := ℝ))
+  have hS := tendsto_jacobi_scaled_series ((α : ℂ) + β + 1) ((α : ℂ) + 1) hw
+  have h := hR.mul hS
+  simp only [one_mul] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+  have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+  have hp : (Real.rpow (n : ℝ) (-α) : ℂ) = (n : ℂ) ^ (-(α : ℂ)) := by
+    change (((n : ℝ) ^ (-α) : ℝ) : ℂ) = _
+    rw [ofReal_cpow hnR.le, ofReal_neg, ofReal_natCast]
+  rw [jacobi_eq_Gamma_mul_scaled_series hα β hn]
+  simp only [Function.comp_apply, ofReal_natCast]
+  rw [show (α : ℂ) + 1 - 1 = α by ring, Gamma_nat_eq_factorial, hp, cpow_neg,
+    show (n : ℂ) + ((α : ℂ) + 1) = n + α + 1 by ring]
+  ring
+/-- The Jacobi Mehler–Heine formula with the original Bessel normalization. -/
 @[dlmf 18.11.E5]
 theorem jacobi_mehler_heine {α β : ℝ} (hα : -1 < α) (hβ : -1 < β) {z : ℝ} (hz : 0 < z) :
     Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * jacobiPolyP α β n (cos ((z : ℂ) / n)))
         atTop
       (𝓝 ((Real.rpow (2 / z) α : ℂ) * besselJ α z)) := by
-  sorry
+  -- The series argument allows arbitrary complex β; retain the original real-parameter interface.
+  clear hβ
+  let wseq (n : ℕ) : ℂ := (n : ℂ) ^ 2 * ((1 - cos ((z : ℂ) / n)) / 2)
+  have ht : Tendsto (fun n : ℕ => (z / (n : ℝ)) / 2) atTop (𝓝 0) := by
+    simpa using (tendsto_const_nhds.div_atTop
+      (tendsto_natCast_atTop_atTop (R := ℝ))).div_const (2 : ℝ)
+  have hs := ((Real.continuous_sinc.tendsto 0).comp ht).const_mul (z / 2)
+  simp only [Real.sinc_zero, mul_one] at hs
+  have hw : Tendsto wseq atTop (𝓝 ((z : ℂ) ^ 2 / 4)) := by
+    have h := (continuous_ofReal.tendsto _).comp (hs.pow 2)
+    convert h.congr' ?_ using 1
+    · congr 1
+      push_cast
+      ring
+    · filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+      have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+      have hnC : (n : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
+      have ht0 : z / (n : ℝ) / 2 ≠ 0 := by positivity
+      have hcos : (1 - Real.cos (z / n)) / 2 = Real.sin (z / n / 2) ^ 2 := by
+        have he := Real.cos_two_mul (z / n / 2)
+        rw [show 2 * (z / n / 2) = z / n by ring] at he
+        nlinarith [Real.sin_sq_add_cos_sq (z / n / 2)]
+      dsimp [wseq]
+      rw [Real.sinc_of_ne_zero ht0]
+      push_cast
+      have hcosC := congrArg Complex.ofReal hcos
+      push_cast at hcosC
+      rw [hcosC]
+      field_simp [ofReal_ne_zero.mpr hz.ne']
+  have h := jacobi_mehler_heine_regularized hα (β : ℂ) hw
+  have harg : ∀ᶠ n : ℕ in atTop,
+      1 - 2 * wseq n / (n : ℂ) ^ 2 = cos ((z : ℂ) / n) := by
+    filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+    have hnC : (n : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
+    dsimp [wseq]
+    field_simp
+    ring
+  have h' := h.congr' (harg.mono fun n hn => by rw [hn])
+  convert h' using 1
+  have hJ := besselJ_ofReal_eq α hz
+  rw [hJ, ← mul_assoc, ← ofReal_mul]
+  have hp : Real.rpow (2 / z) α * Real.rpow (z / 2) α = 1 := by
+    change (2 / z) ^ α * (z / 2) ^ α = 1
+    rw [← Real.mul_rpow (by positivity : 0 ≤ 2 / z) (by positivity : 0 ≤ z / 2)]
+    have hz0 : z ≠ 0 := hz.ne'
+    rw [show 2 / z * (z / 2) = 1 by field_simp, Real.one_rpow]
+  change 𝓝 (((Real.rpow (2 / z) α * Real.rpow (z / 2) α : ℝ) : ℂ) *
+    regularizedHGFun ∅ {(α : ℂ) + 1} (((-(z ^ 2 / 4) : ℝ)) : ℂ)) = _
+  rw [hp, ofReal_one, one_mul]
+  push_cast
+  rfl
+
+/-- The complex scaled Laguerre limit, without choosing a square-root branch. -/
+lemma laguerrePolyL_mehler_heine_regularized {α : ℝ} (hα : -1 < α) (z : ℂ) :
+    Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * laguerrePolyL α n (z / n))
+      atTop (𝓝 (regularizedHGFun ∅ {(α : ℂ) + 1} (-z))) := by
+  have hc : ∀ k : ℕ, (α : ℂ) + 1 ≠ -(k : ℂ) := by
+    intro k hk
+    have h := congrArg Complex.re hk
+    simp at h
+    linarith [Nat.cast_nonneg (α := ℝ) k]
+  have hR := (AAR.Gamma.Gamma_ratio_power (a := (α : ℂ) + 1) (b := 1)).comp
+    (tendsto_natCast_atTop_atTop (R := ℝ))
+  have hM := (tendsto_regularizedConfluent_sub_div 0 ((α : ℂ) + 1) z).comp
+    (tendsto_natCast_atTop_atTop (R := ℝ))
+  have h := hR.mul hM
+  simp only [one_mul] at h
+  convert h.congr' ?_ using 1
+  filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+  have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+  have hnC : (n : ℂ) ≠ 0 := by exact_mod_cast hn.ne'
+  rw [laguerrePolyL_eq_Gamma_mul_regularized hc]
+  simp only [Function.comp_apply, ofReal_natCast, zero_sub, ofReal_neg]
+  have hp : (Real.rpow (n : ℝ) (-α) : ℂ) = (n : ℂ) ^ (-(α : ℂ)) := by
+    change (((n : ℝ) ^ (-α) : ℝ) : ℂ) = _
+    rw [ofReal_cpow hnR.le, ofReal_neg, ofReal_natCast]
+  rw [show (α : ℂ) + 1 - 1 = α by ring, Gamma_nat_eq_factorial, hp, cpow_neg,
+    show (n : ℂ) + ((α : ℂ) + 1) = n + α + 1 by ring]
+  ring
 
 @[dlmf 18.11.E6]
 theorem laguerrePolyL_mehler_heine {α : ℝ} (hα : -1 < α) {z : ℝ} (hz : 0 < z) :
     Tendsto (fun n : ℕ => (Real.rpow (n : ℝ) (-α) : ℂ) * laguerrePolyL α n ((z : ℂ) / n)) atTop
       (𝓝 ((Real.rpow z (-α / 2) : ℂ) * besselJ α (2 * Real.sqrt z))) := by
-  sorry
+  have h := laguerrePolyL_mehler_heine_regularized hα (z : ℂ)
+  convert h using 1
+  have hs : 0 < 2 * Real.sqrt z := by positivity
+  have hJ := besselJ_ofReal_eq α hs
+  have hzsq : (2 * Real.sqrt z) ^ 2 / 4 = z := by nlinarith [Real.sq_sqrt hz.le]
+  have hp : Real.rpow z (-α / 2) * Real.rpow (Real.sqrt z) α = 1 := by
+    change (z ^ (-α / 2) : ℝ) * (Real.sqrt z) ^ α = 1
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_mul hz.le, ← Real.rpow_add hz]
+    norm_num [show -α / 2 + 1 / 2 * α = 0 by ring]
+  push_cast at hJ
+  rw [hJ]
+  norm_num only [mul_div_cancel_left₀ _ (by norm_num : (2 : ℝ) ≠ 0)]
+  have harg : -(((2 * (Real.sqrt z : ℂ)) ^ 2) / 4) = -(z : ℂ) := by
+    exact_mod_cast congrArg Neg.neg hzsq
+  rw [harg, ← mul_assoc, ← ofReal_mul]
+  change 𝓝 (((Real.rpow z (-α / 2) * Real.rpow (Real.sqrt z) α : ℝ) : ℂ) *
+    regularizedHGFun ∅ {(α : ℂ) + 1} (-z)) = _
+  rw [hp, ofReal_one, one_mul]
 
 @[dlmf 18.11.E7]
 theorem hermite_even_mehler_heine (z : ℂ) :
     Tendsto (fun n : ℕ => (-1 : ℂ) ^ n * Real.sqrt n / (2 ^ (2 * n) * (n.factorial : ℂ)) *
       aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePolyH (2 * n))) atTop
-          (𝓝 (cos z / (Real.sqrt Real.pi : ℂ))) := by
-  sorry
+      (𝓝 (cos z / (Real.sqrt Real.pi : ℂ))) := by
+  have h := laguerrePolyL_mehler_heine_regularized (α := -1 / 2) (by norm_num) (z ^ 2 / 4)
+  norm_num only [ofReal_neg, ofReal_div, ofReal_one, ofReal_ofNat] at h
+  have hΓ : Gamma (1 / 2 : ℂ) = (Real.sqrt Real.pi : ℂ) := by
+    rw [show (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) by norm_num, Gamma_ofReal, Real.Gamma_one_half_eq]
+  rw [regularized0F1_half_eq_cos, hΓ] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+  have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+  have hs : (Real.sqrt n : ℂ) ^ 2 = n := by
+    exact_mod_cast Real.sq_sqrt hnR.le
+  have hs0 : (Real.sqrt n : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hnR).ne'
+  have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have harg : (z / (2 * (Real.sqrt n : ℂ))) ^ 2 = (z ^ 2 / 4) / n := by
+    rw [div_pow, mul_pow, hs]; ring
+  rw [hermitePolyH_even_eq_laguerrePolyL, harg]
+  have hnPow : Real.rpow (n : ℝ) (1 / 2) = Real.sqrt n := by
+    change (n : ℝ) ^ (1 / 2 : ℝ) = Real.sqrt n
+    exact (Real.sqrt_eq_rpow _).symm
+  rw [hnPow]
+  have hsgn : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by rw [← mul_pow]; norm_num
+  have htwo : (2 : ℂ) ^ (2 * n) ≠ 0 := pow_ne_zero _ (by norm_num)
+  have hsgn2 : (-1 : ℂ) ^ (n * 2) = 1 := by rw [Nat.mul_comm, pow_mul]; norm_num
+  norm_num only [neg_div]
+  field_simp [hf, htwo]
+  ring_nf
+  simp only [hsgn2, mul_one]
 
 @[dlmf 18.11.E8]
 theorem hermite_odd_mehler_heine (z : ℂ) :
     Tendsto (fun n : ℕ => (-1 : ℂ) ^ n / (2 ^ (2 * n) * (n.factorial : ℂ)) *
       aeval (z / (2 * (Real.sqrt n : ℂ))) (hermitePolyH (2 * n + 1))) atTop
-          (𝓝 (2 * sin z / (Real.sqrt Real.pi : ℂ))) := by
-  sorry
+      (𝓝 (2 * sin z / (Real.sqrt Real.pi : ℂ))) := by
+  have h := (laguerrePolyL_mehler_heine_regularized (α := 1 / 2) (by norm_num) (z ^ 2 / 4)).const_mul z
+  norm_num only [ofReal_div, ofReal_one, ofReal_ofNat] at h
+  have hΓ : Gamma (1 / 2 : ℂ) = (Real.sqrt Real.pi : ℂ) := by
+    rw [show (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) by norm_num, Gamma_ofReal, Real.Gamma_one_half_eq]
+  have hval : z * regularizedHGFun ∅ {(3 / 2 : ℂ)} (-(z ^ 2 / 4)) =
+      2 * sin z / (Real.sqrt Real.pi : ℂ) := by
+    by_cases hz : z = 0
+    · simp [hz]
+    · rw [regularized0F1_three_halves_eq_sinc hz, hΓ]
+      field_simp
+  rw [hval] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop (0 : ℕ)] with n hn
+  have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+  have hs : (Real.sqrt n : ℂ) ^ 2 = n := by exact_mod_cast Real.sq_sqrt hnR.le
+  have hs0 : (Real.sqrt n : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hnR).ne'
+  have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have harg : (z / (2 * (Real.sqrt n : ℂ))) ^ 2 = (z ^ 2 / 4) / n := by
+    rw [div_pow, mul_pow, hs]; ring
+  have hnPow : Real.rpow (n : ℝ) (-(1 / 2)) = (Real.sqrt n)⁻¹ := by
+    change (n : ℝ) ^ (-(1 / 2 : ℝ)) = (Real.sqrt n)⁻¹
+    rw [Real.rpow_neg hnR.le, Real.sqrt_eq_rpow]
+  rw [hermitePolyH_odd_eq_laguerrePolyL, harg, hnPow, ofReal_inv,
+    pow_succ (2 : ℂ) (2 * n)]
+  have hsgn : (-1 : ℂ) ^ n * (-1) ^ n = 1 := by rw [← mul_pow]; norm_num
+  have htwo : (2 : ℂ) ^ (2 * n) ≠ 0 := pow_ne_zero _ (by norm_num)
+  have hsgn2 : (-1 : ℂ) ^ (n * 2) = 1 := by rw [Nat.mul_comm, pow_mul]; norm_num
+  field_simp [hf, htwo, hs0]
+  ring_nf
+  simp only [hsgn2, mul_one]
 
 
 end AAR.OrthogonalPolynomials

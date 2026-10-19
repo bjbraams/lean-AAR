@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
 public import AAR.OrthogonalPolynomials.Topics
 public import Mathlib.Tactic.CrossRefAttribute
 public import AAR.OrthogonalPolynomials.Explicit

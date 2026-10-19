@@ -37,3 +37,11 @@ those gaps.
 Mathlib and TauCeti are allowed throughout the AAR library, including when filling
 existing admissions. Preserve complex branches, normalizations, exceptional parameters
 and the meaning of totalized series and integrals when adopting upstream statements.
+
+## DLMF statement acquisition
+
+- Cover definitions and mathematical theorems in the selected DLMF scope, including
+  results stated in prose. Exclude graphical results and application notes.
+- When a result is already in Mathlib, record a comment and a precise pointer to
+  the upstream declaration instead of reproving it locally. Preserve any domain
+  or branch differences when distinguishing upstream coverage from missing results.

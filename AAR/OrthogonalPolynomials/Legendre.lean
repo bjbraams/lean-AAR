@@ -276,15 +276,15 @@ theorem integral_norm_sub_sum_legendrePolyP_sq {f : ℝ → ℂ} (hf : Continuou
     rw [← intervalIntegral.integral_ofReal, intervalIntegral.integral_congr fun x _ => hexp x,
       intervalIntegral.integral_add ((hff.sub hS1).sub hS2) hS3,
       intervalIntegral.integral_sub (hff.sub hS1) hS2, intervalIntegral.integral_sub hff hS1,
-      intervalIntegral.integral_finset_sum fun n _ => (hfP n).const_mul _,
-      intervalIntegral.integral_finset_sum fun n _ => (hPf n).const_mul _]
+      intervalIntegral.integral_finsetSum fun n _ => (hfP n).const_mul _,
+      intervalIntegral.integral_finsetSum fun n _ => (hPf n).const_mul _]
     have hD : ∫ x : ℝ in (-1 : ℝ)..1, ∑ m ∈ Finset.range N, ∑ n ∈ Finset.range N,
         a m * conj (a n) * (P m x * P n x) = ∑ m ∈ Finset.range N, a m * conj (a m) * h m := by
-      rw [intervalIntegral.integral_finset_sum (f := fun m x => ∑ n ∈ Finset.range N,
+      rw [intervalIntegral.integral_finsetSum (f := fun m x => ∑ n ∈ Finset.range N,
         a m * conj (a n) * (P m x * P n x)) fun m _ => (continuous_finsetSum _ fun n _ =>
           continuous_const.mul ((hPc m).mul (hPc n))).intervalIntegrable _ _]
       refine Finset.sum_congr rfl fun m hm => ?_
-      rw [intervalIntegral.integral_finset_sum (f := fun n x => a m * conj (a n) * (P m x * P n x))
+      rw [intervalIntegral.integral_finsetSum (f := fun n x => a m * conj (a n) * (P m x * P n x))
         fun n _ => (hPP m n).const_mul _]
       simp only [intervalIntegral.integral_const_mul, hF3, mul_ite, mul_zero]
       rw [Finset.sum_ite_eq (Finset.range N) m, if_pos hm]

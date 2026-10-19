@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+
 public import AAR.Gamma.Stirling
 public import AAR.Gamma.Digamma
 public import AAR.Gamma.IntegralRepresentations

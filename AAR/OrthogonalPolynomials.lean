@@ -5,6 +5,9 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.OrthogonalPolynomials.HahnMoments
+public import AAR.OrthogonalPolynomials.ScalarSeries
+public import AAR.OrthogonalPolynomials.Mehler
 public import AAR.OrthogonalPolynomials.General
 public import AAR.OrthogonalPolynomials.Classical
 public import AAR.OrthogonalPolynomials.Topics
@@ -13,17 +16,27 @@ public import AAR.OrthogonalPolynomials.GeneralIdentities
 public import AAR.OrthogonalPolynomials.Explicit
 public import AAR.OrthogonalPolynomials.Differential
 public import AAR.OrthogonalPolynomials.JacobiDiscriminant
+public import AAR.OrthogonalPolynomials.ClassicalInstances
+public import AAR.OrthogonalPolynomials.SoninePolyaApplications
+public import AAR.OrthogonalPolynomials.HermiteFixedX
+public import AAR.OrthogonalPolynomials.HermiteZeroBounds
 public import AAR.OrthogonalPolynomials.BinomialSeries
 public import AAR.OrthogonalPolynomials.GegenbauerSeries
 public import AAR.OrthogonalPolynomials.LaguerreSeries
 public import AAR.OrthogonalPolynomials.Limits
 public import AAR.OrthogonalPolynomials.Integrals
 public import AAR.OrthogonalPolynomials.Legendre
+public import AAR.OrthogonalPolynomials.LegendreAddition
+public import AAR.OrthogonalPolynomials.LegendreSingular
 public import AAR.OrthogonalPolynomials.ChebyshevExpansion
 public import AAR.OrthogonalPolynomials.Series
 public import AAR.OrthogonalPolynomials.BoundsZeros
+public import AAR.OrthogonalPolynomials.JacobiZeroBounds
 public import AAR.OrthogonalPolynomials.ContinuedFractions
 public import AAR.OrthogonalPolynomials.Hahn
+public import AAR.OrthogonalPolynomials.DiscreteAddition
+public import AAR.OrthogonalPolynomials.DiscreteRodrigues
+public import AAR.OrthogonalPolynomials.HahnRodrigues
 public import AAR.OrthogonalPolynomials.Wilson
 public import AAR.OrthogonalPolynomials.QFamilies
 public import AAR.OrthogonalPolynomials.Associated

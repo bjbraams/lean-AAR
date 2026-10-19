@@ -50,6 +50,7 @@ def genExpIntE (p z : ℂ) : ℂ :=
   z ^ (p - 1) * upperIncGamma (1 - p) z
 
 /-- `E_p(z) = z^{p-1} e^{-z} U(p, p, z)` (Temme §7.3.5). -/
+@[dlmf 8.19.E16]
 theorem genExpIntE_eq_cpow_mul_kummerU (p z : ℂ) :
     genExpIntE p z = z ^ (p - 1) * exp (-z) * kummerU p p z := by
   rw [genExpIntE, upperIncGamma, sub_sub_cancel]
@@ -73,6 +74,7 @@ theorem genExpIntE_eq_integral (p : ℂ) {x : ℝ} (hx : 0 < x) :
   simp [show 1 - p - 1 = -p by ring]
 
 /-- `E_0(z) = e^{-z}/z`. -/
+@[dlmf 8.19.E5]
 theorem genExpIntE_zero {z : ℂ} (hz : z ≠ 0) : genExpIntE 0 z = exp (-z) / z := by
   rw [genExpIntE, sub_zero, upperIncGamma_one, zero_sub, Complex.cpow_neg_one]
   field_simp

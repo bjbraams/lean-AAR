@@ -5,8 +5,12 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.Confluent.TricomiLaplace
+public import AAR.Confluent.MobiusTaylor
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Regularized
+public import AAR.Confluent.ParameterDerivatives
+public import AAR.Confluent.LogSeries
 public import AAR.Confluent.BasicProperties
 public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
@@ -31,6 +35,8 @@ public import AAR.Confluent.Series
 public import AAR.Confluent.ProductsAddition
 public import AAR.Confluent.MathlibCoverage
 public import AAR.Confluent.Continuation
+public import AAR.Confluent.LargeA
+public import AAR.Confluent.LargeASharp
 
 /-!
 # Confluent hypergeometric functions (AAR Chapter 4, §§4.1–4.4; DLMF Chapter 13)
@@ -50,4 +56,8 @@ and §§8.19–8.20), `ParabolicCylinder` (DLMF Chapter 12), `ErrorFunctions` (F
 Dawson integrals) and `Coulomb` (DLMF §33.2). Each statement taken from the DLMF records its equation number in a
 `@[dlmf]` attribute. Many newly acquired statements are admitted and remain proof
 obligations.
+
+`LargeA` proves the large-negative-`a` behaviour of `M` and `U` (Beals–Wong (8.1.12), (8.2.10))
+and Fejér's formula for Laguerre polynomials, by the Volterra method of Beals–Wong §13.2.
+`LargeASharp` sharpens these to the error orders of DLMF 13.8.9, 13.8.10 and 18.15.14.
 -/
