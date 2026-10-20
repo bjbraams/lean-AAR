@@ -379,7 +379,7 @@ Definitions record source notation and do not replace the accompanying theorem.
 - [9.13.E33](https://dlmf.nist.gov/9.13.E33): [reidAiryA_rotations](AAR/Airy/GeneralizedContours.lean#L122) (admitted).
 - [9.13.E34](https://dlmf.nist.gov/9.13.E34): [reidAiry_connection_sum](AAR/Airy/GeneralizedContours.lean#L129) (admitted).
 - [9.13.E35](https://dlmf.nist.gov/9.13.E35): [reidAiry_connection_35](AAR/Airy/GeneralizedContours.lean#L135) (admitted).
-- [9.13.E36](https://dlmf.nist.gov/9.13.E36): [reidAiry_connection_36](AAR/Airy/GeneralizedContours.lean#L141) (admitted).
+- [9.13.E36](https://dlmf.nist.gov/9.13.E36): [reidAiry_connection_36](AAR/Airy/GeneralizedContours.lean) (proved; corrected to B₃ − B₁ = 2πi(A₂ + B₀), since DLMF's form fails for p ≥ 1); DLMF's printed form for p ≤ 0 is `reidAiry_connection_36_of_nonpos` (proved).
 - [9.13.E37](https://dlmf.nist.gov/9.13.E37): [reidAiry_connection_37](AAR/Airy/GeneralizedContours.lean#L147) (admitted).
 
 ### §9.14: Incomplete Airy functions (no numbered equations)

@@ -33,12 +33,61 @@ def legendreEquationQ (ν μ z : ℂ) : ℂ :=
 /-- Regular singularity and the exponent pair minus/plus order over two, DLMF 14.2(iii). -/
 theorem legendre_finite_singular_exponents_1 (ν μ : ℂ) :
     Tendsto (fun z : ℂ => (z-1)*legendreEquationP z) (𝓝[≠] (1:ℂ)) (𝓝 1) ∧ Tendsto (fun z : ℂ => (z-1)^2*legendreEquationQ ν μ z) (𝓝[≠] (1:ℂ)) (𝓝 (-μ^2/4)) ∧ ∀ r : ℂ, r*(r-1)+r-μ^2/4=(r-μ/2)*(r+μ/2) := by
-  sorry
+  have hev : ∀ᶠ z in 𝓝[≠] (1:ℂ), z ≠ 1 ∧ z + 1 ≠ 0 := by
+    have h1 : ∀ᶠ z in 𝓝 (1:ℂ), z + 1 ≠ 0 :=
+      (continuous_id.add continuous_const).continuousAt.eventually_ne (by norm_num)
+    filter_upwards [self_mem_nhdsWithin, nhdsWithin_le_nhds h1] with z hz h2 using ⟨hz, h2⟩
+  refine ⟨?_, ?_, fun r => by ring⟩
+  · have heq : (fun z : ℂ => (z-1)*legendreEquationP z) =ᶠ[𝓝[≠] 1] (fun z => 2*z/(1+z)) := by
+      filter_upwards [hev] with z ⟨hz1, hz2⟩
+      have : z - 1 ≠ 0 := sub_ne_zero.2 hz1
+      have h3 : 1 + z ≠ 0 := by rwa [add_comm]
+      rw [legendreEquationP, show (1:ℂ) - z^2 = -(z-1)*(1+z) by ring]
+      field_simp
+    apply Tendsto.congr' heq.symm
+    have := (by fun_prop (disch := norm_num) : ContinuousAt (fun z : ℂ => 2*z/(1+z)) 1).tendsto
+    norm_num at this
+    exact this.mono_left nhdsWithin_le_nhds
+  · have heq : (fun z : ℂ => (z-1)^2*legendreEquationQ ν μ z) =ᶠ[𝓝[≠] 1]
+        (fun z => (ν*(ν+1)*(1-z^2)-μ^2)/(1+z)^2) := by
+      filter_upwards [hev] with z ⟨hz1, hz2⟩
+      have : z - 1 ≠ 0 := sub_ne_zero.2 hz1
+      have h3 : 1 + z ≠ 0 := by rwa [add_comm]
+      rw [legendreEquationQ, show (1:ℂ) - z^2 = -(z-1)*(1+z) by ring]
+      field_simp
+      ring
+    apply Tendsto.congr' heq.symm
+    have := (by fun_prop (disch := norm_num) : ContinuousAt (fun z : ℂ => (ν*(ν+1)*(1-z^2)-μ^2)/(1+z)^2) 1).tendsto
+    norm_num at this
+    exact this.mono_left nhdsWithin_le_nhds
 
 /-- Regular singularity and the exponent pair minus/plus order over two, DLMF 14.2(iii). -/
 theorem legendre_finite_singular_exponents_2 (ν μ : ℂ) :
     Tendsto (fun z : ℂ => (z-(-1))*legendreEquationP z) (𝓝[≠] (-1:ℂ)) (𝓝 1) ∧ Tendsto (fun z : ℂ => (z-(-1))^2*legendreEquationQ ν μ z) (𝓝[≠] (-1:ℂ)) (𝓝 (-μ^2/4)) ∧ ∀ r : ℂ, r*(r-1)+r-μ^2/4=(r-μ/2)*(r+μ/2) := by
-  sorry
+  have hev : ∀ᶠ z in 𝓝[≠] (-1:ℂ), z ≠ -1 ∧ 1 - z ≠ 0 := by
+    have h1 : ∀ᶠ z in 𝓝 (-1:ℂ), 1 - z ≠ 0 :=
+      (continuous_const.sub continuous_id).continuousAt.eventually_ne (by norm_num)
+    filter_upwards [self_mem_nhdsWithin, nhdsWithin_le_nhds h1] with z hz h2 using ⟨hz, h2⟩
+  refine ⟨?_, ?_, fun r => by ring⟩
+  · have heq : (fun z : ℂ => (z-(-1))*legendreEquationP z) =ᶠ[𝓝[≠] (-1)] (fun z => -(2*z)/(1-z)) := by
+      filter_upwards [hev] with z ⟨hz1, hz2⟩
+      have : z + 1 ≠ 0 := by intro h; apply hz1; linear_combination h
+      rw [legendreEquationP, show (1:ℂ) - z^2 = (1-z)*(z+1) by ring, sub_neg_eq_add]
+      field_simp
+    apply Tendsto.congr' heq.symm
+    have := (by fun_prop (disch := norm_num) : ContinuousAt (fun z : ℂ => -(2*z)/(1-z)) (-1)).tendsto
+    norm_num at this
+    exact this.mono_left nhdsWithin_le_nhds
+  · have heq : (fun z : ℂ => (z-(-1))^2*legendreEquationQ ν μ z) =ᶠ[𝓝[≠] (-1)]
+        (fun z => (ν*(ν+1)*(1-z^2)-μ^2)/(1-z)^2) := by
+      filter_upwards [hev] with z ⟨hz1, hz2⟩
+      have : z + 1 ≠ 0 := by intro h; apply hz1; linear_combination h
+      rw [legendreEquationQ, show (1:ℂ) - z^2 = (1-z)*(z+1) by ring, sub_neg_eq_add]
+      field_simp
+    apply Tendsto.congr' heq.symm
+    have := (by fun_prop (disch := norm_num) : ContinuousAt (fun z : ℂ => (ν*(ν+1)*(1-z^2)-μ^2)/(1-z)^2) (-1)).tendsto
+    norm_num at this
+    exact this.mono_left nhdsWithin_le_nhds
 
 /-- Reciprocal-coordinate equation has exponents minus degree and degree plus one at infinity. -/
 theorem legendre_infinite_singular_exponents (ν μ : ℂ) :

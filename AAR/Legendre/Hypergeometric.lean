@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Legendre.Associated
+public import AAR.Legendre.Connections
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
 /-!
@@ -40,31 +41,79 @@ theorem legendreGaussF_normalization {a b c z : ℂ} (hc : ∀ n : ℕ, c ≠ -n
 @[dlmf 14.3.E4]
 theorem ferrersP_integer_hypergeometric_4 (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     ferrersP ν m x=(-1)^m*poch (ν-m+1) (2*m)/2^m*(1-x^2:ℂ)^((m:ℂ)/2)*regularizedGaussHG (ν+m+1) (m-ν) (m+1) ((1-x)/2) := by
-  sorry
+  rcases m with _ | k
+  · simp [ferrersP, poch_zero]
+  have hw := mem_cutPlane_of_one_add (show 1+(x:ℂ) ∈ slitPlane from Or.inl (by simp; linarith [hx.1]))
+  unfold ferrersP
+  rw [show 1-((k+1:ℕ):ℂ) = -(k:ℂ) by push_cast; ring, regularizedGaussHG_neg_nat _ _ _ hw,
+    show ν+1+k+1 = ν+((k+1:ℕ):ℂ)+1 by push_cast; ring,
+    show -ν+k+1 = ((k+1:ℕ):ℂ)-ν by push_cast; ring,
+    show (k:ℂ)+2 = ((k+1:ℕ):ℂ)+1 by push_cast; ring, poch_mul_poch_neg]
+  linear_combination ((-1)^(k+1) * poch (ν-((k+1:ℕ):ℂ)+1) (2*(k+1)) *
+    regularizedGaussHG (ν+((k+1:ℕ):ℂ)+1) (((k+1:ℕ):ℂ)-ν) (((k+1:ℕ):ℂ)+1) ((1-x)/2)) *
+    ferrers_gauge_nat (k+1) hx
 
 /-- Pochhammer products supply the limiting gamma quotient at exceptional degrees. -/
 @[dlmf 14.3.E5]
 theorem ferrersP_integer_hypergeometric_5 (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     ferrersP ν m x=(-1)^m*poch (ν-m+1) (2*m)*((1-x)/(1+x):ℂ)^((m:ℂ)/2)*regularizedGaussHG (ν+1) (-ν) (m+1) ((1-x)/2) := by
-  sorry
+  rcases m with _ | k
+  · simp [ferrersP, poch_zero]
+  have hw := mem_cutPlane_of_one_add (show 1+(x:ℂ) ∈ slitPlane from Or.inl (by simp; linarith [hx.1]))
+  have hr : 0 ≤ (1+x)/(1-x) := div_nonneg (by linarith [hx.1]) (by linarith [hx.2])
+  have e : ((1-x)/(1+x):ℂ) = ((((1+x)/(1-x):ℝ):ℂ))⁻¹ := by push_cast; rw [inv_div]
+  unfold ferrersP
+  rw [regularizedGaussHG_legendre_neg_nat ν k hw, e, inv_cpow_ofReal_nonneg hr, poch_mul_poch_neg,
+    ← cpow_neg, show -(((k+1:ℕ):ℂ)/2) = -((k+1:ℕ):ℂ)/2 by ring, ← ferrers_gauge_neg_nat (k+1) hx]
+  ring
 
 /-- Pochhammer products supply the limiting gamma quotient at exceptional degrees. -/
 @[dlmf 14.3.E8]
 theorem associatedP_integer_hypergeometric_8 (ν : ℂ) (m : ℕ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     associatedP ν m z=poch (ν-m+1) (2*m)/2^m*legendreBranchPower m z*regularizedGaussHG (ν+m+1) (m-ν) (m+1) ((1-z)/2) := by
-  sorry
+  rcases m with _ | k
+  · simp [associatedP, legendreBranchPower, poch_zero]
+  have hw := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hz)
+  have hg := associated_gauge_nat (k+1) hz
+  unfold associatedP
+  rw [show 1-((k+1:ℕ):ℂ) = -(k:ℂ) by push_cast; ring, regularizedGaussHG_neg_nat _ _ _ hw,
+    show ν+1+k+1 = ν+((k+1:ℕ):ℂ)+1 by push_cast; ring,
+    show -ν+k+1 = ((k+1:ℕ):ℂ)-ν by push_cast; ring,
+    show (k:ℂ)+2 = ((k+1:ℕ):ℂ)+1 by push_cast; ring, poch_mul_poch_neg]
+  linear_combination (poch (ν-((k+1:ℕ):ℂ)+1) (2*(k+1)) *
+    regularizedGaussHG (ν+((k+1:ℕ):ℂ)+1) (((k+1:ℕ):ℂ)-ν) (((k+1:ℕ):ℂ)+1) ((1-z)/2)) * hg
 
 /-- associated hypergeometric 9. -/
 @[dlmf 14.3.E9]
 theorem associated_hypergeometric_9 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     associatedP ν (-μ) z=exp (μ/2*(log (z-1)-log (z+1)))*regularizedGaussHG (ν+1) (-ν) (μ+1) ((1-z)/2) := by
-  sorry
+  unfold associatedP
+  rw [show 1-(-μ) = μ+1 by ring,
+    show -μ/2*(log (z+1)-log (z-1)) = μ/2*(log (z-1)-log (z+1)) by ring]
 
 /-- associated hypergeometric 15. -/
 @[dlmf 14.3.E15]
 theorem associated_hypergeometric_15 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     associatedP ν (-μ) z=2^(-μ)*legendreBranchPower μ z*regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) := by
-  sorry
+  have hw := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hz)
+  have h1 : z+1 ≠ 0 := by
+    simpa [add_comm] using slitPlane_ne_zero (one_add_mem_slitPlane_of_sub_one hz)
+  have hl2 : log (2:ℂ) = (Real.log 2:ℂ) := by
+    rw [show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
+  have hp : (1-(1-z)/2)^μ = exp ((log (z+1) - Real.log 2)*μ) := by
+    rw [show 1-(1-z)/2 = (z+1)*((1/2:ℝ):ℂ) by push_cast; ring,
+      cpow_def_of_ne_zero (mul_ne_zero h1 (by norm_num)), log_mul_ofReal _ (by norm_num) _ h1,
+      one_div, Real.log_inv]
+    push_cast; ring_nf
+  have h2 : (2:ℂ)^(-μ) = exp (Real.log 2 * (-μ)) := by
+    rw [cpow_def_of_ne_zero (by norm_num), hl2]
+  unfold associatedP legendreBranchPower
+  rw [show 1-(-μ) = μ+1 by ring, regularizedGaussHG_euler _ _ _ hw, show μ+1-(ν+1)-(-ν) = μ by ring,
+    show μ+1-(ν+1) = μ-ν by ring, show μ+1-(-ν) = ν+μ+1 by ring, hp, h2]
+  have he : exp (-μ/2*(log (z+1)-log (z-1))) * exp ((log (z+1) - Real.log 2)*μ) =
+      exp (Real.log 2 * (-μ)) * exp (μ/2*(log (z-1)+log (z+1))) := by
+    rw [← exp_add, ← exp_add]; congr 1; ring
+  linear_combination regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) * he
 
 /-- associated hypergeometric 16. -/
 @[dlmf 14.3.E16]
@@ -82,7 +131,7 @@ theorem associated_hypergeometric_18 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitP
 @[dlmf 14.3.E20]
 theorem associated_hypergeometric_20 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     2*sin (μ*π)/π*olverQ ν μ z=associatedP ν μ z/Gamma (ν+μ+1)-associatedP ν (-μ) z/Gamma (ν-μ+1) := by
-  sorry
+  exact associated_connection_15 ν μ hz
 
 /-- Combined boundary value at the hypergeometric cut; separate totalized values on that cut are not used. -/
 @[dlmf 14.3.E17]

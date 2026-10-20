@@ -9,6 +9,7 @@ public import AAR.Hypergeometric.Basic
 public import AAR.Hypergeometric.Continuation
 public import AAR.Hypergeometric.FurtherTransformations
 public import AAR.Hypergeometric.ConnectionFormulas
+public import AAR.Hypergeometric.ParameterHolomorphy
 
 /-!
 # Parameter dependence and boundary convergence (DLMF §§15.2, 15.4)
@@ -90,8 +91,9 @@ theorem regularized_at_neg_nat (a b : ℂ) (n : ℕ) {z : ℂ} (hz : ‖z‖ < 1
 @[dlmf 15.2.ii]
 theorem entire_regularized_parameters {z : ℂ} (hz : ‖z‖ < 1) :
     Differentiable ℂ (fun p : ℂ × ℂ × ℂ =>
-      regularizedGaussHGFun p.1 p.2.1 p.2.2 z) := by
-  sorry
+      regularizedGaussHGFun p.1 p.2.1 p.2.2 z) :=
+  differentiable_regularizedGaussHGFun_of_differentiable differentiable_fst
+    (differentiable_fst.comp differentiable_snd) (differentiable_snd.comp differentiable_snd) hz
 
 @[dlmf 15.2.E3_5]
 theorem tendsto_regularized_at_neg_nat (a b : ℂ) (n : ℕ) {z : ℂ} (hz : ‖z‖ < 1) :

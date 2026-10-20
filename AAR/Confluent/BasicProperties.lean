@@ -1119,6 +1119,74 @@ private lemma not_int_of_re_mem {b : ℂ} {n : ℤ} (h0 : (n : ℝ) ≤ b.re) (h
     omega
   exact hb (hk.trans (by rw [hkn]))
 
+/-- Constants are `O(‖z‖^r)` near `0` for `r ≤ 0`. -/
+private lemma isBigO_one_norm_rpow {r : ℝ} (hr : r ≤ 0) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun _ : ℂ => (1 : ℝ)) (fun z => ‖z‖ ^ r) := by
+  refine Asymptotics.IsBigO.of_bound 1 ?_
+  filter_upwards [self_mem_nhdsWithin,
+    nhdsWithin_le_nhds (Metric.closedBall_mem_nhds (0 : ℂ) one_pos)] with z hz0 hz
+  rw [Metric.mem_closedBall, dist_zero_right] at hz
+  rw [one_mul, norm_one, Real.norm_of_nonneg (by positivity)]
+  exact Real.one_le_rpow_of_pos_of_le_one_of_nonpos (norm_pos_iff.mpr hz0) hz hr
+
+/-- `log z = O(‖z‖^r)` near `0` for `r ≤ -1`. -/
+private lemma isBigO_log_norm_rpow {r : ℝ} (hr : r ≤ -1) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) log (fun z => ‖z‖ ^ r) := by
+  refine Asymptotics.IsBigO.of_bound (1 + π) ?_
+  filter_upwards [self_mem_nhdsWithin,
+    nhdsWithin_le_nhds (Metric.closedBall_mem_nhds (0 : ℂ) one_pos)] with z hz0 hz
+  rw [Metric.mem_closedBall, dist_zero_right] at hz
+  have hx : 0 < ‖z‖ := norm_pos_iff.mpr hz0
+  rw [Real.norm_of_nonneg (by positivity)]
+  have hinv : ‖z‖⁻¹ ≤ ‖z‖ ^ r := by
+    rw [← Real.rpow_neg_one]
+    exact Real.rpow_le_rpow_of_exponent_ge hx hz hr
+  have h1 : 1 ≤ ‖z‖⁻¹ := one_le_inv_iff₀.mpr ⟨hx, hz⟩
+  have hl : |Real.log ‖z‖| ≤ ‖z‖⁻¹ := by
+    rw [abs_of_nonpos (Real.log_nonpos hx.le hz), ← Real.log_inv]
+    linarith [Real.log_le_sub_one_of_pos (inv_pos.mpr hx)]
+  have hn : ‖log z‖ ≤ |Real.log ‖z‖| + π := by
+    refine (norm_le_abs_re_add_abs_im _).trans ?_
+    rw [log_re, log_im]
+    gcongr
+    exact abs_arg_le_pi z
+  calc ‖log z‖ ≤ ‖z‖⁻¹ + π * ‖z‖⁻¹ := by nlinarith [Real.pi_pos]
+    _ = (1 + π) * ‖z‖⁻¹ := by ring
+    _ ≤ (1 + π) * ‖z‖ ^ r := by gcongr
+
+/-- `z^{-m}(P z - P 0) = O(‖z‖^{1-m})` near `0` for `P` differentiable at `0`. -/
+private lemma isBigO_cpow_neg_nat_mul_sub (m : ℕ) {P : ℂ → ℂ}
+    (hP : DifferentiableAt ℂ P 0) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => z ^ (-(m : ℂ)) * (P z - P 0))
+      (fun z => ‖z‖ ^ (1 - (m : ℝ))) := by
+  have h := (isBigO_cpow_norm_rpow (-(m : ℂ))).mul
+    ((hP.isBigO_sub.mono (nhdsWithin_le_nhds (s := {0}ᶜ))).norm_right)
+  refine h.trans (Asymptotics.IsBigO.of_bound 1 ?_)
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  have hz0 : 0 < ‖z‖ := norm_pos_iff.mpr hz
+  have he : ‖z‖ ^ (-(m : ℂ)).re * ‖z - 0‖ = ‖z‖ ^ (1 - (m : ℝ)) := by
+    rw [sub_zero, show 1 - (m : ℝ) = (-(m : ℂ)).re + 1 by simp; ring, Real.rpow_add hz0,
+      Real.rpow_one]
+  rw [he, one_mul]
+
+/-- `(-1)^k (1-m)_k = Γ(m)/Γ(m-k)`. -/
+private lemma neg_one_pow_mul_poch_one_sub_nat (m k : ℕ) (hm : 1 ≤ m) :
+    (-1 : ℂ) ^ k * poch (1 - m) k = Gamma m / Gamma ((m : ℂ) - k) := by
+  obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := ⟨m - 1, by omega⟩
+  rw [show (1 : ℂ) - ((n + 1 : ℕ) : ℂ) = -(n : ℂ) by push_cast; ring, poch_neg_coe_nat,
+    ← mul_assoc, ← pow_add, ← two_mul, pow_mul]
+  simp only [neg_one_sq, one_pow, one_mul]
+  rcases lt_or_ge n k with hk | hk
+  · rw [Nat.descFactorial_eq_zero_iff_lt.mpr hk,
+      show ((n + 1 : ℕ) : ℂ) - k = -((k - (n + 1) : ℕ) : ℂ) by
+        rw [Nat.cast_sub (by omega)]; push_cast; ring, Gamma_neg_nat_eq_zero]
+    simp
+  · rw [show ((n + 1 : ℕ) : ℂ) - k = ((n - k : ℕ) : ℂ) + 1 by
+        rw [Nat.cast_sub hk]; push_cast; ring, Gamma_nat_eq_factorial,
+      show ((n + 1 : ℕ) : ℂ) = (n : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial,
+      eq_div_iff (by exact_mod_cast (Nat.factorial_ne_zero _)), mul_comm]
+    exact_mod_cast (Nat.factorial_mul_descFactorial hk)
+
 /-- Behaviour of `U` at zero for `Re b ≥ 2`, `b ≠ 2`; at `b = 2` a `log z` term appears
 (see `isBigO_kummerU_at_zero_b_two`). -/
 @[dlmf 13.2.E16]
@@ -1126,7 +1194,95 @@ theorem isBigO_kummerU_at_zero_re_ge_two (a b : ℂ) (hb : 2 ≤ b.re) (hb2 : b 
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => kummerU a b z - Gamma (b - 1) / Gamma a * z ^ (1 - b))
       (fun z => z ^ (2 - b.re : ℂ)) := by
-  sorry
+  refine Asymptotics.IsBigO.trans ?_ (by simpa using isBigO_norm_rpow_cpow (2 - b.re))
+  by_cases hbZ : ∀ k : ℤ, b ≠ k
+  · have hM : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z => kummerM a b z)
+        (fun _ => (1 : ℝ)) :=
+      ((differentiableAt_kummerM a b).continuousAt.tendsto.isBigO_one ℝ).mono
+        nhdsWithin_le_nhds
+    have h1 := hM.trans (isBigO_one_norm_rpow (r := 2 - b.re) (by linarith))
+    have h2 : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
+        (fun z => z ^ (1 - b) * (kummerM (a - b + 1) (2 - b) z - 1))
+        (fun z => ‖z‖ ^ (2 - b.re)) := by
+      refine ((isBigO_cpow_norm_rpow (1 - b)).mul
+        ((isBigO_kummerM_sub_one (a - b + 1) (2 - b)).mono
+          (nhdsWithin_le_nhds (s := {0}ᶜ))).norm_right).trans ?_
+      refine Asymptotics.IsBigO.of_bound 1 ?_
+      filter_upwards [self_mem_nhdsWithin] with z hz
+      have hz0 : 0 < ‖z‖ := norm_pos_iff.mpr hz
+      have he : ‖z‖ ^ (1 - b).re * ‖id z‖ = ‖z‖ ^ (2 - b.re) := by
+        rw [id, show 2 - b.re = (1 - b).re + 1 by simp; ring, Real.rpow_add hz0, Real.rpow_one]
+      rw [he, one_mul]
+    have hsum := (h1.const_mul_left (Gamma (1 - b) / Gamma (a - b + 1))).add
+      (h2.const_mul_left (Gamma (b - 1) / Gamma a))
+    refine hsum.congr (fun z => ?_) (fun z => rfl)
+    rw [kummerU_eq_connection a b z hbZ, kummerUConnection]
+    ring
+  push Not at hbZ
+  obtain ⟨n, rfl⟩ := hbZ
+  have hn2 : (2 : ℝ) ≤ n := by simpa using hb
+  have hn3 : n ≠ 2 := fun h => hb2 (by rw [h]; norm_num)
+  obtain ⟨m, rfl⟩ : ∃ m : ℕ, n = (m : ℤ) + 1 := ⟨(n - 1).toNat, by
+    have : (2 : ℤ) ≤ n := by exact_mod_cast hn2
+    omega⟩
+  have hm : 2 ≤ m := by
+    have : (2 : ℤ) ≤ (m : ℤ) + 1 := by exact_mod_cast hn2
+    omega
+  have hb' : (((m : ℤ) + 1 : ℤ) : ℂ) = (m : ℂ) + 1 := by push_cast; ring
+  have hre : 2 - ((m : ℂ) + 1).re = 1 - (m : ℝ) := by simp; ring
+  simp only [hb']
+  simp only [hre]
+  have hpow : ∀ z : ℂ, z ^ (1 - ((m : ℂ) + 1)) = z ^ (-(m : ℂ)) := fun z => by
+    congr 1; ring
+  simp only [hpow, show (m : ℂ) + 1 - 1 = m by ring]
+  by_cases ha : ∀ k : ℕ, a - m ≠ -(k : ℂ)
+  · set P : ℂ → ℂ := fun z => ∑ j ∈ Finset.range m, poch (a - m) j * z ^ j / j.factorial *
+        ((-1 : ℂ) ^ (m - 1 - j) * ((m - 1 - j).factorial : ℂ)) with hPdef
+    have hP : DifferentiableAt ℂ P 0 := by rw [hPdef]; fun_prop
+    have hP0 : (-1 : ℂ) ^ (m + 1) * P 0 = Gamma m := by
+      obtain ⟨p, rfl⟩ : ∃ p, m = p + 1 := ⟨m - 1, by omega⟩
+      rw [hPdef]
+      simp only [Finset.sum_range_succ', ne_eq, Nat.add_one_ne_zero,
+        not_false_eq_true, zero_pow, mul_zero, zero_div, zero_mul, Finset.sum_const_zero, zero_add,
+        poch_zero, pow_zero, Nat.factorial_zero, Nat.cast_one, div_one, one_mul]
+      rw [show ((p + 1 : ℕ) : ℂ) = (p : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial,
+        show p + 1 - 1 - 0 = p by omega, ← mul_assoc, ← pow_add,
+        show p + 1 + 1 + p = 2 * (p + 1) by ring, pow_mul]
+      simp
+    have hM := ((differentiableAt_regularizedConfluent a ((m : ℂ) + 1) 0).continuousAt.tendsto.isBigO_one ℝ).mono
+      (nhdsWithin_le_nhds (s := {0}ᶜ))
+    have hT := ((analyticAt_tricomiLogSeries a m ha).continuousAt.tendsto.isBigO_one ℝ).mono
+      (nhdsWithin_le_nhds (s := {0}ᶜ))
+    have hr1 : 1 - (m : ℝ) ≤ -1 := by
+      have : (2 : ℝ) ≤ m := by exact_mod_cast hm
+      linarith
+    have hLM := ((isBigO_log_norm_rpow hr1).mul hM)
+    simp only [mul_one] at hLM
+    have h := ((hLM.add (hT.trans (isBigO_one_norm_rpow (by linarith)))).const_mul_left
+        ((-1 : ℂ) ^ (m + 1) * (Gamma (a - m))⁻¹)).add
+      ((isBigO_cpow_neg_nat_mul_sub m hP).const_mul_left ((-1 : ℂ) ^ (m + 1) * (Gamma a)⁻¹))
+    refine h.congr' ?_ (Filter.EventuallyEq.refl _ _)
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    rw [kummerU_nat_log a m hz ha, ← hP0]
+    simp only [hPdef]
+    ring
+  · push Not at ha
+    obtain ⟨k, hk⟩ := ha
+    have hak : a = (m : ℂ) - k := by linear_combination hk
+    have hQ : Differentiable ℂ (kummerU (-(k : ℂ)) (1 - m)) := by
+      rw [show kummerU (-(k : ℂ)) (1 - m) = fun z => (-1 : ℂ) ^ k *
+          ∑ j ∈ Finset.range (k + 1), (k.choose j : ℂ) * poch (1 - m + j) (k - j) * (-z) ^ j from
+        funext fun z => kummerU_neg_nat_sum k _ z]
+      fun_prop
+    have hQ0 : kummerU (-(k : ℂ)) (1 - m) 0 = Gamma m / Gamma a := by
+      rw [kummerU_neg_nat_sum, hak, ← neg_one_pow_mul_poch_one_sub_nat m k (by omega)]
+      simp [Finset.sum_range_succ']
+    refine (isBigO_cpow_neg_nat_mul_sub m (hQ 0)).congr' ?_ (Filter.EventuallyEq.refl _ _)
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    rw [kummerU_kummer_transform_all a _ hz, hpow, hQ0,
+      show a - ((m : ℂ) + 1) + 1 = -(k : ℂ) by rw [hak]; ring,
+      show (2 : ℂ) - ((m : ℂ) + 1) = 1 - m by ring]
+    ring
 
 @[dlmf 13.2.E17]
 theorem isBigO_kummerU_at_zero_b_two (a : ℂ) :
@@ -1288,13 +1444,64 @@ theorem isBigO_kummerU_at_zero_b_zero (a : ℂ) :
   have hz0 : z ≠ 0 := hz
   field_simp [hz0]
 
+/-- At the origin, `U(a,b,0) = Γ(1-b)/Γ(a-b+1)` for `Re b < 1`, including integer `b`. -/
+theorem kummerU_zero_arg (a b : ℂ) (hb : b.re < 1) :
+    kummerU a b 0 = Gamma (1 - b) / Gamma (a - b + 1) := by
+  have hconn : ∀ c : ℂ, c.re < 1 →
+      kummerUConnection a c 0 = Gamma (1 - c) / Gamma (a - c + 1) := by
+    intro c hc
+    have h1 : (1 : ℂ) - c ≠ 0 := fun h => by
+      have := congrArg re h; simp at this; linarith
+    simp [kummerUConnection, kummerM_zero, zero_cpow h1]
+  by_cases hbZ : ∀ k : ℤ, b ≠ k
+  · rw [kummerU_eq_connection a b 0 hbZ, hconn b hb]
+  · have hne := integerComplement_nhdsWithin_neBot b
+    simp only [kummerU, hbZ, ite_false]
+    refine Tendsto.limUnder_eq ?_
+    have hG : ContinuousAt (fun c : ℂ => Gamma (1 - c) * (Gamma (a - c + 1))⁻¹) b := by
+      refine ContinuousAt.mul ?_ ?_
+      · refine (differentiableAt_Gamma _ fun m h => ?_).continuousAt.comp
+          (continuousAt_const.sub continuousAt_id)
+        have := congrArg re h; simp at this
+        linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
+      · exact (differentiable_one_div_Gamma.continuous.comp
+          (by fun_prop : Continuous fun c : ℂ => a - c + 1)).continuousAt
+    refine (hG.tendsto.mono_left nhdsWithin_le_nhds).congr' ?_
+    have hopen : {c : ℂ | c.re < 1} ∈ 𝓝 b :=
+      (isOpen_lt continuous_re continuous_const).mem_nhds hb
+    filter_upwards [nhdsWithin_le_nhds hopen] with c hc
+    rw [hconn c hc, div_eq_mul_inv]
+
 /-- Behaviour of `U` at zero for `Re b ≤ 0`, `b ≠ 0`; at `b = 0` a `z log z` term
 appears (see `isBigO_kummerU_at_zero_b_zero`). -/
 @[dlmf 13.2.E22]
 theorem isBigO_kummerU_at_zero_re_nonpos (a b : ℂ) (hb : b.re ≤ 0) (hb0 : b ≠ 0) :
     Asymptotics.IsBigO (𝓝 (0 : ℂ))
       (fun z => kummerU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
-  sorry
+  have hb2 : 2 - b ≠ 2 := fun h => hb0 (by linear_combination -h)
+  have h := (isBigO_cpow_norm_rpow (1 - b)).mul
+    ((isBigO_kummerU_at_zero_re_ge_two (a - b + 1) (2 - b) (by simp; linarith) hb2).trans
+      (isBigO_cpow_norm_rpow _))
+  have h' : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
+      (fun z => kummerU a b z - Gamma (1 - b) / Gamma (a - b + 1)) id := by
+    refine (h.trans (Asymptotics.IsBigO.of_bound 1 ?_)).congr' ?_ (Filter.EventuallyEq.refl _ _)
+    · filter_upwards [self_mem_nhdsWithin] with z hz
+      have hz0 : 0 < ‖z‖ := norm_pos_iff.mpr hz
+      have he : ‖z‖ ^ (1 - b).re * ‖z‖ ^ ((2 : ℂ) - ((2 - b).re : ℂ)).re = ‖id z‖ := by
+        rw [← Real.rpow_add hz0, id]
+        simp
+      rw [Real.norm_of_nonneg (by positivity), he, one_mul]
+    · filter_upwards [self_mem_nhdsWithin] with z hz
+      have hz0 : z ≠ 0 := hz
+      have hne : z ^ (1 - b) ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; tauto
+      rw [kummerU_kummer_transform_all a b hz0, show 2 - b - 1 = 1 - b by ring,
+        show (1 : ℂ) - (2 - b) = -(1 - b) by ring, cpow_neg, mul_sub, mul_left_comm,
+        mul_inv_cancel₀ hne, mul_one]
+  obtain ⟨C, hC⟩ := h'.isBigOWith
+  have hC' := hC.insert (x := (0 : ℂ)) (by
+    rw [kummerU_zero_arg a b (by linarith), sub_self, norm_zero, id, norm_zero, mul_zero])
+  rw [show insert (0 : ℂ) ({0}ᶜ) = Set.univ by ext; simp [em], nhdsWithin_univ] at hC'
+  exact hC'.isBigO
 
 /-! ### Wronskians -/
 

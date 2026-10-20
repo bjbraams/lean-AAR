@@ -12,7 +12,8 @@ public import AAR.ExpIntegrals.Continuation
 
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
-New theorem statements are initially admitted and are not completed proofs.
+Theorem statements were initially admitted; remaining `sorry` declarations are
+not completed proofs.
 -/
 
 @[expose] public noncomputable section
@@ -24,13 +25,18 @@ namespace AAR.Confluent
 @[dlmf 6.6.E1]
 theorem Real.hasSum_expIntEi {x : ℝ} (hx : 0 < x) :
     HasSum (fun k : ℕ => x^(k+1)/((k+1).factorial*(k+1 : ℝ))) (Real.expIntEi x - Real.eulerMascheroniConstant - Real.log x) := by
-  sorry
-
-/-- expIntE1 hasSum. -/
-@[dlmf 6.6.E2]
-theorem expIntE1_hasSum {z : ℂ} (hz : z ≠ 0) :
-    HasSum (fun k : ℕ => (-z)^(k+1)/((k+1).factorial*(k+1 : ℂ))) (-genExpIntE 1 z - Real.eulerMascheroniConstant - log z) := by
-  sorry
+  have h := (AAR.Confluent.Real.hasSum_expIntEin (-x)).neg
+  have he : Real.expIntEi x - Real.eulerMascheroniConstant - Real.log x = -AAR.Confluent.Real.expIntEin (-x) := by
+    rw [Real.expIntEi, abs_of_pos hx, show -(x:ℂ) = ((-x:ℝ):ℂ) by push_cast; ring,
+      AAR.Confluent.expIntEin_ofReal, Complex.ofReal_re]
+    ring
+  rw [he]
+  refine h.congr_fun fun k => ?_
+  have hs : (-1:ℝ)^k*(-1)^(k+1) = -1 := by
+    rw [← pow_add]; exact Odd.neg_one_pow ⟨k, by ring⟩
+  have ht : (-1:ℝ)^k * (-x)^(k+1) = -x^(k+1) := by rw [neg_pow x, ← mul_assoc, hs]; ring
+  rw [ht]
+  ring
 
 /-- expIntE1 digamma series. -/
 @[dlmf 6.6.E3]
@@ -38,23 +44,32 @@ theorem expIntE1_digamma_series {z : ℂ} (hz : z ≠ 0) :
     HasSum (fun k : ℕ => z^k/(k.factorial : ℂ)*digamma (k+1)) (exp z*(genExpIntE 1 z+log z)) := by
   sorry
 
-/-- hasSum Ein complex. -/
-@[dlmf 6.6.E4]
-theorem hasSum_Ein_complex (z : ℂ) :
-    HasSum (fun k : ℕ => (-1 : ℂ)^k*z^(k+1)/((k+1).factorial*(k+1 : ℂ))) (expIntEin z) := by
-  sorry
-
-/-- hasSum Si complex. -/
-@[dlmf 6.6.E5]
-theorem hasSum_Si_complex (z : ℂ) :
-    HasSum (fun k : ℕ => (-1 : ℂ)^k*z^(2*k+1)/((2*k+1).factorial*(2*k+1 : ℂ))) (sinInt z) := by
-  sorry
+/-- expIntE1 hasSum. -/
+@[dlmf 6.6.E2]
+theorem expIntE1_hasSum {z : ℂ} (hz : z ≠ 0) :
+    HasSum (fun k : ℕ => (-z)^(k+1)/((k+1).factorial*(k+1 : ℂ))) (-genExpIntE 1 z - Real.eulerMascheroniConstant - log z) := by
+  have h := (hasSum_Ein_complex z).neg
+  rw [expIntE1_eq_Ein_complex hz]
+  convert h using 1
+  · funext k
+    rw [neg_pow z, pow_succ]
+    ring
+  · ring
 
 /-- hasSum Ci complex. -/
 @[dlmf 6.6.E6]
 theorem hasSum_Ci_complex (z : ℂ) :
     HasSum (fun k : ℕ => (-1 : ℂ)^(k+1)*z^(2*k+2)/((2*k+2).factorial*(2*k+2 : ℂ))) (cosInt z-Real.eulerMascheroniConstant-log z) := by
-  sorry
+  have hs := (summable_factorial_div_nat (c := fun k => (-1:ℂ)^k)
+    (d := fun k => 2*k+2) (by intro k; simp)
+    (by intro i j hij; dsimp at hij; omega) (by intro k; omega) z).hasSum.neg
+  simp only [Nat.cast_add, Nat.cast_mul, Nat.cast_ofNat, Nat.cast_one] at hs
+  convert hs using 1
+  · funext k
+    rw [pow_succ]
+    ring
+  · simp only [cosInt, cosIntCin]
+    ring
 
 /-- Inverse factorial coefficients, with the recurrence of DLMF 6.10.3. -/
 @[dlmf 6.10.E3]
@@ -121,6 +136,11 @@ theorem expIntE1_eq_kummerU {z : ℂ} (hz : z ≠ 0) :
 @[dlmf 6.11.E3]
 theorem expIntAux_eq_kummerU {z : ℂ} (hz : 0 < z.re) :
     expIntAuxG z+I*expIntAuxF z = kummerU 1 1 (-I*z) := by
-  sorry
+  have h := expIntAux_eq_E1 hz (ε:=1) (Or.inl rfl)
+  simp only [Complex.ofReal_one,one_mul,neg_mul] at h
+  have hz0 : -I*z≠0 := mul_ne_zero (neg_ne_zero.mpr I_ne_zero) (ne_zero_of_re_pos hz)
+  rw [show -(I*z)= -I*z by ring,expIntE1_eq_kummerU hz0] at h
+  have he : exp (-(-I*z))*exp (-I*z)=1 := by rw [←Complex.exp_add]; simp
+  linear_combination h+kummerU 1 1 (-I*z)*he
 
 end AAR.Confluent

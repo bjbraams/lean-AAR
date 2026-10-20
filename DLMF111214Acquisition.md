@@ -1066,7 +1066,7 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.23.E4](https://dlmf.nist.gov/14.23.E4): [`AAR.Legendre.ferrersP_boundary_inverse_upper`](AAR/Legendre/Continuation.lean#L43) (admitted); [`AAR.Legendre.ferrersP_boundary_inverse_lower`](AAR/Legendre/Continuation.lean#L73) (admitted).
 - [14.23.E5](https://dlmf.nist.gov/14.23.E5): [`AAR.Legendre.ferrersQ_boundary_average`](AAR/Legendre/Continuation.lean#L91) (admitted).
 - [14.23.E6](https://dlmf.nist.gov/14.23.E6): [`AAR.Legendre.ferrersQ_boundary_inverse_upper`](AAR/Legendre/Continuation.lean#L49) (admitted); [`AAR.Legendre.ferrersQ_boundary_inverse_lower`](AAR/Legendre/Continuation.lean#L79) (admitted).
-- [14.23.E7](https://dlmf.nist.gov/14.23.E7): [`AAR.Legendre.conicalQHat_boundary`](AAR/Legendre/Continuation.lean#L97) (admitted).
+- [14.23.E7](https://dlmf.nist.gov/14.23.E7): [`AAR.Legendre.conicalQHat_boundary`](AAR/Legendre/Continuation.lean) (proved; corrected, DLMF prints e^{-3μπi/2} where e^{μπi/2} is required).
 
 ### [§14.24 Analytic Continuation](https://dlmf.nist.gov/14.24)
 

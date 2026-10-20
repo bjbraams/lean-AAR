@@ -7,6 +7,7 @@ module
 
 public import AAR.Legendre.Hypergeometric
 public import AAR.Legendre.AssociatedRecurrences
+public import AAR.Legendre.Neumann
 
 /-!
 # Integral representations and fractional integration
@@ -97,7 +98,21 @@ theorem olverQ_nat_reduction_integral (n m : ℕ) (hmn : m ≤ n) {x : ℝ} (hx 
 @[dlmf 14.12.E13]
 theorem olverQ_nat_neumann (n : ℕ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     olverQ n 0 z=1/(2*(n.factorial:ℂ))*∫ t : ℝ in -1..1, legendreP n t/(z-t) := by
-  sorry
+  have hreg : LegendreQRegular (n:ℂ) 0 := fun k hk => by
+    have := congrArg re hk; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
+  have hf : (n.factorial:ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hi : ∫ t : ℝ in -1..1, legendreP n t/(z-t) =
+      ∫ t : ℝ in -1..1, AAR.OrthogonalPolynomials.legendrePolyP n t/(z-t) := by
+    refine intervalIntegral.integral_congr_ae ?_
+    have : ∀ᵐ t : ℝ ∂volume, t ≠ -1 := by
+      simp [ae_iff]
+    filter_upwards [this] with t ht htm
+    rw [uIoc_of_le (by norm_num)] at htm
+    rw [legendreP_nat n (Or.inl (by simp; linarith [htm.1]))]
+  rw [olverQ_normalization hreg, associatedQ_zero_order _ hz, add_zero, Gamma_nat_eq_factorial, hi,
+    legendreQ_nat_eq_integral n hz]
+  simp
+  field_simp
 
 /-- olverQ nat heine. -/
 @[dlmf 14.12.E14]

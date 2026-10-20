@@ -25,7 +25,17 @@ namespace AAR.Confluent
 @[dlmf 12.14.E24]
 theorem pcfW_parameter_scaling (μ : ℝ) (z : ℂ) :
     iteratedDeriv 2 (fun t : ℂ => pcfW (μ^2/2) (μ*t*Real.sqrt 2)) z=(μ:ℂ)^4*(1-z^2)*pcfW (μ^2/2) (μ*z*Real.sqrt 2) := by
-  sorry
+  have hs2 : (Real.sqrt 2:ℂ)^2=2 := by exact_mod_cast Real.sq_sqrt (by norm_num : (0:ℝ)≤2)
+  have hf : Differentiable ℂ (pcfW (μ^2/2)) := fun w => (hasDerivAt_pcfW _ w).differentiableAt
+  have hf2 : Differentiable ℂ (deriv (pcfW (μ^2/2))) := by
+    rw [deriv_pcfW]; exact fun w => (hasDerivAt_pcfWDeriv _ w).differentiableAt
+  have e : (fun t : ℂ => pcfW (μ^2/2) (μ*t*Real.sqrt 2)) = fun t => pcfW (μ^2/2) ((μ*Real.sqrt 2)*t) := by
+    funext t; ring_nf
+  rw [e, iteratedDeriv_two_comp_const_mul hf hf2, show (μ:ℂ)*z*Real.sqrt 2 = (μ*Real.sqrt 2)*z by ring,
+    show (2:ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one, deriv_pcfW,
+    (hasDerivAt_pcfWDeriv _ _).deriv]
+  push_cast
+  linear_combination (μ:ℂ)^4 * pcfW (μ^2/2) ((μ*Real.sqrt 2)*z) * (1/2 - ((Real.sqrt 2:ℂ)^2+2)*z^2/4) * hs2
 
 /-- pcfWSigma. -/
 @[dlmf 12.14.E27]

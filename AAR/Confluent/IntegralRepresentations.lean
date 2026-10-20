@@ -8,6 +8,7 @@ module
 public import AAR.Confluent.Basic
 public import AAR.Confluent.Confluence
 public import AAR.Confluent.Whittaker
+public import AAR.Confluent.Recurrence
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Hypergeometric.EulerIntegral
@@ -38,6 +39,12 @@ integrability theorem supplies the fixed majorant; Mathlib's real Bernoulli
 inequality and dominated convergence justify the limit. Holomorphic continuation
 in the argument and continuity in the second parameter cover every parameter.
 The Whittaker W Laplace representation follows by an affine substitution.
+The Gauss and Stieltjes representations 13.4.5, 13.4.8, 13.16.6 and 13.16.9 use the
+Kummer and Tricomi Laplace transforms, so they are proved in `AAR.Confluent.Integrals`.
+The exponential Barnes integrals 13.4.18 and 13.16.12 insert the Cahen–Mellin integral for
+`e^{-x(1+τ)}` into Tricomi's Laplace integral and evaluate Euler's second Beta integral
+in `τ`. Tricomi's contiguous relation in `a`, matched by the reciprocal Gamma recurrence,
+then removes the restriction `Re a > 0`.
 -/
 
 @[expose] public section
@@ -248,7 +255,7 @@ private lemma cpow_half_sq (w : ℂ) : (w ^ (1 / 2 : ℂ)) ^ 2 = w := by
     norm_num
 
 /-- `J_ν(2√(zt)) = z^{ν/2} t^{ν/2} ₀F̃₁(ν+1; -zt)`. -/
-private lemma besselJ_two_sqrt {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) (ν : ℂ) :
+lemma besselJ_two_sqrt {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) (ν : ℂ) :
     besselJ ν (2 * (z * t) ^ (1 / 2 : ℂ)) =
       z ^ (ν / 2) * (t : ℂ) ^ (ν / 2) * regularizedHGFun ∅ {ν + 1} (-z * t) := by
   rw [besselJ_eq_regularized, show 2 * (z * t) ^ (1 / 2 : ℂ) / 2 = (z * t) ^ (1 / 2 : ℂ) by ring,
@@ -257,7 +264,7 @@ private lemma besselJ_two_sqrt {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) (
   ring
 
 /-- `I_ν(2√(zt)) = z^{ν/2} t^{ν/2} ₀F̃₁(ν+1; zt)`. -/
-private lemma besselI_two_sqrt {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) (ν : ℂ) :
+lemma besselI_two_sqrt {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) (ν : ℂ) :
     besselI ν (2 * (z * t) ^ (1 / 2 : ℂ)) =
       z ^ (ν / 2) * (t : ℂ) ^ (ν / 2) * regularizedHGFun ∅ {ν + 1} (z * t) := by
   rw [besselI, show 2 * (z * t) ^ (1 / 2 : ℂ) / 2 = (z * t) ^ (1 / 2 : ℂ) by ring,
@@ -696,16 +703,6 @@ lemma kummerU_laplace_shift_one {a z : ℂ} (ha : 0 < a.re) (hz : 0 < z.re) :
       exp (-z * t) * (t : ℂ) ^ (a - 1) * (1 + (t : ℂ)) ^ ((a + 1) - a - 1) :=
   kummerU_laplace ha hz
 
-@[dlmf 13.4.E5]
-theorem kummerU_stieltjes {a b z : ℂ} (hz : z ∈ slitPlane)
-    (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
-    kummerU a b z =
-      z ^ (1 - a) / (Gamma a * Gamma (1 + a - b)) *
-        ∫ t : ℝ in Set.Ioi 0,
-          kummerU (b - a) b t * exp (-(t : ℂ)) * (t : ℂ) ^ (a - 1) /
-            ((t : ℂ) + z) := by
-  sorry
-
 @[dlmf 13.4.E6]
 theorem kummerU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : z ∈ slitPlane)
     (hn0 : -b.re < n) (hn1 : (n : ℝ) < 1 + (a - b).re) :
@@ -726,15 +723,6 @@ theorem kummerU_integral_besselK {a b z : ℂ} (hz : 0 ≤ z.re) (hz0 : z ≠ 0)
         ∫ t : ℝ in Set.Ioi 0,
           exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
             besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ)) := by
-  sorry
-
-@[dlmf 13.4.E8]
-theorem kummerU_gauss {a b c z : ℂ} (ha : 0 < c.re) (hz : 0 < z.re) :
-    kummerU a b z =
-      z ^ (c - a) *
-        ∫ t : ℝ in Set.Ioi 0,
-          exp (-z * t) * (t : ℂ) ^ (c - 1) *
-            AAR.Hypergeometric.regularizedGaussHG a (a - b + 1) c (-(t : ℂ)) := by
   sorry
 
 open Set MeasureTheory AAR.Gamma in
@@ -1151,6 +1139,181 @@ theorem kummerU_barnes {a b : ℂ} {x σ : ℝ}
   have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
   field_simp
 
+open Set MeasureTheory in
+/-- The exponential Barnes integrand of 13.4.18 is integrable for every first parameter. -/
+lemma integrable_kummerU_barnes_exp_integrand {a b : ℂ} {x σ : ℝ} (hx : 0 < x)
+    (hb : 0 < (b - 1).re + σ) (hσ : 0 < σ) :
+    Integrable (fun t : ℝ => Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+      Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
+  obtain ⟨C1, K1, h1⟩ := AAR.Gamma.exists_norm_Gamma_shift_le hb (b - 1).im
+  obtain ⟨C2, K2, h2⟩ := AAR.Gamma.exists_norm_Gamma_shift_le hσ 0
+  obtain ⟨C3, K3, h3⟩ := AAR.Gamma.exists_norm_inv_Gamma_shift_le (a.re + σ) a.im
+  have hcont : Continuous (fun t : ℝ => Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+      Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
+    refine continuous_iff_continuousAt.mpr fun y => ?_
+    refine ContinuousAt.mul (ContinuousAt.mul (ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_) ?_)
+      continuousAt_const
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp at hb ⊢; linarith)).comp (by fun_prop)
+    · exact (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+    · exact (AAR.Gamma.differentiable_inv_Gamma.continuous.comp (by fun_prop)).continuousAt
+    · exact ContinuousAt.cpow continuousAt_const (by fun_prop) (ofReal_mem_slitPlane.mpr hx)
+  refine ((AAR.Gamma.integrable_one_add_abs_pow_mul_exp_neg (c := π / 2) (by positivity)
+    (K1 + K2 + K3)).const_mul (C1 * C2 * C3 * x ^ (-σ))).mono' hcont.aestronglyMeasurable
+    (Eventually.of_forall fun y => ?_)
+  have e1 : b - 1 + σ + I * y = (((b - 1).re + σ : ℝ) : ℂ) + I * (((b - 1).im : ℂ) + (y : ℂ)) := by
+    apply Complex.ext <;> simp
+  have e2 : (σ : ℂ) + I * y = ((σ : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + (y : ℂ)) := by push_cast; ring
+  have e3 : a + σ + I * y = ((a.re + σ : ℝ) : ℂ) + I * ((a.im : ℂ) + (y : ℂ)) := by
+    apply Complex.ext <;> simp
+  have b1 := h1 y; rw [← e1] at b1
+  have b2 := h2 y; rw [← e2] at b2
+  have b3 := h3 y; rw [← e3] at b3
+  have h4 : ‖(x : ℂ) ^ (-((σ : ℂ) + I * y))‖ = x ^ (-σ) := by
+    rw [norm_cpow_eq_rpow_re_of_pos hx]; simp
+  rw [div_eq_mul_inv, norm_mul, norm_mul, norm_mul, norm_mul, h4, norm_I, mul_one]
+  have hC1 : 0 ≤ C1 := (norm_nonneg _).trans (by simpa using h1 0)
+  have hC2 : 0 ≤ C2 := (norm_nonneg _).trans (by simpa using h2 0)
+  calc ‖Gamma (b - 1 + σ + I * y)‖ * ‖Gamma (σ + I * y)‖ * ‖(Gamma (a + σ + I * y))⁻¹‖ * x ^ (-σ)
+      ≤ (C1 * (1 + |y|) ^ K1 * Real.exp (-(π * |y|) / 2)) *
+          (C2 * (1 + |y|) ^ K2 * Real.exp (-(π * |y|) / 2)) *
+          (C3 * (1 + |y|) ^ K3 * Real.exp (π * |y| / 2)) * x ^ (-σ) := by gcongr
+    _ = _ := by
+        rw [pow_add, pow_add]
+        have hE : Real.exp (-(π * |y|) / 2) * Real.exp (-(π * |y|) / 2) * Real.exp (π * |y| / 2) =
+            Real.exp (-(π / 2 * |y|)) := by
+          rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+        rw [← hE]; ring
+
+open Set MeasureTheory in
+/-- 13.4.18 for `Re a > 0`: the Cahen–Mellin integral for `e^{-x(1+τ)}` inserted into
+Tricomi's Laplace integral, and Euler's second Beta integral in `τ`. -/
+lemma kummerU_barnes_exp_of_re_pos {a b : ℂ} {x σ : ℝ}
+    (hx : 0 < x) (ha : 0 < a.re) (hb : 0 < (b - 1).re + σ) (hσ : 0 < σ) :
+    kummerU a b x =
+      (x : ℂ) ^ (1 - b) * exp x / (2 * π * I) *
+        ∫ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+          Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hGa : Gamma a ≠ 0 := Complex.Gamma_ne_zero_of_re_pos ha
+  set Ψ : ℝ → ℂ := fun t => Gamma (b - 1 + σ + I * t) with hΨ
+  have hΨi : Integrable Ψ := by
+    have h := (AAR.Gamma.integrable_Gamma_vertical hb).comp_add_right (b - 1).im
+    refine h.congr (Eventually.of_forall fun t => ?_)
+    simp only [hΨ]
+    congr 1; apply Complex.ext <;> simp; ring
+  have hΨc : Continuous Ψ := continuous_iff_continuousAt.mpr fun y =>
+    (AAR.Gamma.continuousAt_Gamma_of_re_pos (by simp at hb ⊢; linarith)).comp (by fun_prop)
+  have hCM : ∀ u : ℝ, 0 < u →
+      exp (-(u : ℂ)) = 1 / (2 * π) * ∫ t : ℝ, Ψ t * (u : ℂ) ^ (-(b - 1 + σ + I * t)) := by
+    intro u hu
+    have h := AAR.Gamma.exp_neg_eq_integral hb hu
+    rw [ofReal_exp, ofReal_neg] at h
+    rw [h, ← integral_add_right_eq_self _ (b - 1).im]
+    congr 2; funext t
+    have e : ((((b - 1).re + σ : ℝ) : ℂ)) + ((t + (b - 1).im : ℝ) : ℂ) * I = b - 1 + σ + I * t := by
+      apply Complex.ext <;> simp; ring
+    rw [e]
+  set H : ℝ → ℝ → ℂ := fun τ t => (τ : ℂ) ^ (a - 1) * ((1 + τ : ℝ) : ℂ) ^ (-a) *
+    (Ψ t * (x : ℂ) ^ (-((σ : ℂ) + I * t)) * ((1 + τ : ℝ) : ℂ) ^ (-((σ : ℂ) + I * t))) with hH
+  have hpt : ∀ τ ∈ Ioi (0 : ℝ),
+      exp (-(x : ℂ) * τ) * (τ : ℂ) ^ (a - 1) * (1 + (τ : ℂ)) ^ (b - a - 1) =
+        (x : ℂ) ^ (1 - b) * exp x * (1 / (2 * π) * ∫ t : ℝ, H τ t) := by
+    intro τ hτ
+    have hτ0 : (0 : ℝ) < τ := hτ
+    have h1τ : (0 : ℝ) < 1 + τ := by linarith
+    have h1τ0 : ((1 + τ : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr h1τ.ne'
+    have hu : 0 < x * (1 + τ) := mul_pos hx h1τ
+    have hu0 : ((x * (1 + τ) : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr hu.ne'
+    set J := ∫ t : ℝ, Ψ t * (x : ℂ) ^ (-((σ : ℂ) + I * t)) *
+      ((1 + τ : ℝ) : ℂ) ^ (-((σ : ℂ) + I * t)) with hJ
+    have F1 : ∫ t : ℝ, H τ t = (τ : ℂ) ^ (a - 1) * ((1 + τ : ℝ) : ℂ) ^ (-a) * J := by
+      rw [hJ, ← MeasureTheory.integral_const_mul]
+    have F2 : exp (-((x * (1 + τ) : ℝ) : ℂ)) =
+        1 / (2 * π) * (((x * (1 + τ) : ℝ) : ℂ) ^ (-(b - 1)) * J) := by
+      rw [hCM _ hu, hJ, ← MeasureTheory.integral_const_mul (((x * (1 + τ) : ℝ) : ℂ) ^ (-(b - 1)))]
+      congr 1; congr 1; funext t
+      rw [show -(b - 1 + σ + I * t) = -(b - 1) + -((σ : ℂ) + I * t) by ring, cpow_add _ _ hu0,
+        ofReal_mul, mul_cpow_ofReal_nonneg hx.le h1τ.le, mul_cpow_ofReal_nonneg hx.le h1τ.le]
+      ring
+    have F3 : ((x * (1 + τ) : ℝ) : ℂ) ^ (-(b - 1)) =
+        (x : ℂ) ^ (1 - b) * ((1 + τ : ℝ) : ℂ) ^ (-(b - 1)) := by
+      rw [ofReal_mul, mul_cpow_ofReal_nonneg hx.le h1τ.le, show -(b - 1) = 1 - b by ring]
+    have F4 : exp (-(x : ℂ) * τ) = exp x * exp (-((x * (1 + τ) : ℝ) : ℂ)) := by
+      rw [← exp_add]; push_cast; ring_nf
+    have F5 : ((1 + τ : ℝ) : ℂ) ^ (-(b - 1)) * ((1 + τ : ℝ) : ℂ) ^ (b - a - 1) =
+        ((1 + τ : ℝ) : ℂ) ^ (-a) := by
+      rw [← cpow_add _ _ h1τ0]; ring_nf
+    have F6 : (1 + (τ : ℂ)) = ((1 + τ : ℝ) : ℂ) := by push_cast; ring
+    rw [F1, F4, F2, F3, F6]
+    linear_combination (exp x * (1 / (2 * π)) * (x : ℂ) ^ (1 - b) * J * (τ : ℂ) ^ (a - 1)) * F5
+  set μ : Measure ℝ := volume.restrict (Ioi (0 : ℝ)) with hμ
+  have hμprod : μ.prod volume = (volume.prod volume).restrict (Ioi (0 : ℝ) ×ˢ (univ : Set ℝ)) := by
+    rw [hμ, ← Measure.prod_restrict, Measure.restrict_univ]
+  have hf : Integrable (fun τ : ℝ => τ ^ (a.re - 1) * (1 + τ) ^ (-(a.re + σ))) μ :=
+    TauCeti.integrableOn_rpow_mul_one_add_rpow ha hσ
+  have hg : Integrable (fun t : ℝ => ‖Ψ t‖ * x ^ (-σ)) := hΨi.norm.mul_const _
+  have hcont : ContinuousOn (Function.uncurry H) (Ioi (0 : ℝ) ×ˢ (univ : Set ℝ)) := by
+    rintro ⟨τ, y⟩ ⟨hτ, -⟩
+    have hτ0 : (0 : ℝ) < τ := hτ
+    have h1 : ((1 + τ : ℝ) : ℂ) ∈ slitPlane := ofReal_mem_slitPlane.mpr (by linarith)
+    refine ContinuousAt.continuousWithinAt ?_
+    simp only [hH, Function.uncurry_def]
+    refine ContinuousAt.mul (ContinuousAt.mul ?_ ?_) (ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_)
+    · exact ContinuousAt.cpow (by fun_prop) continuousAt_const (ofReal_mem_slitPlane.mpr hτ0)
+    · exact ContinuousAt.cpow (by fun_prop) continuousAt_const h1
+    · exact (hΨc.comp continuous_snd).continuousAt
+    · exact ContinuousAt.cpow continuousAt_const (by fun_prop) (ofReal_mem_slitPlane.mpr hx)
+    · exact ContinuousAt.cpow (by fun_prop) (by fun_prop) h1
+  have hHi : Integrable (Function.uncurry H) (μ.prod volume) := by
+    refine (hf.mul_prod hg).mono' ?_ ?_
+    · rw [hμprod]
+      exact hcont.aestronglyMeasurable (measurableSet_Ioi.prod MeasurableSet.univ)
+    · rw [hμprod]
+      refine (ae_restrict_iff' (measurableSet_Ioi.prod MeasurableSet.univ)).mpr
+        (Eventually.of_forall ?_)
+      rintro ⟨τ, y⟩ ⟨hτ, -⟩
+      have hτ0 : (0 : ℝ) < τ := hτ
+      have h1τ : (0 : ℝ) < 1 + τ := by linarith
+      simp only [hH, Function.uncurry_def, norm_mul]
+      rw [norm_cpow_eq_rpow_re_of_pos hτ0, norm_cpow_eq_rpow_re_of_pos h1τ,
+        norm_cpow_eq_rpow_re_of_pos hx, norm_cpow_eq_rpow_re_of_pos h1τ]
+      simp only [sub_re, neg_re, add_re, ofReal_re, one_re, mul_re, I_re, I_im, ofReal_im,
+        zero_mul, sub_zero, mul_zero, add_zero]
+      rw [show -(a.re + σ) = -a.re + -σ by ring, Real.rpow_add h1τ]
+      apply le_of_eq; ring
+  have hswap := integral_integral_swap hHi
+  have hinner : ∀ y : ℝ, ∫ τ, H τ y ∂μ = Ψ y * (x : ℂ) ^ (-((σ : ℂ) + I * y)) *
+      (Gamma a * Gamma (σ + I * y) / Gamma (a + (σ + I * y))) := by
+    intro y
+    have hm := AAR.Gamma.mellin_one_add_cpow_neg (a := a + (σ + I * y)) (s := a) ha
+      (by simp; linarith)
+    rw [mellin, show a + (σ + I * y) - a = σ + I * y by ring] at hm
+    rw [← hm, ← MeasureTheory.integral_const_mul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun τ hτ => ?_
+    have h1τ0 : ((1 + τ : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by linarith [mem_Ioi.mp hτ])
+    simp only [hH, smul_eq_mul]
+    rw [show -(a + ((σ : ℂ) + I * y)) = -a + -((σ : ℂ) + I * y) by ring, cpow_add _ _ h1τ0]
+    ring
+  rw [kummerU_laplace ha (by simpa using hx), setIntegral_congr_fun measurableSet_Ioi hpt,
+    MeasureTheory.integral_const_mul, MeasureTheory.integral_const_mul]
+  change 1 / Gamma a * ((x : ℂ) ^ (1 - b) * exp x * (1 / (2 * π) *
+    ∫ τ, ∫ t, H τ t ∂volume ∂μ)) = _
+  rw [hswap, integral_congr_ae (ae_of_all _ hinner)]
+  have hlast : ∫ y : ℝ, Ψ y * (x : ℂ) ^ (-((σ : ℂ) + I * y)) *
+      (Gamma a * Gamma (σ + I * y) / Gamma (a + (σ + I * y))) =
+      Gamma a * ∫ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+        Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1; funext y
+    rw [hΨ, show a + ((σ : ℂ) + I * y) = a + σ + I * y by ring]
+    ring
+  rw [hlast, MeasureTheory.integral_mul_const]
+  generalize (∫ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+    Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t))) = J
+  have hI : (I : ℂ) ≠ 0 := I_ne_zero
+  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+  field_simp
+
 @[dlmf 13.4.E18]
 theorem kummerU_barnes_exp {a b : ℂ} {x σ : ℝ}
     (hx : 0 < x) (hb : 0 < (b - 1).re + σ) (hσ : 0 < σ) :
@@ -1158,7 +1321,46 @@ theorem kummerU_barnes_exp {a b : ℂ} {x σ : ℝ}
       (x : ℂ) ^ (1 - b) * exp x / (2 * π * I) *
         ∫ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
           Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I := by
-  sorry
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hshift : ∀ N : ℕ, ∀ a b : ℂ, 0 < a.re + N → 0 < (b - 1).re + σ →
+      kummerU a b x = (x : ℂ) ^ (1 - b) * exp x / (2 * π * I) *
+        ∫ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+          Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I := by
+    intro N
+    induction N with
+    | zero => intro a b ha hb; exact kummerU_barnes_exp_of_re_pos hx (by simpa using ha) hb hσ
+    | succ N ih =>
+      intro a b ha hb
+      have hb1 : 0 < (b + 1 - 1).re + σ := by simp at hb ⊢; linarith
+      have h1 := ih (a + 1) (b + 1) (by simp at ha ⊢; linarith) hb1
+      have h2 := ih (a + 1) b (by simp at ha ⊢; linarith) hb
+      have hU := kummerU_contiguous_shift_a (a + 1) b x hx0
+      rw [add_sub_cancel_right] at hU
+      have hi1 := integrable_kummerU_barnes_exp_integrand (a := a + 1) hx hb1 hσ
+      have hi2 := integrable_kummerU_barnes_exp_integrand (a := a + 1) hx hb hσ
+      have hpt : ∀ t : ℝ, Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+          Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I =
+          Gamma (b + 1 - 1 + σ + I * t) * Gamma (σ + I * t) /
+            Gamma (a + 1 + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I +
+          (a + 1 - b) * (Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
+            Gamma (a + 1 + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
+        intro t
+        have hw : b - 1 + σ + I * t ≠ 0 := fun h => by
+          have := congrArg re h; simp at this hb; linarith
+        rw [show b + 1 - 1 + σ + I * t = (b - 1 + σ + I * t) + 1 by ring,
+          Complex.Gamma_add_one _ hw, show a + 1 + σ + I * t = (a + σ + I * t) + 1 by ring,
+          div_eq_mul_inv, div_eq_mul_inv, div_eq_mul_inv,
+          inv_Gamma_eq_mul_inv_Gamma_add_one (a + σ + I * t)]
+        ring
+      rw [integral_congr_ae (ae_of_all _ hpt), integral_add hi1 (hi2.const_mul _),
+        MeasureTheory.integral_const_mul]
+      have hUa : kummerU a b x = x * kummerU (a + 1) (b + 1) x + (a + 1 - b) * kummerU (a + 1) b x := by
+        linear_combination hU
+      have hxp : (x : ℂ) ^ (1 - b) = x * (x : ℂ) ^ (1 - (b + 1)) := by
+        rw [show 1 - b = 1 + (1 - (b + 1)) by ring, cpow_add _ _ hx0, cpow_one]
+      rw [hUa, h1, h2, hxp]; ring
+  obtain ⟨N, hN⟩ := exists_nat_gt (-a.re)
+  exact hshift N a b (by linarith) hb
 
 @[dlmf 13.16.E1]
 theorem whittakerM_euler {κ μ z : ℂ}
@@ -1466,17 +1668,6 @@ theorem whittakerW_laplace {κ μ z : ℂ} (hμ : κ.re < μ.re + 1 / 2)
     linear_combination -(E * B * A⁻¹ * I) * (inv_mul_cancel₀ hD)
   exact hcancel _ _ _ _ _ h2
 
-@[dlmf 13.16.E6]
-theorem whittakerW_stieltjes {κ μ z : ℂ} (hz : z ∈ slitPlane)
-    (hκ : (2 * μ.re) < (1 / 2 + μ - κ).re) (hκ0 : 0 < (1 / 2 + μ - κ).re) :
-    whittakerW κ μ z =
-      exp (-z / 2) * z ^ (κ + 1) /
-          (Gamma (1 / 2 + μ - κ) * Gamma (1 / 2 - μ - κ)) *
-        ∫ t : ℝ in Set.Ioi 0,
-          whittakerW (-κ) μ t * exp (-(t : ℂ) / 2) * (t : ℂ) ^ (-κ - 1) /
-            ((t : ℂ) + z) := by
-  sorry
-
 /-- A Bessel-K integral for Whittaker W. Both parameter bounds are necessary for the
 ordinary integral: at `κ = 0`, `μ = 1/2` the omitted second bound would give a zero
 Gamma prefactor although `W` is nonzero. The totalized values also differ at `z = 0`. -/
@@ -1490,15 +1681,6 @@ theorem whittakerW_integral_besselK {κ μ z : ℂ} (hκ : 0 < (μ - κ).re + 1 
         ∫ t : ℝ in Set.Ioi 0,
           exp (-(t : ℂ)) * (t : ℂ) ^ (-κ - 1 / 2) *
             besselK (2 * μ) (2 * (z * t) ^ (1 / 2 : ℂ)) := by
-  sorry
-
-@[dlmf 13.16.E9]
-theorem whittakerW_gauss {κ μ c z : ℂ} (hc : 0 < c.re) (hz : 0 < z.re) :
-    whittakerW κ μ z =
-      exp (-z / 2) * z ^ (κ + c) *
-        ∫ t : ℝ in Set.Ioi 0,
-          exp (-z * t) * (t : ℂ) ^ (c - 1) *
-            AAR.Hypergeometric.regularizedGaussHG (1 / 2 + μ - κ) (1 / 2 - μ - κ) c (-(t : ℂ)) := by
   sorry
 
 @[dlmf 13.16.E11]
@@ -1560,6 +1742,43 @@ theorem whittakerW_barnes_exp {κ μ : ℂ} {x σ : ℝ} (hx : 0 < x)
       exp ((x : ℂ) / 2) / (2 * π * I) *
         ∫ t : ℝ, Gamma (1 / 2 + μ + σ + I * t) * Gamma (1 / 2 - μ + σ + I * t) /
           Gamma (1 - κ + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I := by
-  sorry
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  set σ₁ : ℝ := σ + (1 / 2 - μ).re with hσ₁
+  set τ₁ : ℝ := (1 / 2 - μ).im with hτ₁
+  have hU := kummerU_barnes_exp (a := 1 / 2 + μ - κ) (b := 1 + 2 * μ) (σ := σ₁) hx
+    (by simp only [hσ₁, sub_re, add_re, mul_re] at hμ ⊢; norm_num at hμ ⊢; linarith)
+    (by simp only [hσ₁] at hμ' ⊢; linarith)
+  set F : ℝ → ℂ := fun t => Gamma (1 + 2 * μ - 1 + σ₁ + I * t) * Gamma (σ₁ + I * t) /
+    Gamma (1 / 2 + μ - κ + σ₁ + I * t) * (x : ℂ) ^ (-(σ₁ + I * t)) * I with hF
+  have htr := MeasureTheory.integral_add_right_eq_self (μ := MeasureTheory.volume) F τ₁
+  rw [← htr] at hU
+  have hpt : ∀ t : ℝ, F (t + τ₁) = (x : ℂ) ^ (-(1 / 2 - μ)) *
+      (Gamma (1 / 2 + μ + σ + I * t) * Gamma (1 / 2 - μ + σ + I * t) /
+        Gamma (1 - κ + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
+    intro t
+    have e : (σ₁ : ℂ) + I * ((t + τ₁ : ℝ) : ℂ) = σ + I * t + (1 / 2 - μ) := by
+      apply Complex.ext <;> simp [hσ₁, hτ₁]
+    simp only [hF]
+    rw [show 1 + 2 * μ - 1 + (σ₁ : ℂ) + I * ((t + τ₁ : ℝ) : ℂ) =
+        1 + 2 * μ - 1 + ((σ₁ : ℂ) + I * ((t + τ₁ : ℝ) : ℂ)) by ring,
+      show 1 / 2 + μ - κ + (σ₁ : ℂ) + I * ((t + τ₁ : ℝ) : ℂ) =
+        1 / 2 + μ - κ + ((σ₁ : ℂ) + I * ((t + τ₁ : ℝ) : ℂ)) by ring, e,
+      show 1 + 2 * μ - 1 + (σ + I * t + (1 / 2 - μ)) = 1 / 2 + μ + σ + I * t by ring,
+      show (σ : ℂ) + I * t + (1 / 2 - μ) = 1 / 2 - μ + σ + I * t by ring,
+      show 1 / 2 + μ - κ + (1 / 2 - μ + σ + I * t) = 1 - κ + σ + I * t by ring,
+      show -(1 / 2 - μ + σ + I * t) = -(1 / 2 - μ) + -((σ : ℂ) + I * t) by ring,
+      cpow_add _ _ hx0]
+    ring
+  simp only [hpt] at hU
+  rw [MeasureTheory.integral_const_mul] at hU
+  rw [whittakerW, hU]
+  have hxx : (x : ℂ) ^ (1 / 2 + μ) * (x : ℂ) ^ (1 - (1 + 2 * μ)) * (x : ℂ) ^ (-(1 / 2 - μ)) = 1 := by
+    rw [← cpow_add _ _ hx0, ← cpow_add _ _ hx0]; ring_nf; exact cpow_zero _
+  have hee : exp (-(x : ℂ) / 2) * exp (x : ℂ) = exp ((x : ℂ) / 2) := by
+    rw [← exp_add]; ring_nf
+  generalize (∫ t : ℝ, Gamma (1 / 2 + μ + σ + I * t) * Gamma (1 / 2 - μ + σ + I * t) /
+    Gamma (1 - κ + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) = J
+  rw [← hee]
+  linear_combination (exp (-(x : ℂ) / 2) * exp (x : ℂ) / (2 * π * I) * J) * hxx
 
 end AAR.Confluent

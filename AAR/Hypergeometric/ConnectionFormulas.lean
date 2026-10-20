@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Hypergeometric.FurtherTransformations
+public import ToMathlib.Analysis.Complex.SegmentPrimitive
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
 /-!
@@ -316,6 +317,76 @@ theorem quadratic_connection_complementary
   rw [euler_transformation_of_ne_neg_nat hc hz, show c - a - (1 - a) = c - 1 by ring,
     show c - (1 - a) = c + a - 1 by ring, h]
   ring
+
+/-- The complementary quadratic connection, regularized in every lower parameter.
+Analyticity along parameter curves extends the ordinary formula through Gamma poles. -/
+theorem regularized_quadratic_connection_complementary (a c : ℂ) {z : ℂ}
+    (hz : ‖z‖<1) (hw : ‖(1-2*z)^2‖<1) :
+    regularizedGaussHGFun a (1-a) c z=
+      (1-z)^(c-1)*Gamma (1/2)^2*(1/Gamma ((c-a+1)/2))*(1/Gamma ((c+a)/2))*
+        regularizedGaussHGFun ((c-a)/2) ((c+a-1)/2) (1/2) ((1-2*z)^2)+
+      (1-2*z)*(1-z)^(c-1)*(Gamma (-1/2)*Gamma (3/2))*
+        (1/Gamma ((c-a)/2))*(1/Gamma ((c+a-1)/2))*
+        regularizedGaussHGFun ((c-a+1)/2) ((c+a)/2) (3/2) ((1-2*z)^2) := by
+  have hb : 1-z≠0 := by
+    intro h
+    have he : z=1 := by linear_combination -h
+    rw [he] at hz
+    norm_num at hz
+  have hP : Differentiable ℂ (fun c : ℂ=>(1-z)^(c-1)) := by
+    have he : (fun c : ℂ=>(1-z)^(c-1))=(fun c=>exp (log (1-z)*(c-1))) :=
+      funext fun c=>cpow_def_of_ne_zero hb (c-1)
+    rw [he]
+    fun_prop
+  have h1 : Differentiable ℂ (fun c : ℂ=>1/Gamma ((c-a+1)/2)) := by
+    simpa only [Function.comp_def, one_div] using differentiable_one_div_Gamma.comp
+      (show Differentiable ℂ (fun c : ℂ=>(c-a+1)/2) by fun_prop)
+  have h2 : Differentiable ℂ (fun c : ℂ=>1/Gamma ((c+a)/2)) := by
+    simpa only [Function.comp_def, one_div] using differentiable_one_div_Gamma.comp
+      (show Differentiable ℂ (fun c : ℂ=>(c+a)/2) by fun_prop)
+  have h3 : Differentiable ℂ (fun c : ℂ=>1/Gamma ((c-a)/2)) := by
+    simpa only [Function.comp_def, one_div] using differentiable_one_div_Gamma.comp
+      (show Differentiable ℂ (fun c : ℂ=>(c-a)/2) by fun_prop)
+  have h4 : Differentiable ℂ (fun c : ℂ=>1/Gamma ((c+a-1)/2)) := by
+    simpa only [Function.comp_def, one_div] using differentiable_one_div_Gamma.comp
+      (show Differentiable ℂ (fun c : ℂ=>(c+a-1)/2) by fun_prop)
+  have hG1 : Differentiable ℂ (fun c : ℂ=>regularizedGaussHGFun ((c-a)/2) ((c+a-1)/2) (1/2) ((1-2*z)^2)) :=
+    fun c=>(analyticOnNhd_regularizedGaussHGFun_comp (by fun_prop) (by fun_prop)
+      (differentiable_const (1/2)) hw c (Set.mem_univ c)).differentiableAt
+  have hG2 : Differentiable ℂ (fun c : ℂ=>regularizedGaussHGFun ((c-a+1)/2) ((c+a)/2) (3/2) ((1-2*z)^2)) :=
+    fun c=>(analyticOnNhd_regularizedGaussHGFun_comp (by fun_prop) (by fun_prop)
+      (differentiable_const (3/2)) hw c (Set.mem_univ c)).differentiableAt
+  have he := Complex.eq_of_differentiable_of_eqOn_pos_reals
+    (f:=fun c=>regularizedGaussHGFun a (1-a) c z)
+    (g:=fun c=>(1-z)^(c-1)*Gamma (1/2)^2*(1/Gamma ((c-a+1)/2))*(1/Gamma ((c+a)/2))*
+      regularizedGaussHGFun ((c-a)/2) ((c+a-1)/2) (1/2) ((1-2*z)^2)+
+      (1-2*z)*(1-z)^(c-1)*(Gamma (-1/2)*Gamma (3/2))*(1/Gamma ((c-a)/2))*
+      (1/Gamma ((c+a-1)/2))*regularizedGaussHGFun ((c-a+1)/2) ((c+a)/2) (3/2) ((1-2*z)^2))
+    (fun c=>(analyticOnNhd_regularizedGaussHGFun_c a (1-a) hz c (Set.mem_univ c)).differentiableAt)
+    (by fun_prop) (fun x hx=>?_)
+  · exact congrFun he c
+  · have hc : ∀ k : ℕ, (x:ℂ)≠-k := by
+      intro k h
+      have h' := congrArg Complex.re h
+      simp at h'
+      linarith [show (0:ℝ)≤k by positivity]
+    have hhalf : ∀ k : ℕ, (1/2:ℂ)≠-k := by
+      intro k h
+      have h' := congrArg Complex.re h
+      simp at h'
+      linarith [show (0:ℝ)≤k by positivity]
+    have hthree : ∀ k : ℕ, (3/2:ℂ)≠-k := by
+      intro k h
+      have h' := congrArg Complex.re h
+      simp at h'
+      linarith [show (0:ℝ)≤k by positivity]
+    rw [regularizedGaussHGFun_eq_div_Gamma hc,regularizedGaussHGFun_eq_div_Gamma hhalf,
+      regularizedGaussHGFun_eq_div_Gamma hthree,quadratic_connection_complementary hc hz hw]
+    simp only [div_eq_mul_inv, mul_inv_rev]
+    have hGc := Gamma_ne_zero hc
+    have hGh := Gamma_ne_zero hhalf
+    have hGt := Gamma_ne_zero hthree
+    field_simp [hGc, hGh, hGt] <;> ring
 
 @[dlmf 15.8.E27]
 theorem quadratic_even_connection

@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Airy.Scorer
+public import AAR.Airy.Zeros
 
 /-!
 # Products of Airy solutions, DLMF §9.11
@@ -227,11 +228,162 @@ theorem airyAi_fourth_integral  :
     (∫ t : ℝ in Ioi 0, airyAi t ^ 4) = log 3 / (24 * π ^ 2) := by
   sorry
 
+/-- `Bi'(x) ≥ Bi'(0)` for `x ≥ 0`, since `Bi'' = x Bi ≥ 0` there. -/
+lemma airyBiDerivReal_ge {x : ℝ} (hx : 0 ≤ x) : airyBiDerivReal 0 ≤ airyBiDerivReal x := by
+  have hmono : MonotoneOn airyBiDerivReal (Ici 0) := by
+    refine monotoneOn_of_deriv_nonneg (convex_Ici 0)
+      (continuous_iff_continuousAt.mpr fun t =>
+        (hasDerivAt_airyBiDerivReal t).continuousAt).continuousOn
+      (fun t _ => (hasDerivAt_airyBiDerivReal t).differentiableAt.differentiableWithinAt)
+      fun t ht => ?_
+    rw [interior_Ici, mem_Ioi] at ht
+    rw [(hasDerivAt_airyBiDerivReal t).deriv]
+    exact mul_nonneg ht.le (airyBiReal_pos ht.le).le
+  exact hmono (mem_Ici.mpr le_rfl) (mem_Ici.mpr hx) hx
+
+/-- `Bi(x) ≥ Bi(0) + Bi'(0) x` for `x ≥ 0`. -/
+lemma airyBiReal_ge {x : ℝ} (hx : 0 ≤ x) :
+    airyBiReal 0 + airyBiDerivReal 0 * x ≤ airyBiReal x := by
+  have hmono : MonotoneOn (fun t => airyBiReal t - airyBiDerivReal 0 * t) (Ici 0) := by
+    have hd : ∀ t, HasDerivAt (fun t => airyBiReal t - airyBiDerivReal 0 * t)
+        (airyBiDerivReal t - airyBiDerivReal 0) t := fun t =>
+      ((hasDerivAt_airyBiReal t).sub ((hasDerivAt_id t).const_mul _)).congr_deriv (by simp)
+    refine monotoneOn_of_deriv_nonneg (convex_Ici 0)
+      (continuous_iff_continuousAt.mpr fun t => (hd t).continuousAt).continuousOn
+      (fun t _ => (hd t).differentiableAt.differentiableWithinAt) fun t ht => ?_
+    rw [interior_Ici, mem_Ioi] at ht
+    rw [(hd t).deriv]
+    linarith [airyBiDerivReal_ge ht.le]
+  have := hmono (mem_Ici.mpr le_rfl) (mem_Ici.mpr hx) hx
+  simp only [mul_zero, sub_zero] at this
+  linarith
+
+/-- `Bi(x) → ∞` as `x → +∞`. -/
+lemma tendsto_airyBiReal_atTop : Tendsto airyBiReal atTop atTop := by
+  refine tendsto_atTop_mono' _ (eventually_ge_atTop 0 |>.mono fun x hx => airyBiReal_ge hx) ?_
+  exact tendsto_atTop_add_const_left _ _ (tendsto_id.const_mul_atTop airyBiDerivReal_zero_pos)
+
+/-- `Ai(x)/Bi(x) → 0` as `x → +∞`. -/
+lemma tendsto_airyAi_div_airyBi : Tendsto (fun x => airyAiReal x / airyBiReal x) atTop (𝓝 0) :=
+  tendsto_airyAiReal_atTop.div_atTop tendsto_airyBiReal_atTop
+
+/-- `Ai'(x)/Bi'(x) → 0` as `x → +∞`, via the Wronskian. -/
+lemma tendsto_airyAiDeriv_div_airyBiDeriv :
+    Tendsto (fun x => airyAiDerivReal x / airyBiDerivReal x) atTop (𝓝 0) := by
+  have h1 : Tendsto (fun x => airyBiReal x * airyBiDerivReal x) atTop atTop :=
+    tendsto_atTop_mono' _ (eventually_ge_atTop 0 |>.mono fun x hx =>
+      mul_le_mul_of_nonneg_left (airyBiDerivReal_ge hx) (airyBiReal_pos hx).le)
+      (tendsto_airyBiReal_atTop.atTop_mul_const airyBiDerivReal_zero_pos)
+  have h2 := (h1.const_mul_atTop Real.pi_pos).inv_tendsto_atTop
+  have h3 := tendsto_airyAi_div_airyBi.sub h2
+  rw [sub_zero] at h3
+  refine h3.congr' (eventually_ge_atTop 0 |>.mono fun x hx => ?_)
+  have hb := (airyBiReal_pos hx).ne'
+  have hb' := (airyBiDerivReal_zero_pos.trans_le (airyBiDerivReal_ge hx)).ne'
+  have hW := wronskian_airyReal x
+  have hπ := Real.pi_ne_zero
+  simp only [Pi.inv_apply]
+  field_simp
+  field_simp at hW
+  linear_combination hW
+
+/-- `arctan(1/√3) = π/6`. -/
+lemma arctan_inv_sqrt_three : Real.arctan (1 / Real.sqrt 3) = π / 6 := by
+  rw [← Real.tan_pi_div_six, Real.arctan_tan (by linarith [Real.pi_pos]) (by linarith [Real.pi_pos])]
+
+/-- `Ai(0)/Bi(0) = 1/√3`. -/
+lemma airyReal_zero_ratio : airyAiReal 0 / airyBiReal 0 = 1 / Real.sqrt 3 := by
+  have hA : airyAiReal 0 = 1 / ((3 : ℝ) ^ (2 / 3 : ℝ) * Real.Gamma (2 / 3)) := by
+    have h := airyAi_zero
+    rw [Gamma_two_thirds_eq, ← ofReal_mul, ← ofReal_one, ← ofReal_div] at h
+    simp [airyAiReal, h]
+  have hB : airyBiReal 0 = 1 / ((3 : ℝ) ^ (1 / 6 : ℝ) * Real.Gamma (2 / 3)) := by
+    have h := airyBi_zero
+    rw [Gamma_two_thirds_eq, ← ofReal_mul, ← ofReal_one, ← ofReal_div] at h
+    simp [airyBiReal, h]
+  have hG := (Real.Gamma_pos_of_pos (by norm_num : (0 : ℝ) < 2 / 3)).ne'
+  have h1 : (3 : ℝ) ^ (1 / 6 : ℝ) = (3 : ℝ) ^ (2 / 3 : ℝ) * (Real.sqrt 3)⁻¹ := by
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_neg (by norm_num), ← Real.rpow_add (by norm_num)]
+    norm_num
+  have h2 : (0 : ℝ) < (3 : ℝ) ^ (2 / 3 : ℝ) := by positivity
+  have h3 : Real.sqrt 3 ≠ 0 := (Real.sqrt_pos.mpr (by norm_num)).ne'
+  rw [hA, hB, h1]
+  field_simp
+
+/-- `Ai'(0)/Bi'(0) = -1/√3`. -/
+lemma airyDerivReal_zero_ratio : airyAiDerivReal 0 / airyBiDerivReal 0 = -(1 / Real.sqrt 3) := by
+  have hG' : Complex.Gamma (1 / 3) = ((Real.Gamma (1 / 3) : ℝ) : ℂ) := by
+    rw [← Complex.Gamma_ofReal]; push_cast; ring_nf
+  have hA : airyAiDerivReal 0 = -1 / ((3 : ℝ) ^ (1 / 3 : ℝ) * Real.Gamma (1 / 3)) := by
+    have h := airyAiDeriv_zero
+    rw [hG', ← ofReal_mul, show (-1 : ℂ) = ((-1 : ℝ) : ℂ) by simp, ← ofReal_div] at h
+    rw [airyAiDerivReal, ofReal_zero, h, ofReal_re]
+  have hB : airyBiDerivReal 0 = (3 : ℝ) ^ (1 / 6 : ℝ) / Real.Gamma (1 / 3) := by
+    have h := airyBiDeriv_zero
+    rw [hG', ← ofReal_div] at h
+    simp [airyBiDerivReal, h]
+  have hG := (Real.Gamma_pos_of_pos (by norm_num : (0 : ℝ) < 1 / 3)).ne'
+  have h1 : (3 : ℝ) ^ (1 / 3 : ℝ) * (3 : ℝ) ^ (1 / 6 : ℝ) = Real.sqrt 3 := by
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_add (by norm_num)]; norm_num
+  have h2 : (0 : ℝ) < (3 : ℝ) ^ (1 / 3 : ℝ) := by positivity
+  have h2' : (0 : ℝ) < (3 : ℝ) ^ (1 / 6 : ℝ) := by positivity
+  rw [hA, hB, ← h1]
+  field_simp
+
+/-- A primitive of `1/(Ai² + Bi²)` on `[0, ∞)`. -/
+lemma hasDerivAt_arctan_airy_ratio {x : ℝ} (hx : 0 ≤ x) :
+    HasDerivAt (fun t => -π * Real.arctan (airyAiReal t / airyBiReal t))
+      (1 / (airyAiReal x ^ 2 + airyBiReal x ^ 2)) x := by
+  have hb := (airyBiReal_pos hx).ne'
+  have h := (((hasDerivAt_airyAiReal x).div (hasDerivAt_airyBiReal x) hb).arctan).const_mul (-π)
+  refine h.congr_deriv ?_
+  have hW := wronskian_airyReal x
+  have hπ := Real.pi_ne_zero
+  have hM := (airyModulusSq_pos x).ne'
+  simp only [Pi.div_apply]
+  field_simp
+  field_simp at hW
+  linear_combination (airyAiReal x ^ 2 + airyBiReal x ^ 2) * hW
+
+/-- A primitive of `x/(Ai'² + Bi'²)` on `[0, ∞)`. -/
+lemma hasDerivAt_arctan_airyDeriv_ratio {x : ℝ} (hx : 0 ≤ x) :
+    HasDerivAt (fun t => π * Real.arctan (airyAiDerivReal t / airyBiDerivReal t))
+      (x / (airyAiDerivReal x ^ 2 + airyBiDerivReal x ^ 2)) x := by
+  have hb := (airyBiDerivReal_zero_pos.trans_le (airyBiDerivReal_ge hx)).ne'
+  have h := (((hasDerivAt_airyAiDerivReal x).div (hasDerivAt_airyBiDerivReal x) hb).arctan).const_mul π
+  refine h.congr_deriv ?_
+  have hW := wronskian_airyReal x
+  have hπ := Real.pi_ne_zero
+  have hN := (airyDerivModulusSq_pos x).ne'
+  simp only [Pi.div_apply]
+  field_simp
+  field_simp at hW
+  linear_combination (x * (airyAiDerivReal x ^ 2 + airyBiDerivReal x ^ 2)) * hW
+
 /-- airy modulus reciprocal integrals (DLMF 9.11.19). -/
 @[dlmf 9.11.E19]
 theorem airy_modulus_reciprocal_integrals  :
     (∫ t : ℝ in Ioi 0, 1 / (airyAi t ^ 2 + airyBi t ^ 2)) = (π : ℂ) ^ 2 / 6 ∧
       (∫ t : ℝ in Ioi 0, (t : ℂ) / (airyAiDeriv t ^ 2 + airyBiDeriv t ^ 2)) = (π : ℂ) ^ 2 / 6 := by
-  sorry
+  have e1 : (fun t : ℝ => 1 / (airyAi t ^ 2 + airyBi t ^ 2)) =
+      fun t : ℝ => ((1 / (airyAiReal t ^ 2 + airyBiReal t ^ 2) : ℝ) : ℂ) := by
+    funext t; rw [airyAi_ofReal_eq, airyBi_ofReal_eq]; push_cast; ring
+  have e2 : (fun t : ℝ => (t : ℂ) / (airyAiDeriv t ^ 2 + airyBiDeriv t ^ 2)) =
+      fun t : ℝ => ((t / (airyAiDerivReal t ^ 2 + airyBiDerivReal t ^ 2) : ℝ) : ℂ) := by
+    funext t; rw [airyAiDeriv_ofReal_eq, airyBiDeriv_ofReal_eq]; push_cast; ring
+  rw [e1, e2, _root_.integral_complex_ofReal, _root_.integral_complex_ofReal]
+  have i1 := integral_Ioi_of_hasDerivAt_of_nonneg' (a := 0)
+    (fun x hx => hasDerivAt_arctan_airy_ratio hx)
+    (fun x _ => (one_div_pos.mpr (airyModulusSq_pos x)).le)
+    (by simpa [Real.arctan_zero] using
+      ((Real.continuous_arctan.tendsto 0).comp tendsto_airyAi_div_airyBi).const_mul (-π))
+  have i2 := integral_Ioi_of_hasDerivAt_of_nonneg' (a := 0)
+    (fun x hx => hasDerivAt_arctan_airyDeriv_ratio hx)
+    (fun x hx => div_nonneg (le_of_lt hx) (airyDerivModulusSq_pos x).le)
+    (by simpa [Real.arctan_zero] using
+      ((Real.continuous_arctan.tendsto 0).comp tendsto_airyAiDeriv_div_airyBiDeriv).const_mul π)
+  rw [i1, i2, airyReal_zero_ratio, airyDerivReal_zero_ratio, Real.arctan_neg,
+    arctan_inv_sqrt_three]
+  constructor <;> push_cast <;> ring
 
 end AAR.Airy

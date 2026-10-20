@@ -241,16 +241,28 @@ theorem kummerM_zeros_in_a (b z : ℂ) (hz : z ≠ 0) (hb : ∀ k : ℕ, b ≠ -
       ∀ᶠ n : ℕ in atTop, kummerM (α n) b z = 0 := by
   sorry
 
+/-- Zeros of `U(a,b,·)` in the open sector `|ph z| < π`; DLMF calls their number `T(a,b)`. -/
+def kummerUSectorZeros (a b : ℝ) : Set ℂ :=
+  {z | z ≠ 0 ∧ |arg z| < π ∧ kummerU a b z = 0}
+
+/-- DLMF 13.9.11: the number of zeros in the sector `|ph z| < π` when `b ≤ 1`, `a < 0` and
+`Γ(a)Γ(a-b+1) > 0`, with `a`, `b` and `a-b+1` nonintegral. Corrected 2026-10-20: the
+earlier statement counted positive zeros with this formula and omitted DLMF's hypotheses;
+it was false, e.g. at `(a,b) = (-1.3,-2.2)` there are no positive zeros. -/
 @[dlmf 13.9.E11]
-theorem kummerU_posZeros_gamma_pos {a b : ℝ}
+theorem kummerU_sectorZeros_gamma_pos {a b : ℝ} (hb : b ≤ 1) (ha : a < 0)
+    (hai : ∀ n : ℤ, a ≠ n) (hbi : ∀ n : ℤ, b ≠ n) (habi : ∀ n : ℤ, a - b + 1 ≠ n)
     (h : 0 < Real.Gamma a * Real.Gamma (a - b + 1)) :
-    (kummerUPosZeros a b).encard = Int.toNat (⌊-a⌋ + 1) := by
+    (kummerUSectorZeros a b).encard = Int.toNat (⌊-a⌋ + 1) := by
   sorry
 
+/-- DLMF 13.9.12, the companion of `kummerU_sectorZeros_gamma_pos` for
+`Γ(a)Γ(a-b+1) < 0` (corrected 2026-10-20 in the same way). -/
 @[dlmf 13.9.E12]
-theorem kummerU_posZeros_gamma_neg {a b : ℝ}
+theorem kummerU_sectorZeros_gamma_neg {a b : ℝ} (hb : b ≤ 1) (ha : a < 0)
+    (hai : ∀ n : ℤ, a ≠ n) (hbi : ∀ n : ℤ, b ≠ n) (habi : ∀ n : ℤ, a - b + 1 ≠ n)
     (h : Real.Gamma a * Real.Gamma (a - b + 1) < 0) :
-    (kummerUPosZeros a b).encard = Int.toNat ⌊-a⌋ := by
+    (kummerUSectorZeros a b).encard = Int.toNat ⌊-a⌋ := by
   sorry
 
 @[dlmf 13.9.E13]
@@ -300,17 +312,44 @@ theorem kummerU_posZeros_none {a b : ℝ} (ha : 0 ≤ a) :
     rw [hl, hI] at hzero
     simp [hG, hpos.ne'] at hzero
 
+/-- DLMF 13.9.14: the number `P(a,b)` of positive zeros when `a + 1 < b ≤ 1`, with `a`, `b`
+and `a-b+1` nonintegral (acquired 2026-10-20; DLMF's `P` counts positive zeros). -/
+@[dlmf 13.9.E14]
+theorem kummerU_posZeros_ceil {a b : ℝ} (hb : b ≤ 1) (hab : a + 1 < b)
+    (hai : ∀ n : ℤ, a ≠ n) (hbi : ∀ n : ℤ, b ≠ n) (habi : ∀ n : ℤ, a - b + 1 ≠ n) :
+    (kummerUPosZeros a b).encard = Int.toNat ⌈b - a - 1⌉ := by
+  sorry
+
+/-- DLMF 13.9.15: no positive zeros when `a + 1 ≥ b`. Stronger than DLMF: no restriction on
+`b` and no nonintegrality hypotheses. Kummer's transformation reduces it to 13.9.13 at the
+nonnegative first parameter `a - b + 1`. -/
+@[dlmf 13.9.E15]
+theorem kummerU_posZeros_none_of_le {a b : ℝ} (h : b ≤ a + 1) :
+    (kummerUPosZeros a b).encard = 0 := by
+  have h0 := kummerU_posZeros_none (a := a - b + 1) (b := 2 - b) (by linarith)
+  rw [Set.encard_eq_zero, Set.eq_empty_iff_forall_notMem] at h0 ⊢
+  rintro x ⟨hx, hzero⟩
+  refine h0 x ⟨hx, ?_⟩
+  have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  rw [kummerU_kummer_transform_all _ _ hx0] at hzero
+  have hpow : (x : ℂ) ^ (1 - (b : ℂ)) ≠ 0 := by
+    rw [Ne, cpow_eq_zero_iff]
+    exact fun h => hx0 h.1
+  push_cast
+  exact (mul_eq_zero.mp hzero).resolve_left hpow
+
 /- DLMF 13.9.14 (count of zeros of `U(a,b,·)` on the negative axis) was removed from the
 formalization: with the principal-branch `kummerU` the stated count is false, since `U` is
 complex-valued and bounded away from zero on the negative axis in tested cases where the
 count is positive. See `STATEMENT_AUDIT_2026-09-27.md`. -/
 
 /-- No zeros of the principal-branch `U(a,b,·)` on the negative axis when `a + 1 ≥ b`.
+This is not DLMF 13.9.15, whose `P(a,b)` counts positive zeros (see
+`kummerU_posZeros_none_of_le`); the `dlmf` tag was removed on 2026-10-20.
 The polynomial case `a ∈ -ℕ` is excluded: there `U(-n,b,x) = (-1)ⁿ n! L_n^{(b-1)}(x)` with
 `b - 1 ≤ -n`, which can vanish at negative `x` (e.g. `U(-1,-1,x) = x + 1`). For other `a`
 the statement was checked numerically (mpmath, 16 October 2026); `|U|` approaches zero on the
 negative axis only as `a` approaches a nonpositive integer. -/
-@[dlmf 13.9.E15]
 theorem kummerU_negZeros_none {a b : ℝ} (h : a + 1 ≥ b) (ha : ∀ n : ℕ, a ≠ -(n : ℝ)) :
     {x : ℝ | x < 0 ∧ kummerU a b (x : ℂ) = 0}.encard = 0 := by
   sorry

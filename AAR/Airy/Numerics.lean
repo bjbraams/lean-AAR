@@ -21,105 +21,203 @@ open Complex Filter Set MeasureTheory Asymptotics AAR.Hypergeometric AAR.Conflue
 open scoped Real Topology
 namespace AAR.Airy
 
+/-! ### Exact values of χ at integers -/
+
+/-- The two-step recurrence `χ(x+2) = χ(x) (x+2)/(x+1)` for `x ≥ 0`. -/
+lemma airyChi_add_two {x : ℝ} (hx : 0 ≤ x) :
+    airyChi (x + 2) = airyChi x * ((x + 2) / (x + 1)) := by
+  have h1 : (x + 2) / 2 + 1 = (x / 2 + 1) + 1 := by ring
+  have h2 : (x + 2) / 2 + 1 / 2 = (x / 2 + 1 / 2) + 1 := by ring
+  have hp1 : 0 < x / 2 + 1 := by positivity
+  have hp2 : 0 < x / 2 + 1 / 2 := by positivity
+  have hG := (Real.Gamma_pos_of_pos hp2).ne'
+  rw [airyChi, airyChi, h1, h2, Real.Gamma_add_one hp1.ne', Real.Gamma_add_one hp2.ne']
+  have : x + 1 ≠ 0 := by positivity
+  field_simp
+
+/-- `χ(0) = 1`. -/
+lemma airyChi_zero : airyChi 0 = 1 := by
+  rw [airyChi]; norm_num [Real.Gamma_one_half_eq]
+  exact (Real.sqrt_pos.mpr Real.pi_pos).ne'
+
+/-- `χ(1) = π/2`. -/
+lemma airyChi_one : airyChi 1 = π / 2 := by
+  rw [airyChi, show (1 : ℝ) / 2 + 1 = 1 / 2 + 1 by ring, Real.Gamma_add_one (by norm_num),
+    Real.Gamma_one_half_eq, show (1 : ℝ) / 2 + 1 / 2 = 1 by ring, Real.Gamma_one]
+  rw [show Real.sqrt π * (1 / 2 * Real.sqrt π) = (Real.sqrt π) ^ 2 / 2 by ring,
+    Real.sq_sqrt Real.pi_pos.le]
+  ring
+
+/-- `χ(2m) = ∏_{j<m} (2j+2)/(2j+1)`. -/
+lemma airyChi_two_mul (m : ℕ) :
+    airyChi (2 * m) = ∏ j ∈ Finset.range m, ((2 * j + 2 : ℝ) / (2 * j + 1)) := by
+  induction m with
+  | zero => simpa using airyChi_zero
+  | succ m ih =>
+    rw [Finset.prod_range_succ, ← ih, show (2 * ((m + 1 : ℕ) : ℝ)) = 2 * m + 2 by push_cast; ring,
+      airyChi_add_two (by positivity)]
+
+/-- `χ(2m+1) = (π/2) ∏_{j<m} (2j+3)/(2j+2)`. -/
+lemma airyChi_two_mul_add_one (m : ℕ) :
+    airyChi (2 * m + 1) = π / 2 * ∏ j ∈ Finset.range m, ((2 * j + 3 : ℝ) / (2 * j + 2)) := by
+  induction m with
+  | zero => simpa using airyChi_one
+  | succ m ih =>
+    rw [Finset.prod_range_succ, ← mul_assoc, ← ih,
+      show (2 * ((m + 1 : ℕ) : ℝ)) + 1 = (2 * m + 1) + 2 by push_cast; ring,
+      airyChi_add_two (by positivity)]
+    congr 1; ring_nf
+
+/-! ### Tables -/
+
 /-- The rounded χ(1) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_1  :
     |airyChi 1 - (1.57 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [airyChi_one]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(6) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_6  :
     |airyChi 6 - (3.20 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (6 : ℝ) = 2 * ((3 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(11) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_11  :
     |airyChi 11 - (4.25 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (11 : ℝ) = 2 * ((5 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(16) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_16  :
     |airyChi 16 - (5.09 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (16 : ℝ) = 2 * ((8 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(2) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_2  :
     |airyChi 2 - (2.00 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (2 : ℝ) = 2 * ((1 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(7) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_7  :
     |airyChi 7 - (3.44 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (7 : ℝ) = 2 * ((3 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(12) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_12  :
     |airyChi 12 - (4.43 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (12 : ℝ) = 2 * ((6 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(17) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_17  :
     |airyChi 17 - (5.24 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (17 : ℝ) = 2 * ((8 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(3) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_3  :
     |airyChi 3 - (2.36 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (3 : ℝ) = 2 * ((1 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(8) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_8  :
     |airyChi 8 - (3.66 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (8 : ℝ) = 2 * ((4 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(13) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_13  :
     |airyChi 13 - (4.61 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (13 : ℝ) = 2 * ((6 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(18) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_18  :
     |airyChi 18 - (5.39 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (18 : ℝ) = 2 * ((9 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(4) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_4  :
     |airyChi 4 - (2.67 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (4 : ℝ) = 2 * ((2 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(9) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_9  :
     |airyChi 9 - (3.87 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (9 : ℝ) = 2 * ((4 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(14) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_14  :
     |airyChi 14 - (4.77 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (14 : ℝ) = 2 * ((7 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(19) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_19  :
     |airyChi 19 - (5.54 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (19 : ℝ) = 2 * ((9 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(5) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_5  :
     |airyChi 5 - (2.95 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (5 : ℝ) = 2 * ((2 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(10) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_10  :
     |airyChi 10 - (4.06 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (10 : ℝ) = 2 * ((5 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The rounded χ(15) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_15  :
     |airyChi 15 - (4.94 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (15 : ℝ) = 2 * ((7 : ℕ) : ℝ) + 1 by norm_num, airyChi_two_mul_add_one]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  have := Real.pi_gt_d6; have := Real.pi_lt_d6
+  rw [abs_le]; constructor <;> norm_num <;> linarith
 
 /-- The rounded χ(20) entry in DLMF Table 9.7.1, with its two-decimal accuracy. -/
 theorem airyChi_table_20  :
     |airyChi 20 - (5.68 : ℝ)| ≤ 1 / 200 := by
-  sorry
+  rw [show (20 : ℝ) = 2 * ((10 : ℕ) : ℝ) by norm_num, airyChi_two_mul]
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero]
+  rw [abs_le]; constructor <;> norm_num
 
 /-- The four rounded entries in row 1 of DLMF Table 9.9.1, to ten decimal places. -/
 theorem airy_zero_table_1_row_1  :

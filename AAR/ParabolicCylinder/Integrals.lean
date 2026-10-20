@@ -37,7 +37,57 @@ theorem pcfU_integral_3 {a z : ℂ} (ha : -3/2 < a.re) (hz : 0 < z.re) :
 @[dlmf 12.5.E4]
 theorem pcfU_integral_4 {a : ℂ} (ha : a.re < 1/2) (z : ℂ) :
     HasIntegralAtTop (fun t : ℝ => (Real.sqrt (2/π):ℂ)*exp (z^2/4)*((t:ℂ)^(-a-1/2)*exp (-t^2/2)*cos (z*t+(a/2+1/4)*π))) 0 (pcfU a z) := by
-  sorry
+  have hc : -1 < (-a-1/2).re := by simp; linarith
+  have ha' : -1/2 < (-a).re := by simp; linarith
+  have han : ∀ n : ℕ, a ≠ n+1/2 := fun n h => by
+    have := congrArg Complex.re h; simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
+  have hΓ : Gamma (1/2 - a) ≠ 0 := Complex.Gamma_ne_zero fun n h => han n (by linear_combination -h)
+  set θ : ℂ := (a/2+1/4)*π with hθ
+  set K : ℂ := (Real.sqrt (2/π):ℂ)*exp (z^2/4)/2 with hK
+  set gp := fun t : ℝ => (t : ℂ) ^ (-a-1/2) * exp (-(t : ℂ) ^ 2 / 2 - (-I*z) * t)
+  set gm := fun t : ℝ => (t : ℂ) ^ (-a-1/2) * exp (-(t : ℂ) ^ 2 / 2 - (I*z) * t)
+  have ip : IntegrableOn gp (Ioi 0) := integrableOn_pcfIntegrand hc (-I*z)
+  have im : IntegrableOn gm (Ioi 0) := integrableOn_pcfIntegrand hc (I*z)
+  have hf : (fun t : ℝ => (Real.sqrt (2/π):ℂ)*exp (z^2/4)*((t:ℂ)^(-a-1/2)*exp (-t^2/2)*cos (z*t+(a/2+1/4)*π))) =
+      fun t => K * (exp (I*θ) * gp t + exp (-I*θ) * gm t) := by
+    funext t
+    simp only [K, gp, gm, θ, Complex.cos]
+    have e1 : exp (I*((a/2+1/4)*π)) * exp (-(t:ℂ)^2/2 - -I*z*t) = exp (-(t:ℂ)^2/2) * exp ((z*t+(a/2+1/4)*π)*I) := by
+      rw [← Complex.exp_add, ← Complex.exp_add]; congr 1; ring
+    have e2 : exp (-I*((a/2+1/4)*π)) * exp (-(t:ℂ)^2/2 - I*z*t) = exp (-(t:ℂ)^2/2) * exp (-(z*t+(a/2+1/4)*π)*I) := by
+      rw [← Complex.exp_add, ← Complex.exp_add]; congr 1; ring
+    linear_combination (-(Real.sqrt (2/π):ℂ)*exp (z^2/4)/2 * (t:ℂ)^(-a-1/2)) * (e1 + e2)
+  have hp := pcfU_eq_integral ha' (-I*z)
+  have hm := pcfU_eq_integral ha' (I*z)
+  rw [show (1/2:ℂ) + -a = 1/2 - a by ring, show (-a) - 1/2 = -a-1/2 by ring] at hp hm
+  have hsq : (-I*z)^2 = -z^2 := by rw [mul_pow, neg_pow, I_sq]; ring
+  have hsq' : (I*z)^2 = -z^2 := by rw [mul_pow, I_sq]; ring
+  rw [hsq] at hp; rw [hsq'] at hm
+  have hconn := pcfU_rotated_connection_pos han z
+  unfold HasIntegralAtTop
+  rw [hf]
+  have H : IntegrableOn (fun t => K*(exp (I*θ)*gp t + exp (-I*θ)*gm t)) (Ioi 0) :=
+    ((ip.const_mul (exp (I*θ))).add (im.const_mul (exp (-I*θ)))).const_mul K
+  have T := intervalIntegral_tendsto_integral_Ioi 0 H tendsto_id
+  suffices hv : ∫ t in Ioi (0:ℝ), K*(exp (I*θ)*gp t + exp (-I*θ)*gm t) = pcfU a z by
+    rw [← hv]; exact T
+  rw [integral_const_mul, integral_add (ip.const_mul _) (im.const_mul _), integral_const_mul, integral_const_mul]
+  have hs : (Real.sqrt (2/π):ℂ) * Real.sqrt (2*π) = 2 := by
+    rw [← Complex.ofReal_mul, ← Real.sqrt_mul (by positivity), show 2/π*(2*π) = 2^2 by field_simp,
+      Real.sqrt_sq (by norm_num)]; norm_num
+  have he : exp (-(-z^2)/4) * exp (-z^2/4) = 1 := by rw [← Complex.exp_add]; ring_nf; simp
+  have he2 : exp (z^2/4) * exp (-z^2/4) = 1 := by rw [← Complex.exp_add]; ring_nf; simp
+  have hIp : ∫ t in Ioi (0:ℝ), gp t = Gamma (1/2-a) * exp (-z^2/4) * pcfU (-a) (-I*z) := by
+    rw [hp, show ∀ X : ℂ, Gamma (1/2-a) * exp (-z^2/4) * (exp (- -z^2/4) / Gamma (1/2-a) * X) =
+      (exp (- -z^2/4) * exp (-z^2/4)) * X from fun X => by rw [div_mul_eq_mul_div, mul_div_assoc', div_eq_iff hΓ]; ring, he, one_mul]
+  have hIm : ∫ t in Ioi (0:ℝ), gm t = Gamma (1/2-a) * exp (-z^2/4) * pcfU (-a) (I*z) := by
+    rw [hm, show ∀ X : ℂ, Gamma (1/2-a) * exp (-z^2/4) * (exp (- -z^2/4) / Gamma (1/2-a) * X) =
+      (exp (- -z^2/4) * exp (-z^2/4)) * X from fun X => by rw [div_mul_eq_mul_div, mul_div_assoc', div_eq_iff hΓ]; ring, he, one_mul]
+  rw [hIp, hIm, hK]
+  have q1 : exp (-I*θ) = exp (-1*I*π*(a/2+1/4)) := by rw [hθ]; congr 1; ring
+  have q2 : exp (I*θ) = exp (1*I*π*(a/2+1/4)) := by rw [hθ]; congr 1; ring
+  rw [q1, q2, show (1:ℂ)*I*z = I*z by ring, show (-1:ℂ)*I*z = -I*z by ring] at *
+  linear_combination (Real.sqrt (2/π):ℂ)/2 * (Gamma (1/2-a) * (exp (1*I*π*(a/2+1/4)) * pcfU (-a) (-I*z) + exp (-1*I*π*(a/2+1/4)) * pcfU (-a) (I*z))) * he2 - (Real.sqrt (2/π):ℂ)/2 * hconn + pcfU a z / 2 * hs
 
 /-- pcfU vertical integral. -/
 @[dlmf 12.5.E6]

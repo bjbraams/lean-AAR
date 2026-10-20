@@ -2,8 +2,15 @@
 
 ## Scope and degree of completion
 
-**Current status, 2026-10-19:** 1,609 explicit admissions in 118 Lean files.
-The latest [Chapters 11, 12 and 14 acquisition](DLMF111214Acquisition.md) adds
+**Current status, 2026-10-20 (evening):** 757 explicit admissions: 759 after the
+[shared-helper round](#shared-helper-round-priority-2-2026-10-20), less the corrected and
+proved DLMF 14.23.7 (`conicalQHat_boundary`) and 9.13.36 (`reidAiry_connection_36`); before that round, 1,038 after the
+[project-wide triage and tier-A batch](#project-wide-admission-triage-and-statement-corrections-2026-10-20),
+which proved 319 admissions and corrected 16 false or mis-transcribed statements.
+The status paragraph of 2026-10-19 follows: 1,609 explicit admissions in 118 Lean files.
+The [reuse review](#reuse-of-the-proved-special-function-core-2026-10-19)
+prioritizes specialization and bridge proofs. The
+[Chapters 11, 12 and 14 acquisition](DLMF111214Acquisition.md) adds
 601 admissions after completing 25 of 626 newly acquired statements. The previous
 1,008 admissions are unchanged. The compiled audit finds no completed public proof
 depending on an admission. Earlier inventories and validation reports below describe
@@ -3250,3 +3257,1529 @@ pass. The audit of 6,971 public AAR theorems finds exactly the 1,609 explicit
 admissions, no hidden admission dependencies and no unexpected axioms. All 25
 completed new proofs and both upstream pointers pass separate axiom checks.
 Dependency pins, toolchain and build topology are unchanged.
+
+
+## Reuse of the proved special-function core (2026-10-19)
+
+The review supports prioritizing specializations and definition bridges before
+new large-parameter analysis. Many acquired assertions already have their general
+mathematics proved in the project. The main work is exposing that proof through
+the new definitions, with the same domains and normalizations. This review records the baseline before implementation: 1,609 admissions.
+The [seven-track proof batch](#seven-track-admission-removal-2026-10-19) below
+records the subsequent 100 removals; the four-priority follow-up below removes
+a further 69, bringing the current total to 1,440.
+
+The seven initial core-file portfolios below contain **471 admissions**. This is a
+reproducible count of the files to examine first, not a claim that all 471 are short
+proofs. The first executable batch is a named list of 18 targets below. Later
+batches should be split around the shared bridges described here, not attempted
+one DLMF equation at a time.
+
+### Census and scope
+
+The source census finds 1,609 explicit admitted declarations in 118 files:
+
+- Chapter 6 acquisition: `ExpIntegrals`, 108.
+- Chapter 7 acquisition: `ErrorFunctions`, 167.
+- Chapter 8 acquisition: `IncompleteGamma`, 253.
+- Chapter 11 acquisition: `Struve`, 165.
+- Chapter 12 acquisition: `ParabolicCylinder`, 118.
+- Chapter 14 acquisition: `Legendre`, 318.
+- Airy acquisition: 363.
+- Earlier theory: 117, comprising Confluent 49, OrthogonalPolynomials 39,
+  Hypergeometric 14, SphericalHarmonics 4, Partitions 3, Selberg 3,
+  Gamma 2, Bessel 2 and QSeries 1.
+
+Thus the six new chapters contribute 1,129 admissions; Airy and the earlier theory
+account for the remaining 480. `ToMathlib` contains no admissions.
+Counts refer to explicit declarations, not the number of DLMF equations or raw
+occurrences of the word `sorry` in comments.
+
+### What is already proved, and what is not
+
+Mathlib already gives the full convergence radius and argument analyticity of
+`Complex.regularizedHGFun` when the number of upper parameters does not exceed
+the number of lower parameters. Its coefficient definition retains reciprocal-Gamma
+zeros at exceptional lower parameters. These are the appropriate starting points
+for Struve, Fresnel and entire integral functions. Use the Mathlib series API
+directly; TauCeti's `Complex.hasSum_regularizedHGFun` is an optional wrapper in
+its specific regularized-hypergeometric module, not a theorem imported by `AAR`.
+
+The project's [regularized confluent API](AAR/Confluent/Regularized.lean) proves
+argument derivatives and entire dependence along arbitrary entire parameter
+curves. [Continuation.lean](AAR/Confluent/Continuation.lean) proves Kummer's
+transformation without parameter exclusions. The
+[Gauss continuation API](AAR/Hypergeometric/ArgumentContinuation.lean) proves
+argument analyticity, derivative formulas, contiguous relations and Euler/Pfaff
+transformations on the cut plane, all in the regularized normalization.
+These general proofs should be specialized rather than repeated.
+
+The [incomplete-Gamma core](AAR/Confluent/IncompleteGamma.lean) and
+[normalized Gamma core](AAR/Statistical/IncompleteGamma.lean) already prove
+complementarity, ordinary recurrences, natural-parameter Poisson sums,
+`scIncGamma_eq_tsum`, `analyticAt_scIncGamma` and `scIncGamma_neg_nat`.
+The [old exponential-integral core](AAR/Confluent/ExpIntegral.lean) already proves
+`genExpIntE_add_one`, `hasDerivAt_genExpIntE`, real Ein/Si/Cin series and the
+real E1–Ein identity. The
+[old cylinder core](AAR/Confluent/ParabolicCylinder.lean) already supplies
+`U,V,D`, derivatives, recurrences, Wronskians, rotated connections, a Laplace
+integral, a Tricomi representation and the Hermite specialization.
+
+The proof-dependency check matters. The following are still admitted and cannot
+be used to claim a new proof is complete:
+
+- `kummerU_stieltjes`, `kummerU_stieltjes_regularized`,
+  `kummerU_integral_besselK` and `kummerU_gauss` in
+  [IntegralRepresentations.lean](AAR/Confluent/IntegralRepresentations.lean).
+- Several cosine/Bessel transforms in [Integrals.lean](AAR/Confluent/Integrals.lean).
+- `entire_regularized_parameters` in
+  [AnalyticProperties.lean](AAR/Hypergeometric/AnalyticProperties.lean).
+
+In contrast, `kummerU_laplace`, `laplace_regularizedHGFun`, `laplace_kummerU`,
+`mellin_kummerU` and `laplace_kummerU_gauss` are proved. The last includes
+integrability and unrestricted first parameter, which makes it especially useful
+for the new Gamma and exponential-integral transforms.
+
+Separate parameter analyticity or analyticity along complex curves is not yet a
+proof of the jointly Fréchet differentiable assertions on products. Also, the
+Gauss parameter API on the disk does not by itself prove parameter analyticity
+of the continued function everywhere on the cut plane. Treat these as explicit
+shared prerequisites, not as direct specializations that are already available.
+
+### 1. Incomplete Gamma and generalized exponential integrals
+
+**First priority; 87 admissions in the four core files.** Start with the 18 named
+targets below, then derivative and finite-shift families. This has the strongest
+combination of immediate reuse and consequences for Chapters 6 and 7.
+
+Use the defining and already proved identities
+`upperIncGamma = exp(-z) * U(1-a,1-a,z)` and
+`scIncGamma = exp(-z) * regularizedHGFun {1} {a+1} z`.
+The needed bridge is between `normIncGammaPContinued`/`QContinued` and the older
+quotients on regular parameters. Prove that bridge at its stated domain, then
+reuse the old normalized-Gamma formulas. It must retain the distinct continued
+values at nonpositive integral parameters; the old quotients are not a replacement
+there.
+
+[SpecialValues.lean](AAR/IncompleteGamma/SpecialValues.lean) contains particularly
+promising normalization and finite-sum adapters. The natural-parameter exponential
+sums are the old `normIncGammaP_nat_succ` and `normIncGammaQ_nat_succ`, expressed
+through `expPartialSum` and, where needed, multiplication by `n!`.
+The regularized pair follows from all-parameter Kummer transformation.
+`upperIncGamma_one_minus_nat` follows from the definition of `genExpIntE` and
+nonzero-argument power cancellation.
+
+In [SeriesRecurrences.lean](AAR/IncompleteGamma/SeriesRecurrences.lean), obtain
+`HasSum`, not just `tsum` equalities, from the existing convergent Kummer series.
+Gamma/Pochhammer coefficient rewrites then give the four elementary series.
+Three-term and finite-shift recurrences use the already proved one-step recurrence;
+weighted iterated derivatives use the general Kummer derivative families or an
+induction on the one-step formulas. No new contour theory is needed for these.
+The scaled `scIncGamma` ODE needs a regularized argument calculation that also
+handles exceptional parameters and `z=0`.
+
+In [ExponentialIntegral.lean](AAR/IncompleteGamma/ExponentialIntegral.lean), the
+scaled derivative is the old derivative plus the old `E_p` recurrence. The complex
+Laplace integral specializes proved `kummerU_laplace` at first parameter one.
+The displayed Stieltjes-type formula can use the same proved Laplace theorem at
+`U(p,p,z)` under its positive-real-part hypotheses, without invoking the admitted
+general Tricomi Stieltjes theorem.
+
+Next transfer the six Gamma Laplace/Mellin formulas in
+[ZerosIntegrals.lean](AAR/IncompleteGamma/ZerosIntegrals.lean) and the generalized
+exponential-integral Mellin–Laplace formula. Prefer the existing transforms with
+integrability included. The zero-at-argument-zero characterization is also a
+Gamma-reciprocal specialization, unlike the difficult moving-zero assertions
+in that same file.
+
+### 2. Error, Dawson and Fresnel bridges and calculus
+
+**Second priority; 58 admissions in Basic, Relations and Series.** Establish one
+small calculus interface for the straight-segment primitive, using Mathlib's
+existing integral/calculus API. A general helper belongs in `ToMathlib` if it
+has no special-function content; function-specific normalizations belong in `AAR`.
+This avoids separate differentiation-under-integral proofs for each primitive.
+
+The existing `erf` is already defined by the Kummer representation that
+`erf_kummerM_pair` asserts. Its second representation is Kummer transformation.
+The right-half-plane `erfc_kummerU_pair` uses the proved `kummerU_erfc` relation
+and Tricomi transformation, retaining the square-argument branch condition.
+`hasDerivAt_gaussianPrimitive` already gives the required derivative of the
+underlying Gaussian antiderivative.
+
+Prove the complex-to-real bridges `dawsonF_ofReal`, `fresnelCosInt_ofReal` and
+`fresnelSinInt_ofReal`. Then lift the old real Dawson/Fresnel Kummer identities
+by entire-function uniqueness, or derive their complex versions directly from
+the primitive calculus. After that, the Faddeeva derivative, Fresnel auxiliary
+derivatives, symmetries, error/Gamma relations and ordinary power series become
+shorter consequences of a shared core. The two Fresnel generalized-hypergeometric
+representations are coefficient bridges to the existing regularized series API.
+Do not confuse the real-axis asymptotics already proved with the acquired full
+complex-sector assertions.
+
+### 3. Entire exponential/trigonometric integrals and E1 continuation
+
+**Third priority; 55 admissions in Basic, Continuation and Expansions.** This is
+another bridge cluster, not a request to develop a new special-function theory.
+
+Identify the entire series with regularized generalized hypergeometric functions.
+For example, `Ein(z) = z * regularizedHGFun {1,1} {2,2} (-z)` follows coefficient
+by coefficient, including the normalization because `Gamma(2)=1`.
+Si and Cin use their corresponding regularized hypergeometric series with the
+Gamma factors retained. Mathlib's radius theorem then supplies absolute convergence
+and argument analyticity. Prove the real bridges from the already proved real
+`HasSum` formulas, and parity from the coefficients.
+
+The main analytic bridge is `expIntE1_eq_Ein_complex`. Start with the existing
+positive-real E1–Ein identity and analytic uniqueness on the slit plane; then
+check the stated nonzero-argument boundary convention separately. Once this is
+proved at the full stated domain, `expIntE1OnLog_principal`, the logarithmic
+monodromy/half-turn identities, ordinary E1 series and the `Si/Ci`–E1 relations
+share the same argument. Algebraic auxiliary identities should be dispatched
+alongside this work. The already proved E1–U and E1–upper-Gamma identities do not
+need another proof.
+
+### 4. Incomplete Beta from continued Gauss and the old real integral
+
+**Fourth priority; 20 admissions in [Beta.lean](AAR/IncompleteGamma/Beta.lean).**
+This is a compact additional reuse batch. First prove `incBeta_ofReal` and
+`normIncBetaI_ofReal` from the old
+`Real.incBeta_eq_ordinaryHypergeometric`, the regularized/ordinary Gauss bridge
+and the Beta/Gamma normalization. Treat zero and one explicitly; the continued
+functions have a separate definition at one.
+
+The Euler and Pfaff representations then specialize the proved continued Gauss
+transformations. The quadratic identity should use the existing quadratic Gauss
+transformations or the old integral after the bridge. The eight contiguous
+identities are a family of regularized Gauss relations, normalized by Gamma
+recurrences; the old real incomplete-Beta recurrences can also supply the
+positive-parameter cases. Do not restrict the stated positive `a,b` merely
+because some shifted parameters are negative: the new functions were introduced
+to retain those cases, including the removable `a=0` specialization.
+
+The three whole-expression limit statements at `a+b=1` need the cancellation
+proved before taking limits; separate totalized Gamma factors are not continuous
+there. The old real integral supplies the endpoint limit. The negative-binomial
+sum can reuse the proved real binomial-tail identity and the appropriate series
+sum, with convergence justified. The Mellin–Barnes representation and continued
+fraction convergence are later tasks in this file: the general Gauss continued
+fraction results are themselves admitted and cannot close the latter by reuse.
+
+### 5. Cylinder alternatives, special values and Weber W
+
+**Fifth priority; 58 admissions in Basic, Relations, Hermite and Weber.** The
+older cylinder theory is sufficiently extensive that these should precede the
+new uniform asymptotic system.
+
+- `pcfEven_kummer_alternative` and `pcfOdd_kummer_alternative` are Kummer
+  transformation with an exponential prefactor. Their four explicit power series
+  reuse the same ordinary Kummer series and Pochhammer duplication.
+- The four weighted iterated-derivative identities follow by induction from the
+  proved `U,V` derivative recurrences. The four rotated connections should be
+  compared with the old connection theorems; parameters excluded by an older
+  statement need a separate limiting or entire argument.
+- The two physicists' Hermite statements adapt the proved probabilists' Hermite
+  specialization and the project's existing normalization bridge.
+- `pcfU_half`, `pcfV_neg_half`, `pcfU_kummerU_odd` and `pcfU_whittaker` specialize
+  the existing cylinder–Tricomi, erf/Dawson and Whittaker relations.
+  For the four Bessel-K special values, first prove one seed with
+  `kummerU_besselK`, then use cylinder and Bessel recurrences.
+- Weber `W` is a linear combination of rotated, already proved even/odd cylinder
+  solutions. Obtain its initial values, ODE and Wronskian from that basis; do not
+  rederive an independent Weber power-series theory. Its Gamma phase and rotated
+  connection formula need more work than these first calculus results.
+
+Repeated erfc integrals should follow immediately after this core work. Prove
+one moment-integral bridge to `pcfU` using `pcfU_eq_integral`, including the change
+of scale and integrability. Then transfer `iteratedErfc_pcfU`, its Kummer forms,
+recurrence, derivatives, ODE and Hermite relation, and `pcfU_hh`. The analogous
+statements in Chapters 7 and 12 should share this proof rather than be developed
+in two directions that depend circularly on one another. The present import order
+allows the Chapter 7 file to use the old cylinder core, and the new Chapter 12
+relations to use that proved bridge.
+
+### 6. Associated Legendre and Ferrers identities from continued Gauss theory
+
+**Sixth priority; 126 admissions in the six core files.** Start with the polynomial
+special cases and argument calculus, then recurrences and connection formulas.
+Do not put global parameter differentiability on the critical path for all of them.
+
+`associatedP` is a logarithmic prefactor times regularized Gauss with parameters
+`nu+1,-nu,1-mu`. The continued Gauss ODE is already proved in
+[Basic.lean](AAR/Legendre/Basic.lean), and the degree-only Legendre and Ferrers
+ODE proofs provide templates. Thus `associatedP_analytic`, `associatedP_ode`,
+`olverQ_analytic` and `olverQ_ode` need substitutions and branch calculus,
+not a new hypergeometric equation. The 24 recurrences and order-derivative
+assertions in [AssociatedRecurrences.lean](AAR/Legendre/AssociatedRecurrences.lean)
+should be handled as families from the regularized contiguous/derivative API.
+
+For Ferrers Q, first prove the bridge between its W1/W2 definition and the
+nonintegral-order P connection expression. The existing quadratic Gauss connection
+formulas are the natural source. Its integral-order limit needs parameter
+continuity on the actual regular domain. Derive the related reflection,
+connection and Wronskian formulas from that bridge. Avoid changing the definition
+to a literal quotient by `sin(pi*mu)`, which would lose integral orders.
+
+The natural-degree/order results should use the already proved `ferrersP_nat`,
+`legendreP_nat`, polynomial derivatives, parity and associated-polynomial theory.
+For Rodrigues, preserve the existing pointer to Mathlib's
+`Polynomial.factorial_mul_shiftedLegendre_eq`; only a normalization or derivative
+adapter belongs here. The zero-order special values can also use the old degree-only
+P/Q functions. Spherical-harmonic normalization, parity and integer-order statements
+then follow from polynomial bridges, while full orthonormality/addition still
+require their integral/sum arguments.
+
+Global parameter analyticity of the continued Gauss API is a separate high-payoff
+extension. Prove it once, with local domination or a locally stable continuation
+construction, rather than reproducing it for `P`, Olver `Q` and each transform.
+The disk joint-parameter admission and `scIncGamma_joint_entire` need a genuine
+multivariable argument. Neither is a one-line consequence of the existing
+one-variable parameter-curve theorems.
+
+### 7. Struve and Lommel through regularized 1F2
+
+**Seventh priority; 67 admissions in Basic, Properties and Lommel.** Although this
+is foundational work, most of its analytic machinery already exists upstream.
+Prove the exact bridges
+
+```
+struveHCore nu z = regularizedHGFun {1} {3/2, nu+3/2} (-z^2/4)
+struveLCore nu z = regularizedHGFun {1} {3/2, nu+3/2} ( z^2/4)
+```
+
+The upper Pochhammer `(1)_n=n!` cancels the factorial, so no extra Gamma
+normalization is needed. These bridges hold even at exceptional orders because
+they use reciprocal-Gamma coefficients. Ordinary unregularized 1F2 would create
+unnecessary parameter restrictions. Mathlib then gives convergence and argument
+entireness; parameter entireness still needs a parameter-dependent majorant.
+
+Derive the inhomogeneous second-order equations from the coefficient recurrence
+or the first integral of the general hypergeometric equation. Merely substituting
+into the homogeneous third-order 1F2 equation does not identify the forcing
+constant without an initial-value calculation. The existing all-order Bessel
+ODEs then give the K/M equations by subtraction. Half-order values and shifted
+series reduce to the proved Bessel/Gamma formulas; order recurrences and weighted
+derivatives reuse the same coefficient identities. General solutions use a
+particular solution plus the proved Bessel Wronskians and ODE uniqueness.
+
+For small Lommel `s`, use the same regularized 1F2 machinery on its stated regular
+parameter domain. Capital Lommel `S` additionally needs its removable-parameter
+specification. Anger/Weber finite-integral calculus and integer-order Bessel
+specializations are a subsequent useful batch. Their large-order and turning-point
+approximations are not immediate hypergeometric specializations.
+
+### 8. Transfer ordinary transforms and fixed-parameter asymptotics
+
+After the bridges, prioritize integrals with exactly matching convergence regions
+and fixed-parameter asymptotic expansions. The project already proves real-axis,
+principal-sector and rotated-sector Tricomi expansions, as well as the real upper
+Gamma, erfc and generalized-exponential-integral expansions. It also has the
+Laplace/Mellin machinery noted above. This should resolve some admitted expansions
+and transforms without new asymptotic analysis.
+
+However, a theorem on a principal sector cannot simply be relabeled as one on
+`logSector` extending beyond a full turn. First prove agreement of the logarithmic
+continuation with the rotated solution in each required sector, including
+connection terms. Sharp signed remainder bounds require estimates that a
+Poincare expansion alone does not supply. Likewise a Bessel-series identity
+still needs a justified rearrangement or convolution; recognizing its individual
+terms is not a convergence proof.
+
+### Airy and the earlier admissions
+
+Airy's 59 relation admissions also have high reuse potential after the shared
+complex-power and continuation bridges. The old real-axis Bessel representations
+are proved, as are the all-order Bessel derivative/connection APIs and the
+Whittaker–Bessel identities. Extend these systematically to the acquired
+logarithmic-plane representations, then take linear combinations and inverses.
+This is a useful parallel mathematical track after the cylinder/Legendre bridge
+work, not a reason to start the zero tables or hyperasymptotics first.
+
+A source comparison found a **project transcription error** in
+`besselJ_third_eq_airy_complex` in [Relations.lean](AAR/Airy/Relations.lean):
+its bracket is `-eps*sqrt(3)*Ai(-z)+Bi(-z)`, copied in the shape of the modified-I
+formula. [DLMF 9.6.11](https://dlmf.nist.gov/9.6.E11) instead has
+`sqrt(3)*Ai(-z)-eps*Bi(-z)`. The plus-order case has the wrong overall sign in
+the project. Correct this statement before attempting its proof; this review has
+not changed it or claimed a new Lean counterexample. This is distinct from the
+previously proved DLMF source discrepancies. It also illustrates why the number
+of plausible specialization targets is not a guarantee that every acquired
+statement is ready to prove unchanged.
+
+The older Confluent/Hypergeometric admissions should be promoted when they are
+shared prerequisites, especially parameter analyticity and useful transform
+families. Otherwise retain them behind the new direct adapters. The remaining
+Gamma inequality/integral and the Bessel product/zero and Nicholson admissions
+are not made into direct parameter substitutions by these acquisitions.
+Orthogonal-polynomial and spherical-harmonic leftovers benefit selectively from
+the new integer-order bridges; q-series, partition and Selberg gaps need their
+own proof tracks.
+
+### Work to defer
+
+The initial removal effort should not start with global zero trajectories and
+zero counts, numerical zero enclosures, Olver coefficient-system existence,
+large-degree/order turning-point uniformity, hyperasymptotics, general
+Mehler–Fock inversion, or convergence of continued fractions.
+These are substantive additional theories. Some real inequalities and positivity
+statements will become accessible from proved integral representations; assess
+those individually instead of deferring every inequality or every theorem in a
+file named `Zeros`.
+
+Do not weaken branches, exceptional parameters, ordered convergence, remainder
+uniformity or integrability just to fit a proved upstream statement. Finish
+normalization and local domain bridges first. If an upstream result already
+matches the DLMF assertion exactly, replace the local duplicate with a precise
+pointer under the project policy.
+
+### First concrete batch: 18 targets
+
+These are the recommended initial proof targets, not completed proofs. Their
+sources are the proved Gamma/confluent core described above. In-file ordering
+may require relocating declarations or importing a small bridge module to avoid
+using a later admission.
+
+- [AAR/IncompleteGamma/Basic.lean](AAR/IncompleteGamma/Basic.lean): [`normIncGammaPContinued_eq`](AAR/IncompleteGamma/Basic.lean#L53), [`normIncGammaQContinued_eq`](AAR/IncompleteGamma/Basic.lean#L59).
+- [AAR/IncompleteGamma/SpecialValues.lean](AAR/IncompleteGamma/SpecialValues.lean): [`scIncGamma_zero`](AAR/IncompleteGamma/SpecialValues.lean#L38), [`scIncGamma_regularized_pair`](AAR/IncompleteGamma/SpecialValues.lean#L116), [`lowerIncGamma_kummerM_pair`](AAR/IncompleteGamma/SpecialValues.lean#L110), [`upperIncGamma_one_minus_nat`](AAR/IncompleteGamma/SpecialValues.lean#L86), [`lowerIncGamma_nat_succ_expPartialSum`](AAR/IncompleteGamma/SpecialValues.lean#L62), [`upperIncGamma_nat_succ_expPartialSum`](AAR/IncompleteGamma/SpecialValues.lean#L68), [`normIncGammaPContinued_nat_succ_expPartialSum`](AAR/IncompleteGamma/SpecialValues.lean#L74), [`normIncGammaQContinued_nat_succ_expPartialSum`](AAR/IncompleteGamma/SpecialValues.lean#L80).
+- [AAR/IncompleteGamma/SeriesRecurrences.lean](AAR/IncompleteGamma/SeriesRecurrences.lean): [`scIncGamma_hasSum_exponential`](AAR/IncompleteGamma/SeriesRecurrences.lean#L27), [`scIncGamma_hasSum_alternating`](AAR/IncompleteGamma/SeriesRecurrences.lean#L33), [`upperIncGamma_hasSum_alternating`](AAR/IncompleteGamma/SeriesRecurrences.lean#L45), [`upperIncGamma_hasSum_exponential`](AAR/IncompleteGamma/SeriesRecurrences.lean#L51), [`incompleteGamma_threeTerm`](AAR/IncompleteGamma/SeriesRecurrences.lean#L75), [`scIncGamma_recurrence`](AAR/IncompleteGamma/SeriesRecurrences.lean#L81).
+- [AAR/IncompleteGamma/ExponentialIntegral.lean](AAR/IncompleteGamma/ExponentialIntegral.lean): [`genExpIntE_scaled_derivative`](AAR/IncompleteGamma/ExponentialIntegral.lean#L95), [`genExpIntE_laplace_complex`](AAR/IncompleteGamma/ExponentialIntegral.lean#L41).
+
+For `scIncGamma_hasSum_exponential`, construct the genuine `HasSum` from the
+regularized confluent series rather than treating the old `tsum` identity as
+convergence. For the alternating series use the regularized Kummer pair and
+Gamma recurrence. The upper-series versions then use complementarity. Prove the
+continued normalization bridge before the four finite exponential sums. The
+complex Laplace formula uses `kummerU_laplace` with first parameter one; its
+hypotheses do not restrict the order `p`.
+
+After this batch, proceed through error/Fresnel calculus and the E1/Ein bridge,
+then the incomplete-Beta adapters, cylinder alternatives and the repeated-erfc
+bridge. Start the larger
+associated-Legendre and Struve families once their shared APIs are in place.
+The file-portfolio counts, in this order, are:
+
+- Gamma and generalized exponential-integral core: 87.
+- Error/Dawson/Fresnel core: 58.
+- Exponential and trigonometric integral core: 55.
+- Incomplete Beta continuation and recurrences: 20.
+- Cylinder core: 58.
+- Associated Legendre core: 126.
+- Struve/Lommel core: 67.
+
+### Validation of this review
+
+The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes. A fresh compiled
+census finds 6,971 public `AAR.*` theorem declarations and 1,609 with `sorryAx`,
+matching the source count, with no unexpected axioms. Seventy local theorem
+dependencies and four upstream theorem dependencies were checked explicitly;
+all use only standard Lean axioms. This includes the continued Gauss, regularized
+confluent, Bessel, cylinder, Gamma and Laplace/Mellin APIs cited as proved here.
+Three representative adapters were also checked as separate proof probes, with
+no admitted dependencies, without changing the library declarations.
+
+No library Lean file, dependency pin, toolchain, build directory or theorem
+assumption was changed. Documentation links and `git diff --check` were checked.
+The complete acquisition ledgers remain the detailed statement inventories;
+this review supersedes their earlier proof ordering for the admission-removal effort.
+
+
+## Seven-track admission removal (2026-10-19)
+
+The first implementation batch addresses all seven priorities above and removes
+**100 original admissions**, reducing the project total from **1,609 to 1,509**.
+It adds 22 proved AAR bridge/calculus helpers and four proved Mathlib-only helpers.
+No admissions, axioms or definitions were added; every existing theorem statement,
+assumption and definition is unchanged. All 18 named initial targets are proved.
+The original seven core portfolios now contain 371 remaining admissions.
+
+The six acquired chapters now have 1,029 admissions: exponential integrals 84,
+error functions 147, incomplete Gamma/Beta 224, Struve 160, cylinders 108 and
+Legendre 306. Airy remains at 363 and the earlier theory at 117. These are explicit
+admitted declarations, rather than comment occurrences or equation counts.
+
+The general straight-segment FTC adapters live in
+[SegmentPrimitive.lean](ToMathlib/Analysis/Complex/SegmentPrimitive.lean).
+[FactorialSeries.lean](ToMathlib/Analysis/Complex/FactorialSeries.lean) proves
+absolute convergence and entireness for bounded coefficients with injective positive
+exponents and factorial denominators, using Mathlib's exponential-series and
+locally uniform convergence APIs. Both import Mathlib only. The DLMF primitive
+adapters identify the actual integral with an antiderivative, including negative
+and zero real arguments.
+
+### 1. Gamma and generalized exponential integrals: 24 removals
+
+The regularized Kummer transformation gives the continued normalization bridges
+and the scaled-Gamma pair at all parameters. Genuine `HasSum` proofs supply the
+Gamma series; the all-parameter scaled recurrence gives the continued P/Q shifts,
+including exceptional orders. Ordinary lower/upper Gamma shifts retain their
+original nonpolar hypotheses. Differentiating Tricomi U and using its contiguous
+relation supplies the upper-Gamma derivative at every order; complementarity gives
+the lower derivative on its original domain. The complex Laplace representation
+specializes the proved Kummer integral at first parameter one, with no extra
+restriction on the order.
+
+- [AAR/IncompleteGamma/Basic.lean](AAR/IncompleteGamma/Basic.lean): `normIncGammaPContinued_eq`, `normIncGammaQContinued_eq`.
+- [AAR/IncompleteGamma/ExponentialIntegral.lean](AAR/IncompleteGamma/ExponentialIntegral.lean): `genExpIntE_laplace_complex`, `genExpIntE_scaled_derivative`.
+- [AAR/IncompleteGamma/SeriesRecurrences.lean](AAR/IncompleteGamma/SeriesRecurrences.lean): `scIncGamma_hasSum_exponential`, `scIncGamma_hasSum_alternating`, `upperIncGamma_hasSum_alternating`, `upperIncGamma_hasSum_exponential`, `incompleteGamma_threeTerm`, `scIncGamma_recurrence`, `normIncGammaPContinued_shift_up`, `normIncGammaQContinued_shift_up`, `lowerIncGamma_shift_up`, `upperIncGamma_shift_up`, `hasDerivAt_incompleteGamma`, `scIncGamma_deriv_parameter_zero`.
+- [AAR/IncompleteGamma/SpecialValues.lean](AAR/IncompleteGamma/SpecialValues.lean): `scIncGamma_zero`, `lowerIncGamma_nat_succ_expPartialSum`, `upperIncGamma_nat_succ_expPartialSum`, `normIncGammaPContinued_nat_succ_expPartialSum`, `normIncGammaQContinued_nat_succ_expPartialSum`, `upperIncGamma_one_minus_nat`, `lowerIncGamma_kummerM_pair`, `scIncGamma_regularized_pair`.
+
+### 2. Error, Dawson and Fresnel: 20 removals
+
+The shared primitive calculus gives entireness, derivatives and the real bridges.
+The Faddeeva derivative, Fresnel auxiliary derivatives, Dawson/Fresnel parity and
+inverse auxiliary identities follow without admitted integral representations.
+The two error-function Kummer forms reuse the old definition and Kummer transformation.
+
+- [AAR/ErrorFunctions/Basic.lean](AAR/ErrorFunctions/Basic.lean): `faddeevaW_entire`, `dawsonF_entire`, `fresnelCosInt_entire`, `fresnelSinInt_entire`, `fresnelTail_entire`, `fresnelAuxFComplex_entire`, `fresnelAuxGComplex_entire`, `dawsonF_ofReal`, `fresnelCosInt_ofReal`, `fresnelSinInt_ofReal`, `fresnelAuxFComplex_ofReal`, `fresnelAuxGComplex_ofReal`, `erf_complex_segment_integral`.
+- [AAR/ErrorFunctions/Relations.lean](AAR/ErrorFunctions/Relations.lean): `dawsonF_negative`, `fresnel_negative`, `fresnelCosInt_aux`, `fresnelSinInt_aux`, `hasDerivAt_faddeevaW`, `hasDerivAt_fresnelAux`, `erf_kummerM_pair`.
+
+### 3. Ein, E1, Si, Cin and Shi: 24 removals
+
+The factorial-series helper proves the four entire assertions and genuine complex
+series convergence. The real bridges use the old real `HasSum` theorems. The central
+E1–Ein identity is proved for **every nonzero complex argument**, including the
+project's principal value on the negative real axis. It follows by differentiating
+the regularized Kummer connection numerator at its integer second parameter;
+termwise parameter differentiation identifies the derivative with Ein. This
+supplies the E1 series, principal logarithmic-sheet identity and scaled-Gamma
+parameter derivative without weakening a branch hypothesis. The continuation
+identities preserve inherited logarithms.
+
+- [AAR/ExpIntegrals/Basic.lean](AAR/ExpIntegrals/Basic.lean): `expIntEin_entire`, `sinInt_entire`, `cosIntCin_entire`, `sinhInt_entire`, `expIntEin_ofReal`, `sinInt_ofReal`, `cosIntCin_ofReal`, `cosInt_ofReal`, `sinInt_odd`, `cosIntCin_even`, `expIntE1_eq_Ein_complex`, `Real.expIntEi_negative`, `Real.expIntEi_Ein`, `sinInt_eq_aux`, `cosInt_eq_aux`.
+- [AAR/ExpIntegrals/Continuation.lean](AAR/ExpIntegrals/Continuation.lean): `expIntE1OnLog_principal`, `expIntE1OnLog_monodromy`, `expIntE1OnLog_halfTurn`, `cosIntOnLog_halfTurn`, `coshIntOnLog_halfTurn`.
+- [AAR/ExpIntegrals/Expansions.lean](AAR/ExpIntegrals/Expansions.lean): `hasSum_Ein_complex`, `expIntE1_hasSum`, `hasSum_Si_complex`, `hasSum_Ci_complex`.
+
+### 4. Incomplete Beta: 5 removals
+
+The complex-to-real bridges include both endpoints zero and one. Euler and Pfaff
+representations specialize the proved continued Gauss transformations, and the
+weighted contiguous identity 8.17.13 follows from the old real recurrences. No
+positivity assumption on a shifted parameter was introduced.
+
+- [AAR/IncompleteGamma/Beta.lean](AAR/IncompleteGamma/Beta.lean): `incBeta_ofReal`, `normIncBetaI_ofReal`, `incBeta_hypergeometric_euler`, `incBeta_hypergeometric_pfaff`, `normIncBetaI_contiguous_13`.
+
+### 5. Parabolic cylinders and Weber W: 10 removals
+
+Kummer transformation gives both alternative bases. Reciprocal-Gamma entireness
+and the regularized Kummer parameter API give entire order dependence of U and V.
+The four weighted iterated derivatives follow by induction from the proved first
+recurrences. The half-order U/erfc formula holds at every complex argument, directly
+from the Kummer bases. Weber W has its specified value and derivative at zero,
+using the rotated even/odd basis.
+
+- [AAR/ParabolicCylinder/Basic.lean](AAR/ParabolicCylinder/Basic.lean): `pcfU_entire_order`, `pcfV_entire_order`, `pcfEven_kummer_alternative`, `pcfOdd_kummer_alternative`, `pcfU_iterated_deriv_9`, `pcfU_iterated_deriv_10`, `pcfV_iterated_deriv_11`, `pcfV_iterated_deriv_12`.
+- [AAR/ParabolicCylinder/Relations.lean](AAR/ParabolicCylinder/Relations.lean): `pcfU_half`.
+- [AAR/ParabolicCylinder/Weber.lean](AAR/ParabolicCylinder/Weber.lean): `pcfW_initial`.
+
+### 6. Associated Legendre and Ferrers: 12 removals
+
+Argument analyticity of P and Olver Q respects the original logarithmic sheet.
+A shared logarithmic-gauge derivative and the continued Gauss equation prove the
+associated-P ODE at all degrees and orders on its stated slit domain. Six
+zero-order degree special values use the existing polynomial bridge; the integer
+order-above-degree zeros use the exceptional-parameter regularized Gauss series.
+The degree reflection of Ferrers P is Gauss symmetry.
+
+- [AAR/Legendre/Associated.lean](AAR/Legendre/Associated.lean): `associatedP_analytic`, `associatedP_ode`, `olverQ_analytic`.
+- [AAR/Legendre/Connections.lean](AAR/Legendre/Connections.lean): `ferrers_connection_5`.
+- [AAR/Legendre/IntegerTheory.lean](AAR/Legendre/IntegerTheory.lean): `ferrersP_order_gt_degree`, `associatedP_order_gt_degree`.
+- [AAR/Legendre/SpecialValues.lean](AAR/Legendre/SpecialValues.lean): `ferrersP_degree_0`, `ferrersP_degree_1`, `ferrersP_degree_2`, `associatedP_degree_0`, `associatedP_degree_1`, `associatedP_degree_2`.
+
+### 7. Struve and Lommel: 5 removals
+
+Both normalized Struve cores are identified with Mathlib's regularized 1F2 at
+all orders, preserving reciprocal-Gamma zeros. The radius theorem supplies
+convergence and entire argument dependence. Small Lommel s has its exact
+regularized 1F2 representation on the original regular parameter domain, including
+its Gamma prefactor, and genuine defining-series convergence follows. Capital
+Lommel's limiting definition is not used as an unproved specification.
+
+- [AAR/Struve/Basic.lean](AAR/Struve/Basic.lean): `hasSum_struveHCore`, `entire_struveHCore`, `hasSum_struveLCore`, `entire_struveLCore`.
+- [AAR/Struve/Lommel.lean](AAR/Struve/Lommel.lean): `hasSum_lommelS`.
+
+### Remaining priorities
+
+This batch establishes shared interfaces across all seven tracks; it does not
+complete the 471-obligation core portfolio. Continue with the repeated-erfc
+moment-integral bridge and its cylinder/Kummer transfers, the remaining Beta
+contiguous family and singular whole-expression limits, and Si/Ci–E1 identities
+and segment/improper integrals. For Legendre, Olver Q's ODE and the Ferrers-Q
+connection bridge precede the larger recurrence/Wronskian families. For Struve
+and Lommel, the inhomogeneous forcing constants require a coefficient or initial
+value argument; the homogeneous third-order 1F2 equation alone is insufficient.
+Order entireness, capital-Lommel removable limits and the larger asymptotic
+systems remain admitted. The previously flagged Airy transcription error remains
+outside this proof batch.
+
+### Validation
+
+The ordinary root build passes with 9,797 jobs. All 31 direct file checks pass:
+every changed/new Lean file, the six chapter umbrellas, `AAR.lean`, `ToMathlib.lean`
+and `Main.lean`. The compiled axiom audit covers 7,020 `AAR.*` theorem declarations;
+its 1,509 admitted names are exactly the previous 1,609 minus these 100, with no
+hidden admission dependencies or unexpected axioms. All 100 completed statements
+and all 26 added helper theorems pass individual axiom checks.
+
+A source comparison against the pre-batch snapshot confirms unchanged statements,
+assumptions and existing definitions, no removed declarations and no new admissions.
+The source admission scan, documentation links and `git diff --check` pass.
+Toolchain, dependency pins, build directory and the shared `.lake` symlink are
+unchanged. Validation artifacts and the exact name census are under
+`/tmp/AAR-seven`; no scratch Lean file was added to the project and no commit was made.
+
+
+## Four-priority admission removal (2026-10-20)
+
+This follow-up implements the four recommended proof tracks and removes **69
+original admissions**, reducing the project total from **1,509 to 1,440**. It adds
+34 proved AAR helpers and two proved Mathlib-only helpers. Every existing theorem
+statement, assumption and definition is unchanged. No declaration was deleted and
+no admission or axiom was introduced.
+
+The four tracks account for 30 exponential-integral/error/Fresnel removals,
+14 repeated-erfc/cylinder removals, 12 incomplete-Beta removals, and 13
+incomplete-Gamma removals. Some files serve more than one track. The exact
+file-by-file inventory is recorded below.
+
+### Exponential, error and Fresnel relations
+
+Absolutely convergent even/odd series splitting identifies Ein at imaginary
+arguments with Cin and Si. The principal quarter-turn logarithms are proved on
+the original right half-plane; they give Si/Ci–E1 and auxiliary-function formulas.
+Mathlib's two one-sided logarithmic limits supply the signed negative-axis E1
+boundary values. The logarithmic-plane half-turn formulas retain their original
+signs. Hyperbolic integrals follow from the same rotations and the real Ei bridge.
+
+The five straight-segment integral formulas use the entire divided difference
+`dslope` and equality on the positive real axis. Changing the filled-in value at
+the origin does not change the integral. In particular, the totalized quotient
+integrands and the existing function definitions are preserved. The general
+identity and removable-singularity adapters import Mathlib only.
+
+The signed Fresnel–erf identity follows from derivatives and the value at zero.
+It supplies the Faddeeva, complementary-erfc, auxiliary-tail and Kummer forms.
+Other transfers give imaginary rotation, auxiliary reflection and rotation,
+Dawson–Faddeeva, the Hermite derivative of erf, and the Gamma/Tricomi descriptions
+of erfc. All complex branch restrictions are retained.
+
+### Repeated erfc and cylinder moments
+
+Completing the square identifies the Gaussian probability moments with cylinder
+U. A real change of scale retains the Jacobian and moment power. An explicit
+positive-root computation proves the principal complex-power normalization, and
+the integer-index bridge includes the initial index -1.
+
+The bridge transfers the derivative, recurrence, weighted iterated derivatives,
+ODE, Hermite and Kummer identities. The general-solution proof uses a conserved
+weighted Wronskian and proves the needed initial values nonzero; it does not rely
+on an admitted uniqueness or basis theorem. The logarithmic-plane Kummer formula
+retains `2 * log z` and is proved for every nonzero z. Chapter 12 receives the
+weighted-erfc derivative formula and both Hh representations.
+
+For the import order, the already proved `pcfU_half` is moved from cylinder
+Relations to Basic, with the same name, statement and proof. Likewise the already
+proved Ein and Si HasSum declarations move from Expansions to Basic. These three
+relocations are not counted as removals or new helpers.
+
+### Incomplete Beta
+
+All seven remaining elementary contiguous identities are proved. Regularized
+Gauss contiguous formulas give neighboring-parameter relations without requiring
+the shifted parameters to be positive. Reciprocal Gamma recurrence handles zero
+or negative shifted parameters; the original exclusions at a+b=1 remain intact.
+
+The three complex perturbation limits are proved by identifying each whole
+contiguous expression with an unshifted value in a punctured neighborhood and
+then taking its continuous limit. No individual singular Gamma factor is assigned
+a spurious limit. TauCeti's continuous regularized incomplete Beta, via the existing
+project normalization adapter, supplies the endpoint limit. The negative-binomial
+formula is a genuine HasSum statement obtained from the Euler-transformed
+convergent Gauss series, including x=0.
+
+### Incomplete Gamma
+
+Reversing the finite upward-shift correction proves both downward shifts.
+Tricomi and Kummer differentiation prove all five weighted iterated-derivative
+families. The regularized derivative argument for scaled Gamma is valid at every
+parameter, including Gamma zeros.
+
+All six Laplace/Mellin transforms are proved from the existing regularized Kummer
+and Tricomi integral theory. The lower-Gamma Mellin formula uses the proved
+exponentially weighted Kummer Mellin transform, not the still admitted unweighted
+Kummer Mellin statement. Pfaff transformation retains the stated arguments and
+convergence regions of the two mixed transforms. The upper-Gamma Laplace formula
+covers the original region Re a > -1, Re b > -1: Euler's elementary Gauss integral
+is evaluated separately at a=0, at b=0, and otherwise. No convergence hypothesis
+was strengthened to bypass those cases.
+
+### Completed theorem inventory
+
+- [AAR/ErrorFunctions/Relations.lean](AAR/ErrorFunctions/Relations.lean): `fresnel_mul_I`, `fresnelAux_mul_I`, `fresnelAux_negative`, `dawsonF_faddeeva`, `fresnel_signed_tail`, `fresnelTail_aux`, `fresnel_signed_erf`, `fresnel_signed_faddeeva`, `fresnelAux_signed_erfc`, `iteratedDeriv_erf_hermite`, `erfc_kummerU_pair`, `erfc_upperIncGamma`, `erf_lowerIncGamma`, `erfc_genExpIntE`, `fresnel_kummerM_pair`.
+- [AAR/ErrorFunctions/Repeated.lean](AAR/ErrorFunctions/Repeated.lean): `iteratedErfc_initial`, `hasDerivAt_iteratedErfc`, `iteratedErfc_recurrence`, `iteratedDeriv_scaled_erfc`, `iteratedErfc_ode`, `iteratedErfc_general_solution`, `iteratedErfc_hermite`, `iteratedErfc_kummerM`, `iteratedErfc_kummerU`, `iteratedErfc_kummerUOnLog`, `iteratedErfc_pcfU`, `iteratedErfc_probability`.
+- [AAR/ExpIntegrals/Basic.lean](AAR/ExpIntegrals/Basic.lean): `expIntEin_segment_integral`, `sinInt_segment_integral`, `cosIntCin_segment_integral`, `sinhInt_segment_integral`, `coshInt_segment_integral`.
+- [AAR/ExpIntegrals/Continuation.lean](AAR/ExpIntegrals/Continuation.lean): `expIntAuxFOnLog_halfTurn`, `expIntAuxGOnLog_halfTurn`, `expIntE1_negative_boundary`, `expIntEi_boundary_average`, `sinhInt_eq_Ei`, `coshInt_eq_Ei`, `sinInt_eq_E1`, `cosInt_eq_E1`, `expIntAux_eq_E1`.
+- [AAR/ExpIntegrals/Expansions.lean](AAR/ExpIntegrals/Expansions.lean): `expIntAux_eq_kummerU`.
+- [AAR/IncompleteGamma/Beta.lean](AAR/IncompleteGamma/Beta.lean): `normIncBetaI_contiguous_12`, `normIncBetaI_contiguous_14`, `normIncBetaI_contiguous_15`, `normIncBetaI_contiguous_16`, `normIncBetaI_contiguous_17`, `normIncBetaI_contiguous_18`, `normIncBetaI_contiguous_19`, `normIncBetaI_contiguous_limit_12`, `normIncBetaI_contiguous_limit_16`, `normIncBetaI_contiguous_limit_17`, `incBeta_continuedFraction_endpoint_limit`, `normIncBetaI_negative_binomial_sum`.
+- [AAR/IncompleteGamma/SeriesRecurrences.lean](AAR/IncompleteGamma/SeriesRecurrences.lean): `lowerIncGamma_shift_down`, `upperIncGamma_shift_down`, `lowerIncGamma_iteratedDeriv_scaled_power`, `upperIncGamma_iteratedDeriv_scaled_power`, `lowerIncGamma_iteratedDeriv_scaled_exp`, `upperIncGamma_iteratedDeriv_scaled_exp`, `scIncGamma_iteratedDeriv_scaled`.
+- [AAR/IncompleteGamma/ZerosIntegrals.lean](AAR/IncompleteGamma/ZerosIntegrals.lean): `normIncGammaP_laplace`, `upperIncGamma_laplace`, `lowerIncGamma_mellin`, `upperIncGamma_mellin`, `lowerIncGamma_mellin_laplace`, `upperIncGamma_mellin_laplace`.
+- [AAR/ParabolicCylinder/Relations.lean](AAR/ParabolicCylinder/Relations.lean): `pcfU_nat_add_half_deriv`, `pcfU_hh`.
+
+### Remaining obligations
+
+These four tracks establish the reusable transfers; they do not finish the
+chapters. In Chapter 7, the repeated-tail integral, repeated-erfc Taylor HasSum,
+continued fraction and sector asymptotics remain admitted, as do further
+Fresnel hypergeometric and norm formulas. Chapter 6 still has improper and
+oscillatory representations, bounds, continued fractions and asymptotic theory.
+The incomplete-Beta quadratic transformation, Mellin–Barnes integral and continued
+fraction convergence remain. Incomplete-Gamma zero geometry, additional Bessel
+and Laguerre series, multiplication formulas and asymptotic systems also remain.
+
+The project now has 69 exponential-integral, 120 error-function, 199
+incomplete-Gamma/Beta, 160 Struve, 106 cylinder, 306 Legendre, 363 Airy and
+117 earlier-theory admissions. The earlier Airy source-transcription issue remains
+outside this batch. No new false or suspected-false statement was identified.
+
+### Validation
+
+The ordinary root build passes with 9,797 jobs. All 19 direct checks pass: the
+12 source files changed in this follow-up, four affected chapter umbrellas,
+`AAR.lean`, `ToMathlib.lean` and `Main.lean`.
+
+The compiled audit covers 7,062 AAR theorem declarations. Its 1,440 admitted names
+are exactly the baseline 1,509 minus the 69 statements above, with no unexpected
+axioms. Every completed theorem and each of the 36 new helpers is individually
+free of `sorryAx` dependencies. The source comparison confirms unchanged existing
+statements and definitions, no removed declarations, and no new admissions.
+
+The affected-source admission scan, documentation links and `git diff --check`
+pass. Toolchain, dependency pins, build directory and shared `.lake` symlink are
+unchanged. Artifacts, the exact admitted-name census and direct-check logs are in
+`/tmp/AAR-next4`. No project scratch file or commit was created.
+
+
+## Struve and Lommel forcing (2026-10-20)
+
+This batch removes **15 admissions**, taking the exact project census from
+**1,440 to 1,425**. It preserves all existing statements, hypotheses, definitions,
+principal branches and parameter exclusions. No new admissions or axioms were
+introduced.
+
+The reusable result is
+`AAR.Hypergeometric.regularized1F2_one_inhomogeneous_ode` in
+[GeneralizedCalculus.lean](AAR/Hypergeometric/GeneralizedCalculus.lean).
+For F(z) equal to the regularized 1F2 with upper parameter one, it proves
+
+`z² F'' + (b+c-1) z F' + ((b-1)(c-1)-z) F = 1/(Γ(b-1) Γ(c-1))`.
+
+Its proof cancels only the nonzero natural coefficient n+1. Reciprocal-Gamma
+recurrence retains every exceptional lower parameter. A quadratic substitution
+and a branch-specified power gauge then give the exact Struve and small-Lommel
+forcing. This proves the forcing constant directly; the third-order homogeneous
+hypergeometric equation alone would not determine it.
+
+Subtracting the proved homogeneous Bessel solutions gives the Struve K and M
+equations. The existing all-order J/Y fundamental system gives the five ordinary
+affine solution formulas, including their reverse implications for functions
+specified only on the open slit plane. It also gives the small-Lommel general
+solution. The two half-turn continuation formulas follow from the squared
+exponential coordinate and retain inherited logarithms.
+
+The Fresnel tail norm identity is proved on the entire real axis as a reusable
+helper. Real/complex bridges and the existing auxiliary reflection formulas give
+both acquired half-axis statements.
+
+### Completed theorem inventory
+
+- [Struve Basic](AAR/Struve/Basic.lean): `struveHOnLog_shift`, `struveLOnLog_shift`,
+  `struveH_ode`, `struveK_ode`, `struveL_ode`, `struveM_ode`, and
+  `struve_general_solution_11` through `struve_general_solution_15`.
+- [Lommel](AAR/Struve/Lommel.lean): `lommelS_ode` and `lommel_general_solution`.
+- [Error-function relations](AAR/ErrorFunctions/Relations.lean):
+  `fresnelTail_norm_sq_nonneg` and `fresnelTail_norm_sq_nonpos`.
+
+The modified Struve general-solution formulas, both zero-order series,
+order analyticity, Struve recurrences and capital-Lommel parameter continuation
+remain admitted. This batch does not establish a capital-Lommel equation by
+appealing to its still unproved parameter limit.
+
+### Validation
+
+The ordinary root build passes with 9,797 jobs. All 10 direct checks pass:
+the four changed Lean files, the three affected chapter umbrellas, `AAR.lean`,
+`ToMathlib.lean` and `Main.lean`.
+
+The compiled audit covers 7,081 AAR theorem constants. Its 1,425 admitted names
+are exactly the previous 1,440 minus the 15 completed statements. Each completed
+theorem and each of the 14 new theorem helpers is individually free of `sorryAx`;
+there are no unexpected axioms. The source comparison also checks unchanged
+existing statements and definitions, no removed declarations and no new
+admissions. The other new declaration is the cleared Bessel residual operator.
+
+The affected-source admission scan, local documentation links and
+`git diff --check` pass. Dependency pins, toolchain, build settings and the shared
+`.lake` symlink are unchanged. The snapshot, census, exact axiom inventories and
+direct-check logs are retained in `/tmp/AAR-nextbatch`. No commit was made.
+
+## Next proof priorities after the forcing batch
+
+The recommendation is to continue proving shared identities first and then their
+specializations. The current totals are 363 Airy, 306 Legendre, 199 incomplete
+Gamma/Beta, 147 Struve, 118 error-function, 106 cylinder, 69 exponential-integral
+and 117 earlier-theory admissions. The largest raw count is not necessarily the
+best first target: tables, zero geometry and uniform asymptotics usually need
+more new analysis than parameter shifts and transformations.
+
+### 1. Struve calculus and elementary specializations
+
+[Properties.lean](AAR/Struve/Properties.lean) contains 14 admitted derivative,
+order-recurrence, weighted-derivative and iterated-derivative statements. Start
+with a reciprocal-Gamma coefficient shift and the existing generalized
+hypergeometric derivative. Derive the two order recurrences and first
+derivatives, then the weighted and iterated forms. This is the strongest
+immediate reuse of the newly proved regularized-series core.
+
+Complete `struve_general_solution_16` and `_17` in
+[Basic.lean](AAR/Struve/Basic.lean) by applying the same Abel/Wronskian argument
+to the already proved I/K equations and nonzero Wronskian. The ordinary J/Y
+basis theorem alone does not prove this modified pair. The two zero-order
+series need Gamma half-integer coefficient simplification. The 12 half-integer
+and elementary formulas in Properties can then use reciprocal-Gamma zeros,
+series shifts and the existing Bessel half-integer formulas. These are 30
+concrete candidate admissions across this track, not a guarantee of a fixed
+batch size. Preserve the statements at zero in the four entire integer-order
+derivative specializations; a slit-plane calculation alone is insufficient.
+
+### 2. Short incomplete-Gamma and error-function transfers
+
+[SpecialValues.lean](AAR/IncompleteGamma/SpecialValues.lean) still admits
+`lowerIncGamma_half_square`, `upperIncGamma_half_square`,
+`scIncGamma_half_negative_square`, the half-integer Q finite sum, the negative-
+integer upper-Gamma finite sum and the two Whittaker representations. Most can
+use the now proved erf/erfc, Dawson, recurrence and Whittaker bridges. Check the
+import order when sharing an error-function relation: the current chapter
+imports prevent simply importing the downstream Relations module here.
+
+Also prioritize `lowerIncGamma_large_parameter_hasSum` in
+[Asymptotics.lean](AAR/IncompleteGamma/Asymptotics.lean), which is a convergent
+series specialization of the proved scaled-Gamma series despite its filename.
+It should precede the actual large-parameter estimates. The logarithmic-plane
+square identities are a separate continuation step; principal-sheet formulas
+must not be substituted without that step.
+
+### 3. Associated Legendre and Ferrers foundations
+
+This is the largest remaining systematic hypergeometric transfer. First prove
+the associated-P and Ferrers-P recurrences in
+[AssociatedRecurrences.lean](AAR/Legendre/AssociatedRecurrences.lean), using
+regularized Gauss contiguous relations and the proved gauge derivative.
+They do not need the Q connection theory first.
+
+Then complete `olverQ_ode`, `ferrersP_w1_w2`,
+`ferrersQ_hypergeometric`, `ferrersQ_order_limit` and `ferrersQ_ode` in
+[Associated.lean](AAR/Legendre/Associated.lean). These supply the two Q
+normalizations and their integer-order limiting argument. They support the
+Q recurrences, connection formulas, Wronskians and special values as a coherent
+follow-up. Keep Gamma-pole exclusions and the separate real Ferrers/principal
+complex branches explicit. This track has a higher initial cost than the
+short transfers above, but a substantially larger downstream return.
+
+### 4. Error-function Taylor coefficients and generalized trigonometric integrals
+
+In [Repeated.lean](AAR/ErrorFunctions/Repeated.lean), prove
+`iteratedErfc_hasSum` by even/odd splitting of the proved Kummer representation.
+A reciprocal-Gamma/Pochhammer identity valid at Gamma poles is the shared
+coefficient lemma; avoid cancelling a Gamma factor that can vanish. The tail
+integral needs a proved decay limit in addition to the existing derivative.
+
+In [Relations.lean](AAR/ErrorFunctions/Relations.lean), the Faddeeva higher-
+derivative recurrence and two Fresnel 1F2 identities are finite-calculus and
+coefficient-transfer targets. In
+[SineCosine.lean](AAR/IncompleteGamma/SineCosine.lean), begin with the upper
+Gamma combination identity, the lower even/odd series identity, parameter
+shifts and elementary specializations. Oscillatory improper integrals need
+separate convergence proofs and should follow these algebraic bridges.
+
+### 5. Shared asymptotics and transforms, then geometry
+
+After the identity tracks, transfer already proved Tricomi asymptotics to upper
+Gamma, generalized exponential integrals and repeated erfc, checking sector
+widths and inherited logarithms before claiming reuse. Promote an older
+Confluent admission when it is a necessary shared input; the unweighted Kummer
+Mellin transform is one example worth assessing. Bessel/Laguerre expansions,
+continued-fraction convergence and capital-Lommel continuation require further
+summability, convergence or parameter-uniform analysis.
+
+The two remaining Gamma admissions are a complex Gamma-ratio norm bound and
+the Mellin–Barnes Selberg integral. The two remaining Bessel admissions are
+Gegenbauer addition and Nicholson's integral. These are substantive separate
+projects rather than immediate specializations of the new Struve equation;
+they should not displace the higher-return identity work merely to finish a
+chapter.
+
+Airy complex/logarithmic Bessel connections remain a worthwhile later reuse
+track, ahead of zero tables and hyperasymptotics. First correct the previously
+identified sign transcription in `besselJ_third_eq_airy_complex`, as documented
+above. No new false or suspected-false theorem was identified in this batch.
+
+
+## Four-track identity proofs (2026-10-20)
+
+This batch works through all four identity tracks recommended after the forcing
+batch. It removes **58 admissions**, taking the source and compiled census from
+**1,425 to 1,367**. Every existing theorem statement, hypothesis and definition
+is unchanged; no false statement or new missing hypothesis was found. The new
+common signed quadratic Struve expression is a helper definition, not a change
+to either Struve normalization. The remaining counts are 363 Airy, 299 Legendre,
+182 incomplete Gamma/Beta, 119 Struve, 112 error functions, 106 cylinders,
+69 exponential integrals and 117 earlier-theory obligations.
+
+### Proved statements
+
+The following inventory records original admissions replaced by complete proofs.
+Names in the incomplete-Gamma and error-function modules belong to
+`AAR.Confluent`; the other groups use their corresponding project namespaces.
+
+### Struve: 28
+
+In [Basic.lean](AAR/Struve/Basic.lean):
+
+- `struve_general_solution_16`.
+- `struve_general_solution_17`.
+- `struveH_zero_order_series`.
+- `struveL_zero_order_series`.
+
+In [Properties.lean](AAR/Struve/Properties.lean):
+
+- `struveH_neg_nat_sub_half`.
+- `struveL_neg_nat_sub_half`.
+- `struve_special_6`.
+- `struve_special_10`.
+- `struve_special_5`.
+- `struve_special_8`.
+- `struve_special_12`.
+- `struve_special_7`.
+- `struve_special_9`.
+- `struve_special_11`.
+- `struveH_recurrence`.
+- `struveH_derivative`.
+- `struveH_weighted_deriv_27`.
+- `struveH_weighted_deriv_28`.
+- `struveH_iterated_weighted_deriv`.
+- `struveH_zero_deriv`.
+- `struveH_one_weighted_deriv`.
+- `struveL_recurrence`.
+- `struveL_derivative`.
+- `struveL_weighted_deriv_29`.
+- `struveL_weighted_deriv_30`.
+- `struveL_iterated_weighted_deriv`.
+- `struveL_zero_deriv`.
+- `struveL_one_weighted_deriv`.
+
+### Incomplete Gamma and generalized trigonometric integrals: 17
+
+In [Asymptotics.lean](AAR/IncompleteGamma/Asymptotics.lean):
+
+- `lowerIncGamma_large_parameter_hasSum`.
+
+In [SineCosine.lean](AAR/IncompleteGamma/SineCosine.lean):
+
+- `genUpperTrig_gamma`.
+- `genSinInt_order_zero`.
+- `genSinInt_hasSum`.
+- `genCosInt_hasSum`.
+- `genSinIntTail_aux`.
+- `genCosIntTail_aux`.
+
+In [SpecialValues.lean](AAR/IncompleteGamma/SpecialValues.lean):
+
+- `lowerIncGamma_half_square`.
+- `scIncGamma_half_negative_square`.
+- `upperIncGamma_half_square`.
+- `normIncGammaQ_half_nat`.
+- `upperIncGamma_neg_nat_finite`.
+- `lowerIncGamma_whittakerM`.
+- `upperIncGamma_whittakerW`.
+- `erf_lowerIncGammaOnLog_square`.
+- `erfc_upperIncGammaOnLog_square`.
+- `erfc_kummerUOnLog_square`.
+
+### Legendre: 7
+
+In [Associated.lean](AAR/Legendre/Associated.lean):
+
+- `olverQ_ode`.
+
+In [AssociatedRecurrences.lean](AAR/Legendre/AssociatedRecurrences.lean):
+
+- `ferrersP_recurrence_3`.
+- `ferrersP_recurrence_5`.
+- `ferrersP_recurrence_4`.
+- `associatedP_recurrence_3`.
+- `associatedP_recurrence_5`.
+- `associatedP_recurrence_4`.
+
+### Error functions: 6
+
+In [Basic.lean](AAR/ErrorFunctions/Basic.lean):
+
+- `fresnelCosInt_hasSum`.
+- `fresnelSinInt_hasSum`.
+
+In [Relations.lean](AAR/ErrorFunctions/Relations.lean):
+
+- `iteratedDeriv_faddeevaW_recurrence`.
+- `fresnelCosInt_hypergeometric`.
+- `fresnelSinInt_hypergeometric`.
+
+In [Repeated.lean](AAR/ErrorFunctions/Repeated.lean):
+
+- `iteratedErfc_hasSum`.
+
+### Shared proof inputs and branch handling
+
+The Struve calculus uses lower-parameter contiguous relations for regularized
+`₁F₂(1;b,c;z)`. Reciprocal-Gamma recurrence is used directly, including its
+zeros. The four entire integer-order derivative statements are extended across
+the origin by entire-function uniqueness. The I/K solution formulas use Abel's
+identity and the already proved Wronskian for every complex order. The negative
+half-integer families follow from the Bessel derivative ladders, and the
+modified elementary values follow by rotating the entire `₀F₁` series.
+Only the two positive half-integer finite-sum families remain from the 30
+concrete Struve candidates in the preceding review.
+
+The Gamma transfers use the proved continued-P/Q shift formulas, the ordinary
+Gamma recurrence, the Dawson/Kummer bridge and the Whittaker definitions. The
+half-order logarithmic continuation has the explicit entire erf antiderivative;
+this evaluates the defining segment integral without replacing an inherited
+logarithm by a principal logarithm of a square. The exact large-parameter
+`HasSum` follows from the scaled-Gamma exponential series and makes no claim
+about a large-parameter remainder estimate.
+
+The Legendre degree and derivative recurrences are linear combinations of
+regularized Gauss contiguous relations, including zero balanced upper
+parameters. Ferrers derivatives have real source scalar; the associated-P and
+Olver-Q derivatives have complex source scalar. The Olver-Q equation follows
+from its quadratic reciprocal-argument substitution and logarithmic gauge,
+with no exclusions on the degree or order.
+
+Mathlib's entire Taylor theorem and the proved weighted cylinder derivative
+ladder supply the repeated-erfc coefficients, including all reciprocal-Gamma
+zeros. Differentiating the proved Faddeeva equation gives the higher-derivative
+recurrence. Mathlib's sine/cosine series, dominated convergence for interval
+integrals and the monomial integral give the Fresnel series; positive-parameter
+Gamma coefficient reductions identify their regularized `₁F₂` forms. The
+sine/cosine power-series declarations were moved from the downstream Series
+module into Basic without changing their names or statements. Four existing
+scaled-Gamma series and shift theorems were similarly moved into Basic to
+make the special-value import order explicit.
+
+### Validation
+
+- `lake build > /tmp/AAR-build.log 2>&1` passes all 9,797 jobs.
+- All 15 Lean files changed in this batch pass direct `lake env lean` checks,
+  together with eight affected chapter umbrellas and `AAR.lean`, `ToMathlib.lean`
+  and `Main.lean`: 26 direct checks, all successful.
+- The compiled audit covers 7,127 AAR theorem constants. Its 1,367 admitted names
+  are exactly the previous admitted set minus the 58 completed statements.
+  Each completed theorem and all 34 new theorem/lemma helpers are independent
+  of `sorryAx`; there are no unexpected axioms. The other new declaration is
+  the common signed quadratic Struve helper definition.
+- Source comparison verifies unchanged existing statements and definition
+  bodies, no removed declarations and no new admissions. Declaration relocations
+  are matched by full name.
+- The affected-source admission scan, documentation links and `git diff --check`
+  pass. Toolchain, dependency pins, build directory and `.lake` symlink are
+  unchanged. Artifacts and exact inventories are in `/tmp/AAR-fourtracks`.
+  No commit was made.
+
+### Unfinished follow-ups from these four tracks
+
+The work above does not complete every candidate in the preceding review.
+
+1. `struveK_nat_add_half` and `struveL_nat_add_half` remain admitted. Their
+   elementary starting values and order recurrences are now available; the
+   remaining step is the finite factorial-sum recurrence with its index bounds.
+2. The P order recurrences (`ferrersP_recurrence_1`, `_2` and
+   `associatedP_recurrence_6`, `_7`) remain. The completed degree recurrences
+   retain every exceptional order and can support their contiguous reductions.
+3. The larger Ferrers-Q foundation remains: `ferrersP_w1_w2`,
+   `ferrersQ_hypergeometric`, `ferrersQ_order_limit` and `ferrersQ_ode`.
+   Prioritize the normalized quadratic connection and the W1/W2 equations,
+   followed by parameter continuity and the integer-order limit. The project's
+   joint `entire_regularized_parameters` statement is still admitted; it is
+   not a proved input available for this continuation argument. However, the
+   proved `analyticOnNhd_regularizedGaussHGFun_comp` already supplies analyticity
+   along entire parameter curves, including simultaneous changes to the upper
+   parameters. The follow-up below uses that sufficient one-parameter result;
+   the full joint-entireness statement is unnecessary for this continuation.
+4. `genLowerTrig_gamma`, the generalized-trigonometric parameter shifts and
+   complement formulas remain. The new absolute-convergence lemma supplies
+   the direct power-series input for an even/odd scaled-Gamma decomposition.
+   The repeated-erfc tail and oscillatory improper integrals still need decay
+   and convergence arguments in addition to the available derivative identities.
+
+The negative-integer upper-Gamma logarithmic `HasSum`, full logarithmic Gamma
+monodromy, complex erf/Faddeeva series and the broader asymptotic estimates also
+remain separate obligations. The newly completed local identities have not been
+used to label any of these admitted results as proved.
+
+
+## Finite Struve sums and Ferrers foundations (2026-10-20)
+
+This follow-up removes **11 admissions**, taking the source and compiled census
+from **1,367 to 1,356**. Existing statements, hypotheses and definition bodies
+are unchanged. No false or suspected-false statement or missing hypothesis was
+found. The two new Struve helper definitions describe finite Laurent sums; they
+do not replace the existing special-function definitions.
+
+### Completed statements
+
+### Struve: 2
+
+In [Properties.lean](AAR/Struve/Properties.lean):
+
+- `struveK_nat_add_half`.
+- `struveL_nat_add_half`.
+
+### Legendre: 6
+
+In [Associated.lean](AAR/Legendre/Associated.lean):
+
+- `ferrersP_w1_w2`.
+- `ferrersQ_ode`.
+
+In [AssociatedRecurrences.lean](AAR/Legendre/AssociatedRecurrences.lean):
+
+- `ferrersP_recurrence_1`.
+- `ferrersP_recurrence_2`.
+- `associatedP_recurrence_6`.
+- `associatedP_recurrence_7`.
+
+### IncompleteGamma: 3
+
+In [Basic.lean](AAR/IncompleteGamma/Basic.lean):
+
+- `lowerIncGamma_parameter_analytic`.
+- `lowerIncGammaOnLog_monodromy`.
+
+In [SineCosine.lean](AAR/IncompleteGamma/SineCosine.lean):
+
+- `genLowerTrig_gamma`.
+
+### Proof inputs and parameter conventions
+
+The two Struve finite-sum families follow by order induction from the existing
+half-order values and derivative ladders. A common signed finite Laurent sum
+has an explicit factorial shift and derivative recurrence. Equality on a
+neighborhood supplies the derivative needed by the induction. Every original
+finite index range, factorial and inherited power is retained. Together with
+the preceding batch, this completes all 30 concrete Struve candidates identified
+in the four-track review; the remaining 117 Struve/Lommel/Anger obligations are
+other results.
+
+The four P order recurrences reduce to two regularized Gauss contiguous
+identities. Positive real gauge identities handle Ferrers functions, while
+associated-P retains the existing logarithms of `z-1` and `z+1`. The reductions
+do not divide by the upper parameters, so terminating and exceptional orders
+remain covered.
+
+The new `regularized_quadratic_connection_complementary` first normalizes the
+proved ordinary quadratic connection at positive real lower parameter. Entire
+parameter-curve analyticity and complex uniqueness then extend the identity to
+every lower parameter. Only Gamma factors known to be nonzero are cancelled;
+reciprocal Gamma factors at other arguments retain their zeros. Mathlib's
+reflection formula converts these coefficients to the Ferrers W₁/W₂
+normalization, and positive real logarithms identify the gauges on `(-1,1)`.
+
+The Ferrers-Q differential equation follows directly from its defining
+quadratic Gauss representations. A shared pair of complex derivative identities
+for the quadratic pullback and gauge is restricted to real arguments, and the
+two Gauss equations give the equation for their constant linear combination.
+This proof does not use the still-admitted Ferrers-Q connection or order limit.
+
+Lower-Gamma parameter analyticity uses the proved regularized Kummer
+parameter-curve API, Mathlib's entire reciprocal Gamma and its nonvanishing at
+regular parameters. The logarithmic monodromy follows from the definition and
+integer periodicity of the complex exponential. The lower trigonometric/Gamma
+bridge splits the proved alternating scaled-Gamma series into its even and odd
+parts. The new logarithmic sine and cosine `HasSum` helpers are absolutely
+convergent for every parameter, including totalized exceptional coefficients;
+the original bridge retains its regular-parameter hypothesis.
+
+### Validation
+
+- `lake build > /tmp/AAR-build.log 2>&1` passes all 9,797 jobs.
+- Six changed Lean files, eight affected chapter umbrellas and `AAR.lean`,
+  `ToMathlib.lean` and `Main.lean` pass all 17 direct `lake env lean` checks.
+- The compiled audit covers 7,149 AAR theorem constants. Its 1,356 admitted names
+  are exactly the previous set minus these 11 completed statements. Every
+  completed statement and all 16 new theorem/lemma helpers have no `sorryAx`
+  dependency; no unexpected axioms occur.
+- Source comparison verifies unchanged existing statements and definition
+  bodies, no removed declarations and no introduced admissions. The moved
+  finite-sum and lower-trigonometric declarations retain their full names.
+- The source admission scan, local documentation links and `git diff --check`
+  pass. Toolchain, dependency pins, build output and `.lake` symlink are
+  unchanged. Artifacts and exact inventories are in `/tmp/AAR-followthrough`.
+  No commit was made.
+
+The current counts are 363 Airy, 293 Legendre, 179 incomplete Gamma/Beta,
+117 Struve, 112 error functions, 106 cylinders, 69 exponential integrals and
+117 earlier-theory obligations. Of the 547 acquired Chapter 6–8 statements,
+187 are proved and 360 remain; of the 626 Chapter 11/12/14 statements, 110 are
+proved and 516 remain.
+
+### Remaining work in these tracks
+
+1. Prove `ferrersQ_hypergeometric` from the regularized quadratic connection,
+   Euler transformation and Gamma normalization. The existing hypothesis does
+   not exclude poles at `ν-μ+1`; keep reciprocal-Gamma zeros rather than adding
+   a regularity assumption there.
+2. Prove parameter continuity of the W₁/W₂ expression at regular classical-Q
+   parameters, then `ferrersQ_order_limit` using the connection on punctured
+   neighborhoods of integer order. The proved parameter-curve analyticity API
+   suffices for this argument. The admitted joint-entireness theorem remains
+   a separate theorem to prove, not a missing prerequisite here.
+3. Continue the Gamma/trigonometric complement and parameter-continuation work.
+   The lower bridge and lower-parameter analyticity are now proved; the upper
+   parameter-entire theorem, the removable half-Gamma/trigonometric values and
+   the full logarithmic upper-Gamma monodromy remain. Oscillatory integrals and
+   limits at infinity also require genuine convergence and decay estimates.
+4. The negative-integer upper-Gamma logarithmic `HasSum`, complex erf/Faddeeva
+   series, repeated-erfc tail and broader asymptotic estimates remain separate
+   obligations. None is counted as completed by these local identities.
+
+
+## Project-wide admission triage and statement corrections (2026-10-20)
+
+The ordinary build passed before this review with **1,356 admissions**, matching
+a comment-stripped source census. Every admission was classified by area against the
+proved project core, Mathlib and TauCeti. Each cited source lemma was checked to exist
+and not to be admitted. The routes were reasoned out but not compiled, so the tier
+counts below are estimates, not proofs.
+
+The tiers are:
+
+- **A**: a short proof from proved results (specialization, bridge, finite calculation).
+- **B**: needs one new shared helper, which also unlocks other admissions.
+- **C**: needs substantial new theory.
+- **D**: defer (zero tables and counts, numerics, uniform and turning-point asymptotics,
+  hyperasymptotics, continued-fraction convergence, Mehler–Fock inversion).
+- **F**: suspected false, mis-transcribed or missing a hypothesis.
+
+Totals: A 302, B 428, C 374, D 236, F 16. By area:
+
+- Airy, 363: A 58, B 142, C 105, D 51, F 7.
+- Legendre, 293: A 68, B 101, C 90, D 33, F 1.
+- Incomplete Gamma/Beta and exponential integrals, 248: A 56, B 95, C 43, D 54, F 0.
+- Error functions and parabolic cylinders, 218: A 66, B 43, C 48, D 59, F 2.
+- Struve, Anger–Weber, Lommel and Bessel, 119: A 43, B 26, C 30, D 16, F 4.
+- Earlier theory, 115: A 1 plus 10 Whittaker corollaries of admitted Kummer
+  representations, B 21, C 58, D 23, F 2.
+
+No earlier-theory admission is used by any proof elsewhere in the project, so none of
+them blocks a newer proof directly. Their value is mathematical reuse.
+
+### Statement corrections (Priority 0)
+
+Each correction was compared with the DLMF TeX source on 2026-10-20 and is recorded
+in the declaration docstring.
+
+- `besselJ_third_eq_airy_complex` (9.6.11): the bracket is now
+  `sqrt 3 * Ai(-z) - ε * Bi(-z)`, as in DLMF. The earlier transcription had the bracket
+  of 9.6.13 and was false at `z = 1`.
+- 9.6.11, 9.6.13, 9.6.15, 9.6.17 and 9.6.19: the factor `(3/z)^(1/2)` is now
+  `sqrt 3 * z^(-1/2)`. The left sides use the logarithmic `airyLogZeta`; on the negative
+  real axis the principal `(3/z)^(1/2)` has the opposite sign, so the hypothesis `z ≠ 0`
+  made each statement false at `z = -1`.
+- `smirnovAiryU1_olver`, `smirnovAiryU2_olver` (9.13.23–24): `Even m` added. DLMF
+  defines `W_m(±t)` only for even `m` (9.13.17); for odd `m` the order-`t^m` term does
+  not cancel.
+- `weberM1` (11.10.24): now `(n+1)/2`, the docstring's own `⌊(n-1)/2⌋+1`. The earlier
+  `n/2` gave an empty sum at `n = 1`, contradicting `weberE_zero`.
+- `struveH_relative_bound` (11.4.14–15): the bound is now
+  `2/3 * (exp(|z|^2/(4d)) - 1)`. **DLMF 11.4.15 as printed,
+  `2/3 * exp(|z|^2/(4d) - 1)`, is false**: at `ν = 1000`, `z = iy`, `y^2/4 = |ν+3/2|`
+  the series gives `|θ| > 0.93`. The corrected bound follows from
+  `(3/2)_n ≥ (3/2) n!` and `|(ν+3/2)_n| ≥ d^n`.
+- `struveH_bessel_series_18` (11.4.18): hypothesis `ν + 1/2 ∉ -ℕ` added. DLMF's term
+  with `2k+2ν+1 = 0` is a removable quotient, but the totalized Lean term is zero, so the
+  statement claimed `H_{-1/2} = 0`.
+- `struveH_integral_product` (11.7.12): hypotheses `Re μ, Re ν > -3/2` added. DLMF states
+  only `Re(μ+ν) > 0`, under which the integral diverges (at `μ = 3`, `ν = -2` the
+  integrand grows like `t^(1/2) cos(...)`).
+- `pcfOlverPair` (12.10.11): the coefficient of the `u`-equation is now `3(s+1)`, as in
+  DLMF. With `3/2(s+1)` no polynomial solution exists at `s = 0`, so `Classical.epsilon`
+  returned an unspecified polynomial and `pcfOlverU_spec`, `pcfOlverUV_initial` were false.
+  The `r`-recurrence coefficient `3/2(s+1)` (12.10.12) was already correct.
+- `conicalEta_mapping` (14.20(viii)): hypothesis now `0 < α`. At `α = 0` the relation is
+  `sqrt η = arccos x`, so `η → π^2`, not `∞`, as `x → -1`.
+- 13.9.11–15, zeros of `U(a,b,·)`: DLMF's `T(a,b)` counts zeros in the sector `|ph z| < π`
+  under `b ≤ 1` and nonintegral `a`, `b`, `a-b+1`. Its `P(a,b)` counts **positive** zeros.
+  - The old `kummerU_posZeros_gamma_pos/neg` used the `T` formulas for positive zeros,
+    without hypotheses, and were false (for example `(a,b) = (-1.3,-2.2)` has no positive
+    zeros). They are replaced by `kummerU_sectorZeros_gamma_pos/neg` over the new
+    `kummerUSectorZeros`, with DLMF's hypotheses.
+  - 13.9.14 is acquired as `kummerU_posZeros_ceil` (admitted).
+  - 13.9.15 is **proved** as `kummerU_posZeros_none_of_le`, stronger than DLMF. Kummer's
+    transformation reduces it to the proved 13.9.13 form at first parameter `a-b+1 ≥ 0`.
+  - The earlier `kummerU_negZeros_none` concerns the negative axis, so its `dlmf 13.9.E15`
+    tag was removed. The statement is unchanged. The earlier removal of a negative-axis
+    "13.9.14" rested on the same misreading of `P`.
+
+Also noted, but not changed: `expIntAuxF_laplace_integral` at `z = 0` relies on Lean's
+`log 0 = 0`. `legendreQPoly_convolution` uses `legendreP` at all complex `z`, where the
+polynomial bridge is so far proved only for `1+z` in the slit plane.
+
+### Priority 1: tier-A proofs, by area
+
+1. Parabolic cylinders, about 47: all of `Basic` (rotated connections, real forms, phases,
+   series), eleven `Relations` (Kummer/Whittaker forms, addition theorems, the Bessel-K
+   values from the seed `pcfU_bessel_10`), both Hermite statements, twelve Weber-`W`
+   results, and a few `Integrals`/`AsymptoticsZeros` items.
+2. Legendre, about 68: `SpecialValues` (22), integer-order and Rodrigues results,
+   reflections, singular behaviour, conical ODE and series, Christoffel sums, generating
+   function, spherical-harmonic specializations, and boundary values from one-sided
+   logarithm limits.
+3. Incomplete Gamma and exponential integrals, about 56: Euler and Tricomi–Laplace
+   integrals, the `E_p` series family, ODEs, entire dependence on the parameter, Ein and
+   Ei real integrals, and Si/Cin auxiliary derivatives.
+4. Struve, Anger and Weber, about 43: finite-interval calculus for Anger and Weber
+   (entireness, derivatives, recurrences, ODEs, Anger–Weber relations), the `angerS1/S2`
+   regularized series, parameter entireness of the Struve cores, and `lommelCapital_neg_order`.
+5. Airy, about 58: twenty `airyChi` table rows from one closed form, the modulus/phase
+   identities, negative-order Hankel unfoldings, double integrals, `airyU_product`,
+   `scorer_zero`, and real zeros of the derivatives.
+6. Error functions, about 19: complex erf and Faddeeva series, Fresnel tail integrals,
+   three Voigt identities, Mills ratio, simple zeros.
+7. Earlier theory: `mellin_regularizedHGFun` (Kummer transformation plus the proved
+   `mellin_regularizedHGFun_exp`).
+
+### Priority 2: shared helpers, ranked by admissions unlocked
+
+- Airy logarithmic-plane exponent lemma for `airyBesselIOnLog`/`airyBesselJOnLog`:
+  about 49 of the `Relations` admissions, after the corrections above.
+- Ferrers W-basis lemma, writing P and Q through the even and odd ₂F₁ solutions in the
+  all-parameter π/Γ form: about 35 Legendre admissions.
+- Airy modulus–phase polar form `Bi + i Ai = M e^{iθ}`: about 33.
+- Integration along horizontal and vertical rays with Tricomi decay: about 21 in
+  Chapters 6 and 8.
+- Scorer series core: about 20. Generalized Airy ₀F₁ derivative system: about 10.
+- `upperIncGammaOnLog` package (Gamma difference, `a = 0` value through Ein, recurrence):
+  about 14, then about 9 from its logarithmic-sector expansion.
+- Struve termwise Beta/Poisson integration: about 11. Anger sine-power moments: about 7.
+- The erfc bound for `Re z^2 > 0`, the shifted E₁ Laplace representation and the Voigt
+  Fubini representation: about 9 each.
+- `kummerU_gauss`, then `kummerU_stieltjes`, `kummerU_integral_besselK` (stated on the
+  slit plane) and `kummerU_barnes_exp`: these close their Whittaker corollaries and
+  8.6.4, 6.2.2, 8.6.6 and 8.6.11.
+- Parameter holomorphy of integrals and series is needed in Legendre, incomplete Gamma,
+  Struve and `entire_regularized_parameters`, and should be proved once in `ToMathlib`.
+
+Defer the D tier. A continued-fraction convergence helper would eventually reach 16
+admissions, all of tier C.
+
+DLMF111214Acquisition.md still lists some proved §11.4 items as admitted, and its line
+anchors are out of date.
+
+### Tier-A proof batch: results
+
+Six parallel proof passes, one per area, and one direct proof removed **319 original
+admissions**: from 1,356 to 1,038, counting the new 13.9.14 admission. No theorem
+statement, hypothesis or definition was changed beyond the corrections listed above.
+Some declarations were moved earlier within their files, unchanged, to respect the
+dependency order. All helpers are proved, and no new Lean files were created.
+
+- Airy, 98 (363 → 265):
+  - `Relations`: 45 of 59, which includes all of 9.6.2–9.6.20 and therefore the five
+    corrected relations. The proofs use logarithmic-plane Bessel lemmas built through
+    `airyBesselIOnLog_airyLogZeta` and `airyBesselJOnLog_airyLogZeta`.
+  - The twenty `airyChi` table rows, from closed forms for `χ(2m)` and `χ(2m+1)`.
+  - Modulus and phase identities, ODEs and monotonicity.
+  - Generalized Airy and Olver normalizations, Reid contour identities, incomplete-Airy
+    derivatives, double integrals, Scorer values, and the real zeros of the derivatives.
+  - The 14 Whittaker/Kummer forms (9.6.21 onward) remain admitted.
+- Legendre, 66 (293 → 227): integer-order and Rodrigues results (`IntegerTheory` is
+  now complete), 30 special values, `Singularities`, conical ODE and series, spherical
+  harmonics including the addition theorem, a Christoffel sum, the generating function,
+  boundary values, and Neumann integrals.
+- Parabolic cylinders, 48 (106 → 58): all of `Basic` and `Hermite`, eleven `Relations`
+  and twelve Weber-`W` results, three zero results, Temme polynomials, parameter
+  scalings, and `pcfOlverUV_initial`. The last confirms the corrected `pcfOlverPair`
+  against DLMF 12.10.9–10. The general `pcfOlverU_spec` remains admitted.
+- Incomplete Gamma/Beta, 45 (179 → 134):
+  - Euler and Laplace integrals, ODEs, entire parameter dependence and the residue.
+  - The `E_p` series, Stieltjes and Mellin–Laplace forms.
+  - The incomplete-Beta quadratic formula, Beta auxiliary recurrences, Padé and θ
+    identities, and the large-parameter lower-Gamma expansion.
+  - `genExpIntEExtended_zero` remains, because it depends on the admitted
+    `isBigO_kummerU_at_zero_re_nonpos`.
+- Struve, Anger and Weber, 32 (117 → 85): the Anger–Weber finite-integral calculus
+  (entireness, derivatives, recurrences, ODEs, order continuation, Bessel limits),
+  `angerS1/S2` series, Struve-core order entireness, `lommelCapital_neg_order`, and
+  coefficient initial values.
+- Error functions, 19 (112 → 93): complex erf and Faddeeva series, horizontal erfc and
+  Fresnel integrals, the Goodwin–Staton integrability, Voigt identities, Mills ratio,
+  and zero orders.
+- Exponential integrals, 10 (69 → 59): auxiliary derivatives, the Ei principal value
+  and series, the E₁ remainder sign, real Ein integrals, and the Acton recurrence.
+- Confluent, 1: `mellin_regularizedHGFun` (13.10.10) by Kummer's transformation.
+  Separately, 13.9.15 is newly proved as `kummerU_posZeros_none_of_le`. The two restated
+  13.9.11–12 admissions replace the old pair one for one, and 13.9.14 adds one admission,
+  so the Confluent total is unchanged at 49.
+
+Current counts: Airy 265, Legendre 227, incomplete Gamma/Beta 134, error functions 93,
+Struve 85, exponential integrals 59, cylinders 58, Confluent 49, orthogonal polynomials
+39, Hypergeometric 14, spherical harmonics 4, Partitions 3, Selberg 3, Gamma 2,
+Bessel 2, q-series 1.
+
+The remaining tier-A items are mostly those that a pass judged heavier than expected.
+They include `sphericalHarmonic_rodrigues` (negative order), `legendre_christoffel_7`
+and the Ferrers-Q–dependent statements; these move to the B-tier helper work.
+
+### Validation
+
+- The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes (9,797 jobs) with
+  1,038 `sorry` warnings and no errors.
+- A compiled audit of all 7,541 `AAR`/`ToMathlib` theorems finds exactly 1,038 that
+  depend on `sorryAx`. These are precisely the explicit admissions in the source census,
+  so no completed proof hides an admitted dependency. No axiom other than `propext`,
+  `Classical.choice` and `Quot.sound` occurs.
+- Every changed file was checked with `lake env lean` by its pass, and `git diff --check`
+  is clean. Toolchain, dependency pins, build directory and the `.lake` symlink are
+  unchanged. No commit was made.
+
+
+## Shared-helper round (Priority 2, 2026-10-20)
+
+Seven parallel passes built the shared helpers ranked in the triage above, and a small
+follow-up harvested their downstream consequences. They removed **279 admissions**, from
+1,038 to 759, and introduced no new admission. No theorem statement, hypothesis or
+definition was changed. Some declarations were moved unchanged to files where their
+prerequisites are available: `ferrers_wronskian_5` and `associated_wronskian_11` moved to
+`AssociatedRecurrences`, and Tricomi's Gauss/Stieltjes pair moved to `Confluent/Integrals`.
+
+### New shared infrastructure
+
+- [ParametricHolomorphy.lean](ToMathlib/Analysis/Complex/ParametricHolomorphy.lean)
+  (Mathlib only):
+  - holomorphy of locally dominated series and of interval, `Ioi` and general integrals in
+    a finite-dimensional complex parameter;
+  - a continuous Osgood lemma (separately holomorphic and continuous implies jointly
+    holomorphic), proved from the one-variable Cauchy formula.
+- [ParameterHolomorphy.lean](AAR/Hypergeometric/ParameterHolomorphy.lean): **joint
+  holomorphy of the continued regularized Gauss function in `(a,b,c,z)` on the cut plane**.
+  The shift counts of the Euler-integral recursion are fixed on open parameter sets and
+  then identified with `regularizedGaussHG`. This closes `entire_regularized_parameters`
+  and supplies entire degree and order dependence for Legendre P and Olver Q.
+- [Poisson.lean](AAR/Struve/Poisson.lean): Poisson integrals for H, L and M.
+- In-file helper families:
+  - the Ferrers even/odd hypergeometric basis with its Wronskian;
+  - Ferrers functions continued into the unit disk, with side boundary values;
+  - the logarithmic-plane upper-Gamma package (difference from Γ, `a = 0` value, recurrence);
+  - integration along rays using Tricomi decay;
+  - the erfc bound for `Re z^2 > 0`;
+  - the Voigt Fubini representation;
+  - Reid contour calculus with the finite part;
+  - the generalized-Airy derivative system and the Scorer `Gi` series;
+  - Anger sine-power moments.
+
+### Removals by area
+
+- Airy, 105 (265 → 160):
+  - `Relations` and `Incomplete` are complete.
+  - The Reid contour identities (9.13.28–37, except 9.13.36), the generalized-Airy and
+    Olver ODEs, the Wronskian and general solution, and Smirnov 9.13.19 and 9.13.23–24.
+    The last confirms the `Even m` correction.
+  - Contour integrals 9.5.4–5, Maclaurin series 9.4.1–4, Scorer series and integrals
+    (9.12.15–16, 9.12.20–21), integrals 9.10.1–3, and the 9.8 modulus/phase and 9.9 zero
+    results.
+- Legendre, 66 (227 → 161):
+  - `ferrersQ_hypergeometric` and Ferrers connections 14.9.1–2 and 14.9.6–10.
+  - Olver-Q connection 14.9.15 for all μ (`olverQ_connection`), with 14.9.12, 14.9.14
+    and 14.20.6.
+  - Ferrers and associated Wronskians 14.2.3–11, the Ferrers-Q and associated-Q
+    recurrences, and the integer-order derivatives.
+  - The boundary values 14.23.2–3 and 14.23.5–6.
+  - Entire dependence on degree and order, conjugation symmetry, Gegenbauer and Jacobi
+    forms, and parameter limits.
+  - `ferrersQ_nat_logarithm`, the product primitives, and `legendre_christoffel_7`.
+- Error functions, 28 (93 → 65):
+  - `Voigt` is complete.
+  - Integrals 7.7.1, 7.7.5 and 7.7.15–16, Laplace transforms 7.14.3 and 7.14.5–8, and the
+    Gaussian half-line integrals.
+  - 7.6.5 and 7.6.7, 7.18.2, `erf_sector_limit`, `erfc_remainder_sign`, and the generalized
+    Dawson Gamma formula.
+- Struve and Anger–Weber, 24 (85 → 61):
+  - Poisson and trigonometric integrals, `struveH_sonine`, `struveH_nonneg`, Laplace
+    transforms 11.5.13–16, and the primitive recurrence.
+  - The Anger–Weber series, Lommel forms, `weberE_nat` and `weberE_neg_nat` (confirming the
+    `weberM1` correction), order-zero and order-one values, `lommelCapital_regular`, and two
+    large-integer-order Weber estimates.
+- Incomplete Gamma, 25 (134 → 109):
+  - `Basic` is complete: log-plane monodromy, half-turn and jump; horizontal integral;
+    `scIncGamma_joint_entire`.
+  - The E_p log-plane monodromy and parameter entireness, generalized sine/cosine tails,
+    and uniform-expansion identities.
+  - The Stieltjes form 8.6.4, the Mellin–Barnes form 8.6.11, and 8.19.6.
+- Exponential integrals, 19 (59 → 40): horizontal integrals, `cosInt_tendsto_atTop`, the
+  rational E₁ transforms, auxiliary oscillatory, Laplace and remainder integrals,
+  `expIntE1_scaled_integrals`, the Acton initial value, and the Stieltjes form 6.2.2.
+- Confluent, 10 (49 → 39):
+  - Tricomi Gauss and Stieltjes representations 13.4.5 and 13.4.8 (proved on the full slit
+    plane), the Barnes form 13.4.18, and 13.10.16.
+  - The four Whittaker corollaries.
+  - The behaviour of U at zero, 13.2.16 and 13.2.22, with the new value `kummerU_zero_arg`.
+- Parabolic cylinders 1 (`pcfGammaPhase_spec`), Hypergeometric 1
+  (`entire_regularized_parameters`).
+
+### Newly found statement defects (left admitted, decision needed)
+
+- `reidAiry_connection_36` (DLMF 9.13.36) is **false at `p = 1`** with the project's
+  finite-part definition of `reidAiryB`. The failure is proved in Lean as
+  `reidAiry_connection_36_ne_one`. The logarithmic term `θ i c_{p-1}` uses `θ = 0` for B₀,
+  while the contour of A₁ starts at angle 2π, so B₂ − B₀ = 2πi·A₁ + 2πi·B₀(z,1) with
+  B₀(z,1) = 1. Either the finite-part convention or the statement must be adjusted.
+- `conicalQHat_boundary` (DLMF 14.23.7): the earlier note here was wrong about the cause.
+  The project's `legendreBoundary` and `associatedQ` already agree with DLMF 14.23.1–14.23.6
+  (DLMF prints P(x ± i0) = e^{∓μπi/2} 𝖯, the same as the project); this was rechecked with
+  mpmath, independently of the project code. The defect is in DLMF 14.23.7 itself: with
+  DLMF's definitions 14.20.2 and 14.23.2, the second factor must be e^{μπi/2}, not
+  e^{-3μπi/2}. With the correction the two terms are complex conjugates and the sum is
+  real, as Q̂ is; the printed form is not real. The statement is corrected (2026-10-20, at
+  the user's direction to follow DLMF conventions) and now proved, without the unused
+  assumptions τ ≥ 0, μ ≥ 0 (stronger than DLMF).
+- Further analysis of `reidAiry_connection_36`: the defect is in DLMF, not in a project
+  convention. For integer p, 9.13.34 gives A₁ + A₂ + A₃ = −B₀(z,p), so adding 9.13.35–9.13.37
+  gives 0 = −2πi·B₀(z,p) whatever the definition of B_k. Since B₀(z,p) is the residue
+  c_{p−1}(z) of t^{−p}e^{zt−t³/3} at t = 0 (B₀(z,1) = 1), the three relations are mutually
+  inconsistent for every p ≥ 1 with c_{p−1}(z) ≠ 0. They hold for p ≤ 0, the only range in
+  which the ray integrals 9.13.27 converge. The regularization of B_k only decides which
+  of the three relations fails; with the project's choice, 9.13.35 and 9.13.37 hold for all
+  p and 9.13.36 becomes B₃ − B₁ = 2πi(A₂ + B₀(z,p)) (DLMF numbering).
+  Resolved at the user's direction: `reidAiry_connection_36` (dlmf tag) now states and
+  proves the corrected form for all integer p, and `reidAiry_connection_36_of_nonpos` proves
+  DLMF's printed form for p ≤ 0, using the new lemma `reidAiryB0_of_nonpos`
+  (B₀(z,p) = 0 for p ≤ 0).
+
+### Remaining blockers worth noting
+
+- DLMF 10.32.9 or 10.32.10, an integral representation of K_ν, would close 13.4.7 and its
+  Whittaker form, 8.6.6, and parts of Struve.
+- An integral representation of Y_ν would serve `struveK_laplace` and others.
+- Schläfli's integral for J_ν would serve the Anger `A_ν` integrals.
+- A Neumann-series rearrangement framework would serve the Struve/Lommel Bessel series.
+- A power-series uniqueness tool for linear ODEs would serve the Weber W series.
+- Sector asymptotics beyond the principal sector remain the main C-tier gap in every area.
+
+### Validation
+
+- The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes (9,803 jobs) with 759
+  `sorry` warnings and no errors.
+- A compiled audit of 8,272 `AAR`/`ToMathlib` theorems finds exactly 759 with `sorryAx`.
+  This set is identical to the source admission set, and no other non-standard axiom
+  occurs. The 279 removed names are all absent from the admitted set, and no new admission
+  appears.
+- Umbrellas `ToMathlib.lean`, `AAR/Hypergeometric.lean` and `AAR/Struve.lean` now import
+  the three new files. `git diff --check` is clean, and no commit was made.

@@ -31,12 +31,141 @@ def Real.generalizedDawsonIntegral (p x : ℝ) : ℝ :=
 /-- Change of variable to incomplete Gamma in DLMF §7.16. -/
 theorem Real.generalizedErrorIntegral_gamma {p x : ℝ} (hp : 0 < p) (hx : 0 < x) :
     (Real.generalizedErrorIntegral p x : ℂ)=lowerIncGamma (1/p) ((x^p : ℝ) : ℂ)/p := by
-  sorry
+  have hxp : 0 < x^p := Real.rpow_pos_of_pos hx p
+  -- real change of variables u = t^p
+  let G : ℝ → ℝ := fun u => u^(1/p-1)*Real.exp (-u)/p
+  have hreal : (∫ t in (0:ℝ)..x, Real.exp (-t^p)) = ∫ u in (0:ℝ)..x^p, G u := by
+    rw [intervalIntegral.integral_of_le hx.le, intervalIntegral.integral_of_le hxp.le]
+    have h := integral_comp_rpow_Ioi_of_pos (g := (Iic (x^p)).indicator G) hp
+    have hR : (∫ y in Ioi 0, (Iic (x^p)).indicator G y) = ∫ u in Ioc 0 (x^p), G u := by
+      rw [integral_indicator measurableSet_Iic, Measure.restrict_restrict measurableSet_Iic,
+        Iic_inter_Ioi]
+    have hL : (∫ t in Ioi 0, (p * t^(p-1)) • (Iic (x^p)).indicator G (t^p)) =
+        ∫ t in Ioc 0 x, Real.exp (-t^p) := by
+      rw [← Iic_inter_Ioi, ← Measure.restrict_restrict measurableSet_Iic,
+        ← integral_indicator measurableSet_Iic]
+      refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+      have ht0 : 0 < t := ht
+      by_cases htx : t ≤ x
+      · have h1 : t^p ≤ x^p := Real.rpow_le_rpow ht0.le htx hp.le
+        rw [indicator_of_mem (show t^p ∈ Iic (x^p) from h1),
+          indicator_of_mem (show t ∈ Iic x from htx), smul_eq_mul]
+        simp only [G]
+        rw [← Real.rpow_mul ht0.le, show p*(1/p-1) = 1-p by field_simp]
+        have h2 : t^(p-1)*t^(1-p) = 1 := by
+          rw [← Real.rpow_add ht0, show p-1+(1-p) = 0 by ring, Real.rpow_zero]
+        calc p*t^(p-1)*(t^(1-p)*Real.exp (-t^p)/p) = (t^(p-1)*t^(1-p))*Real.exp (-t^p) := by
+              field_simp
+          _ = _ := by rw [h2, one_mul]
+      · have h1 : ¬ t^p ≤ x^p := fun h => htx ((Real.rpow_le_rpow_iff ht0.le hx.le hp).mp h)
+        rw [indicator_of_notMem (show t^p ∉ Iic (x^p) from h1),
+          indicator_of_notMem (show t ∉ Iic x from htx), smul_zero]
+    rw [← hL, h, hR]
+  have hpc : (p:ℂ) ≠ 0 := by exact_mod_cast hp.ne'
+  rw [lowerIncGamma_eq_integral (by simp [hp]) hxp, Real.generalizedErrorIntegral, hreal,
+    ← intervalIntegral.integral_ofReal, ← intervalIntegral.integral_div]
+  refine intervalIntegral.integral_congr_ae (ae_of_all _ fun u hu => ?_)
+  rw [uIoc_of_le hxp.le] at hu
+  simp only [G]
+  push_cast
+  rw [Complex.ofReal_cpow hu.1.le]
+  push_cast
+  ring
+
+/-- `(a)_n (a+n) = a (a+1)_n`. -/
+theorem poch_mul_add_nat (a : ℂ) (n : ℕ) : poch a n*(a+n) = a*poch (a+1) n := by
+  induction n with
+  | zero => simp [poch_zero]
+  | succ n ih =>
+    rw [poch_succ, poch_succ, mul_assoc, ← mul_assoc (poch a n), ih]; push_cast; ring
+
+/-- Termwise integration of `exp(t^p)` on `[0, x]`. -/
+theorem hasSum_generalizedDawsonIntegral {p x : ℝ} (hp : 0 < p) (hx : 0 < x) :
+    HasSum (fun n : ℕ => x^(p*n+1)/((p*n+1)*(n ! : ℝ))) (Real.generalizedDawsonIntegral p x) := by
+  have hexp (y : ℝ) : HasSum (fun n : ℕ => y^n/(n ! : ℝ)) (Real.exp y) := by
+    rw [Real.exp_eq_exp_ℝ]; exact NormedSpace.expSeries_div_hasSum_exp y
+  have hc : Continuous fun t : ℝ => t^p := Real.continuous_rpow_const hp.le
+  have h := intervalIntegral.hasSum_integral_of_dominated_convergence (μ := volume) (a := 0) (b := x)
+    (F := fun (n : ℕ) (t : ℝ) => (t^p)^n/(n ! : ℝ)) (f := fun t => Real.exp (t^p))
+    (fun n t => (t^p)^n/(n ! : ℝ))
+    (fun n => ((hc.pow n).div_const _).aestronglyMeasurable)
+    (fun n => Eventually.of_forall fun t ht => by
+      rw [uIoc_of_le hx.le] at ht
+      have : 0 ≤ (t^p)^n/(n ! : ℝ) := by
+        have := Real.rpow_nonneg ht.1.le p; positivity
+      rw [Real.norm_eq_abs, abs_of_nonneg this])
+    (Eventually.of_forall fun t _ => (hexp _).summable)
+    (by
+      have : (fun t : ℝ => ∑' n : ℕ, (t^p)^n/(n ! : ℝ)) = fun t => Real.exp (t^p) :=
+        funext fun t => (hexp _).tsum_eq
+      rw [this]; exact (Real.continuous_exp.comp hc).intervalIntegrable _ _)
+    (Eventually.of_forall fun t _ => hexp _)
+  refine h.congr_fun fun n => ?_
+  rw [intervalIntegral.integral_div]
+  have he : ∫ t in (0:ℝ)..x, (t^p)^n = ∫ t in (0:ℝ)..x, t^(p*n) := by
+    refine intervalIntegral.integral_congr fun t ht => ?_
+    rw [uIcc_of_le hx.le] at ht
+    rw [Real.rpow_mul ht.1, Real.rpow_natCast]
+  rw [he, integral_rpow (Or.inl (by nlinarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)])),
+    Real.zero_rpow (by positivity)]
+  field_simp
+  ring
 
 /-- The negative-argument Gamma formula retains the compensating branch factor. -/
 theorem Real.generalizedDawsonIntegral_gamma {p x : ℝ} (hp : 0 < p) (hx : 0 < x) :
     (Real.generalizedDawsonIntegral p x : ℂ)=exp (-π*I/p)/p*lowerIncGamma (1/p) (-(x^p : ℝ)) := by
-  sorry
+  set X : ℝ := x^p with hXdef
+  have hX : 0 < X := Real.rpow_pos_of_pos hx p
+  set a : ℂ := ((1/p:ℝ):ℂ) with ha
+  have hpc : (p:ℂ) ≠ 0 := by exact_mod_cast hp.ne'
+  have hxc : (x:ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  -- the Kummer series
+  have hS : HasSum (fun n : ℕ => poch a n/(poch (a+1) n*n !)*(X:ℂ)^n)
+      ((Real.generalizedDawsonIntegral p x : ℂ)/x) := by
+    have h := (Complex.hasSum_ofReal.mpr (hasSum_generalizedDawsonIntegral hp hx)).div_const (x:ℂ)
+    refine h.congr_fun fun n => ?_
+    have hna : (a+1) ∉ Set.range (fun k : ℕ => -(k:ℂ)) := by
+      rintro ⟨k, hk⟩
+      have := congrArg Complex.re hk
+      simp [ha] at this
+      have : (0:ℝ) < p⁻¹+1 := by positivity
+      linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+    have hp0 : poch (a+1) n ≠ 0 := poch_ne_zero_of_not_neg_nat
+      (fun k hk => hna ⟨k, hk.symm⟩) n
+    have han : a+n ≠ 0 := by
+      intro h0; have := congrArg Complex.re h0; simp [ha] at this
+      have : (0:ℝ) < p⁻¹ := by positivity
+      linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]
+    have hpoch : poch a n = a*poch (a+1) n/(a+n) := by
+      rw [← poch_mul_add_nat]; field_simp
+    rw [hpoch]
+    have hxn : ((x^(p*n+1):ℝ):ℂ) = (x:ℂ)*(X:ℂ)^n := by
+      rw [Real.rpow_add hx, Real.rpow_one, Real.rpow_mul hx.le, Real.rpow_natCast]; push_cast; ring
+    push_cast
+    rw [hxn]
+    have hf : (n ! : ℂ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero n
+    have hpn : (p:ℂ)*n+1 ≠ 0 := by
+      intro h0; have := congrArg Complex.re h0; simp at this
+      nlinarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]
+    rw [show a*poch (a+1) n/(a+n)/(poch (a+1) n*n !) = a/((a+n)*n !) by field_simp]
+    have hpn' : 1+(p:ℂ)*n ≠ 0 := by rw [add_comm]; exact hpn
+    rw [ha]
+    push_cast
+    field_simp
+    ring
+  have hM : kummerM a (a+1) X = (Real.generalizedDawsonIntegral p x : ℂ)/x := by
+    unfold kummerM; exact hS.tsum_eq
+  have hpow : ((-(X:ℂ)))^a = x*exp (π*I*a) := by
+    rw [show -(X:ℂ) = ((-X:ℝ):ℂ) by push_cast; ring, ofReal_cpow_of_nonpos (by linarith),
+      show -((-X:ℝ):ℂ) = ((X:ℝ):ℂ) by push_cast; ring, ha, ← ofReal_cpow hX.le, one_div,
+      hXdef, Real.rpow_rpow_inv hx.le hp.ne']
+  have ha0 : a ≠ 0 := by simp [ha, hp.ne']
+  rw [lowerIncGamma, show (1/(p:ℂ)) = a by simp [ha], hpow, neg_neg, hM]
+  simp only [ha]
+  push_cast
+  have he' : exp (-(π*I/p))*exp (π*I/p) = 1 := by rw [← Complex.exp_add]; simp
+  field_simp
+  linear_combination (-(Real.generalizedDawsonIntegral p x:ℂ))*he'
 
 /-- Inverse erf on (-1,1), reusing TauCeti; zero outside that interval. -/
 @[dlmf 7.17.E1]
@@ -87,7 +216,11 @@ theorem hasSum_invErf {x : ℝ} (hx : |x| < 1) :
 /-- The unnumbered inverse-erf coefficient recurrence. -/
 theorem invErfSeriesCoeff_recurrence (m : ℕ) :
     invErfSeriesCoeff (m+1)=(∑ n ∈ Finset.range (m+1), (2*n+1 : ℝ)/(m-n+1 : ℕ)*invErfSeriesCoeff n*invErfSeriesCoeff (m-n))/(2*m+3) := by
-  sorry
+  rw [invErfSeriesCoeff]
+  congr 1
+  refine Finset.sum_congr rfl fun n hn => ?_
+  rw [Nat.sub_sub_self (Nat.lt_succ_iff.mp (Finset.mem_range.mp hn))]
+  ring
 
 /-- Small-argument inverse-erfc variable u. -/
 @[dlmf 7.17.E5]

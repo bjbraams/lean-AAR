@@ -31,12 +31,34 @@ def fresnelFunctionZero (sine : Bool) (k : ℕ) : ℂ :=
 /-- erf zero simple. -/
 theorem erf_zero_simple  :
     erf 0=0 ∧ deriv erf 0=2/Real.sqrt π := by
-  sorry
+  refine ⟨erf_zero, ?_⟩
+  rw [(hasDerivAt_erf_complex 0).deriv]
+  simp
 
 /-- The simple C zero and triple S zero at the origin. -/
 theorem fresnel_zero_orders  :
     fresnelCosInt 0=0 ∧ deriv fresnelCosInt 0=1 ∧ fresnelSinInt 0=0 ∧ deriv fresnelSinInt 0=0 ∧ iteratedDeriv 2 fresnelSinInt 0=0 ∧ iteratedDeriv 3 fresnelSinInt 0=π := by
-  sorry
+  have hS1 : deriv fresnelSinInt = fun z => sin (π*z^2/2) :=
+    funext fun z => (hasDerivAt_fresnelSinInt_complex z).deriv
+  have hd2 (z : ℂ) : HasDerivAt (fun z : ℂ => sin (π*z^2/2)) (cos (π*z^2/2)*(π*z)) z := by
+    have h := (((hasDerivAt_id' z).pow 2).const_mul (π:ℂ)).div_const 2 |>.csin
+    convert h using 1
+    simp only [Pi.pow_apply]
+    ring
+  have hS2 : iteratedDeriv 2 fresnelSinInt = fun z => cos (π*z^2/2)*(π*z) := by
+    rw [iteratedDeriv_succ, iteratedDeriv_one, hS1]
+    exact funext fun z => (hd2 z).deriv
+  have hd3 : HasDerivAt (fun z : ℂ => cos (π*z^2/2)*(π*z))
+      (-sin (π*0^2/2)*(π*0)*(π*0)+cos (π*0^2/2)*π) 0 := by
+    have h1 := (((hasDerivAt_id' (0:ℂ)).pow 2).const_mul (π:ℂ)).div_const 2 |>.ccos
+    have h2 := ((hasDerivAt_id' (0:ℂ)).const_mul (π:ℂ))
+    convert h1.mul h2 using 1
+    simp
+  refine ⟨primitive_zero _, ?_, primitive_zero _, ?_, ?_, ?_⟩
+  · rw [(hasDerivAt_fresnelCosInt_complex 0).deriv]; simp
+  · rw [hS1]; simp
+  · rw [hS2]; simp
+  · rw [iteratedDeriv_succ, hS2, hd3.deriv]; simp
 
 /-- errorFunctionZero spec. -/
 theorem errorFunctionZero_spec (complement : Bool) {k : ℕ} (hk : 1 ≤ k) :
@@ -81,7 +103,23 @@ theorem fresnel_zero_classification (sine : Bool) (z : ℂ) :
 /-- The complete Fresnel-tail zero correspondence in DLMF §7.13(iv). -/
 theorem fresnelTail_zero_classification (z : ℂ) :
     fresnelTail z=0 ↔ erfc (Real.sqrt π/(1+I)*z)=0 := by
-  sorry
+  have h := fresnel_signed_erf z (ε:=1) (Or.inl rfl)
+  have hz : fresnelZetaComplex 1 z = Real.sqrt π/(1+I)*z := by
+    have h1 : (1+I) ≠ 0 := by
+      intro h0; have := congrArg Complex.re h0; simp at this
+    unfold fresnelZetaComplex
+    simp only [Complex.ofReal_one, one_mul]
+    field_simp
+    ring_nf
+    rw [I_sq]
+    ring
+  have ht : fresnelTail z = (1+I)/2*erfc (Real.sqrt π/(1+I)*z) := by
+    rw [fresnelTail, erfc, ← hz]
+    simp only [Complex.ofReal_one, one_mul] at h
+    linear_combination -h
+  have hne : (1+I)/2 ≠ 0 := by
+    intro h0; have := congrArg Complex.re h0; simp at this
+  rw [ht, mul_eq_zero, or_iff_right hne]
 
 /-- Large error-function zero variable λ. -/
 @[dlmf 7.13.E2, dlmf 7.13.E4]

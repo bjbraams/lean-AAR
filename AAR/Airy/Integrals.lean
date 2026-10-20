@@ -19,24 +19,72 @@ open Complex Filter Set MeasureTheory Asymptotics AAR.Hypergeometric AAR.Conflue
 open scoped Real Topology
 namespace AAR.Airy
 
+/-- `Gi' = Bi'(1/3 - ∫Ai) + Ai' ∫Bi`, the derivative of 9.12.4. -/
+lemma scorerGiDeriv_variation (z : ℂ) :
+    scorerGiDeriv z = airyBiDeriv z * (1 / 3 - primitive airyAi z) +
+      airyAiDeriv z * primitive airyBi z := by
+  have hfun : scorerGi = fun z => airyBi z * (1 / 3 - primitive airyAi z) +
+      airyAi z * primitive airyBi z := funext scorerGi_variation
+  have pA := hasDerivAt_primitive differentiable_airyAi z
+  have pB := hasDerivAt_primitive differentiable_airyBi z
+  have hd := (((hasDerivAt_airyBi z).mul ((hasDerivAt_const z (1 / 3 : ℂ)).sub pA)).add
+      ((hasDerivAt_airyAi z).mul pB))
+  rw [scorerGiDeriv, hfun]
+  refine hd.deriv.trans ?_
+  simp only [Pi.sub_apply]; ring
+
+/-- `Hi' = Bi'(2/3 + ∫Ai) - Ai' ∫Bi`, the derivative of 9.12.5. -/
+lemma scorerHiDeriv_variation (z : ℂ) :
+    scorerHiDeriv z = airyBiDeriv z * (2 / 3 + primitive airyAi z) -
+      airyAiDeriv z * primitive airyBi z := by
+  have h := scorerGiDeriv_eq z
+  rw [scorerGiDeriv_variation] at h
+  linear_combination h
+
 /-- airyAi integral scorerGi (DLMF 9.10.1). -/
 @[dlmf 9.10.E1]
 theorem airyAi_integral_scorerGi (z : ℂ) :
     1 / 3 - primitive airyAi z = π * (airyAi z * scorerGiDeriv z - airyAiDeriv z * scorerGi z) := by
-  sorry
+  rw [scorerGiDeriv_variation, scorerGi_variation]
+  have hW := wronskian_airyAi_airyBi z
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  rw [show airyAi z * (airyBiDeriv z * (1 / 3 - primitive airyAi z) +
+      airyAiDeriv z * primitive airyBi z) - airyAiDeriv z * (airyBi z * (1 / 3 - primitive airyAi z) +
+      airyAi z * primitive airyBi z) = (airyAi z * airyBiDeriv z - airyAiDeriv z * airyBi z) *
+      (1 / 3 - primitive airyAi z) by ring, hW]
+  field_simp
 
 /-- airyAi integral scorerHi (DLMF 9.10.2). -/
 @[dlmf 9.10.E2]
 theorem airyAi_integral_scorerHi (z : ℂ) :
     2 / 3 + primitive airyAi z = π * (airyAi z * scorerHiDeriv z - airyAiDeriv z * scorerHi z) := by
-  sorry
+  rw [scorerHiDeriv_variation, scorerHi_variation]
+  have hW := wronskian_airyAi_airyBi z
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  rw [show airyAi z * (airyBiDeriv z * (2 / 3 + primitive airyAi z) -
+      airyAiDeriv z * primitive airyBi z) - airyAiDeriv z * (airyBi z * (2 / 3 + primitive airyAi z) -
+      airyAi z * primitive airyBi z) = (airyAi z * airyBiDeriv z - airyAiDeriv z * airyBi z) *
+      (2 / 3 + primitive airyAi z) by ring, hW]
+  field_simp
 
 /-- airyBi integral scorer (DLMF 9.10.3). -/
 @[dlmf 9.10.E3]
 theorem airyBi_integral_scorer (z : ℂ) :
     primitive airyBi z = π * (airyBiDeriv z * scorerGi z - airyBi z * scorerGiDeriv z) ∧
       primitive airyBi z = π * (airyBi z * scorerHiDeriv z - airyBiDeriv z * scorerHi z) := by
-  sorry
+  have hW := wronskian_airyAi_airyBi z
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  constructor
+  · rw [scorerGiDeriv_variation, scorerGi_variation]
+    rw [show airyBiDeriv z * (airyBi z * (1 / 3 - primitive airyAi z) + airyAi z * primitive airyBi z) -
+        airyBi z * (airyBiDeriv z * (1 / 3 - primitive airyAi z) + airyAiDeriv z * primitive airyBi z) =
+        (airyAi z * airyBiDeriv z - airyAiDeriv z * airyBi z) * primitive airyBi z by ring, hW]
+    field_simp
+  · rw [scorerHiDeriv_variation, scorerHi_variation]
+    rw [show airyBi z * (airyBiDeriv z * (2 / 3 + primitive airyAi z) - airyAiDeriv z * primitive airyBi z) -
+        airyBiDeriv z * (airyBi z * (2 / 3 + primitive airyAi z) - airyAi z * primitive airyBi z) =
+        (airyAi z * airyBiDeriv z - airyAiDeriv z * airyBi z) * primitive airyBi z by ring, hW]
+    field_simp
 
 /-- airyAi lower integral scorerHi (DLMF 9.10.2). -/
 @[dlmf 9.10.E2]
@@ -185,19 +233,42 @@ theorem airyBi_stieltjes_principalValue {x : ℝ} (hx : 0 < x) :
         airyAi t / ((x : ℂ) ^ (3 / 2 : ℂ) - (t : ℂ) ^ (3 / 2 : ℂ))) x := by
   sorry
 
+/-- For a solution `w` of Airy's equation on the real line,
+`∫₀ˣ ∫₀ᵛ w = x ∫₀ˣ w - w'(x) + w'(0)`. -/
+lemma airySol_double_integral {w w' : ℂ → ℂ} (hw : IsAirySol w w') (x : ℝ) :
+    (∫ v : ℝ in 0..x, ∫ t : ℝ in 0..v, w t) =
+      (x : ℂ) * (∫ t : ℝ in 0..x, w t) - w' x + w' 0 := by
+  have hc : Continuous fun t : ℝ => w t :=
+    (continuous_iff_continuousAt.mpr fun z => (hw z).1.continuousAt).comp continuous_ofReal
+  have hP : ∀ v : ℝ, HasDerivAt (fun v : ℝ => ∫ t : ℝ in 0..v, w t) (w v) v := fun v =>
+    intervalIntegral.integral_hasDerivAt_right (hc.intervalIntegrable _ _)
+      (hc.stronglyMeasurableAtFilter _ _) hc.continuousAt
+  have hPc : Continuous fun v : ℝ => ∫ t : ℝ in 0..v, w t :=
+    continuous_iff_continuousAt.mpr fun v => (hP v).continuousAt
+  have hH : ∀ v : ℝ, HasDerivAt (fun v : ℝ => (v : ℂ) * (∫ t : ℝ in 0..v, w t) - w' v)
+      (∫ t : ℝ in 0..v, w t) v := by
+    intro v
+    have h1 := (hasDerivAt_id (v : ℂ)).comp_ofReal.mul (hP v)
+    have h2 := (hw v).2.comp_ofReal
+    exact (h1.sub h2).congr_deriv (by simp)
+  have h := intervalIntegral.integral_eq_sub_of_hasDerivAt (a := 0) (b := x)
+    (fun v _ => hH v) (hPc.intervalIntegrable _ _)
+  rw [h]
+  simp
+
 /-- airyAi double integral (DLMF 9.10.20). -/
 @[dlmf 9.10.E20]
 theorem airyAi_double_integral (x : ℝ) :
     (∫ v : ℝ in 0..x, ∫ t : ℝ in 0..v, airyAi t) =
       (x : ℂ) * (∫ t : ℝ in 0..x, airyAi t) - airyAiDeriv x + airyAiDeriv 0 := by
-  sorry
+  exact airySol_double_integral isAirySol_airyAi x
 
 /-- airyBi double integral (DLMF 9.10.21). -/
 @[dlmf 9.10.E21]
 theorem airyBi_double_integral (x : ℝ) :
     (∫ v : ℝ in 0..x, ∫ t : ℝ in 0..v, airyBi t) =
       (x : ℂ) * (∫ t : ℝ in 0..x, airyBi t) - airyBiDeriv x + airyBiDeriv 0 := by
-  sorry
+  exact airySol_double_integral isAirySol_airyBi x
 
 /-- Repeated upper ordinary improper integrals, including the unintegrated base function. -/
 def airyRepeatedTail : ℕ → ℝ → ℂ

@@ -35,6 +35,7 @@ public import AAR.Hypergeometric.GeneralizedCalculus
 public import AAR.Hypergeometric.GeneralizedIntegral
 public import AAR.Hypergeometric.Clausen
 public import AAR.Hypergeometric.SpecialCases
+public import AAR.Hypergeometric.ParameterHolomorphy
 
 /-!
 # The hypergeometric function (AAR Chapters 2 and 3; DLMF Chapter 15)

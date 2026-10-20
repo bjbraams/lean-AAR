@@ -232,7 +232,7 @@ The [Chapters 6–8 acquisition](DLMF678Acquisition.md) covers all 468 active
 numbered equations, explicit mathematical prose and numerical tables, excluding
 graphs and application notes. Thirty new modules provide the expanded theory;
 Mathlib results have comments and precise pointers. Of 547 initially admitted
-statements, 19 are now proved and 528 remain. The inventory records branch and
+statements, 187 are now proved and 360 remain. The inventory records branch and
 convergence conventions and a proved counterexample to the unqualified Beta
 continued-fraction bound following 8.17.23. The entry modules are
 [ExpIntegrals](AAR/ExpIntegrals.lean), [ErrorFunctions](AAR/ErrorFunctions.lean)
@@ -241,14 +241,50 @@ and [IncompleteGamma](AAR/IncompleteGamma.lean).
 The [Chapters 11, 12 and 14 acquisition](DLMF111214Acquisition.md) adds Struve,
 Lommel and Anger–Weber theory, expanded parabolic-cylinder theory and associated
 Legendre/Ferrers, conical, toroidal and spherical-harmonic theory. Forty-four new
-modules supply 198 definitions and 626 initially admitted statements; 25 are now
-proved and 601 remain. The ledger accounts for all 601 selected numbered equations,
+modules supply 198 definitions and 626 initially admitted statements; 110 are now
+proved and 516 remain. The ledger accounts for all 601 selected numbered equations,
 excluding graphs and application notes, with Mathlib pointers instead of duplicate
 proofs. It records proved counterexamples to 12.13.6 and the left-cut zero rule in
 §14.27, and explicitly lists domain extensions still to acquire. The entry modules
 are [Struve](AAR/Struve.lean), [ParabolicCylinder](AAR/ParabolicCylinder.lean) and
-[Legendre](AAR/Legendre.lean). The project now has 1,609 explicit admissions;
+[Legendre](AAR/Legendre.lean). The project now has 1,356 explicit admissions;
 the completed public proofs have no dependencies on them.
+
+The [admission reuse review](REVIEW.md#reuse-of-the-proved-special-function-core-2026-10-19)
+prioritizes incomplete-Gamma and exponential-integral specializations, error/Fresnel
+bridges, incomplete-Beta recurrences, cylinder identities, associated Legendre theory
+and regularized Struve series. It names an initial batch of 18 targets, distinguishes proved general
+results from admitted prerequisites, and flags a sign transcription error in an
+acquired Airy inverse-Bessel formula. The review itself changes no proofs.
+
+The [seven-track proof batch](REVIEW.md#seven-track-admission-removal-2026-10-19)
+removes 100 admissions: Gamma/exponential-integral core 24, error/Dawson/Fresnel 20,
+Ein/E1/Si/Ci 24, incomplete Beta 5, cylinders/Weber 10, associated Legendre 12,
+and Struve/Lommel 5. This includes the complex E1–Ein identity at every nonzero
+argument, all-parameter continued-Gamma shifts, the associated-P equation,
+and regularized 1F2 bridges for Struve and small Lommel. No existing statement,
+assumption or definition was changed. The full build, 31 direct file checks and
+an exact axiom audit pass; all new completed proofs are independent of admissions.
+The remaining obligations and complete theorem inventory are in the review.
+
+The [four-priority follow-up](REVIEW.md#four-priority-admission-removal-2026-10-20)
+removes a further **69 admissions**, bringing the total to **1,440**. It proves 30
+exponential-integral/error/Fresnel relations, 14 repeated-erfc/cylinder identities,
+12 incomplete-Beta recurrences, limits and series, and 13 incomplete-Gamma shifts,
+weighted derivatives and transforms. The original domains, exceptional parameters,
+branches and definitions are preserved. The exact compiled dependency audit confirms
+that all these proofs are independent of admissions; the full build and 19 direct
+file checks pass. The review lists the completed theorems and remaining work.
+
+The [Struve/Lommel forcing batch](REVIEW.md#struve-and-lommel-forcing-2026-10-20)
+removes **15 more admissions**, leaving **1,425**. It proves the four Struve
+equations with their forcing terms, five ordinary general-solution formulas,
+two logarithmic continuation formulas, the small-Lommel equation and general
+solution, and two Fresnel squared-norm identities. The new regularized `₁F₂`
+equation retains reciprocal-Gamma zeros at exceptional parameters. The build,
+10 direct checks and exact compiled axiom audit pass. The
+[next-priorities review](REVIEW.md#next-proof-priorities-after-the-forcing-batch)
+identifies the next transfers and their prerequisites.
 
 ## Supporting library `ToMathlib`
 
@@ -280,3 +316,27 @@ Run `lake build` from the repository root. The existing `.lake` symlink to the
 local-disk cache is intentional and must not be replaced or retargeted.
 
 Build outputs remain in `.lake/build-AAR`, separate from companion projects.
+
+
+The [four-track identity batch](REVIEW.md#four-track-identity-proofs-2026-10-20)
+removes **58 admissions**, leaving **1,367**: 28 Struve, 17 incomplete-Gamma and
+generalized-trigonometric, seven Legendre and six error-function results. It
+completes the targeted Struve calculus, both modified solution formulas, the
+negative half-integer families and eight elementary values; the short Gamma
+transfers, including inherited-logarithm square identities; six Legendre degree
+recurrences and the Olver-Q equation; and the repeated-erfc, Faddeeva and Fresnel
+series transfers. All existing statements and definitions are preserved. The
+full build, 26 direct checks and exact compiled axiom audit pass. The review
+lists the remaining finite Struve sums and Ferrers-Q foundations explicitly.
+
+
+The [finite-sum and Ferrers follow-up](REVIEW.md#finite-struve-sums-and-ferrers-foundations-2026-10-20)
+removes **11 further admissions**, leaving **1,356**. It proves both remaining
+Struve finite half-integer sums, all four targeted P order recurrences, the
+Ferrers P/W₁/W₂ connection, the Ferrers-Q differential equation, lower-Gamma
+parameter analyticity and logarithmic monodromy, and the generalized lower
+trigonometric/Gamma bridge. A regularized quadratic connection extends through
+exceptional lower parameters using the proved parameter-curve analyticity API.
+The full build, 17 direct checks and exact compiled axiom audit pass. The
+remaining Ferrers-Q connection/limit and Gamma complement/convergence work is
+listed in the review.

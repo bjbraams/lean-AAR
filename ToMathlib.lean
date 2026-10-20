@@ -15,6 +15,9 @@ public import ToMathlib.Analysis.Asymptotics.AsymptoticExpansion
 public import ToMathlib.Analysis.Asymptotics.Watson
 public import ToMathlib.Analysis.Integral.Laplace
 public import ToMathlib.Analysis.Complex.Carlson
+public import ToMathlib.Analysis.Complex.FactorialSeries
+public import ToMathlib.Analysis.Complex.ParametricHolomorphy
+public import ToMathlib.Analysis.Complex.SegmentPrimitive
 public import ToMathlib.Analysis.ODE.SturmComparison
 public import ToMathlib.Analysis.ODE.SoninePolya
 public import ToMathlib.Analysis.ODE.Volterra
@@ -25,6 +28,10 @@ public import ToMathlib.Analysis.ODE.Volterra
 General results used by the special-function library but not specific to it, written in
 the namespaces of the Mathlib APIs they extend. These modules import Mathlib only.
 
+* `ToMathlib.Analysis.Complex.SegmentPrimitive`: straight-segment primitives and their derivatives.
+* `ToMathlib.Analysis.Complex.FactorialSeries`: convergence and entireness of sparse factorial series.
+* `ToMathlib.Analysis.Complex.ParametricHolomorphy`: holomorphy of dominated parametric series and
+  integrals in finite-dimensional complex parameters, and the continuous Osgood lemma.
 * `ToMathlib.NumberTheory.EulerPolynomials`: Euler polynomials and Euler numbers.
 * `ToMathlib.Analysis.EulerMaclaurin`: the Euler–Maclaurin summation formula with remainder.
 * `ToMathlib.Analysis.BooleSummation`: Boole's alternating summation formula.

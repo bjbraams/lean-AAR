@@ -12,6 +12,7 @@ public import AAR.Struve.Asymptotics
 public import AAR.Struve.Computation
 public import AAR.Struve.Coefficients
 public import AAR.Struve.Basic
+public import AAR.Struve.Poisson
 public import AAR.Struve.Properties
 
 /-!

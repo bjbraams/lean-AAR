@@ -649,3 +649,160 @@ hypergeometric continuation and polynomial theory. The existing cylinder core's
 TauCeti Hermite derivative dependency is retained. No TauCeti proof source was
 copied or adapted in this batch. The two counterexample files use accepted proofs
 without reliance on the newly admitted statements.
+
+
+## DLMF seven-track proof batch (2026-10-19)
+
+The [100 admission removals](REVIEW.md#seven-track-admission-removal-2026-10-19)
+reuse the proved project Kummer/Tricomi, continued Gauss, incomplete Gamma/Beta,
+parabolic-cylinder and orthogonal-polynomial APIs. The complete statement sources
+remain the DLMF Chapter 6–8 and 11/12/14 acquisition ledgers cited above.
+
+The Mathlib contributors supply complex primitive existence
+`Differentiable.isExactOn_univ`, interval FTC
+`intervalIntegral.integral_eq_sub_of_hasDerivAt`, real exponential-series
+summability `Real.summable_pow_div_factorial`, and locally uniform holomorphic
+convergence `differentiableOn_tsum_of_summable_norm`. These are the inputs to the
+new Mathlib-only segment-primitive and sparse-factorial-series adapters.
+Mathlib's `Complex.regularizedHGFun`,
+`Complex.radius_regularizedHGFunSeries_eq_top` and
+`Complex.analyticAt_regularizedHGFun_of_card_le` supply the Struve and small-Lommel
+argument theory; Gamma identities and reciprocal-Gamma differentiability retain
+exceptional parameters. The E1–Ein proof uses the project's previously proved
+termwise regularized Kummer parameter derivative and integer-parameter Tricomi
+connection numerator. The existing cylinder core retains its TauCeti Hermite
+calculus dependency. No TauCeti proof source was copied or adapted in this batch,
+and no exact DLMF result already covered by Mathlib was reproved locally.
+
+
+## DLMF four-priority proof follow-up (2026-10-20)
+
+The [69 admission removals](REVIEW.md#four-priority-admission-removal-2026-10-20)
+reuse the project's proved regularized Gauss, Kummer/Tricomi, cylinder, Gamma,
+Beta and Hermite APIs. The DLMF equation sources remain those recorded in the
+Chapter 6–8 and 11/12/14 acquisition ledgers.
+
+The Mathlib contributors supply complex analytic uniqueness and the implication
+from complex differentiability to analyticity, `Complex.differentiableOn_dslope`,
+the two one-sided principal-log limits on the negative real axis, interval FTC,
+reciprocal-Gamma recurrence and the factorial/binomial and series-reindexing APIs.
+The two general entire-function adapters added to SegmentPrimitive import Mathlib
+only. Their uses preserve the original totalized integral values at the origin.
+
+TauCeti's `continuous_regularizedIncompleteBeta`, through the existing project
+normalization bridge in `AAR.Statistical.IncompleteBeta`, supplies the incomplete-
+Beta endpoint limit. The existing cylinder/Hermite and Tricomi integral cores
+retain their previously documented TauCeti dependencies. No TauCeti source was
+copied or adapted, and no exact DLMF result already in Mathlib was reproved here.
+
+
+## Struve and Lommel forcing batch (2026-10-20)
+
+The [15 admission removals](REVIEW.md#struve-and-lommel-forcing-2026-10-20)
+use the DLMF statements and normalizations already recorded in the acquisition
+ledgers. Mathlib's `Complex.regularizedHGFun` and its power-series radius and
+analyticity theorems supply the underlying entire series. Reciprocal-Gamma
+recurrence and the project's proved generalized coefficient recurrence give the
+exact inhomogeneous second-order equation, without cancelling Gamma factors at
+exceptional orders.
+
+The ordinary solution formulas reuse
+`AAR.Bessel.eq_besselJ_besselY_of_ode`, whose accepted proof includes integer orders.
+Mathlib's analytic and iterated-derivative calculus supplies linearity and local
+congruence of the Bessel operator; the existing principal-power derivative fixes
+the branch in the quadratic substitution. The Fresnel norm proofs use the
+project's real/complex bridges and Mathlib's complex norm and real trigonometric
+identities. No dependency was added, no TauCeti source was copied or adapted, and
+no exact DLMF theorem already proved in Mathlib was reproved here.
+
+
+## Four-track identity batch (2026-10-20)
+
+The [58 admission removals](REVIEW.md#four-track-identity-proofs-2026-10-20)
+use the DLMF statements and normalizations already acquired in this project.
+The regularized Struve and Fresnel reductions use Mathlib's
+`Complex.regularizedHGFun`, its coefficient definition, convergence radius and
+power-series APIs, together with Gamma recurrence and the existing Bessel and
+hypergeometric cores. The I/K basis theorem adapts the project's proved J/Y
+Abel/Wronskian argument to the already proved modified Bessel Wronskian.
+
+Mathlib's `Complex.hasSum_taylorSeries_of_entire` supplies the repeated-erfc
+Taylor sum. The coefficient evaluation uses the project's proved
+`pcfU_iterated_deriv_10` and `pcfU_zero`; it does not cancel a Gamma factor at
+an exceptional parameter. The Fresnel primitive adapter uses
+`Complex.hasSum_cos`, `Complex.hasSum_sin`,
+`intervalIntegral.hasSum_integral_of_dominated_convergence`,
+`intervalIntegral.integral_ofReal` and `integral_pow`. The logarithmic Gamma
+half-order continuation uses the real fundamental theorem of calculus through
+the existing straight-segment primitive adapter, and the proved complex erf
+and Kummer identities. The Dawson transfer reuses the project's
+`Real.dawsonF_eq_kummerM` through its established real/complex normalization
+bridge and Mathlib's entire-function uniqueness theorem.
+
+The associated-P/Ferrers-P recurrences reuse the project's regularized Gauss
+contiguous relations; the Olver-Q equation uses their proved differential
+equation and Mathlib's analytic chain and product rules. No dependency was
+added, no TauCeti source was copied or adapted, and no exact DLMF theorem already
+proved in Mathlib was reproved here. All 58 completed statements and 34 new
+proved helpers were checked for absence of admitted dependencies.
+
+
+## Finite Struve sums and Ferrers foundations (2026-10-20)
+
+The [11 admission removals](REVIEW.md#finite-struve-sums-and-ferrers-foundations-2026-10-20)
+retain the acquired DLMF normalizations and branch conventions. The finite
+Struve identities reuse the project's Bessel and Struve derivative ladders,
+Mathlib's factorial recurrences, finite-sum differentiation and complex powers.
+The P order recurrences reuse proved regularized Gauss contiguous identities.
+
+The regularized quadratic connection reuses the project's proved ordinary
+quadratic formula and
+`AAR.Hypergeometric.analyticOnNhd_regularizedGaussHGFun_comp`, with the proved
+`Complex.eq_of_differentiable_of_eqOn_pos_reals` adapter. Mathlib's
+`Complex.differentiable_one_div_Gamma`, `Complex.Gamma_mul_Gamma_one_sub` and
+positive-real logarithm identities supply the normalization and exceptional
+parameter extension. The Ferrers-Q equation reuses the proved regularized
+Gauss equation and Mathlib's complex derivative rules and real restrictions.
+
+The lower-Gamma parameter proof uses the project's
+`analyticAt_regularizedConfluent_comp` and Mathlib's reciprocal-Gamma
+analyticity. Logarithmic monodromy uses
+`Complex.exp_int_mul_two_pi_mul_I`. The lower trigonometric bridge uses the
+proved `scIncGamma_hasSum_alternating`, the previously established factorial
+decay bound and Mathlib's `HasSum.even_add_odd`.
+
+No dependency was added and no TauCeti source was copied or adapted. Existing
+Mathlib theorems are used through normalization adapters rather than restated
+as newly acquired project results. All 11 completed statements and 16 new
+proved helpers were checked for absence of admitted dependencies.
+
+## Project-wide tier-A proof batch (2026-10-20)
+
+These proofs use the project's own proved cores together with Mathlib's integral,
+calculus, series, polynomial and complex-power APIs. They use the following pinned
+TauCeti theorems by name, through imports; no TauCeti source was copied or adapted:
+
+- `TauCeti.regularizedIncompleteBeta` and its `_def_of_mem_Icc`, `_symm`,
+  `_eq_one_of_one_le` and `continuous_regularizedIncompleteBeta` lemmas, together with
+  `TauCeti.integral_rpow_mul_one_sub_rpow` and
+  `TauCeti.intervalIntegrable_rpow_mul_one_sub_rpow`. These give the incomplete-Beta
+  quadratic substitution (8.17.22) and the related limits.
+- `TauCeti.lowerIncompleteGamma` and `TauCeti.continuous_lowerIncompleteGamma`, for the
+  zero limit of the upper-Gamma power bounds.
+- `TauCeti.Real.erfc`, `erfc_def`, `hasDerivAt_erfc`, `tendsto_erf_atTop` and
+  `tendsto_erfc_atTop`, for the Mills-ratio and horizontal erfc integrals.
+
+The general interval-integral differentiation rule used for the Anger and Weber
+functions is a short local proof from Mathlib's
+`intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le`. It does not
+reuse the Selberg module's parametric-integral lemma.
+
+## Shared-helper round (2026-10-20)
+
+`ToMathlib/Analysis/Complex/ParametricHolomorphy.lean` is new project work built from
+Mathlib's one-variable Cauchy integral formula and its dominated-convergence and
+`fderiv` APIs. It includes a continuous form of Osgood's lemma. No code was copied from
+other projects. The joint parameter holomorphy of the continued Gauss function, the
+Struve Poisson integrals and the remaining helpers of this round reuse the project's
+proved cores together with Mathlib. No new TauCeti theorem was adopted beyond those
+listed for the tier-A batch.

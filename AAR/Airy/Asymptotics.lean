@@ -104,12 +104,53 @@ def airyHyperRemainder (derivative : Bool) (m n : ℕ) (z : ℂ) : ℂ :=
       ∑ k ∈ Finset.range m, (-1 : ℂ) ^ k * (if derivative then airyV k else airyU k) *
         airyTerminator ((n : ℂ) - k) (log 2 + airyLogZeta z) / airyZetaComplex z ^ k
 
+/-- The recurrence for `u_k`, cleared of denominators and cast to `ℂ`. -/
+lemma airyU_succ_mul (k : ℕ) :
+    (airyU (k + 1) : ℂ) * ((2 * k + 1) * 216 * (k + 1)) =
+      (6 * k + 1) * (6 * k + 3) * (6 * k + 5) * airyU k := by
+  have h' : airyU (k + 1) * ((2 * k + 1) * 216 * (k + 1)) =
+      (6 * k + 1) * (6 * k + 3) * (6 * k + 5) * airyU k := by
+    simp only [airyU, ascPochhammer_succ_eval, pow_succ, Nat.factorial_succ, Nat.cast_mul,
+      Nat.cast_add, Nat.cast_one]
+    have hk : (k.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+    have hp : (2 : ℝ) ^ k ≠ 0 := pow_ne_zero _ (by norm_num)
+    have hk1 : (k : ℝ) + 1 ≠ 0 := by positivity
+    field_simp
+    ring
+  exact_mod_cast h'
+
+/-- `u_k · 216^k k! · ∏_{j<k}(2j+1) = ∏_{j<3k}(2j+1)`. -/
+lemma airyU_mul_oddProd (k : ℕ) :
+    (airyU k : ℂ) * ((216 : ℂ) ^ k * k.factorial) * ∏ j ∈ Finset.range k, (2 * (j : ℂ) + 1) =
+      ∏ j ∈ Finset.range (3 * k), (2 * (j : ℂ) + 1) := by
+  induction k with
+  | zero => simp [airyU]
+  | succ k ih =>
+    rw [show 3 * (k + 1) = 3 * k + 1 + 1 + 1 by ring, Finset.prod_range_succ,
+      Finset.prod_range_succ, Finset.prod_range_succ, Finset.prod_range_succ, ← ih,
+      Nat.factorial_succ]
+    push_cast
+    linear_combination (216 ^ k * (k.factorial : ℂ) * ∏ j ∈ Finset.range k, (2 * (j : ℂ) + 1)) *
+      airyU_succ_mul k
+
 /-- airyU product (DLMF 9.7.2). -/
 @[dlmf 9.7.E2]
 theorem airyU_product (k : ℕ) :
     (airyU k : ℂ) = (∏ j ∈ Finset.range (2 * k), (2 * (k : ℂ) + 1 + 2 * j)) /
       ((216 : ℂ) ^ k * k.factorial) := by
-  sorry
+  have h := airyU_mul_oddProd k
+  rw [show 3 * k = k + 2 * k by ring, Finset.prod_range_add] at h
+  have hQ : ∏ j ∈ Finset.range k, (2 * (j : ℂ) + 1) ≠ 0 :=
+    Finset.prod_ne_zero_iff.mpr fun j _ => by norm_cast
+  have hD : (216 : ℂ) ^ k * k.factorial ≠ 0 := by
+    have : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
+    exact mul_ne_zero (pow_ne_zero _ (by norm_num)) this
+  rw [eq_div_iff hD]
+  apply mul_right_cancel₀ hQ
+  rw [h, mul_comm (∏ j ∈ Finset.range k, _)]
+  congr 1
+  refine Finset.prod_congr rfl fun j _ => ?_
+  push_cast; ring
 
 /-- airyU recurrence (DLMF 9.7.2). -/
 @[dlmf 9.7.E2]
@@ -129,7 +170,26 @@ theorem airyU_recurrence (k : ℕ) :
 @[dlmf 9.7.E4]
 theorem airyChi_isEquivalent  :
     (fun x : ℝ => airyChi x) ~[atTop] (fun x => Real.sqrt (π * x / 2)) := by
-  sorry
+  have h := (AAR.Gamma.Gamma_ratio_power (a := 1) (b := 1 / 2)).comp
+    (tendsto_id.atTop_div_const (by norm_num : (0 : ℝ) < 2))
+  have h' := (Complex.continuous_re.tendsto _).comp h
+  simp only [Complex.one_re] at h'
+  refine isEquivalent_of_tendsto_one ?_
+  apply h'.congr'
+  filter_upwards [eventually_gt_atTop 0] with x hx
+  have hx2 : (0 : ℝ) ≤ x / 2 := by positivity
+  simp only [Function.comp_apply, id]
+  have e1 : ((x / 2 : ℝ) : ℂ) + 1 = ((x / 2 + 1 : ℝ) : ℂ) := by push_cast; ring
+  have e2 : ((x / 2 : ℝ) : ℂ) + 1 / 2 = ((x / 2 + 1 / 2 : ℝ) : ℂ) := by push_cast; ring
+  have e3 : ((x / 2 : ℝ) : ℂ) ^ ((1 : ℂ) - 1 / 2) = ((Real.sqrt (x / 2) : ℝ) : ℂ) := by
+    rw [Real.sqrt_eq_rpow, Complex.ofReal_cpow hx2]; norm_num
+  rw [e1, e2, e3, Complex.Gamma_ofReal, Complex.Gamma_ofReal, ← Complex.ofReal_div,
+    ← Complex.ofReal_div, Complex.ofReal_re]
+  simp only [Pi.div_apply]
+  rw [airyChi,
+    show π * x / 2 = π * (x / 2) by ring, Real.sqrt_mul Real.pi_pos.le]
+  have hs : Real.sqrt π ≠ 0 := (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  field_simp
 
 /-- airy ai poincare (DLMF 9.7.5). -/
 @[dlmf 9.7.E5]

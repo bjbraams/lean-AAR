@@ -24,11 +24,31 @@ namespace AAR.Confluent
 
 open AAR.Airy
 
+/-- Second derivative of a linear rescaling: `(f(c t))'' = c² f''(c t)`. -/
+lemma iteratedDeriv_two_comp_const_mul {f : ℂ → ℂ} (hf : Differentiable ℂ f)
+    (hf2 : Differentiable ℂ (deriv f)) (c t : ℂ) :
+    iteratedDeriv 2 (fun t => f (c*t)) t = c^2 * iteratedDeriv 2 f (c*t) := by
+  have hl : ∀ w : ℂ, HasDerivAt (fun w : ℂ => c*w) c w := fun w =>
+    ((hasDerivAt_id w).const_mul c).congr_deriv (mul_one c)
+  have d1 : deriv (fun t => f (c*t)) = fun t => deriv f (c*t) * c := by
+    funext w; exact ((hf _).hasDerivAt.comp w (hl w)).deriv
+  have d2 : deriv (fun t => deriv f (c*t) * c) t = deriv (deriv f) (c*t) * c * c :=
+    (((hf2 _).hasDerivAt.comp t (hl t)).mul_const c).deriv
+  rw [show (2:ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one, iteratedDeriv_succ,
+    iteratedDeriv_one, d1, d2]
+  ring
+
 /-- pcf parameter scaling. -/
 @[dlmf 12.10.E1, dlmf 12.10.E2]
 theorem pcf_parameter_scaling (μ : ℝ) (f : ℂ → ℂ) (hf : Differentiable ℂ f) (hf2 : Differentiable ℂ (deriv f)) (s : ℂ) (hs : s=1 ∨ s=-1) (hode : ∀ z, iteratedDeriv 2 f z-(z^2/4+s*μ^2/2)*f z=0) (t : ℂ) :
     iteratedDeriv 2 (fun t : ℂ => f (μ*t*Real.sqrt 2)) t=(μ:ℂ)^4*(t^2+s)*f (μ*t*Real.sqrt 2) := by
-  sorry
+  have hs2 : (Real.sqrt 2:ℂ)^2=2 := by exact_mod_cast Real.sq_sqrt (by norm_num : (0:ℝ)≤2)
+  have e : (fun t : ℂ => f (μ*t*Real.sqrt 2)) = fun t => f ((μ*Real.sqrt 2)*t) := by
+    funext t; ring_nf
+  rw [e, iteratedDeriv_two_comp_const_mul hf hf2, show (μ:ℂ)*t*Real.sqrt 2 = (μ*Real.sqrt 2)*t by ring]
+  have h := hode ((μ*Real.sqrt 2)*t)
+  linear_combination (μ*Real.sqrt 2:ℂ)^2 * h + (μ:ℂ)^4 * f ((μ*Real.sqrt 2)*t) *
+    (((Real.sqrt 2:ℂ)^2+2)*t^2/4 + s/2) * hs2
 
 /-- Absolute Airy envelopes allow uniform error bounds through zeros. -/
 def pcfAiryEnvelope (A D : ℂ → ℂ) (isDeriv : Bool) (μ t : ℝ) : ℝ :=

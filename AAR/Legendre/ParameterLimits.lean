@@ -56,12 +56,28 @@ theorem ferrersP_sq_integral_all_degrees {ν : ℂ} (hν : ν ≠ -1/2) :
 @[dlmf 14.9.E3]
 theorem ferrersP_negative_order_parameter_limit (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     Tendsto (fun v : ℂ => (-1)^m*Gamma (v-m+1)/Gamma (v+m+1)*ferrersP v m x) (𝓝[≠] ν) (𝓝 (ferrersP ν (-m) x)) := by
-  sorry
+  have ht : ((1:ℂ)-x)/2 ∈ cutPlane := by
+    rw [mem_cutPlane, show (1:ℂ) - (1-(x:ℂ))/2 = (((1+x)/2 : ℝ) : ℂ) by push_cast; ring]
+    exact Or.inl (by simp only [ofReal_re]; linarith [hx.1])
+  have hc : Continuous fun v : ℂ => ferrersP v (-m) x := by
+    unfold ferrersP
+    exact continuous_const.mul (differentiable_regularizedGaussHG_comp (A := fun v => v+1) (B := fun v => -v)
+      (C := fun _ => 1-(-(m:ℂ))) (by fun_prop) (by fun_prop) (by fun_prop) ht).continuous
+  refine ((hc.tendsto ν).mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [eventually_affine_ne_neg_nat one_ne_zero (-(m:ℂ)+1) ν] with v hv
+  exact ferrersP_negative_integer_order v m (fun n hn => hv n (by linear_combination hn)) hx
 
 /-- associatedP negative order parameter limit. -/
 @[dlmf 14.9.E13]
 theorem associatedP_negative_order_parameter_limit (ν : ℂ) (m : ℕ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     Tendsto (fun v : ℂ => Gamma (v-m+1)/Gamma (v+m+1)*associatedP v m z) (𝓝[≠] ν) (𝓝 (associatedP ν (-m) z)) := by
-  sorry
+  have ht := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hz)
+  have hc : Continuous fun v : ℂ => associatedP v (-m) z := by
+    unfold associatedP
+    exact continuous_const.mul (differentiable_regularizedGaussHG_comp (A := fun v => v+1) (B := fun v => -v)
+      (C := fun _ => 1-(-(m:ℂ))) (by fun_prop) (by fun_prop) (by fun_prop) ht).continuous
+  refine ((hc.tendsto ν).mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [eventually_affine_ne_neg_nat one_ne_zero (-(m:ℂ)+1) ν] with v hv
+  exact associatedP_negative_integer_order v m (fun n hn => hv n (by linear_combination hn)) hz
 
 end AAR.Legendre

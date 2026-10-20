@@ -47,13 +47,108 @@ theorem incGammaAsymptoticRemainder_real_bound {a x : ℝ} (hx : 0 < x) {N : ℕ
 @[dlmf 8.11.E4]
 theorem lowerIncGamma_large_parameter_hasSum {a : ℂ} (ha : ∀ n : ℕ, a ≠ -n) (z : ℂ) :
     HasSum (fun k : ℕ => z^a*exp (-z)*z^k/poch a (k+1)) (lowerIncGamma a z) := by
-  sorry
+  have hs := (scIncGamma_hasSum_exponential a z).mul_left (Gamma a*z^a)
+  have he : Gamma a*z^a*scIncGamma a z=lowerIncGamma a z := by
+    rw [(scIncGamma_regularized_pair a z).2,lowerIncGamma_eq_regularized ha]
+    ring
+  rw [he] at hs
+  refine hs.congr_fun fun k => ?_
+  have hg := Gamma_add_nat_div_Gamma_eq (n:=k+1) a ha
+  rw [← poch,div_eq_iff (Gamma_ne_zero ha)] at hg
+  rw [show a+(k:ℂ)+1=a+((k+1:ℕ):ℂ) by push_cast; ring,hg]
+  field_simp [Gamma_ne_zero ha]
+
+/-- In the sector `|arg a| ≤ π - δ`, every shift `a + m` with `m ≥ 0` keeps a fixed fraction
+of the modulus: `sin δ · ‖a‖ ≤ ‖a + m‖`. -/
+lemma sin_mul_norm_le_norm_add_of_abs_arg_le {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < π) {a : ℂ}
+    (harg : |arg a| ≤ π - δ) {m : ℝ} (hm : 0 ≤ m) :
+    Real.sin δ * ‖a‖ ≤ ‖a + m‖ := by
+  have hs : 0 ≤ Real.sin δ := Real.sin_nonneg_of_nonneg_of_le_pi hδ.le hδ1.le
+  have hcos : -Real.cos δ ≤ Real.cos (arg a) := by
+    rw [← Real.cos_abs (arg a), ← Real.cos_pi_sub]
+    exact Real.cos_le_cos_of_nonneg_of_le_pi (abs_nonneg _) (by linarith) harg
+  have hre : a.re = ‖a‖ * Real.cos (arg a) := (Complex.norm_mul_cos_arg a).symm
+  have hn : ‖a‖^2 = a.re^2 + a.im^2 := by rw [Complex.sq_norm, Complex.normSq_apply]; ring
+  have hn' : ‖a + m‖^2 = (a.re + m)^2 + a.im^2 := by
+    rw [Complex.sq_norm, Complex.normSq_apply]; simp; ring
+  have hsc := Real.sin_sq_add_cos_sq δ
+  have h0 : 0 ≤ ‖a‖ := norm_nonneg _
+  have hre' : -(‖a‖ * Real.cos δ) ≤ a.re := by rw [hre]; nlinarith
+  refine (pow_le_pow_iff_left₀ (by positivity) (norm_nonneg _) two_ne_zero).mp ?_
+  rw [mul_pow, hn', hn]
+  nlinarith [sq_nonneg (‖a‖ * Real.cos δ - m), mul_nonneg hm (by linarith : 0 ≤ a.re + ‖a‖ * Real.cos δ)]
+
+/-- Pochhammer lower bound in the sector: `(sin δ · ‖a‖)^k ≤ ‖(a + m)_k‖` for `m ≥ 0`. -/
+lemma pow_le_norm_poch_of_abs_arg_le {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < π) {a : ℂ}
+    (harg : |arg a| ≤ π - δ) {m : ℝ} (hm : 0 ≤ m) (k : ℕ) :
+    (Real.sin δ * ‖a‖)^k ≤ ‖poch (a + m) k‖ := by
+  have hs : 0 ≤ Real.sin δ := Real.sin_nonneg_of_nonneg_of_le_pi hδ.le hδ1.le
+  induction k with
+  | zero => simp [poch_zero]
+  | succ k ih =>
+    rw [poch_succ, norm_mul, pow_succ]
+    have h := sin_mul_norm_le_norm_add_of_abs_arg_le hδ hδ1 harg (m := m + k) (by positivity)
+    rw [show a + ((m + k : ℝ) : ℂ) = a + m + k by push_cast; ring] at h
+    exact mul_le_mul ih h (by positivity) (norm_nonneg _)
 
 /-- lowerIncGamma large parameter asymptotic. -/
 @[dlmf 8.11.E4]
 theorem lowerIncGamma_large_parameter_asymptotic {z : ℂ} (hz : z ≠ 0) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < π) (N : ℕ) :
     IsBigO (sector (π-δ)) (fun a => lowerIncGamma a z-z^a*exp (-z)*∑ k ∈ Finset.range N, z^k/poch a (k+1)) (fun a => z^a*exp (-z)*z^N/poch a (N+1)) := by
-  sorry
+  set c := Real.sin δ with hc
+  have hc0 : 0 < c := Real.sin_pos_of_pos_of_lt_pi hδ hδ1
+  have hev : ∀ᶠ a in sector (π-δ), 2*‖z‖/c ≤ ‖a‖ ∧ a ≠ 0 ∧ |arg a| ≤ π-δ := by
+    have h1 : ∀ᶠ a in sector (π-δ), 2*‖z‖/c ≤ ‖a‖ :=
+      ((eventually_ge_atTop (2*‖z‖/c)).comap norm).filter_mono inf_le_left
+    have h2 : ∀ᶠ a in sector (π-δ), a ≠ 0 ∧ |arg a| ≤ π-δ :=
+      mem_inf_of_right (mem_principal_self _)
+    filter_upwards [h1, h2] with a ha1 ha2 using ⟨ha1, ha2⟩
+  refine IsBigO.of_bound 2 ?_
+  filter_upwards [hev] with a ⟨hR, ha0, harg⟩
+  have hnp : ∀ n : ℕ, a ≠ -n := by
+    intro n hn
+    rcases Nat.eq_zero_or_pos n with h | h
+    · exact ha0 (by simp [hn, h])
+    · have : arg a = π := by
+        rw [hn, show -(n:ℂ) = ((-(n:ℝ) : ℝ) : ℂ) by push_cast; ring]
+        have hn0 : (0:ℝ) < n := by exact_mod_cast h
+        exact Complex.arg_ofReal_of_neg (by linarith)
+      rw [this, abs_of_pos Real.pi_pos] at harg
+      linarith
+  set B : ℂ := z^a*exp (-z)*z^N/poch a (N+1) with hB
+  have hs := lowerIncGamma_large_parameter_hasSum hnp z
+  have htail := (hasSum_nat_add_iff' N).mpr hs
+  have hterm : ∀ k : ℕ, z^a*exp (-z)*z^(k+N)/poch a (k+N+1) = B * (z^k/poch (a+((N+1:ℕ):ℝ)) k) := by
+    intro k
+    rw [show k+N+1 = (N+1)+k by ring, poch_add, hB]
+    push_cast
+    rw [div_eq_mul_inv, div_eq_mul_inv, div_eq_mul_inv, mul_inv, pow_add]
+    ring
+  simp only [hterm] at htail
+  clear_value B
+  have hbound : ∀ k : ℕ, ‖B * (z^k/poch (a+((N+1:ℕ):ℝ)) k)‖ ≤ ‖B‖ * (1/2)^k := by
+    intro k
+    rw [norm_mul, norm_div, norm_pow]
+    refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
+    have hp := pow_le_norm_poch_of_abs_arg_le hδ hδ1 harg (m := ((N+1:ℕ):ℝ)) (by positivity) k
+    have hca : 2*‖z‖ ≤ c*‖a‖ := by
+      rw [div_le_iff₀ hc0] at hR; linarith
+    have hzpos : 0 < ‖z‖ := norm_pos_iff.mpr hz
+    have hpos : 0 < (c*‖a‖)^k := pow_pos (by nlinarith) k
+    rw [div_le_iff₀ (lt_of_lt_of_le hpos hp)]
+    calc ‖z‖^k = (1/2)^k * (2*‖z‖)^k := by rw [← mul_pow]; ring_nf
+      _ ≤ (1/2)^k * (c*‖a‖)^k := by gcongr
+      _ ≤ (1/2)^k * ‖poch (a+((N+1:ℕ):ℝ)) k‖ := by gcongr
+  have hgeom : HasSum (fun k : ℕ => ‖B‖ * (1/2:ℝ)^k) (‖B‖ * 2) := by
+    have := (hasSum_geometric_two).mul_left ‖B‖
+    simpa [one_div] using this
+  have hle := htail.norm_le_of_bounded hgeom hbound
+  rw [Finset.mul_sum]
+  have hsum : ∑ k ∈ Finset.range N, z^a*exp (-z)*(z^k/poch a (k+1)) =
+      ∑ k ∈ Finset.range N, z^a*exp (-z)*z^k/poch a (k+1) :=
+    Finset.sum_congr rfl fun k _ => by ring
+  rw [hsum]
+  linarith
 
 /-- normIncGammaP large parameter equivalent. -/
 @[dlmf 8.11.E5]
@@ -130,7 +225,23 @@ def expPartialSumRemainderS (n : ℕ) (x : ℝ) : ℂ :=
 @[dlmf 8.11.E14]
 theorem expPartialSumRemainderS_identity (n : ℕ) (x : ℝ) :
     exp (n*x : ℂ)=expPartialSum n (n*x)+(n*x : ℂ)^n/n.factorial*expPartialSumRemainderS n x := by
-  sorry
+  rw [expPartialSumRemainderS, show (-n*x : ℂ) = -(n*x : ℂ) by ring]
+  set z : ℂ := (n*x : ℂ)
+  have hf : (n.factorial : ℂ) ≠ 0 := by exact_mod_cast n.factorial_ne_zero
+  by_cases hz : z = 0
+  · have h0 : lowerIncGamma (n+1) z = 0 := by
+      rw [lowerIncGamma_eq_regularized (natCast_add_one_ne_neg_nat n), hz,
+        zero_cpow (by exact_mod_cast n.succ_ne_zero), mul_zero, zero_mul]
+    rw [h0, zero_div, mul_zero, add_zero, hz, Complex.exp_zero, expPartialSum,
+      Finset.sum_eq_single 0]
+    · simp
+    · intro k _ hk; simp [hk]
+    · simp
+  · rw [lowerIncGamma_nat_succ_expPartialSum n hz, Complex.exp_neg]
+    have he : exp z ≠ 0 := Complex.exp_ne_zero z
+    have hzn : z^n ≠ 0 := pow_ne_zero _ hz
+    field_simp
+    ring
 
 /-- expPartialSumRemainderS one asymptotic. -/
 @[dlmf 8.11.E16]

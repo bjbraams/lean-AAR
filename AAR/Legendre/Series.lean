@@ -7,6 +7,10 @@ module
 
 public import AAR.Legendre.Hypergeometric
 public import AAR.Legendre.Integer
+public import AAR.Legendre.Neumann
+public import AAR.Legendre.AssociatedRecurrences
+public import AAR.Legendre.SpecialValues
+public import AAR.OrthogonalPolynomials.Series
 
 /-!
 # Legendre Fourier series, generating functions and continued fractions
@@ -87,7 +91,31 @@ theorem legendreQPoly_initial  :
 @[dlmf 14.7.E2]
 theorem ferrersQ_nat_logarithm (n : ℕ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     ferrersQ n 0 x=1/2*ferrersP n 0 x*log ((1+x)/(1-x):ℂ)-(legendreQPoly n).eval (x:ℂ) := by
-  sorry
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    match n, ih with
+    | 0, _ =>
+      simp [legendreQPoly, ferrersQ_degree_0 hx, ferrersP_degree_0 hx]
+    | 1, _ =>
+      simp only [Nat.cast_one, legendreQPoly, Polynomial.eval_one]
+      rw [ferrersQ_degree_1 hx, ferrersP_degree_1 hx]; ring
+    | n + 2, ih =>
+      have hreg : LegendreQRegular (n:ℂ) 0 := fun k hk => by
+        have : ((n:ℝ) : ℂ).re = (-((k:ℂ)+1)).re := by rw [← hk]; simp
+        simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n), (k.cast_nonneg : (0:ℝ) ≤ k)]
+      have hQ := ferrersQ_recurrence_3 (n:ℂ) 0 hreg hx
+      have hP := ferrersP_recurrence_3 (n:ℂ) 0 hx
+      have h1 := ih (n + 1) (by omega)
+      have h0 := ih n (by omega)
+      push_cast at h1 h0 ⊢
+      rw [show (n:ℂ)+2 = n+1+1 by ring] at hQ hP
+      simp only [legendreQPoly, Polynomial.eval_mul, Polynomial.eval_sub, Polynomial.eval_C,
+        Polynomial.eval_X]
+      have hn : (n : ℂ) + 2 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero (n + 1)
+      rw [show (n:ℂ)+2 = n+1+1 by ring] at hn ⊢
+      have hinv : ((n:ℂ)+1+1)*((n:ℂ)+1+1)⁻¹ = 1 := mul_inv_cancel₀ hn
+      linear_combination ((n:ℂ)+1+1)⁻¹*(hQ - 1/2*log ((1+x)/(1-x):ℂ) * hP + (2 * (n : ℂ) + 3) * x * h1 -
+        ((n : ℂ) + 1) * h0) - (ferrersQ ((n:ℂ)+1+1) 0 x - 1/2*log ((1+x)/(1-x):ℂ)*ferrersP ((n:ℂ)+1+1) 0 x)*hinv
 
 /-- olverQ nat normalization. -/
 @[dlmf 14.7.E6]
@@ -99,13 +127,19 @@ theorem olverQ_nat_normalization (n : ℕ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
 @[dlmf 14.7.E7]
 theorem associatedQ_nat_logarithm (n : ℕ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     associatedQ n 0 z=1/2*associatedP n 0 z*(log (z+1)-log (z-1))-(legendreQPoly n).eval z := by
-  sorry
+  rw [associatedQ_zero_order _ hz, associatedP_zero_order _ hz, legendreQ_nat n hz, legendreQ_zero hz,
+    log_add_one_sub_log_sub_one hz]
+  ring
 
 /-- ferrersP generating. -/
 @[dlmf 14.7.E19]
 theorem ferrersP_generating {x h : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) (hh : |h| < 1) :
     HasSum (fun n : ℕ => ferrersP n 0 x*(h:ℂ)^n) ((1-2*x*h+h^2:ℂ)^(-1/2:ℂ)) := by
-  sorry
+  have hg := AAR.OrthogonalPolynomials.legendre_generating_function (x := x)
+    (abs_le.mpr ⟨hx.1.le, hx.2.le⟩) (z := (h:ℂ)) (by rw [Complex.norm_real, Real.norm_eq_abs]; exact hh)
+  refine hg.congr_fun fun n => ?_
+  have hs : 1+(x:ℂ) ∈ slitPlane := Or.inl (by simp; linarith [hx.1])
+  rw [ferrersP_zero _ hx.1, legendreP_nat n hs]
 
 /-- ferrersQ generating. -/
 @[dlmf 14.7.E20]

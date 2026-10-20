@@ -62,14 +62,16 @@ theorem pcfGammaCoeff_initial  :
   sorry
 
 /-- Polynomial pairs `(u_s,r_{s-1})`; the polynomial degree condition fixes the integration constant.
-Existence of the chosen polynomial is asserted separately, not inferred from choice. -/
+Existence of the chosen polynomial is asserted separately, not inferred from choice.
+The `u`-equation coefficient is `3(s+1)` as in DLMF 12.10.11 (corrected 2026-10-20 from
+`3/2(s+1)`, for which no polynomial solution exists at `s = 0`). -/
 def pcfOlverPair : ℕ → Polynomial ℝ × Polynomial ℝ
   | 0 => (1,0)
   | s+1 =>
     let q := pcfOlverPair s
     let r := C (1/8:ℝ)*(C 3*X^2+C 2)*q.1 - C (3/2*(s+1:ℝ))*X*q.2 + C (1/2:ℝ)*(X^2-1)*derivative q.2
     (Classical.epsilon (fun p : Polynomial ℝ =>
-      (X^2-1)*derivative p-C (3/2*(s+1:ℝ))*X*p=r ∧
+      (X^2-1)*derivative p-C (3*(s+1:ℝ))*X*p=r ∧
       p.natDegree ≤ if Even (s+1) then 3*(s+1)-2 else 3*(s+1)),r)
 
 /-- pcfOlverU. -/
@@ -90,14 +92,129 @@ def pcfOlverV (s : ℕ) : Polynomial ℝ :=
 /-- pcfOlverU spec. -/
 @[dlmf 12.10.E11]
 theorem pcfOlverU_spec (s : ℕ) :
-    (X^2-1)*derivative (pcfOlverU (s+1))-C (3/2*(s+1:ℝ))*X*pcfOlverU (s+1)=pcfOlverR s ∧ (pcfOlverU (s+1)).natDegree ≤ if Even (s+1) then 3*(s+1)-2 else 3*(s+1) := by
+    (X^2-1)*derivative (pcfOlverU (s+1))-C (3*(s+1:ℝ))*X*pcfOlverU (s+1)=pcfOlverR s ∧ (pcfOlverU (s+1)).natDegree ≤ if Even (s+1) then 3*(s+1)-2 else 3*(s+1) := by
   sorry
+
+/-- Coefficient recursion of `(X²-1)p' - kXp`. -/
+lemma olver_homog_coeff (k : ℝ) (p : Polynomial ℝ) (n : ℕ) :
+    ((X^2-1)*derivative p-C k*X*p).coeff (n+1) = (n-k) * p.coeff n - (n+2) * p.coeff (n+2) := by
+  have : (X^2-1)*derivative p-C k*X*p = X^2*derivative p - derivative p - C k*(X*p) := by ring
+  rw [this, coeff_sub, coeff_sub, coeff_C_mul, coeff_X_mul, coeff_derivative]
+  rcases n with _ | n
+  · simp [coeff_X_pow_mul']; ring
+  · rw [show n+1+1 = n+2 by ring, coeff_X_pow_mul']
+    simp [coeff_derivative]; ring
+
+/-- Constant coefficient of `(X²-1)p' - kXp`. -/
+lemma olver_homog_coeff_zero (k : ℝ) (p : Polynomial ℝ) :
+    ((X^2-1)*derivative p-C k*X*p).coeff 0 = - p.coeff 1 := by
+  have : (X^2-1)*derivative p-C k*X*p = X^2*derivative p - derivative p - C k*(X*p) := by ring
+  rw [this]; simp [coeff_derivative]
+
+/-- Polynomial solutions of `(X²-1)p' - 3Xp = 0` of degree `≤ 3` vanish. -/
+lemma olver_homog_three {p : Polynomial ℝ} (hp : (X^2-1)*derivative p-C 3*X*p=0)
+    (hd : p.natDegree ≤ 3) : p = 0 := by
+  have h4 : p.coeff 4 = 0 := coeff_eq_zero_of_natDegree_lt (by omega)
+  have e0 := olver_homog_coeff_zero 3 p
+  have e1 := olver_homog_coeff 3 p 0
+  have e2 := olver_homog_coeff 3 p 1
+  have e3 := olver_homog_coeff 3 p 2
+  rw [hp, coeff_zero] at e0 e1 e2 e3
+  push_cast at e1 e2 e3
+  have h1 : p.coeff 1 = 0 := by linarith
+  have h3 : p.coeff 3 = 0 := by linarith
+  have h2 : p.coeff 2 = 0 := by linarith
+  have h0 : p.coeff 0 = 0 := by linarith
+  ext n
+  rcases (show n ≤ 3 ∨ 3 < n by omega) with hn | hn
+  · interval_cases n <;> simp [h0, h1, h2, h3]
+  · simp [coeff_eq_zero_of_natDegree_lt (lt_of_le_of_lt hd hn)]
+
+/-- Polynomial solutions of `(X²-1)p' - 6Xp = 0` of degree `≤ 4` vanish. -/
+lemma olver_homog_six {p : Polynomial ℝ} (hp : (X^2-1)*derivative p-C 6*X*p=0)
+    (hd : p.natDegree ≤ 4) : p = 0 := by
+  have h5 : p.coeff 5 = 0 := coeff_eq_zero_of_natDegree_lt (by omega)
+  have h6 : p.coeff 6 = 0 := coeff_eq_zero_of_natDegree_lt (by omega)
+  have e0 := olver_homog_coeff_zero 6 p
+  have e1 := olver_homog_coeff 6 p 0
+  have e2 := olver_homog_coeff 6 p 1
+  have e3 := olver_homog_coeff 6 p 2
+  have e4 := olver_homog_coeff 6 p 3
+  have e5 := olver_homog_coeff 6 p 4
+  rw [hp, coeff_zero] at e0 e1 e2 e3 e4 e5
+  push_cast at e1 e2 e3 e4 e5
+  have h4 : p.coeff 4 = 0 := by linarith
+  have h1 : p.coeff 1 = 0 := by linarith
+  have h3 : p.coeff 3 = 0 := by linarith
+  have h2 : p.coeff 2 = 0 := by linarith
+  have h0 : p.coeff 0 = 0 := by linarith
+  ext n
+  rcases (show n ≤ 4 ∨ 4 < n by omega) with hn | hn
+  · interval_cases n <;> simp [h0, h1, h2, h3, h4]
+  · simp [coeff_eq_zero_of_natDegree_lt (lt_of_le_of_lt hd hn)]
+
+/-- A choice value is pinned down by a witness and uniqueness. -/
+lemma olver_epsilon_eq {Q : Polynomial ℝ → Prop} {w : Polynomial ℝ} (hw : Q w)
+    (hu : ∀ p, Q p → p = w) : Classical.epsilon Q = w :=
+  hu _ (Classical.epsilon_spec ⟨w, hw⟩)
+
+/-- Difference of two solutions of the `u`-equation. -/
+lemma olver_sub_eq {k : ℝ} {r p w : Polynomial ℝ} (hp : (X^2-1)*derivative p-C k*X*p=r)
+    (hw : (X^2-1)*derivative w-C k*X*w=r) : (X^2-1)*derivative (p-w)-C k*X*(p-w)=0 := by
+  rw [derivative_sub]; linear_combination hp - hw
+
+/-- The first Olver pair `(u₁, r₀)`. -/
+lemma pcfOlverPair_one :
+    pcfOlverPair 1 = (X*(X^2-C 6)*C (1/24:ℝ), C (1/8:ℝ)*(C 3*X^2+C 2)) := by
+  simp only [pcfOlverPair]
+  have hw : (X^2-1)*derivative (X*(X^2-C 6)*C (1/24:ℝ))-C (3*((0:ℕ)+1:ℝ))*X*(X*(X^2-C 6)*C (1/24:ℝ)) =
+      C (1/8:ℝ)*(C 3*X^2+C 2)*1 - C (3/2*((0:ℕ)+1:ℝ))*X*0 + C (1/2:ℝ)*(X^2-1)*derivative 0 := by
+    apply Polynomial.funext; intro x
+    simp [derivative_mul]; ring
+  rw [olver_epsilon_eq (w := X*(X^2-C 6)*C (1/24:ℝ)) ⟨hw, by norm_num; compute_degree⟩]
+  · simp
+  · rintro _p ⟨hp, hd⟩
+    have h := olver_sub_eq hp hw
+    rw [show (3*((0:ℕ)+1:ℝ)) = 3 by norm_num] at h
+    norm_num at hd
+    refine sub_eq_zero.mp (olver_homog_three h ?_)
+    refine (natDegree_sub_le _ _).trans (max_le hd ?_)
+    compute_degree
+
+/-- The chosen Olver polynomial equals any witness, given uniqueness of homogeneous solutions. -/
+lemma olver_epsilon_of {k : ℝ} {N : ℕ} {r w : Polynomial ℝ}
+    (hw : (X^2-1)*derivative w-C k*X*w=r) (hwd : w.natDegree ≤ N)
+    (hu : ∀ q : Polynomial ℝ, (X^2-1)*derivative q-C k*X*q=0 → q.natDegree ≤ N → q = 0) :
+    Classical.epsilon (fun p : Polynomial ℝ => (X^2-1)*derivative p-C k*X*p=r ∧ p.natDegree ≤ N) = w :=
+  olver_epsilon_eq ⟨hw, hwd⟩ fun _ hp => sub_eq_zero.mp
+    (hu _ (olver_sub_eq hp.1 hw) ((natDegree_sub_le _ _).trans (max_le hp.2 hwd)))
+
+/-- The second Olver pair `(u₂, r₁)`. -/
+lemma pcfOlverU_two : pcfOlverU 2 = (-C 9*X^4+C 249*X^2+C 145)*C (1/1152:ℝ) := by
+  rw [pcfOlverU, pcfOlverPair.eq_2 1, pcfOlverPair_one]
+  dsimp only
+  rw [olver_epsilon_of (w := (-C 9*X^4+C 249*X^2+C 145)*C (1/1152:ℝ))]
+  · apply Polynomial.funext; intro x
+    simp [derivative_mul]; ring
+  · norm_num; compute_degree
+  · intro q hq hd
+    rw [show (3*((1:ℕ)+1:ℝ)) = 6 by norm_num] at hq
+    norm_num at hd
+    exact olver_homog_six hq hd
 
 /-- pcfOlverUV initial. -/
 @[dlmf 12.10.E9, dlmf 12.10.E10]
 theorem pcfOlverUV_initial  :
     pcfOlverU 0=1 ∧ pcfOlverU 1=X*(X^2-C 6)*C (1/24:ℝ) ∧ pcfOlverU 2=(-C 9*X^4+C 249*X^2+C 145)*C (1/1152:ℝ) ∧ pcfOlverV 0=1 ∧ pcfOlverV 1=X*(X^2+C 6)*C (1/24:ℝ) ∧ pcfOlverV 2=(C 15*X^4-C 327*X^2-C 143)*C (1/1152:ℝ) := by
-  sorry
+  have hU1 : pcfOlverU 1 = X*(X^2-C 6)*C (1/24:ℝ) := by rw [pcfOlverU, pcfOlverPair_one]
+  refine ⟨by simp [pcfOlverU, pcfOlverPair], hU1, pcfOlverU_two, by simp [pcfOlverV], ?_, ?_⟩
+  · rw [show pcfOlverV 1 = pcfOlverU 1 + C (1/2:ℝ)*X*pcfOlverU 0 - (pcfOlverPair 0).2 from rfl, hU1]
+    simp only [pcfOlverU, pcfOlverPair]
+    apply Polynomial.funext; intro x
+    simp; ring
+  · rw [show pcfOlverV 2 = pcfOlverU 2 + C (1/2:ℝ)*X*pcfOlverU 1 - (pcfOlverPair 1).2 from rfl, hU1, pcfOlverU_two, pcfOlverPair_one]
+    apply Polynomial.funext; intro x
+    simp; ring
 
 /-- pcfOlverA. -/
 @[dlmf 12.10.E8]
@@ -189,17 +306,77 @@ def pcfTemmePoly : ℕ → Polynomial ℝ
   | 0 => 1
   | s+1 => -C 4*X^2*(X+1)^2*derivative (pcfTemmePoly s)-C (1/4:ℝ)*pcfPolyPrimitive ((C 20*X^2+C 20*X+C 3)*pcfTemmePoly s)
 
+/-- Real polynomials with equal derivatives and equal values at `0` are equal. -/
+lemma pcfPoly_eq_of_derivative_eq {P Q : Polynomial ℝ} (hd : derivative P = derivative Q)
+    (h0 : P.eval 0 = Q.eval 0) : P = Q := by
+  have hc : ∀ x : ℝ, HasDerivAt (fun x => (P - Q).eval x) 0 x := fun x => by
+    have := (P - Q).hasDerivAt x
+    rwa [derivative_sub, hd, sub_self, eval_zero] at this
+  have := fun x => is_const_of_deriv_eq_zero (fun x => (hc x).differentiableAt) (fun x => (hc x).deriv) x 0
+  refine sub_eq_zero.mp (Polynomial.funext fun x => ?_)
+  rw [this x, eval_sub, h0, sub_self, eval_zero]
+
+/-- The primitive is additive. -/
+lemma pcfPolyPrimitive_add (p q : Polynomial ℝ) :
+    pcfPolyPrimitive (p + q) = pcfPolyPrimitive p + pcfPolyPrimitive q := by
+  unfold pcfPolyPrimitive
+  exact Polynomial.sum_add_index _ _ _ (fun n => by simp) (fun n a b => by rw [add_div, C_add, add_mul])
+
+/-- The primitive of a monomial. -/
+lemma pcfPolyPrimitive_monomial (n : ℕ) (c : ℝ) :
+    pcfPolyPrimitive (monomial n c) = C (c/(n+1)) * X^(n+1) := by
+  unfold pcfPolyPrimitive
+  exact Polynomial.sum_monomial_index _ _ (by simp)
+
+/-- The primitive has derivative `p`. -/
+lemma derivative_pcfPolyPrimitive (p : Polynomial ℝ) : derivative (pcfPolyPrimitive p) = p := by
+  induction p using Polynomial.induction_on' with
+  | add p q hp hq => rw [pcfPolyPrimitive_add, derivative_add, hp, hq]
+  | monomial n c =>
+    rw [pcfPolyPrimitive_monomial, derivative_C_mul_X_pow, ← C_mul_X_pow_eq_monomial]
+    congr 1
+    · congr 1; push_cast; field_simp
+
+/-- The primitive vanishes at `0`. -/
+lemma eval_zero_pcfPolyPrimitive (p : Polynomial ℝ) : (pcfPolyPrimitive p).eval 0 = 0 := by
+  induction p using Polynomial.induction_on' with
+  | add p q hp hq => rw [pcfPolyPrimitive_add, eval_add, hp, hq, add_zero]
+  | monomial n c => simp [pcfPolyPrimitive_monomial]
+
+/-- Characterization of the primitive. -/
+lemma pcfPolyPrimitive_eq {p P : Polynomial ℝ} (hd : derivative P = p) (h0 : P.eval 0 = 0) :
+    pcfPolyPrimitive p = P :=
+  pcfPoly_eq_of_derivative_eq (by rw [derivative_pcfPolyPrimitive, hd]) (by rw [eval_zero_pcfPolyPrimitive, h0])
+
 /-- pcfTemmePoly initial. -/
 @[dlmf 12.10.E34]
 theorem pcfTemmePoly_initial  :
     pcfTemmePoly 1=-C (1/12:ℝ)*X*(C 20*X^2+C 30*X+C 9) ∧ pcfTemmePoly 2=C (1/288:ℝ)*X^2*(C 6160*X^4+C 18480*X^3+C 19404*X^2+C 8028*X+C 945) := by
-  sorry
+  have h1 : pcfTemmePoly 1 = -C (1/12:ℝ)*X*(C 20*X^2+C 30*X+C 9) := by
+    rw [pcfTemmePoly, pcfTemmePoly, pcfPolyPrimitive_eq (P := C (20/3:ℝ)*X^3 + C 10*X^2 + C 3*X)]
+    · apply Polynomial.funext; intro r; simp; ring
+    · apply Polynomial.funext; intro r; simp; ring
+    · simp
+  refine ⟨h1, ?_⟩
+  rw [show (2:ℕ) = 1 + 1 from rfl, pcfTemmePoly, h1,
+    pcfPolyPrimitive_eq (P := -C (1/12:ℝ) * (C (400/6:ℝ)*X^6 + C 200*X^5 + C 210*X^4 + C 90*X^3 + C (27/2:ℝ)*X^2))]
+  · apply Polynomial.funext; intro r; simp; ring
+  · apply Polynomial.funext; intro r; simp; ring
+  · simp
 
 /-- pcfTemmePoly recurrence. -/
 @[dlmf 12.10.E33]
 theorem pcfTemmePoly_recurrence (s : ℕ) (τ : ℝ) :
     (pcfTemmePoly (s+1)).eval τ=-4*τ^2*(τ+1)^2*(derivative (pcfTemmePoly s)).eval τ-1/4*∫ u : ℝ in 0..τ, (20*u^2+20*u+3)*(pcfTemmePoly s).eval u := by
-  sorry
+  set q := (C 20*X^2+C 20*X+C 3)*pcfTemmePoly s
+  have hint : ∫ u : ℝ in 0..τ, (20*u^2+20*u+3)*(pcfTemmePoly s).eval u = (pcfPolyPrimitive q).eval τ := by
+    have : ∀ u : ℝ, (20*u^2+20*u+3)*(pcfTemmePoly s).eval u = q.eval u := fun u => by simp [q]
+    simp_rw [this]
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (f := fun u => (pcfPolyPrimitive q).eval u)
+      (fun u _ => by simpa [derivative_pcfPolyPrimitive] using (pcfPolyPrimitive q).hasDerivAt u)
+      (q.continuous.intervalIntegrable _ _), eval_zero_pcfPolyPrimitive, sub_zero]
+  rw [hint, pcfTemmePoly]
+  simp [q]
 
 /-- pcfU temme uniform. -/
 @[dlmf 12.10.E31]

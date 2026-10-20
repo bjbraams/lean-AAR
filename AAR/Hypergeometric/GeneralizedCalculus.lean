@@ -16,7 +16,9 @@ For Mathlib's regularized `𝐅(a; b; z) = ∑ ∏(aᵢ)ₙ zⁿ / (n! ∏ Γ(b�
 * `regularizedHGFun_contiguous`: `θ𝐅(i, a'; b) = i (𝐅(i+1, a'; b) - 𝐅(i, a'; b))`
   (Duverney (3.40));
 * `coeff_eq_of_generalized_ode`: a power series solving the generalized hypergeometric equation
-  is a multiple of `𝐅` when no `bⱼ` is a nonpositive integer (Duverney Thm 3.8).
+  is a multiple of `𝐅` when no `bⱼ` is a nonpositive integer (Duverney Thm 3.8);
+* `regularized1F2_one_inhomogeneous_ode`: the exact reciprocal-Gamma forcing
+  for `₁F₂(1;b,c;z)`, from Mathlib's regularized coefficients, for every parameter.
 -/
 
 @[expose] public section
@@ -129,6 +131,164 @@ theorem regularizedHGFun_contiguous (i : ℂ) (a b : Multiset ℂ) {z : ℂ}
   refine hshift.unique (hrhs.congr_fun fun n => ?_)
   rw [regularizedHGFunCoeff_contiguous]
   ring
+
+/-- The convergent regularized 1F2 series for arbitrary upper and lower parameters. -/
+theorem hasSum_regularized1F2 (a b c z : ℂ) :
+    HasSum (fun n : ℕ=>regularizedHGFunCoeff {a} {b,c} n*z^n)
+      (regularizedHGFun {a} {b,c} z) := by
+  have hr : (regularizedHGFunSeries {a} {b,c}).radius=⊤ :=
+    radius_regularizedHGFunSeries_eq_top (by simp)
+  have hp : HasFPowerSeriesOnBall (regularizedHGFun {a} {b,c})
+      (regularizedHGFunSeries {a} {b,c}) 0 ⊤ := by
+    rw [← hr]
+    exact (regularizedHGFunSeries {a} {b,c}).hasFPowerSeriesOnBall (by rw [hr]; simp)
+  exact hp.hasSum_mul_pow (by simp)
+
+/-- The regularized `₁F₂(1;b,c;·)` series is entire, even when a lower parameter is a pole. -/
+lemma hasFPowerSeriesOnBall_regularized1F2_one (b c : ℂ) :
+    HasFPowerSeriesOnBall (regularizedHGFun {1} {b,c})
+      (ofScalars ℂ (regularizedHGFunCoeff {1} {b,c})) 0 ⊤ := by
+  have hr : (regularizedHGFunSeries {1} {b,c}).radius = ⊤ :=
+    radius_regularizedHGFunSeries_eq_top (by simp)
+  change HasFPowerSeriesOnBall (regularizedHGFunSeries {1} {b,c}).sum
+    (regularizedHGFunSeries {1} {b,c}) 0 ⊤
+  simpa only [hr] using (regularizedHGFunSeries {1} {b,c}).hasFPowerSeriesOnBall
+    (by rw [hr]; simp)
+
+/-- Cancelling the upper parameter one gives the quadratic coefficient recurrence for `₁F₂`.
+No lower-parameter Gamma factor is cancelled. -/
+lemma regularized1F2_one_coeff_recurrence (b c : ℂ) (n : ℕ) :
+    (b+n)*(c+n)*regularizedHGFunCoeff {1} {b,c} (n+1) =
+      regularizedHGFunCoeff {1} {b,c} n := by
+  have h := regularizedHGFunCoeff_succ_mul {1} {b,c} n
+  simp only [Multiset.map_singleton, Multiset.prod_singleton, Multiset.insert_eq_cons,
+    Multiset.map_cons, Multiset.prod_cons] at h
+  have hn : (n:ℂ)+1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero n
+  apply mul_left_cancel₀ hn
+  linear_combination h
+
+/-- Cancelling the upper parameter one against the factorial in the regularized coefficient. -/
+lemma regularized1F2_one_coeff (b c : ℂ) (n : ℕ) :
+    regularizedHGFunCoeff {1} {b,c} n=1/(Gamma (b+n)*Gamma (c+n)) := by
+  simp only [regularizedHGFunCoeff, Multiset.map_singleton, Multiset.prod_singleton,
+    Multiset.insert_eq_cons, Multiset.map_cons, Multiset.prod_cons]
+  rw [show (ascPochhammer ℂ n).eval 1=(n.factorial:ℂ) by simp [poch],
+    div_mul_eq_div_div, div_self (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n))]
+
+/-- Lower-parameter contiguity of regularized `₁F₂`, including reciprocal-Gamma zeros. -/
+theorem regularized1F2_one_lower (b c z : ℂ) :
+    z*deriv (regularizedHGFun {1} {b,c}) z+(c-1)*regularizedHGFun {1} {b,c} z =
+      regularizedHGFun {1} {b,c-1} z := by
+  have h := hasFPowerSeriesOnBall_regularized1F2_one b c
+  have hs := (h.hasSum_z_mul_deriv (z:=z) (by simp)).add
+    ((h.hasSum_mul_pow (z:=z) (by simp)).mul_left (c-1))
+  have ht := (hasFPowerSeriesOnBall_regularized1F2_one b (c-1)).hasSum_mul_pow (z:=z) (by simp)
+  apply HasSum.unique hs
+  refine ht.congr_fun fun n => ?_
+  have hc : regularizedHGFunCoeff {1} {b,c-1} n =
+      ((n:ℂ)+c-1)*regularizedHGFunCoeff {1} {b,c} n := by
+    rw [regularized1F2_one_coeff, regularized1F2_one_coeff]
+    simp only [one_div, mul_inv]
+    rw [inv_Gamma_eq_mul_inv_Gamma_add_one (c-1+n)]
+    rw [show c-1+n+1=c+n by ring]
+    ring
+  rw [hc]
+  ring
+
+/-- A shifted `₁F₂` identity with its initial coefficient retained as the forcing term. -/
+theorem regularized1F2_one_shift (b c z : ℂ) :
+    z*regularizedHGFun {1} {b,c+1} z =
+      regularizedHGFun {1} {b,c-1} z+(b-c)*regularizedHGFun {1} {b,c} z-
+        1/(Gamma (b-1)*Gamma c) := by
+  have h := hasFPowerSeriesOnBall_regularized1F2_one b c
+  have hs := (h.hasSum_z_mul_deriv (z:=z) (by simp)).add
+    ((h.hasSum_mul_pow (z:=z) (by simp)).mul_left (b-1))
+  have hc (n : ℕ) : regularizedHGFunCoeff {1} {b,c+1} n =
+      (b+n)*regularizedHGFunCoeff {1} {b,c} (n+1) := by
+    rw [regularized1F2_one_coeff, regularized1F2_one_coeff]
+    simp only [one_div, mul_inv]
+    rw [inv_Gamma_eq_mul_inv_Gamma_add_one (b+n)]
+    push_cast
+    rw [show b+n+1=b+(n+1) by ring, show c+1+n=c+(n+1) by ring]
+    ring
+  have ht : HasSum (fun n : ℕ => ((n:ℂ)+b-1)*regularizedHGFunCoeff {1} {b,c} n*z^n)
+      (z*regularizedHGFun {1} {b,c+1} z+(b-1)*regularizedHGFunCoeff {1} {b,c} 0) := by
+    rw [← hasSum_nat_add_iff' 1]
+    simp only [Finset.sum_range_one, Nat.cast_zero, zero_add, pow_zero, mul_one]
+    have hshift := ((hasFPowerSeriesOnBall_regularized1F2_one b (c+1)).hasSum_mul_pow
+      (z:=z) (by simp)).mul_left z
+    convert hshift using 1
+    · funext n
+      push_cast
+      rw [hc, pow_succ]
+      ring
+    · ring
+  have he := (hs.congr_fun (fun n => by ring)).unique ht
+  have h0 : (b-1)*regularizedHGFunCoeff {1} {b,c} 0=1/(Gamma (b-1)*Gamma c) := by
+    simp only [regularizedHGFunCoeff, Multiset.map_singleton, Multiset.prod_singleton,
+      Multiset.insert_eq_cons, Multiset.map_cons, Multiset.prod_cons, ascPochhammer_zero,
+      Polynomial.eval_one, Nat.factorial_zero, Nat.cast_zero, Nat.cast_one, add_zero, one_mul,
+      one_div, mul_inv]
+    rw [inv_Gamma_eq_mul_inv_Gamma_add_one (b-1), sub_add_cancel]
+    ring
+  rw [h0] at he
+  linear_combination -he+regularized1F2_one_lower b c z
+
+/-- The inhomogeneous second-order equation for `₁F₂(1;b,c;z)`.
+The reciprocal-Gamma forcing remains valid at every exceptional parameter. -/
+theorem regularized1F2_one_inhomogeneous_ode (b c z : ℂ) :
+    let F := regularizedHGFun {1} {b,c}
+    z^2*deriv (deriv F) z+(b+c-1)*z*deriv F z+
+      ((b-1)*(c-1)-z)*F z = 1/(Gamma (b-1)*Gamma (c-1)) := by
+  let F := regularizedHGFun {1} {b,c}
+  let d := regularizedHGFunCoeff {1} {b,c}
+  have h := hasFPowerSeriesOnBall_regularized1F2_one b c
+  have h0 := h.hasSum_mul_pow (z:=z) (by simp)
+  have h1 := (hasFPowerSeriesOnBall_eulerTheta h).hasSum_mul_pow (z:=z) (by simp)
+  have h2 := (hasFPowerSeriesOnBall_eulerTheta
+    (hasFPowerSeriesOnBall_eulerTheta h)).hasSum_mul_pow (z:=z) (by simp)
+  have hsum := (h2.add (h1.mul_left (b+c-2))).add (h0.mul_left ((b-1)*(c-1)))
+  have hrec := h0.mul_left z
+  have hs : HasSum (fun n : ℕ => ((n:ℂ)+b-1)*((n:ℂ)+c-1)*d n*z^n)
+      (eulerTheta (eulerTheta F) z+(b+c-2)*eulerTheta F z+(b-1)*(c-1)*F z) := by
+    convert hsum using 1
+    funext n
+    dsimp only [d]
+    ring
+  have hs' : HasSum (fun n : ℕ => ((n:ℂ)+b-1)*((n:ℂ)+c-1)*d n*z^n)
+      (z*F z+(b-1)*(c-1)*d 0) := by
+    rw [← hasSum_nat_add_iff' 1]
+    simp only [Finset.sum_range_one, Nat.cast_zero, zero_add, pow_zero, mul_one]
+    convert hrec using 1
+    · funext n
+      dsimp only [d]
+      push_cast
+      rw [show (n:ℂ)+1+b-1=b+n by ring, show (n:ℂ)+1+c-1=c+n by ring,
+        pow_succ', ← mul_assoc, regularized1F2_one_coeff_recurrence]
+      ring
+    · ring
+  have he := hs.unique hs'
+  have hD : HasDerivAt (eulerTheta F) (deriv F z+z*deriv (deriv F) z) z := by
+    have hd := (hasDerivAt_id z).mul
+      ((h.analyticAt_of_mem (by simp : z ∈ Metric.eball (0:ℂ) ⊤)).deriv.differentiableAt.hasDerivAt)
+    have hd' : HasDerivAt (fun w => w*deriv F w) _ z :=
+      hd.congr_of_eventuallyEq (Filter.Eventually.of_forall fun w => rfl)
+    unfold AAR.Hypergeometric.eulerTheta
+    simpa only [F, one_mul, id_eq] using hd'
+  have hc0 : (b-1)*(c-1)*d 0=1/(Gamma (b-1)*Gamma (c-1)) := by
+    simp only [d, regularizedHGFunCoeff, Multiset.map_singleton, Multiset.prod_singleton,
+      Multiset.insert_eq_cons, Multiset.map_cons, Multiset.prod_cons,
+      ascPochhammer_zero, Polynomial.eval_one, Nat.factorial_zero, Nat.cast_one,
+      Nat.cast_zero, add_zero, one_mul]
+    simp only [one_div, mul_inv]
+    rw [inv_Gamma_eq_mul_inv_Gamma_add_one (b-1),
+      inv_Gamma_eq_mul_inv_Gamma_add_one (c-1)]
+    simp only [sub_add_cancel]
+    ring
+  change z^2*deriv (deriv F) z+(b+c-1)*z*deriv F z+((b-1)*(c-1)-z)*F z = _
+  rw [← hc0]
+  simp only [eulerTheta, hD.deriv] at he
+  linear_combination he
 
 /-- Coefficients of a power series are determined by its sums on a small disk. -/
 lemma scalarSeries_unique_ball {c d : ℕ → ℂ} {g : ℂ → ℂ} {ρ : ℝ} (hρ : 0 < ρ)

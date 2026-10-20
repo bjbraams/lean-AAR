@@ -69,15 +69,52 @@ theorem pcfV_adjacent_asymptotic_neg (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ 
     (fun w : ℂ => pcfV a (exp w)-((Real.sqrt (2/π):ℂ)*exp (exp (2*w)/4+(a-1/2)*w)*(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j)+(-1:ℂ)*I/Gamma (1/2-a)*exp (-exp (2*w)/4-(a+1/2)*w)*(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j))) =O[pcfLogWedge (-(3*π/4-δ)) (-(-π/4+δ))] (fun w : ℂ => ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ)) := by
   sorry
 
+/-- The integral over `(0,∞)` of a positive real function, viewed in `ℂ`, is nonzero. -/
+lemma integral_Ioi_ofReal_ne_zero {g : ℝ → ℝ} (hpos : ∀ t ∈ Ioi (0:ℝ), 0 < g t)
+    (hint : IntegrableOn (fun t => (g t : ℂ)) (Ioi 0)) : (∫ t in Ioi (0:ℝ), (g t : ℂ)) ≠ 0 := by
+  have hg : IntegrableOn g (Ioi 0) := by simpa using hint.re
+  rw [integral_complex_ofReal, Complex.ofReal_ne_zero]
+  refine (ne_of_gt ((setIntegral_pos_iff_support_of_nonneg_ae
+    (ae_restrict_of_forall_mem measurableSet_Ioi fun t ht => (hpos t ht).le) hg).2 ?_))
+  refine lt_of_lt_of_le (by simp [Real.volume_Ioi]) (measure_mono (s := Ioi (0:ℝ)) fun t ht => ⟨(hpos t ht).ne', ht⟩)
+
 /-- DLMF 12.11(i): absence of real zeros. -/
 theorem pcfU_no_real_zero {a : ℝ} (ha : -1/2 ≤ a) (x : ℝ) :
     pcfU a x ≠ 0 := by
-  sorry
+  rcases ha.eq_or_lt with h | h
+  · rw [← h, show ((-1/2:ℝ):ℂ) = -1/2 by push_cast; ring, pcfU_neg_half]; exact Complex.exp_ne_zero _
+  · rw [pcfU_eq_integral (by simpa using h)]
+    refine mul_ne_zero (div_ne_zero (Complex.exp_ne_zero _)
+      (Complex.Gamma_ne_zero_of_re_pos (by simp; linarith))) ?_
+    have hc : -1 < ((a:ℂ) - 1/2).re := by simp; linarith
+    have heq : ∀ t ∈ Ioi (0:ℝ), (t:ℂ)^((a:ℂ) - 1/2) * exp (-(t:ℂ)^2/2 - x*t) =
+        ((t^(a-1/2) * Real.exp (-t^2/2 - x*t) : ℝ) : ℂ) := fun t ht => by
+      rw [Complex.ofReal_mul, Complex.ofReal_cpow (le_of_lt ht), Complex.ofReal_exp]; push_cast; ring_nf
+    rw [setIntegral_congr_fun measurableSet_Ioi heq]
+    refine integral_Ioi_ofReal_ne_zero (fun t ht => mul_pos (Real.rpow_pos_of_pos ht _) (Real.exp_pos _)) ?_
+    exact (integrableOn_pcfIntegrand hc x).congr_fun heq measurableSet_Ioi
 
 /-- DLMF 12.11(i): the first real zero lies on the negative axis. -/
 theorem pcfU_no_positive_zero {a : ℝ} (h0 : -3/2 < a) (h1 : a < -1/2) {x : ℝ} (hx : 0 < x) :
     pcfU a x ≠ 0 := by
-  sorry
+  have hz : 0 < ((x:ℂ)^2/2).re := by
+    rw [show (x:ℂ)^2/2 = ((x^2/2 : ℝ) : ℂ) by push_cast; ring, Complex.ofReal_re]; positivity
+  have hα : 0 < ((a:ℂ)/2+3/4).re := by simp; linarith
+  rw [pcfU_kummerU_odd (a:ℂ) (by simpa using hx), kummerU_laplace hα hz]
+  refine mul_ne_zero (mul_ne_zero (mul_ne_zero ?_ (by exact_mod_cast hx.ne'))
+    (Complex.exp_ne_zero _)) (mul_ne_zero (one_div_ne_zero (Complex.Gamma_ne_zero_of_re_pos hα)) ?_)
+  · exact Complex.cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  · have heq : ∀ t ∈ Ioi (0:ℝ), exp (-((x:ℂ)^2/2) * t) * (t:ℂ)^((a:ℂ)/2+3/4-1) *
+        (1+(t:ℂ))^((3/2:ℂ)-((a:ℂ)/2+3/4)-1) =
+        ((Real.exp (-(x^2/2)*t) * t^((a/2+3/4)-1) * (1+t)^(3/2-(a/2+3/4)-1) : ℝ) : ℂ) := fun t ht => by
+      have ht0 : (0:ℝ) ≤ 1 + t := by linarith [show (0:ℝ) < t from ht]
+      rw [Complex.ofReal_mul, Complex.ofReal_mul, Complex.ofReal_cpow (le_of_lt ht),
+        Complex.ofReal_cpow ht0, Complex.ofReal_exp]
+      push_cast; ring_nf
+    rw [setIntegral_congr_fun measurableSet_Ioi heq]
+    refine integral_Ioi_ofReal_ne_zero (fun t ht => mul_pos (mul_pos (Real.exp_pos _)
+      (Real.rpow_pos_of_pos ht _)) (Real.rpow_pos_of_pos (by linarith [show (0:ℝ) < t from ht]) _)) ?_
+    exact (kummerU_laplace_integrable (b := 3/2) hα hz).congr_fun heq measurableSet_Ioi
 
 /-- Exact positive real zero count in DLMF 12.11(i). -/
 theorem pcfU_positive_zero_count {a : ℝ} (n : ℕ) (hn : 0 < n) (h0 : -2*n-3/2 < a) (h1 : a < -2*n+1/2) :
@@ -97,7 +134,14 @@ theorem pcfV_no_positive_zero {a : ℝ} (ha : -1/2 < a) {x : ℝ} (hx : 0 < x) :
 /-- DLMF 12.11(i): zeros of V at the origin. -/
 theorem pcfV_integer_zero (n : ℤ) :
     pcfV (3/2-2*n) 0=0 := by
-  sorry
+  rw [pcfV_zero', pcfVZero]
+  rcases le_or_gt 1 n with hn | hn
+  · obtain ⟨m, rfl⟩ : ∃ m : ℕ, n = m + 1 := ⟨(n-1).toNat, by omega⟩
+    rw [show (1/4:ℂ) + (3/2 - 2*((m+1:ℤ):ℂ))/2 = -(m:ℂ) by push_cast; ring, Complex.Gamma_neg_nat_eq_zero]
+    simp
+  · obtain ⟨m, rfl⟩ : ∃ m : ℕ, n = -m := ⟨(-n).toNat, by omega⟩
+    rw [show (3/4:ℂ) - (3/2 - 2*((-(m:ℤ):ℤ):ℂ))/2 = -(m:ℂ) by push_cast; ring, Complex.Gamma_neg_nat_eq_zero]
+    simp
 
 /-- pcfZeroTau. -/
 @[dlmf 12.11.E2]

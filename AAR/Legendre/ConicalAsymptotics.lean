@@ -61,8 +61,9 @@ theorem conicalEta_spec {α x : ℝ} (hα : 0 ≤ α) (hx : x ∈ Ioo (-1:ℝ) 1
     0 < conicalEta α x ∧ ConicalEtaRelation α x (conicalEta α x) ∧ ∀ η : ℝ, 0 < η → ConicalEtaRelation α x η → η=conicalEta α x := by
   sorry
 
-/-- Mapping and endpoints in DLMF 14.20(viii). -/
-theorem conicalEta_mapping {α : ℝ} (hα : 0 ≤ α) :
+/-- Mapping and endpoints in DLMF 14.20(viii). The hypothesis is `0 < α` (corrected
+2026-10-20): at `α = 0` the relation is `sqrt η = arccos x`, so `η → π^2` as `x → -1`. -/
+theorem conicalEta_mapping {α : ℝ} (hα : 0 < α) :
     Set.BijOn (conicalEta α) (Ioo (-1:ℝ) 1) (Ioi 0) ∧ StrictAntiOn (conicalEta α) (Ioo (-1:ℝ) 1) ∧ Tendsto (conicalEta α) (𝓝[>] (-1:ℝ)) atTop ∧ Tendsto (conicalEta α) (𝓝[<] (1:ℝ)) (𝓝 0) := by
   sorry
 
