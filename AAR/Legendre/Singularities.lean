@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Legendre.Hypergeometric
+public import AAR.Gamma.InvGammaDeriv
 
 /-!
 # Associated Legendre behavior at singularities
@@ -353,11 +354,21 @@ theorem ferrersQ_log_singular {ν : ℂ} (hν : LegendreQRegular ν 0) :
     (fun x : ℝ => ferrersQ ν 0 x-1/2*log (2/(1-x):ℂ)+Real.eulerMascheroniConstant+digamma (ν+1)) =O[𝓝[<] (1:ℝ)] (fun x : ℝ => (1-x)*Real.log (1-x)) := by
   sorry
 
+/-- DLMF 14.8.9 with `ψ(ν+1)/Γ(ν+1)` written as `-(1/Γ)'(ν+1)`. Stronger than DLMF: valid for
+all `ν`, including `ν = -1, -2, …`. -/
+@[dlmf 14.8.E9]
+theorem olverQ_log_singular_invGamma (ν : ℂ) :
+    (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant)/Gamma (ν+1)-AAR.Gamma.invGammaDeriv 1 (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) := by
+  sorry
+
 /-- olverQ log singular. -/
 @[dlmf 14.8.E9]
 theorem olverQ_log_singular {ν : ℂ} (hν : LegendreQRegular ν 0) :
     (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant-digamma (ν+1))/Gamma (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) := by
-  sorry
+  have hp : ∀ m : ℕ, ν + 1 ≠ -(m : ℂ) := fun m h => hν m (by linear_combination h)
+  refine (olverQ_log_singular_invGamma ν).congr_left fun x => ?_
+  rw [AAR.Gamma.invGammaDeriv_one_eq hp]
+  ring
 
 /-- olverQ negative degree singular. -/
 @[dlmf 14.8.E10]

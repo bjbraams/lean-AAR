@@ -10,11 +10,14 @@ public import AAR.Confluent.Whittaker
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
 public import AAR.Bessel.NeumannSeries
+public import AAR.Gamma.InvGammaDeriv
 public import Mathlib.Analysis.Complex.Trigonometric
 public import Mathlib.Analysis.Complex.TaylorSeries
 public import Mathlib.Analysis.Complex.RemovableSingularity
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.RingTheory.PowerSeries.Derivative
+public import Mathlib.RingTheory.PowerSeries.Exp
 
 /-!
 # Series expansions (DLMF §§13.11, 13.24)
@@ -299,14 +302,445 @@ def besselExpansionCoeff (a b : ℂ) : ℕ → ℂ
     ((n + 1 + b) * besselExpansionCoeff a b (n + 1) +
       (2 * a - b) * besselExpansionCoeff a b n) / (n + 3 : ℂ)
 
+section BesselExpansion
+
+open Finset
+
+/-- Terms of `[tᴺ] (1-t)^{-a} (1+t)^{a-b} = ∑_{m+r=N} (a)_m 2^m (-1)^r (b+m)_r / (m! r!)`. -/
+def besselExpansionTerm (a b : ℂ) (m r : ℕ) : ℂ :=
+  poch a m * 2 ^ m * (-1) ^ r * poch (b + m) r / (m ! * r !)
+
+/-- `[tᴺ] (1-t)^{-a} (1+t)^{a-b}`, the coefficients of `e^{-(b-2a)t} ∑ A_s t^s`. -/
+def besselExpansionB (a b : ℂ) (N : ℕ) : ℂ :=
+  ∑ m ∈ range (N + 1), besselExpansionTerm a b m (N - m)
+
+theorem besselExpansionB_zero (a b : ℂ) : besselExpansionB a b 0 = 1 := by
+  simp [besselExpansionB, besselExpansionTerm, poch_zero]
+
+theorem besselExpansionB_one (a b : ℂ) :
+    besselExpansionB a b 1 = (2 * a - b) * besselExpansionB a b 0 := by
+  simp [besselExpansionB, besselExpansionTerm, sum_range_succ, poch_zero, poch_one]
+  ring
+
+/-- The recurrence `(N+2) B_{N+2} = (2a-b) B_{N+1} + (N+b) B_N` of the coefficients of
+`(1-t)^{-a} (1+t)^{a-b}`, by telescoping in the summation index. -/
+theorem besselExpansionB_rec (a b : ℂ) (N : ℕ) :
+    (N + 2) * besselExpansionB a b (N + 2) =
+      (2 * a - b) * besselExpansionB a b (N + 1) + (N + b) * besselExpansionB a b N := by
+  set T := besselExpansionTerm a b
+  set G : ℕ → ℂ := fun m => if m = 0 then 0 else -2 * (a + (m - 1 : ℕ)) * T (m - 1) (N + 2 - m)
+    with hG
+  have hterm : ∀ m ∈ range (N + 1), (N + 2) * T m (N + 2 - m) - (2 * a - b) * T m (N + 1 - m) -
+      (N + b) * T m (N - m) = G (m + 1) - G m := by
+    intro m hm
+    obtain ⟨r, rfl⟩ : ∃ r, N = m + r := ⟨N - m, by simp at hm; omega⟩
+    rw [show m + r + 2 - m = r + 2 by omega, show m + r + 1 - m = r + 1 by omega,
+      show m + r - m = r by omega]
+    simp only [hG, T, besselExpansionTerm, Nat.add_sub_cancel, show m + 1 ≠ 0 by omega,
+      ite_false, show m + r + 2 - (m + 1) = r + 1 by omega]
+    rcases m with _ | j
+    · simp only [ite_true, Nat.cast_zero, add_zero, poch_zero, pow_zero, Nat.factorial_zero,
+        Nat.cast_one, one_mul, zero_add]
+      rw [show r + 2 = r + 1 + 1 from rfl, poch_succ b (r + 1), poch_succ b r]
+      simp only [Nat.factorial_succ, Nat.cast_mul, pow_succ]
+      push_cast
+      have h1 : (r : ℂ) + 1 ≠ 0 := by norm_cast
+      have h2 : (r : ℂ) + 1 + 1 ≠ 0 := by norm_cast
+      field_simp
+      ring
+    · simp only [show j + 1 ≠ 0 by omega, ite_false, Nat.add_sub_cancel,
+        show j + 1 + r + 2 - (j + 1) = r + 2 by omega]
+      rw [show (b + ((j + 1 : ℕ) : ℂ)) = b + j + 1 by push_cast; ring,
+        show r + 2 = r + 1 + 1 from rfl,
+        poch_succ a j, poch_succ (b + j + 1) (r + 1), poch_succ (b + j + 1) r,
+        poch_succ (b + j) (r + 1), poch_succ_left (b + j) r]
+      simp only [Nat.factorial_succ, Nat.cast_mul, pow_succ]
+      push_cast
+      have h1 : (r : ℂ) + 1 ≠ 0 := by norm_cast
+      have h2 : (r : ℂ) + 1 + 1 ≠ 0 := by norm_cast
+      have h3 : (j : ℂ) + 1 ≠ 0 := by norm_cast
+      field_simp
+      ring
+  have htel := Finset.sum_range_sub G (N + 1)
+  rw [← Finset.sum_congr rfl hterm] at htel
+  simp only [Finset.sum_sub_distrib, ← Finset.mul_sum] at htel
+  simp only [besselExpansionB]
+  rw [sum_range_succ _ (N + 2), sum_range_succ _ (N + 1), sum_range_succ _ (N + 1)]
+  have hG0 : G 0 = 0 := by simp [hG]
+  rw [hG0, sub_zero] at htel
+  simp only [hG, show N + 1 ≠ 0 by omega, ite_false, Nat.add_sub_cancel,
+    show N + 2 - (N + 1) = 1 by omega] at htel
+  rw [show N + 2 - (N + 2) = 0 by omega, show N + 2 - (N + 1) = 1 by omega,
+    show N + 1 - (N + 1) = 0 by omega]
+  have hb : (N + 2) * T (N + 2) 0 + (N + 2) * T (N + 1) 1 - (2 * a - b) * T (N + 1) 0 =
+      2 * (a + N) * T N 1 := by
+    simp only [T, besselExpansionTerm, poch_zero, poch_one, pow_zero, pow_one,
+      Nat.factorial_zero, Nat.cast_one, mul_one, poch_succ a (N + 1), poch_succ a N]
+    simp only [Nat.factorial_succ, Nat.cast_mul, pow_succ]
+    push_cast
+    have h1 : (N : ℂ) + 1 ≠ 0 := by norm_cast
+    have h2 : (N : ℂ) + 1 + 1 ≠ 0 := by norm_cast
+    field_simp
+    ring
+  linear_combination htel + hb
+
+open PowerSeries in
+/-- Coefficient form of the formal first-order equation `(1-X²) f' = (p + qX + rX²) f`. -/
+theorem besselExpansion_formalODE_iff (f : ℕ → ℂ) (p q r : ℂ) :
+    (1 - X ^ 2) * d⁄dX (mk f) = (C p + C q * X + C r * X ^ 2) * mk f ↔
+      f 1 = p * f 0 ∧ 2 * f 2 = p * f 1 + q * f 0 ∧
+        ∀ n : ℕ, (n + 3) * f (n + 3) - (n + 1) * f (n + 1) =
+          p * f (n + 2) + q * f (n + 1) + r * f n := by
+  have hc : ∀ n, coeff n ((1 - X ^ 2) * d⁄dX (mk f)) =
+      coeff n (d⁄dX (mk f)) - if 2 ≤ n then coeff (n - 2) (d⁄dX (mk f)) else 0 := by
+    intro n
+    rw [sub_mul, one_mul, map_sub, coeff_X_pow_mul']
+  have hd : ∀ n, coeff n ((C p + C q * X + C r * X ^ 2) * mk f) =
+      p * f n + (if 1 ≤ n then q * f (n - 1) else 0) + (if 2 ≤ n then r * f (n - 2) else 0) := by
+    intro n
+    rw [add_mul, add_mul, map_add, map_add, coeff_C_mul, coeff_mk, mul_assoc, coeff_C_mul,
+      mul_assoc, coeff_C_mul, coeff_X_pow_mul', ← pow_one (X : PowerSeries ℂ), coeff_X_pow_mul']
+    simp only [coeff_mk]
+    split_ifs <;> ring
+  constructor
+  · intro h
+    have e := fun n => congrArg (coeff n) h
+    refine ⟨?_, ?_, fun n => ?_⟩
+    · have := e 0; rw [hc, hd] at this; simpa [coeff_derivative] using this
+    · have := e 1; rw [hc, hd] at this
+      simp [coeff_derivative] at this; linear_combination this
+    · have := e (n + 2); rw [hc, hd] at this
+      simp [coeff_derivative] at this;
+      linear_combination this
+  · rintro ⟨h0, h1, h2⟩
+    ext n
+    rw [hc, hd]
+    rcases n with _ | _ | n
+    · simpa [coeff_derivative] using h0
+    · simp [coeff_derivative]; linear_combination h1
+    · simp [coeff_derivative]; linear_combination h2 n
+
+open PowerSeries in
+/-- The formal exponential `e^{cX}` satisfies `(e^{cX})' = c e^{cX}`. -/
+theorem besselExpansion_formal_exp_deriv (c : ℂ) :
+    d⁄dX (mk fun n => c ^ n / (n ! : ℂ)) = C c * mk fun n => c ^ n / (n ! : ℂ) := by
+  ext n
+  rw [coeff_derivative, coeff_mk, coeff_C_mul, coeff_mk, Nat.factorial_succ]
+  push_cast
+  have : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n)
+  have h1 : (n : ℂ) + 1 ≠ 0 := by norm_cast
+  field_simp
+  ring
+
+open PowerSeries in
+/-- `e^{cX} e^{dX} = e^{(c+d)X}` for formal exponentials. -/
+theorem besselExpansion_formal_exp_mul (c d : ℂ) :
+    (mk fun n => c ^ n / (n ! : ℂ)) * (mk fun n => d ^ n / (n ! : ℂ)) =
+      mk fun n => (c + d) ^ n / (n ! : ℂ) := by
+  have h : ∀ c : ℂ, (mk fun n => c ^ n / (n ! : ℂ)) = rescale c (exp ℂ) := by
+    intro c; ext n; simp [coeff_rescale, coeff_exp, div_eq_mul_inv]
+  rw [h, h, h, exp_mul_exp_eq_exp_add]
+
+open PowerSeries in
+/-- `e^{0X} = 1` for formal exponentials. -/
+theorem besselExpansion_formal_exp_zero : (mk fun n => (0 : ℂ) ^ n / (n ! : ℂ)) = 1 := by
+  ext n; rcases n with _ | n <;> simp [coeff_one]
+
+open PowerSeries in
+/-- Uniqueness for the formal equation `(1-X²) f' = (p + qX + rX²) f` given `f(0)`. -/
+theorem besselExpansion_formalODE_unique {u v : PowerSeries ℂ} {p q r : ℂ}
+    (hu : (1 - X ^ 2) * d⁄dX u = (C p + C q * X + C r * X ^ 2) * u)
+    (hv : (1 - X ^ 2) * d⁄dX v = (C p + C q * X + C r * X ^ 2) * v)
+    (h0 : coeff 0 u = coeff 0 v) : u = v := by
+  set g : ℕ → ℂ := fun n => coeff n u - coeff n v with hgdef
+  have hg : mk g = u - v := by ext n; simp [g]
+  have hode : (1 - X ^ 2) * d⁄dX (mk g) = (C p + C q * X + C r * X ^ 2) * mk g := by
+    rw [hg, map_sub, mul_sub, mul_sub, hu, hv]
+  obtain ⟨h1, h2, h3⟩ := (besselExpansion_formalODE_iff g p q r).1 hode
+  have hz : ∀ n, g n = 0 := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | _ n ih =>
+      rcases n with _ | _ | _ | n
+      · simp [g, h0]
+      · rw [h1, ih 0 (by omega), mul_zero]
+      · have := h2; rw [ih 1 (by omega), ih 0 (by omega)] at this
+        simpa using this
+      · have h := h3 n
+        rw [ih (n + 2) (by omega), ih (n + 1) (by omega), ih n (by omega)] at h
+        have hn : (n : ℂ) + 3 ≠ 0 := by norm_cast
+        have : ((n : ℂ) + 3) * g (n + 3) = 0 := by linear_combination h
+        exact (mul_eq_zero.mp this).resolve_left hn
+  ext n
+  have := hz n
+  simp only [g, sub_eq_zero] at this
+  exact this
+
+open PowerSeries in
+/-- The recurrence 13.11.4 for `A_s` as the formal equation `(1-X²) A' = (bX + (2a-b)X²) A`. -/
+theorem besselExpansionCoeff_formalODE (a b : ℂ) :
+    (1 - X ^ 2) * d⁄dX (mk (besselExpansionCoeff a b)) =
+      (C 0 + C b * X + C (2 * a - b) * X ^ 2) * mk (besselExpansionCoeff a b) := by
+  refine (besselExpansion_formalODE_iff _ 0 b (2 * a - b)).2 ⟨by simp [besselExpansionCoeff],
+    by simp [besselExpansionCoeff]; ring, fun n => ?_⟩
+  simp only [besselExpansionCoeff]
+  have hn : (n : ℂ) + 3 ≠ 0 := by norm_cast
+  field_simp
+  ring
+
+open PowerSeries in
+/-- The formal equation `(1-X²) B' = ((2a-b) + bX) B` of `(1-t)^{-a} (1+t)^{a-b}`. -/
+theorem besselExpansionB_formalODE (a b : ℂ) :
+    (1 - X ^ 2) * d⁄dX (mk (besselExpansionB a b)) =
+      (C (2 * a - b) + C b * X + C 0 * X ^ 2) * mk (besselExpansionB a b) := by
+  refine (besselExpansion_formalODE_iff _ (2 * a - b) b 0).2
+    ⟨besselExpansionB_one a b, ?_, fun n => ?_⟩
+  · have := besselExpansionB_rec a b 0
+    push_cast at this
+    linear_combination this
+  · have := besselExpansionB_rec a b (n + 1)
+    push_cast at this
+    linear_combination this
+
+open PowerSeries in
+/-- `∑ A_s t^s = e^{(b-2a)t} ∑ B_N t^N`. -/
+theorem besselExpansionCoeff_eq_mul (a b : ℂ) :
+    mk (besselExpansionCoeff a b) =
+      mk (besselExpansionB a b) * mk fun n => (b - 2 * a) ^ n / (n ! : ℂ) := by
+  refine besselExpansion_formalODE_unique (besselExpansionCoeff_formalODE a b) ?_ ?_
+  · rw [Derivation.leibniz, besselExpansion_formal_exp_deriv, smul_eq_mul, smul_eq_mul]
+    have hc : (C (2 * a - b) : PowerSeries ℂ) = - C (b - 2 * a) := by
+      rw [← map_neg]; congr 1; ring
+    have e := besselExpansionB_formalODE a b
+    rw [hc] at e ⊢
+    simp only [map_zero, zero_mul, add_zero, zero_add] at e ⊢
+    linear_combination (mk fun n => (b - 2 * a) ^ n / (n ! : ℂ)) * e
+  · simp [coeff_mul, besselExpansionCoeff, besselExpansionB_zero]
+
+open PowerSeries in
+/-- The convolution `∑_{s+k=N} A_s (-(b-2a))^k/k!` equals `B_N`. -/
+theorem sum_antidiagonal_besselExpansionCoeff (a b : ℂ) (N : ℕ) :
+    ∑ p ∈ antidiagonal N, besselExpansionCoeff a b p.1 * ((-(b - 2 * a)) ^ p.2 / (p.2 ! : ℂ)) =
+      besselExpansionB a b N := by
+  have h := congrArg (fun u => coeff N (u * mk fun n => (-(b - 2 * a)) ^ n / (n ! : ℂ)))
+    (besselExpansionCoeff_eq_mul a b)
+  simp only [mul_assoc, besselExpansion_formal_exp_mul, add_neg_cancel,
+    besselExpansion_formal_exp_zero, mul_one, coeff_mk] at h
+  rw [← h, coeff_mul]
+  simp [coeff_mk]
+
+/-- Geometric bound on the coefficients `A_s` of DLMF 13.11.3. -/
+theorem norm_besselExpansionCoeff_le (a b : ℂ) (n : ℕ) :
+    ‖besselExpansionCoeff a b n‖ ≤ (1 + ‖b‖ + ‖2 * a - b‖) ^ n := by
+  set M := 1 + ‖b‖ + ‖2 * a - b‖ with hM
+  have hM1 : 1 ≤ M := by rw [hM]; linarith [norm_nonneg b, norm_nonneg (2 * a - b)]
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    rcases n with _ | _ | _ | n
+    · simp [besselExpansionCoeff]
+    · simp [besselExpansionCoeff]; linarith
+    · simp only [besselExpansionCoeff, norm_div, Complex.norm_ofNat]
+      nlinarith [norm_nonneg b, norm_nonneg (2 * a - b)]
+    · simp only [besselExpansionCoeff]
+      have h1 := ih (n + 1) (by omega)
+      have h0 := ih n (by omega)
+      have hn3 : ‖((n : ℂ) + 3)‖ = n + 3 := by
+        rw [show ((n : ℂ) + 3) = ((n + 3 : ℕ) : ℂ) by push_cast; ring, Complex.norm_natCast]
+        push_cast; ring
+      have hnb : ‖(n : ℂ) + 1 + b‖ ≤ n + 1 + ‖b‖ := by
+        calc ‖(n : ℂ) + 1 + b‖ ≤ ‖((n + 1 : ℕ) : ℂ)‖ + ‖b‖ := by
+              rw [show (n : ℂ) + 1 = ((n + 1 : ℕ) : ℂ) by push_cast; ring]; exact norm_add_le _ _
+          _ = n + 1 + ‖b‖ := by rw [Complex.norm_natCast]; push_cast; ring
+      rw [norm_div, hn3, div_le_iff₀ (by positivity)]
+      have hpn : 0 ≤ M ^ n := by positivity
+      have hp1 : M ^ (n + 1) ≤ M ^ (n + 3) := pow_le_pow_right₀ hM1 (by omega)
+      have hp2 : M ^ (n + 2) ≤ M ^ (n + 3) := pow_le_pow_right₀ hM1 (by omega)
+      have hbM : ‖b‖ + ‖2 * a - b‖ ≤ M := by rw [hM]; linarith
+      calc ‖((n : ℂ) + 1 + b) * besselExpansionCoeff a b (n + 1) +
+            (2 * a - b) * besselExpansionCoeff a b n‖
+          ≤ (n + 1 + ‖b‖) * M ^ (n + 1) + ‖2 * a - b‖ * M ^ n := by
+            refine (norm_add_le _ _).trans ?_
+            rw [norm_mul, norm_mul]
+            gcongr
+        _ ≤ (n + 1) * M ^ (n + 1) + (‖b‖ + ‖2 * a - b‖) * M ^ (n + 1) := by
+            have : M ^ n ≤ M ^ (n + 1) := pow_le_pow_right₀ hM1 (by omega)
+            nlinarith [norm_nonneg (2 * a - b), norm_nonneg b]
+        _ ≤ (n + 1) * M ^ (n + 3) + M * M ^ (n + 1) := by
+            gcongr
+        _ ≤ M ^ (n + 3) * (n + 3) := by
+            rw [← pow_succ']
+            have h3 : 0 ≤ M ^ (n + 3) := by positivity
+            nlinarith
+
+/-- **DLMF 13.11.3 in branch-free form**: for all `a, b, z`,
+`𝐌(a,b,z) = e^{z/2} ∑ₛ Aₛ (z/2)^s ₀F̃₁(;b+s;-(b-2a)z/2)`.
+
+Stronger than DLMF: the printed form `(b-2a)^{(1-b-s)/2} (z/2)^{(1-b+s)/2} J_{b-1+s}(√(2z(b-2a)))`
+of each term is this term only when the principal branches of `z` and `b-2a` are compatible
+(`regularizedHGFun_besselJ_series`); the form here involves no branches and holds without any
+condition on `a`, `b`, `z`. -/
 @[dlmf 13.11.E3]
-theorem regularizedHGFun_besselJ_series {a b z : ℂ} (hz : z ∈ slitPlane)
-    (hba : 0 ≤ (b - 2 * a).re) (hba0 : b - 2 * a ≠ 0) :
+theorem regularizedHGFun_eq_besselExpansion (a b z : ℂ) :
+    regularizedHGFun {a} {b} z =
+      exp (z / 2) * ∑' s : ℕ, besselExpansionCoeff a b s * (z / 2) ^ s *
+        regularizedHGFun (∅ : Multiset ℂ) {b + s} (-((b - 2 * a) * z / 2)) := by
+  set c := b - 2 * a with hcdef
+  set w := z / 2 with hw
+  set y := -(c * z / 2) with hy
+  set A := besselExpansionCoeff a b
+  set M := 1 + ‖b‖ + ‖2 * a - b‖
+  set u : ℕ × ℕ → ℂ := fun p =>
+    A p.1 * w ^ p.1 * (regularizedHGFunCoeff (∅ : Multiset ℂ) {b + p.1} p.2 * y ^ p.2) with hu
+  obtain ⟨C0, hC0, hC⟩ := exists_norm_regularized0F1Coeff_le (b - 1)
+  have hcoef : ∀ s k : ℕ, ‖regularizedHGFunCoeff (∅ : Multiset ℂ) {b + s} k‖ ≤
+      C0 * (2 ^ s / s !) * (2 ^ k / k !) := by
+    intro s k
+    have := hC s k
+    rwa [show b - 1 + s + 1 = b + s by ring] at this
+  have hsum : Summable fun p => ‖u p‖ := by
+    have hg1 := Real.summable_pow_div_factorial (2 * M * ‖w‖)
+    have hg2 := Real.summable_pow_div_factorial (2 * ‖y‖)
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun p => ?_)
+      ((hg1.mul_of_nonneg hg2 (fun _ => by positivity) (fun _ => by positivity)).mul_left C0)
+    obtain ⟨s, k⟩ := p
+    simp only [hu, norm_mul, norm_pow]
+    calc ‖A s‖ * ‖w‖ ^ s * (‖regularizedHGFunCoeff (∅ : Multiset ℂ) {b + s} k‖ * ‖y‖ ^ k)
+        ≤ M ^ s * ‖w‖ ^ s * (C0 * (2 ^ s / s !) * (2 ^ k / k !) * ‖y‖ ^ k) := by
+          gcongr
+          · exact norm_besselExpansionCoeff_le a b s
+          · exact hcoef s k
+      _ = C0 * ((2 * M * ‖w‖) ^ s / s ! * ((2 * ‖y‖) ^ k / k !)) := by
+          rw [mul_pow, mul_pow, mul_pow]; ring
+  have hT := hsum.of_norm.hasSum
+  have hinner : ∀ s, HasSum (fun k => u (s, k))
+      (A s * w ^ s * regularizedHGFun (∅ : Multiset ℂ) {b + s} y) := fun s =>
+    ((hasFPowerSeriesOnBall_regularized0F1 _).hasSum_mul_pow (by simp)).mul_left _
+  have hS := hT.prod_fiberwise hinner
+  -- regroup along antidiagonals
+  have hN : HasSum (fun N : ℕ => (Gamma (b + N))⁻¹ * w ^ N * besselExpansionB a b N)
+      (∑' p, u p) := by
+    have hs := hT
+    rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).hasSum_iff] at hs
+    refine hs.sigma fun N => ?_
+    convert hasSum_fintype _ using 1
+    simp only [Function.comp_apply, Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd_apply]
+    rw [Finset.sum_coe_sort (antidiagonal N) u, ← sum_antidiagonal_besselExpansionCoeff,
+      Finset.mul_sum]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rw [mem_antidiagonal] at hp
+    simp only [hu, regularizedHGFunCoeff_empty, hy]
+    rw [← hp, show b + (p.1 : ℂ) + p.2 = b + ((p.1 + p.2 : ℕ) : ℂ) by push_cast; ring, pow_add,
+      show -(c * z / 2) = -c * w by rw [hw]; ring, mul_pow]
+    ring
+  -- Cauchy product with `e^{-z/2}`
+  set f : ℕ → ℂ := fun m => regularizedHGFunCoeff {a} {b} m * z ^ m with hf
+  set g : ℕ → ℂ := fun r => (-w) ^ r / (r ! : ℂ) with hg
+  obtain ⟨Cg, hCg0, hCg⟩ := exists_norm_inv_Gamma_add_nat_le b
+  have hfs : Summable fun m => ‖f m‖ := by
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun m => ?_)
+      ((Real.summable_pow_div_factorial (2 * Real.exp 1 * ‖z‖)).mul_left (Cg * Real.exp ‖a‖))
+    have e : f m = poch a m * ((m ! : ℂ)⁻¹ * (Gamma (b + m))⁻¹) * z ^ m := by
+      show regularizedHGFunCoeff {a} {b} m * z ^ m = _
+      rw [regularizedHGFunCoeff_singleton, div_eq_mul_inv, mul_inv]
+    rw [e, norm_mul, norm_mul, norm_mul, norm_inv, norm_pow, Complex.norm_natCast]
+    have hm : (0 : ℝ) < m ! := by exact_mod_cast Nat.factorial_pos m
+    have h1 := norm_poch_le_factorial_mul_exp a m
+    have h2 := hCg m
+    calc ‖poch a m‖ * ((m ! : ℝ)⁻¹ * ‖(Gamma (b + m))⁻¹‖) * ‖z‖ ^ m
+        ≤ (m ! * Real.exp (‖a‖ + m)) * ((m ! : ℝ)⁻¹ * (Cg * (2 ^ m / m !))) * ‖z‖ ^ m := by
+          gcongr
+      _ = Cg * Real.exp ‖a‖ * ((2 * Real.exp 1 * ‖z‖) ^ m / m !) := by
+          rw [Real.exp_add, show Real.exp (m : ℝ) = Real.exp 1 ^ m by
+            rw [← Real.exp_nat_mul, mul_one], mul_pow, mul_pow]
+          field_simp
+  have hgs : Summable fun r => ‖g r‖ := by
+    simpa [hg, norm_div, norm_pow] using Real.summable_pow_div_factorial ‖-w‖
+  have hfsum : ∑' m, f m = regularizedHGFun {a} {b} z := (regularizedHGFun_eq_tsum _ _ z).symm
+  have hgsum : ∑' r, g r = exp (-w) := by
+    have := NormedSpace.expSeries_div_hasSum_exp (-w)
+    rw [← Complex.exp_eq_exp_ℂ] at this
+    exact this.tsum_eq
+  have hcauchy := tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm hfs hgs
+  have hterm : ∀ N, ∑ p ∈ antidiagonal N, f p.1 * g p.2 =
+      (Gamma (b + N))⁻¹ * w ^ N * besselExpansionB a b N := by
+    intro N
+    rw [besselExpansionB, show ∑ m ∈ range (N + 1), besselExpansionTerm a b m (N - m) =
+      ∑ p ∈ antidiagonal N, besselExpansionTerm a b p.1 p.2 from
+        (Finset.Nat.sum_antidiagonal_eq_sum_range_succ _ N).symm, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rw [mem_antidiagonal] at hp
+    have hG := AAR.Gamma.poch_mul_inv_Gamma_add_nat (b + p.1) p.2
+    rw [add_assoc, ← Nat.cast_add, hp] at hG
+    simp only [hf, hg, regularizedHGFunCoeff_singleton, besselExpansionTerm]
+    rw [div_eq_mul_inv (poch a p.1), mul_inv, ← hG, ← hp, pow_add, hw, neg_pow, div_pow, div_pow]
+    have h1 : (p.1 ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h2 : (p.2 ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h3 : (2 : ℂ) ^ p.1 ≠ 0 := pow_ne_zero _ two_ne_zero
+    field_simp
+  simp_rw [hterm] at hcauchy
+  rw [hfsum, hgsum, hN.tsum_eq, ← hS.tsum_eq] at hcauchy
+  rw [← hcauchy, mul_comm (exp w), mul_assoc, ← Complex.exp_add, neg_add_cancel,
+    Complex.exp_zero, mul_one]
+
+/-- Each term of DLMF 13.11.3 in Bessel form reduces to the branch-free term when the branches
+of `z` and `b-2a` are compatible. -/
+theorem besselExpansion_term_eq_besselJ {b c z : ℂ} (s : ℕ) (hz : z ≠ 0) (hc : c ≠ 0)
+    (harg : arg z + arg c ∈ Set.Ioc (-π) π) :
+    c ^ ((1 - b - s) / 2) * (z / 2) ^ ((1 - b + s) / 2) *
+        besselJ (b - 1 + s) ((2 * z * c) ^ (1 / 2 : ℂ)) =
+      (z / 2) ^ s * regularizedHGFun (∅ : Multiset ℂ) {b + s} (-(c * z / 2)) := by
+  set x := (2 * z * c) ^ (1 / 2 : ℂ) with hxdef
+  have h2zc : 2 * z * c ≠ 0 := mul_ne_zero (mul_ne_zero two_ne_zero hz) hc
+  have hx2 : x ^ 2 = 2 * z * c := by
+    rw [hxdef, one_div]; exact cpow_ofNat_inv_pow _ 2
+  have hx0 : x ≠ 0 := by
+    rw [hxdef, cpow_def_of_ne_zero h2zc]; exact exp_ne_zero _
+  have hl2 : ∀ w : ℂ, w ≠ 0 → log (2 * w) = Real.log 2 + log w := fun w hw => by
+    have := log_ofReal_mul (r := 2) (by norm_num) hw
+    simpa using this
+  have hlh : ∀ w : ℂ, w ≠ 0 → log (w / 2) = log w - Real.log 2 := fun w hw => by
+    have := log_ofReal_mul (r := 1 / 2) (by norm_num) hw
+    rw [show ((1 / 2 : ℝ) : ℂ) * w = w / 2 by push_cast; ring, Real.log_div one_ne_zero two_ne_zero,
+      Real.log_one] at this
+    rw [this]; push_cast; ring
+  have him : (log (2 * z * c) * (1 / 2 : ℂ)).im = arg (2 * z * c) / 2 := by
+    simp [Complex.mul_im, Complex.log_im]
+    ring
+  have hlogx : log x = log (2 * z * c) / 2 := by
+    rw [hxdef, cpow_def_of_ne_zero h2zc, log_exp]
+    · ring
+    · rw [him]; linarith [neg_pi_lt_arg (2 * z * c), Real.pi_pos]
+    · rw [him]; linarith [arg_le_pi (2 * z * c), Real.pi_pos]
+  have hlzc : log (2 * z * c) = Real.log 2 + (log z + log c) := by
+    rw [mul_assoc, hl2 _ (mul_ne_zero hz hc), Complex.log_mul hz hc harg]
+  rw [besselJ_eq_regularized, show b - 1 + s + 1 = b + s by ring,
+    show -(x ^ 2 / 4) = -(c * z / 2) by rw [hx2]; ring, ← mul_assoc]
+  congr 1
+  rw [cpow_def_of_ne_zero hc, cpow_def_of_ne_zero (div_ne_zero hz two_ne_zero),
+    cpow_def_of_ne_zero (div_ne_zero hx0 two_ne_zero), ← cpow_natCast,
+    cpow_def_of_ne_zero (div_ne_zero hz two_ne_zero), ← Complex.exp_add, ← Complex.exp_add,
+    hlh _ hz, hlh _ hx0, hlogx, hlzc]
+  congr 1
+  ring
+
+/-- DLMF 13.11.3 as printed, with principal branches. The hypothesis on `arg z + arg (b-2a)` is
+needed: at `a = 0.2-0.5i`, `b = 1.4+0.4i`, `z = -1.2+0.3i` (where `Re(b-2a) > 0` but
+`arg z + arg (b-2a) > π`) the printed right side is `2.834-3.390i`, while
+`𝐌(a,b,z) = 1.185+0.468i`. See `regularizedHGFun_eq_besselExpansion` for the branch-free form. -/
+@[dlmf 13.11.E3]
+theorem regularizedHGFun_besselJ_series {a b z : ℂ} (hz : z ≠ 0) (hba0 : b - 2 * a ≠ 0)
+    (harg : arg z + arg (b - 2 * a) ∈ Set.Ioc (-π) π) :
     regularizedHGFun {a} {b} z =
       exp (z / 2) * ∑' s : ℕ, besselExpansionCoeff a b s *
         (b - 2 * a) ^ ((1 - b - s) / 2) * (z / 2) ^ ((1 - b + s) / 2) *
           besselJ (b - 1 + s) ((2 * z * (b - 2 * a)) ^ (1 / 2 : ℂ)) := by
-  sorry
+  rw [regularizedHGFun_eq_besselExpansion]
+  congr 1
+  refine tsum_congr fun s => ?_
+  have h := besselExpansion_term_eq_besselJ (b := b) s hz hba0 harg
+  linear_combination (-besselExpansionCoeff a b s) * h
+
+end BesselExpansion
 
 @[dlmf 13.24.E1]
 theorem whittakerM_besselI_series {κ μ z : ℂ}

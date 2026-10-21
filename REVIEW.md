@@ -2,8 +2,19 @@
 
 ## Scope and degree of completion
 
-**Current status, 2026-10-20 (late evening):** 692 explicit admissions after the
-[blocker round](#blocker-round-2026-10-20-late-evening); before it, 757: 759 after the
+**Current status, 2026-10-21 (evening):** 590 explicit admissions after the
+[infrastructure round](#infrastructure-round-round-5-2026-10-21) (asymptotic inversion,
+parabolic-cylinder sectors, improper and Legendre integrals, Liouville–Green). Before that,
+621 explicit admissions after the
+[reciprocal-Gamma strengthening](#reciprocal-gamma-strengthening-2026-10-21), which proved the
+two Legendre limits 14.17.10–11 and added pole-free forms of eleven digamma statements.
+Before that, 623 explicit admissions. Purely numerical results are now
+out of scope (AGENTS.md): removing `AAR/Airy/Numerics.lean` (47 admissions, plus 20 proved
+χ-table bounds), the 20 erf/Fresnel zero tables 7.13.1–4 and the decimal Ei zero 6.13.1 took
+691 to 623; the decimal coefficients of 12.11.9 were dropped from `pcfFirstZero_coefficients`,
+which keeps its structural part. Before that, 691: 692 after the
+[blocker round](#blocker-round-2026-10-20-late-evening), less DLMF 13.11.3
+(`regularizedHGFun_besselJ_series`), now corrected and proved. Before that round, 757: 759 after the
 [shared-helper round](#shared-helper-round-priority-2-2026-10-20), less the corrected and
 proved DLMF 14.23.7 (`conicalQHat_boundary`) and 9.13.36 (`reidAiry_connection_36`); before that round, 1,038 after the
 [project-wide triage and tier-A batch](#project-wide-admission-triage-and-statement-corrections-2026-10-20),
@@ -4842,15 +4853,24 @@ All eight files are in the umbrellas (`AAR/Bessel.lean`, `ToMathlib.lean`).
   sign; 6.12.1, 6.12.2, the f/g sector expansions and two remainder bounds; 8.20.2, 8.20.3;
   8.21.26, 8.21.27.
 
-### Newly found statement defect (left admitted, decision needed)
+### Statement defect found in this round (resolved 2026-10-21)
 
-- `regularizedHGFun_besselJ_series` (DLMF 13.11.3) is false as stated with principal
-  branches. Its hypotheses allow ph z + ph(b − 2a) > π, and then the factors
+- `regularizedHGFun_besselJ_series` (DLMF 13.11.3) was false as stated with principal
+  branches. Its hypotheses allowed ph z + ph(b − 2a) > π, and then the factors
   (b−2a)^{(1−b−s)/2}, (z/2)^{(1−b+s)/2} and J_{b−1+s}(√(2z(b−2a))) use mismatched branches.
   At a = 0.2 − 0.5i, b = 1.4 + 0.4i, z = −1.2 + 0.3i the stated right side is
-  2.8336 − 3.3899i, while M̃(a,b,z) = 1.18529 + 0.46781i (rechecked by the coordinator with
-  mpmath). Branch-consistent factors reproduce M̃. A fix is the extra hypothesis
-  |ph z + ph(b − 2a)| < π, or an entire form in which the J_ν power prefactor is absorbed.
+  2.8336 − 3.3899i, while M̃(a,b,z) = 1.18529 + 0.46781i (rechecked with mpmath).
+- Resolution, at the user's request: the branch-free form
+  `regularizedHGFun_eq_besselExpansion` (dlmf tag, stronger than DLMF) states
+  M̃(a,b,z) = e^{z/2} Σ A_s (z/2)^s ₀F̃₁(; b+s; −(b−2a)z/2) for all complex a, b, z, with no
+  hypotheses. The printed Bessel form `regularizedHGFun_besselJ_series` now assumes
+  z ≠ 0, b − 2a ≠ 0 and ph z + ph(b − 2a) ∈ (−π, π], and follows term by term.
+- Proof (original): the recurrence 13.11.4 for A_s is the formal equation
+  (1−t²)A′ = (bt + (2a−b)t²)A, so Σ A_s t^s = e^{(b−2a)t}(1−t)^{−a}(1+t)^{a−b}. The coefficients
+  B_N = Σ_{m+r=N} (a)_m 2^m (−1)^r (b+m)_r/(m! r!) of the last two factors satisfy a three-term
+  recurrence, proved by telescoping with the certificate G(j+1) = −2(a+j)·term(j, N+1−j).
+  Regrouping the double series by total degree, and using (b+m)_r/Γ(b+m+r) = 1/Γ(b+m) (valid at
+  the poles), gives the Cauchy product of the M̃ series with e^{−z/2}.
 
 ### Remaining gaps noted by the agents
 
@@ -4873,4 +4893,113 @@ All eight files are in the umbrellas (`AAR/Bessel.lean`, `ToMathlib.lean`).
   the same set as the source census; no other non-standard axiom occurs. The 65 removed
   names are absent from the admitted set, and no new admission appears.
 - `git diff --check` is clean. No commit was made. The per-area DLMF acquisition ledgers
-  have not been updated for this round.
+  were not updated in that round; they were refreshed from the source on 2026-10-21.
+
+## Reciprocal-Gamma strengthening (2026-10-21)
+
+Mathlib's `Complex.digamma` is `logDeriv Gamma`, which is `0` at the poles `0, −1, −2, …`. A
+product ψ(x)·(1/Γ(x)) therefore evaluates to `0` there, although its continuous extension is
+`(−1)^{n+1} n!` at `x = −n`. A census found eleven declarations whose pole-avoiding hypotheses
+existed only for this reason. The new module `AAR/Gamma/InvGammaDeriv.lean` provides the
+entire functions `invGammaDeriv n = (1/Γ)^{(n)}` with `(1/Γ)' = −ψ/Γ`, `(1/Γ)'(−p) = (−1)^p p!`,
+`(1/Γ)'' = (ψ² − ψ')/Γ`, and the pole-free `poch_mul_inv_Gamma_add_nat`.
+
+New theorems, each valid for all parameters and tagged as the original ("Stronger than DLMF"):
+
+- Legendre (`ParameterLimits.lean`): closed forms `legendreSinDigamma_eq` and
+  `legendreSinSqTrigamma_eq`; the admissions `legendreSinDigamma_limit` and
+  `legendreSinSqTrigamma_limit` are now proved. `Singularities.lean`: the new admitted
+  `olverQ_log_singular_invGamma` (14.8.9, all ν), from which the old `olverQ_log_singular` is
+  now proved (net zero).
+- Confluent: `tricomi_numerator_nat_series_invGamma`, `deriv_tricomi_numerator_nat_invGamma`
+  (`ParameterDerivatives.lean`); the series `tricomiLogSeriesInvGamma` and
+  `tricomi_log_series_split_invGamma` (`LogSeries.lean`); `kummerU_nat_log_invGamma`,
+  `kummerU_nat_denom_invGamma` (13.2.9, all a) and `isBigO_kummerU_at_zero_b_one_invGamma`
+  (13.2.19) in `BasicProperties.lean`.
+- Hypergeometric (new file `LogConnectionsInvGamma.lean`): 15.8.10
+  `logarithmic_connection_one_sub_invGamma`, 15.8.9
+  `logarithmic_connection_one_div_one_sub_invGamma` and 15.8.11
+  `logarithmic_connection_one_sub_inv_invGamma`, with all integrality and pole hypotheses
+  on a, b, c − a dropped; helpers `inv_Gamma_mul_deriv_poch`, `inv_Gamma_mul_poch_one_sub`,
+  `inv_Gamma_mul_deriv_poch_one_sub`.
+
+The old statements are kept unchanged. All new statements were checked with mpmath at
+parameter values the old hypotheses excluded (agreement to 1e-19 or better).
+
+## Infrastructure round (round 5, 2026-10-21)
+
+Six parallel agents with file-level ownership; 621 → 590 (31 admissions proved, none added,
+no statement changed, no false statement found).
+
+New general infrastructure (ToMathlib, Mathlib imports only, all fully proved):
+
+- `Asymptotics/AsymptoticInversion.lean`: asymptotic power series `HasAsymptoticPowerSeries`
+  with its algebra and composition (`comp`, `analytic_comp`), Lagrange inversion
+  `HasAsymptoticPowerSeries.inversion` via Mathlib's compositional inverse
+  `PowerSeries.substInvOfIsUnit`, and the McMahon form `HasAsymptoticPowerSeries.mcMahon` for
+  solutions of ξ + G(ξ) = T along any filter (so for zero sequences k ↦ x_k).
+- `Integral/Improper.lean`: Abel's theorem for improper integrals
+  (`tendsto_abel_of_tendsto_intervalIntegral`), dominated convergence with Fubini for improper
+  parametric integrals, and ∫₀^X u^{μ−1} sin u → Γ(μ) sin(πμ/2).
+- `ODE/LiouvilleGreenVolterra.lean`, `LiouvilleGreen.lean`, `LiouvilleGreenReal.lean`,
+  `LiouvilleGreenExpansion.lean`, `LiouvilleGreenComparison.lean` (namespace `LiouvilleGreen`):
+  Volterra existence with the exp(∫ρ) − 1 bound (Olver Ch. 6, Thm 10.1); Olver's error bounds
+  for w'' = (±u²f + g)w (Ch. 6, Thms 2.1–2.2, and the O(1/u) form of Ch. 10); asymptotic
+  expansions with explicit error bounds (Ch. 10, Thm 3.1); a general comparison theorem and
+  constant Wronskians as the base for turning-point theory (Ch. 11). All solutions are
+  controlled from +∞; finite-endpoint control and dominant solutions are not yet covered.
+
+Proved targets:
+
+- Airy: `exists_airy_zero_parametrizations` (9.9.6–9.9.17).
+- Parabolic cylinder (`SectorAsymptotics.lean`, new): rotated Laplace representation of U for
+  |θ| < π/4, the expansion 12.9.1 on |ph z| ≤ 3π/4 − δ for every complex a, its log-plane form,
+  and from the connection formulas 12.2.19–20 the targets `pcfU_sector_asymptotic`,
+  `pcfV_sector_asymptotic`, `pcfU/V_adjacent_asymptotic_pos/neg` (12.9.1–12.9.4) and
+  `pcfWS_asymptotic` (12.14.20–23).
+- Parabolic cylinder uniform (`Uniform.lean`, `UniformLG.lean` new): `pcfOlverU_spec` (12.10.11),
+  `pcfGammaCoeff_expansion` and `pcfGammaCoeff_initial` (12.10.16–17); and the new
+  `pcf_negative_parameter_uniform_U` (U part of 12.10.3 with an existential normalizer, by
+  Liouville–Green with u = μ², f = t² − 1, identified with U by a recessive-solution Wronskian
+  argument and the large-z limit from 12.9.1).
+- Struve: `struveL_fourier` (11.5.7, by Abel regularization and Laplace kernels),
+  `struveH_integral_plain`, `struveH_integral_mellin_zero`, `struveH_integral_mellin`
+  (11.7.9–11.7.11).
+- Legendre (`IntegralTools.lean` new): `ferrers_orthogonality_6`–`_9` (14.17.6–9),
+  `ferrersP_fractional_integral`, `associatedP_fractional_integral` (14.12.2, 14.12.5),
+  the five negative-order integrals 14.6.6–8, `associatedP_fourier_integral` (14.12.7, all ν),
+  `associatedP_nat_integral`, `olverQ_nat_finite_integral`, `olverQ_nat_interval_integral`,
+  `olverQ_nat_heine` (14.12.8, 14.12.9, 14.12.11, 14.12.14).
+
+Remaining blockers identified by the agents:
+
+- Zero existence and localization (Rouché or argument-principle counts in sectors) for the
+  erf/Fresnel, trigonometric-integral, Airy complex and Kummer zero expansions; the 7.13
+  expansions also need inversion with log-polynomial coefficients.
+- The modulus–phase expansions 9.8.20–23, after which the real Airy zero expansions follow
+  from `mcMahon`.
+- A decay bound 𝐌(a, b, −t) = O(t^{−Re a}) as t → +∞, which blocks all of
+  `Confluent/Integrals.lean` and 13.4.6; 13.10.13–15 and 13.23.9–11 also need
+  Σ (a)_n/n! 𝐌(b+n, c, −x) = x^{−a} e^{−x} 𝐌(c−b, c−a, x).
+- Mellin–Barnes residue machinery (11.5.8–9); a Parseval argument (11.7.12).
+- Legendre: general complex (μ, ν) integral identities, and boundary asymptotics of P, Q at
+  ±1 (with digamma terms) and at ∞ for 14.17.10–20.
+- Liouville–Green control from a finite endpoint (V parts of 12.10.3–6, the oscillatory range
+  12.10(vi)), on the whole line (12.10.25/29), the normalizer identity 12.10.14, and Airy and
+  Bessel envelope bounds for turning-point theory.
+
+### Tooling
+
+`scripts/DumpDLMF.lean` writes every `@[dlmf]` cross-reference of Mathlib, the imported TauCeti
+modules and this project to JSON, with location and the compiled axiom status (2,882 entries:
+2,376 proved, 506 admitted). `scripts/dlmf_ledgers.py` regenerates the declaration links,
+statuses and module counts of the root acquisition ledgers from that dump.
+
+### Validation
+
+- The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes (9,841 jobs) with 590
+  `sorry` warnings and no errors; the source census finds the same 590.
+- A compiled audit of 9,145 `AAR`/`ToMathlib` theorems finds 591 depending on `sorryAx`: the
+  590 admissions and `olverQ_log_singular`, which is proved from the admitted
+  `olverQ_log_singular_invGamma`. No other non-standard axiom occurs.
+- `git diff --check` is clean. No commit was made.

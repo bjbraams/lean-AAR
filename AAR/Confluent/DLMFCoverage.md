@@ -191,3 +191,16 @@ directory); later modules (`ParabolicCylinder`, `ConnectionWronskians`, `Coulomb
 `IncompleteGamma`, `FresnelAsymptotics`, `Continuation`, `Growth`) contain no admissions.
 
 The acquisition introduced Tricomi's `U` and complementary error/incomplete-gamma helpers, together with about 250 tagged statements. All new identities are admitted except the previously proved theorems in `Basic` and `Whittaker`.
+
+## Later additions (2026-10-21)
+
+- [13.11.E3](https://dlmf.nist.gov/13.11.E3): `regularizedHGFun_eq_besselExpansion` in
+  `Series.lean` (proved; all a, b, z, stronger than DLMF). The printed J form
+  `regularizedHGFun_besselJ_series` was false as stated off the principal branch and is now
+  proved under z ≠ 0, b − 2a ≠ 0 and ph z + ph(b − 2a) ∈ (−π, π] (REVIEW.md).
+- [13.2.E9](https://dlmf.nist.gov/13.2.E9): `kummerU_nat_denom_invGamma` and
+  `kummerU_nat_log_invGamma` in `BasicProperties.lean` (proved; all a, stronger than DLMF),
+  via `tricomiLogSeriesInvGamma` (`LogSeries.lean`) and
+  `tricomi_numerator_nat_series_invGamma` (`ParameterDerivatives.lean`).
+- [13.2.E19](https://dlmf.nist.gov/13.2.E19): `isBigO_kummerU_at_zero_b_one_invGamma`
+  (proved; all a).

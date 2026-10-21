@@ -798,6 +798,86 @@ theorem airy_zero_common_asymptotic_coefficients  :
           airyBi (airyBiDerivComplexZero (k + 1))) (airyComplexZeroArgument 3) cW := by
   sorry
 
+/-- Interpolation on three disjoint injectively parametrized families of points. -/
+private lemma airyZeros_exists_interp3 {a b c : ℕ → ℂ} (ha : Function.Injective a)
+    (hb : Function.Injective b) (hc : Function.Injective c) (hab : ∀ k j, a k ≠ b j)
+    (hac : ∀ k j, a k ≠ c j) (hbc : ∀ k j, b k ≠ c j) (fa fb fc : ℕ → ℂ) :
+    ∃ F : ℂ → ℂ, ∀ k, F (a k) = fa k ∧ F (b k) = fb k ∧ F (c k) = fc k := by
+  classical
+  refine ⟨fun z => if h : ∃ k, a k = z then fa h.choose else if h : ∃ k, b k = z then
+    fb h.choose else if h : ∃ k, c k = z then fc h.choose else 0, fun k => ⟨?_, ?_, ?_⟩⟩
+  · have h : ∃ j, a j = a k := ⟨k, rfl⟩
+    simp only [h, dite_true]
+    rw [ha h.choose_spec]
+  · have h : ∃ j, b j = b k := ⟨k, rfl⟩
+    have h' : ¬ ∃ j, a j = b k := fun ⟨j, hj⟩ => hab j k hj
+    simp only [h, h', dite_true, dite_false]
+    rw [hb h.choose_spec]
+  · have h : ∃ j, c j = c k := ⟨k, rfl⟩
+    have h' : ¬ ∃ j, a j = c k := fun ⟨j, hj⟩ => hac j k hj
+    have h'' : ¬ ∃ j, b j = c k := fun ⟨j, hj⟩ => hbc j k hj
+    simp only [h, h', h'', dite_true, dite_false]
+    rw [hc h.choose_spec]
+
+/-- Real part of the real zero argument. -/
+private lemma airyZeros_re_arg (o : ℝ) (k : ℕ) :
+    (airyZeroArgument o k).re = 3 * π / 8 * (4 * (k + 1 : ℝ) - o) := by
+  simp [airyZeroArgument]
+
+/-- The real zero argument is real. -/
+private lemma airyZeros_im_arg (o : ℝ) (k : ℕ) : (airyZeroArgument o k).im = 0 := by
+  simp [airyZeroArgument]
+
+/-- Real part of the complex argument. -/
+private lemma airyZeros_re_carg (o : ℝ) (k : ℕ) :
+    (airyComplexZeroArgument o k).re = 3 * π / 8 * (4 * (k + 1 : ℝ) - o) := by
+  simp [airyComplexZeroArgument, airyZeroArgument, -ofNat_log]
+
+/-- Imaginary part of the complex zero argument. -/
+private lemma airyZeros_im_carg (o : ℝ) (k : ℕ) :
+    (airyComplexZeroArgument o k).im = 3 * Real.log 2 / 4 := by
+  simp [airyComplexZeroArgument, airyZeroArgument, -ofNat_log]
+
+/-- Cancelling the common factor `3π/8`. -/
+private lemma airyZeros_re_inj {o o' : ℝ} {k j : ℕ}
+    (h : 3 * π / 8 * (4 * (k + 1 : ℝ) - o) = 3 * π / 8 * (4 * (j + 1 : ℝ) - o')) :
+    4 * (k : ℝ) - o = 4 * j - o' := by
+  have hπ : (3 * π / 8 : ℝ) ≠ 0 := by positivity
+  have := mul_left_cancel₀ hπ h
+  linarith
+
+/-- The real zero arguments are injective in `k`. -/
+private lemma airyZeros_inj (o : ℝ) : Function.Injective (airyZeroArgument o) := fun k j h => by
+  have := airyZeros_re_inj (congrArg re h |>.trans (airyZeros_re_arg o j) |>.symm.trans
+    (airyZeros_re_arg o k) |>.symm)
+  exact_mod_cast (by linarith : (k : ℝ) = j)
+
+/-- The complex zero arguments are injective in `k`. -/
+private lemma airyZeros_cinj (o : ℝ) : Function.Injective (airyComplexZeroArgument o) :=
+  fun k j h => by
+  have := airyZeros_re_inj (congrArg re h |>.trans (airyZeros_re_carg o j) |>.symm.trans
+    (airyZeros_re_carg o k) |>.symm)
+  exact_mod_cast (by linarith : (k : ℝ) = j)
+
+/-- The offsets `1` and `3` give disjoint real arguments. -/
+private lemma airyZeros_ne13 (k j : ℕ) : airyZeroArgument 1 k ≠ airyZeroArgument 3 j := by
+  intro h
+  have := airyZeros_re_inj (congrArg re h |>.trans (airyZeros_re_arg 3 j) |>.symm.trans
+    (airyZeros_re_arg 1 k) |>.symm)
+  have h3 : (2 * ((j : ℤ) - k) - 1 : ℤ) = 0 := by
+    have : (2 * ((j : ℝ) - k) - 1) = 0 := by linarith
+    exact_mod_cast this
+  omega
+
+/-- Real and complex zero arguments never coincide. -/
+private lemma airyZeros_rcne (o o' : ℝ) (k j : ℕ) :
+    airyZeroArgument o k ≠ airyComplexZeroArgument o' j := by
+  intro h
+  have := congrArg im h
+  rw [airyZeros_im_arg, airyZeros_im_carg] at this
+  have : 0 < Real.log 2 := Real.log_pos one_lt_two
+  linarith
+
 /-- Exact common T,U,V,W parametrizations in DLMF 9.9.6–9.9.17.
 Their all-order asymptotics, with the auxiliary functions eliminated, are given by
 `airy_zero_common_asymptotic_coefficients`. No analytic continuation is asserted here. -/
@@ -819,6 +899,52 @@ theorem exists_airy_zero_parametrizations :
       airyBiDerivComplexZero (k + 1) = exp (π * I / 3) * U (airyComplexZeroArgument 3 k) ∧
       airyBi (airyBiDerivComplexZero (k + 1)) =
         (-1 : ℂ) ^ k * Real.sqrt 2 * exp (π * I / 6) * W (airyComplexZeroArgument 3 k) := by
-  sorry
+  have i1 := airyZeros_inj 1
+  have i3 := airyZeros_inj 3
+  have c1 := airyZeros_cinj 1
+  have c3 := airyZeros_cinj 3
+  have hsgn (k : ℕ) : ((-1 : ℂ) ^ k) * (-1 : ℂ) ^ k = 1 := by
+    rw [← mul_pow]; norm_num
+  have hs2 : (Real.sqrt 2 : ℂ) ≠ 0 := by
+    exact_mod_cast (Real.sqrt_pos.mpr two_pos).ne'
+  obtain ⟨T, hT⟩ := airyZeros_exists_interp3 i1 i3 c1 airyZeros_ne13
+    (fun k j => airyZeros_rcne 1 1 k j) (fun k j => airyZeros_rcne 3 1 k j)
+    (fun k => -(airyAiZero (k + 1) : ℂ)) (fun k => -(airyBiZero (k + 1) : ℂ))
+    (fun k => exp (-(π * I / 3)) * airyBiComplexZero (k + 1))
+  obtain ⟨U, hU⟩ := airyZeros_exists_interp3 i3 i1 c3 (fun k j => (airyZeros_ne13 j k).symm)
+    (fun k j => airyZeros_rcne 3 3 k j) (fun k j => airyZeros_rcne 1 3 k j)
+    (fun k => -(airyAiDerivZero (k + 1) : ℂ)) (fun k => -(airyBiDerivZero (k + 1) : ℂ))
+    (fun k => exp (-(π * I / 3)) * airyBiDerivComplexZero (k + 1))
+  obtain ⟨V, hV⟩ := airyZeros_exists_interp3 i1 i3 c1 airyZeros_ne13
+    (fun k j => airyZeros_rcne 1 1 k j) (fun k j => airyZeros_rcne 3 1 k j)
+    (fun k => (-1 : ℂ) ^ k * airyAiDeriv (airyAiZero (k + 1)))
+    (fun k => (-1 : ℂ) ^ k * airyBiDeriv (airyBiZero (k + 1)))
+    (fun k => airyBiDeriv (airyBiComplexZero (k + 1)) /
+      ((-1 : ℂ) ^ (k + 1) * Real.sqrt 2 * exp (-π * I / 6)))
+  obtain ⟨W, hW⟩ := airyZeros_exists_interp3 i3 i1 c3 (fun k j => (airyZeros_ne13 j k).symm)
+    (fun k j => airyZeros_rcne 3 3 k j) (fun k j => airyZeros_rcne 1 3 k j)
+    (fun k => (-1 : ℂ) ^ k * airyAi (airyAiDerivZero (k + 1)))
+    (fun k => (-1 : ℂ) ^ (k + 1) * airyBi (airyBiDerivZero (k + 1)))
+    (fun k => airyBi (airyBiDerivComplexZero (k + 1)) /
+      ((-1 : ℂ) ^ k * Real.sqrt 2 * exp (π * I / 6)))
+  refine ⟨T, U, V, W, fun k => ?_⟩
+  obtain ⟨T1, T3, TC⟩ := hT k
+  obtain ⟨U3, U1, UC⟩ := hU k
+  obtain ⟨V1, V3, VC⟩ := hV k
+  obtain ⟨W3, W1, WC⟩ := hW k
+  rw [T1, T3, TC, U1, U3, UC, V1, V3, VC, W1, W3, WC]
+  have he (z : ℂ) : exp z * (exp (-z)) = 1 := by rw [← exp_add, add_neg_cancel, exp_zero]
+  have hk1 : ((-1 : ℂ) ^ (k + 1)) * (-1 : ℂ) ^ (k + 1) = 1 := hsgn (k + 1)
+  refine ⟨by ring, ?_, by ring, ?_, by ring, ?_, by ring, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [← mul_assoc, hsgn, one_mul]
+  · rw [← mul_assoc, hsgn, one_mul]
+  · rw [← mul_assoc, hsgn, one_mul]
+  · rw [← mul_assoc, hk1, one_mul]
+  · rw [← mul_assoc, he, one_mul]
+  · rw [mul_div_cancel₀]
+    exact mul_ne_zero (mul_ne_zero (pow_ne_zero _ (by norm_num)) hs2) (exp_ne_zero _)
+  · rw [← mul_assoc, he, one_mul]
+  · rw [mul_div_cancel₀]
+    exact mul_ne_zero (mul_ne_zero (pow_ne_zero _ (by norm_num)) hs2) (exp_ne_zero _)
 
 end AAR.Airy

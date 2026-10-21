@@ -31,25 +31,97 @@ theorem ferrers_barnes_integral {σ μ : ℂ} (hσ : -1 < σ.re) (hμ : -1 < μ.
 @[dlmf 14.17.E6]
 theorem ferrers_orthogonality_6 (l m n : ℕ) (hl : m ≤ l) (hn : m ≤ n) :
     ∫ x : ℝ in -1..1, 1*ferrersP l (m) x*ferrersP n (m) x=if l=n then ((n+m).factorial:ℂ)/((n-m).factorial*(n+1/2:ℂ)) else 0 := by
-  sorry
+  have hI : (∫ x : ℝ in -1..1, 1*ferrersP l (m) x*ferrersP n (m) x) = legInt_I m l n := by
+    refine intervalIntegral.integral_congr_ae ?_
+    have : ∀ᵐ t : ℝ ∂volume, t ≠ 1 := by simp [ae_iff]
+    filter_upwards [this] with t ht htm
+    rw [uIoc_of_le (by norm_num)] at htm
+    rw [one_mul, legInt_ferrersP_mul l n m ⟨htm.1, lt_of_le_of_ne htm.2 ht⟩]
+  rw [hI, legInt_I_eq]
+  split_ifs with h
+  · have hp := legInt_prod_factorial hn
+    have hf : ((n-m).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h2 : (2*(n:ℂ)+1) ≠ 0 := by
+      have : (0:ℝ) < 2*n+1 := by positivity
+      exact_mod_cast this.ne'
+    rw [← hp]
+    field_simp
+  · simp
 
 /-- ferrers orthogonality 7. -/
 @[dlmf 14.17.E7]
 theorem ferrers_orthogonality_7 (l m n : ℕ) (hl : m ≤ l) (hn : m ≤ n) :
     ∫ x : ℝ in -1..1, 1*ferrersP l (m) x*ferrersP n (-m) x=if l=n then (-1)^m/(l+1/2:ℂ) else 0 := by
-  sorry
+  have hk : ((n:ℂ)-m+1) = ((n-m:ℕ):ℂ)+1 := by rw [Nat.cast_sub hn]
+  have hreg : ∀ k : ℕ, (n:ℂ)-m+1 ≠ -k := fun k h => by
+    rw [hk] at h; have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
+  have hI : (∫ x : ℝ in -1..1, 1*ferrersP l (m) x*ferrersP n (-m) x) =
+      (-1)^m*Gamma ((n:ℂ)-m+1)/Gamma ((n:ℂ)+m+1) *
+        ∫ x : ℝ in -1..1, 1*ferrersP l (m) x*ferrersP n m x := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr_ae ?_
+    have : ∀ᵐ t : ℝ ∂volume, t ≠ 1 := by simp [ae_iff]
+    filter_upwards [this] with t ht htm
+    rw [uIoc_of_le (by norm_num)] at htm
+    rw [ferrersP_negative_integer_order (n:ℂ) m hreg ⟨htm.1, lt_of_le_of_ne htm.2 ht⟩]
+    ring
+  rw [hI, ferrers_orthogonality_6 l m n hl hn, hk, show (n:ℂ)+m+1 = ((n+m:ℕ):ℂ)+1 by push_cast; ring,
+    Gamma_nat_eq_factorial, Gamma_nat_eq_factorial]
+  split_ifs with h
+  · subst h
+    have hf : ((l-m).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hf' : ((l+m).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have h2 : ((l:ℂ)+1/2) ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(l.cast_nonneg : (0:ℝ) ≤ l)]
+    field_simp
+  · simp
 
 /-- Nonzero polynomial degrees and integrability are explicit; singular-weight integrals retain their integrability conditions. -/
 @[dlmf 14.17.E8]
 theorem ferrers_orthogonality_8 (l m n : ℕ) (hl : l ≤ n) (hm : m ≤ n) (hp : 0 < m) :
     ∫ x : ℝ in -1..1, 1/(1-x^2:ℂ)*ferrersP n (l) x*ferrersP n (m) x=if l=m then ((n+m).factorial:ℂ)/((n-m).factorial*m) else 0 := by
-  sorry
+  split_ifs with h
+  · subst h
+    obtain ⟨k, rfl⟩ : ∃ k, l = k+1 := ⟨l-1, by omega⟩
+    have hJ := legInt_J_eq hm
+    have hd := legInt_ferrers_diag n k
+    push_cast at hd ⊢
+    rw [hd]
+    have hf : ((n-(k+1)).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hk : ((k:ℂ)+1) ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
+    rw [← hJ]; field_simp
+  · exact legInt_ferrers_offdiag n l m h (by omega)
 
 /-- Nonzero polynomial degrees and integrability are explicit; singular-weight integrals retain their integrability conditions. -/
 @[dlmf 14.17.E9]
 theorem ferrers_orthogonality_9 (l m n : ℕ) (hl : l ≤ n) (hm : m ≤ n) (hp : 0 < l) :
     ∫ x : ℝ in -1..1, 1/(1-x^2:ℂ)*ferrersP n (l) x*ferrersP n (-m) x=if l=m then (-1)^l/(l:ℂ) else 0 := by
-  sorry
+  have hk : ((n:ℂ)-m+1) = ((n-m:ℕ):ℂ)+1 := by rw [Nat.cast_sub hm]
+  have hreg : ∀ k : ℕ, (n:ℂ)-m+1 ≠ -k := fun k h => by
+    rw [hk] at h; have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
+  have hI : (∫ x : ℝ in -1..1, 1/(1-x^2:ℂ)*ferrersP n (l) x*ferrersP n (-m) x) =
+      (-1)^m*Gamma ((n:ℂ)-m+1)/Gamma ((n:ℂ)+m+1) *
+        ∫ x : ℝ in -1..1, 1/(1-x^2:ℂ)*ferrersP n l x*ferrersP n m x := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr_ae ?_
+    have : ∀ᵐ t : ℝ ∂volume, t ≠ 1 := by simp [ae_iff]
+    filter_upwards [this] with t ht htm
+    rw [uIoc_of_le (by norm_num)] at htm
+    rw [ferrersP_negative_integer_order (n:ℂ) m hreg ⟨htm.1, lt_of_le_of_ne htm.2 ht⟩]
+    ring
+  rw [hI]
+  split_ifs with h
+  · subst h
+    rw [ferrers_orthogonality_8 l l n hl hm hp]
+    simp only [↓reduceIte]
+    rw [hk, show (n:ℂ)+l+1 = ((n+l:ℕ):ℂ)+1 by push_cast; ring,
+      Gamma_nat_eq_factorial, Gamma_nat_eq_factorial]
+    have hf : ((n-l).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hf' : ((n+l).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hl0 : (l:ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (by omega)
+    field_simp
+  · rw [legInt_ferrers_offdiag n l m h (by omega), mul_zero]
 
 /-- ferrers product integral 10. -/
 @[dlmf 14.17.E10]

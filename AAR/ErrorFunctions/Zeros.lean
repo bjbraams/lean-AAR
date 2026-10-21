@@ -8,10 +8,10 @@ module
 public import AAR.ErrorFunctions.Relations
 
 /-!
-# Zero distributions, asymptotics and tables, DLMF §7.13
+# Zero distributions and asymptotics, DLMF §7.13
 
-Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
-application notes are excluded. Existing Mathlib results are referenced, not reproved.
+Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results, numerical
+tables (Tables 7.13.1–7.13.4) and application notes are excluded. Existing Mathlib results are referenced, not reproved.
 New theorem statements are initially admitted and are not completed proofs.
 -/
 
@@ -151,106 +151,6 @@ def fresnelZeroAlpha (sine : Bool) (k : ℕ) : ℝ :=
 @[dlmf 7.13.E5]
 theorem fresnelFunctionZero_asymptotic (sine : Bool) :
     ∃ p q : ℕ → Polynomial ℝ, (∀ α : ℝ, (p 0).eval α=1 ∧ (p 1).eval α=α*(α*π-4)/(8*π) ∧ (q 0).eval α=α/2) ∧ ∀ N : ℕ, (IsBigO atTop (fun k : ℕ => (fresnelFunctionZero sine (k+1)).re-∑ n ∈ Finset.range N, (p n).eval (fresnelZeroAlpha sine (k+1))*fresnelZeroLambda sine (k+1)^((1 : ℤ)-4*n)) (fun k : ℕ => fresnelZeroLambda sine (k+1)^((1 : ℤ)-4*N)*(1+|fresnelZeroAlpha sine (k+1)|)^(2*N))) ∧ (IsBigO atTop (fun k : ℕ => (fresnelFunctionZero sine (k+1)).im-∑ n ∈ Finset.range N, (q n).eval (fresnelZeroAlpha sine (k+1))*fresnelZeroLambda sine (k+1)^((-1 : ℤ)-4*n)) (fun k : ℕ => fresnelZeroLambda sine (k+1)^((-1 : ℤ)-4*N)*(1+|fresnelZeroAlpha sine (k+1)|)^(2*N+1))) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.1. -/
-theorem zero_table_1_1  :
-    |(errorFunctionZero false 1).re-(1.4506161632)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero false 1).im-(1.8809430002)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.1. -/
-theorem zero_table_1_2  :
-    |(errorFunctionZero false 2).re-(2.2446592738)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero false 2).im-(2.6165751407)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.1. -/
-theorem zero_table_1_3  :
-    |(errorFunctionZero false 3).re-(2.8397410469)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero false 3).im-(3.1756280996)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.1. -/
-theorem zero_table_1_4  :
-    |(errorFunctionZero false 4).re-(3.3354607354)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero false 4).im-(3.6461743764)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.1. -/
-theorem zero_table_1_5  :
-    |(errorFunctionZero false 5).re-(3.7690055670)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero false 5).im-(4.0606972339)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.2. -/
-theorem zero_table_2_1  :
-    |(errorFunctionZero true 1).re-(-1.3548101281)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero true 1).im-(1.9914668428)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.2. -/
-theorem zero_table_2_2  :
-    |(errorFunctionZero true 2).re-(-2.1770449061)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero true 2).im-(2.6911490243)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.2. -/
-theorem zero_table_2_3  :
-    |(errorFunctionZero true 3).re-(-2.7843876132)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero true 3).im-(3.2353308684)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.2. -/
-theorem zero_table_2_4  :
-    |(errorFunctionZero true 4).re-(-3.2874107894)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero true 4).im-(3.6973097025)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.2. -/
-theorem zero_table_2_5  :
-    |(errorFunctionZero true 5).re-(-3.7259487194)| ≤ 1/(2*10^10) ∧ |(errorFunctionZero true 5).im-(4.1061072847)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.3. -/
-theorem zero_table_3_1  :
-    |(fresnelFunctionZero false 1).re-(1.7436674862)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero false 1).im-(0.3057350636)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.3. -/
-theorem zero_table_3_2  :
-    |(fresnelFunctionZero false 2).re-(2.6514595973)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero false 2).im-(0.2529039555)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.3. -/
-theorem zero_table_3_3  :
-    |(fresnelFunctionZero false 3).re-(3.3203593363)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero false 3).im-(0.2239534581)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.3. -/
-theorem zero_table_3_4  :
-    |(fresnelFunctionZero false 4).re-(3.8757344884)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero false 4).im-(0.2047474706)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.3. -/
-theorem zero_table_3_5  :
-    |(fresnelFunctionZero false 5).re-(4.3610635170)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero false 5).im-(0.1906697324)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.4. -/
-theorem zero_table_4_1  :
-    |(fresnelFunctionZero true 1).re-(2.0092570118)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero true 1).im-(0.2885478973)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.4. -/
-theorem zero_table_4_2  :
-    |(fresnelFunctionZero true 2).re-(2.8334772325)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero true 2).im-(0.2442852408)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.4. -/
-theorem zero_table_4_3  :
-    |(fresnelFunctionZero true 3).re-(3.4675330835)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero true 3).im-(0.2184926805)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.4. -/
-theorem zero_table_4_4  :
-    |(fresnelFunctionZero true 4).re-(4.0025782433)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero true 4).im-(0.2008510251)| ≤ 1/(2*10^10) := by
-  sorry
-
-/-- Rational error bounds for DLMF Table 7.13.4. -/
-theorem zero_table_4_5  :
-    |(fresnelFunctionZero true 5).re-(4.4741892952)| ≤ 1/(2*10^10) ∧ |(fresnelFunctionZero true 5).im-(0.1876885891)| ≤ 1/(2*10^10) := by
   sorry
 
 end AAR.Confluent

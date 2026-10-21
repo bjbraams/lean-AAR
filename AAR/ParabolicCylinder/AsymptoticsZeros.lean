@@ -33,13 +33,13 @@ def pcfVTerm (a z : ℂ) (s : ℕ) : ℂ :=
 @[dlmf 12.9.E1]
 theorem pcfU_sector_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < 3*π/4) (N : ℕ) :
     (fun z : ℂ => exp (z^2/4)*z^(a+1/2)*pcfU a z-∑ s ∈ Finset.range N, pcfUTerm a z s) =O[sector (3*π/4-δ)] (fun z : ℂ => z^(-(2*N:ℤ))) := by
-  sorry
+  exact pcfSect_U_sector a hδ N
 
 /-- pcfV sector asymptotic. -/
 @[dlmf 12.9.E2]
 theorem pcfV_sector_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π/4) (N : ℕ) :
     (fun z : ℂ => (Real.sqrt (π/2):ℂ)*exp (-z^2/4)*z^(-a+1/2)*pcfV a z-∑ s ∈ Finset.range N, pcfVTerm a z s) =O[sector (π/4-δ)] (fun z : ℂ => z^(-(2*N:ℤ))) := by
-  sorry
+  exact pcfSect_V_sector a hδ hδπ N
 
 /-- pcfLogWedge. -/
 def pcfLogWedge (lo hi : ℝ) : Filter ℂ :=
@@ -49,25 +49,247 @@ def pcfLogWedge (lo hi : ℝ) : Filter ℂ :=
 @[dlmf 12.9.E3]
 theorem pcfU_adjacent_asymptotic_pos (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π/2) (N : ℕ) :
     (fun w : ℂ => pcfU a (exp w)-(exp (-exp (2*w)/4-(a+1/2)*w)*(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j)+(1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(1:ℂ)*I*π*a)*exp (exp (2*w)/4+(a-1/2)*w)*(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j))) =O[pcfLogWedge (π/4+δ) (5*π/4-δ)] (fun w : ℂ => ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ)) := by
-  sorry
+  have h1 := pcfSect_U_logWedge a hδ (-π) (lo := π/4+δ) (hi := 5*π/4-δ) (by linarith) (by linarith) N
+  have h2 := pcfSect_U_logWedge (-a) hδ (-(π/2)) (lo := π/4+δ) (hi := 5*π/4-δ) (by linarith) (by linarith) N
+  set C1 : ℂ := (-1:ℂ)*I*exp ((-1:ℂ)*I*π*a)
+  set C2 : ℂ := (Real.sqrt (2*π):ℂ)/Gamma (1/2+a)*exp ((-1:ℂ)*I*π*(a/2-1/4))
+  have e2a : ∀ w : ℂ, exp (2 * (w + ((-π : ℝ) : ℂ) * I)) = exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * -π : ℝ)) : ℂ) * I = ((-1 : ℤ) : ℂ) * (2 * π * I) by push_cast; ring,
+      Complex.exp_int_mul_two_pi_mul_I, mul_one]
+  have e2b : ∀ w : ℂ, exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) = -exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * -(π/2) : ℝ)) : ℂ) * I = -(π * I) by push_cast; ring, Complex.exp_neg,
+      Complex.exp_pi_mul_I]; ring
+  have hIexp : I = exp (π / 2 * I) := Complex.exp_pi_div_two_mul_I.symm
+  have hm1 : (-1 : ℂ) = exp (π * I) := Complex.exp_pi_mul_I.symm
+  have hA : ∀ w, C1 * exp (-exp (2 * (w + ((-π : ℝ) : ℂ) * I)) / 4 -
+      (a + 1 / 2) * (w + ((-π : ℝ) : ℂ) * I)) = exp (-exp (2*w)/4-(a+1/2)*w) := fun w => by
+    have hC1 : C1 = exp (π * I + π / 2 * I + (-1:ℂ) * I * π * a) := by
+      rw [Complex.exp_add, Complex.exp_add, Complex.exp_pi_mul_I, Complex.exp_pi_div_two_mul_I]
+    rw [hC1, e2a, ← Complex.exp_add]
+    exact pcfSect_exp_eq_of_eq_add 1 (by push_cast; ring)
+  have hB : ∀ w, C2 * exp (-exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) / 4 -
+      (-a + 1 / 2) * (w + ((-(π/2) : ℝ) : ℂ) * I)) = (1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(1:ℂ)*I*π*a) * exp (exp (2*w)/4+(a-1/2)*w) := fun w => by
+    have h1 : C2 * exp (-exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) / 4 -
+        (-a + 1 / 2) * (w + ((-(π/2) : ℝ) : ℂ) * I)) = (Real.sqrt (2*π):ℂ)/Gamma (1/2+a) *
+        exp ((-1:ℂ)*I*π*(a/2-1/4) + (-exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) / 4 -
+        (-a + 1 / 2) * (w + ((-(π/2) : ℝ) : ℂ) * I))) := by
+      simp only [C2]; rw [Complex.exp_add]; ring
+    have h2 : (1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(1:ℂ)*I*π*a) * exp (exp (2*w)/4+(a-1/2)*w) = (Real.sqrt (2*π):ℂ)/Gamma (1/2+a) *
+        exp (π / 2 * I + (-(1:ℂ)*I*π*a) + (exp (2*w)/4+(a-1/2)*w)) := by
+      rw [Complex.exp_add (π / 2 * I + (-(1:ℂ)*I*π*a)), Complex.exp_add (π / 2 * I),
+        Complex.exp_pi_div_two_mul_I]; ring
+    rw [h1, h2, e2b]
+    congr 1
+    exact pcfSect_exp_eq_of_eq_add 0 (by push_cast; ring)
+  have he : ∀ w : ℂ, 0 ≤ Real.exp (-2 * N * w.re) := fun w => (Real.exp_pos _).le
+  have g1 := pcfSect_isBigO_const_mul_envelope C1 zero_le_one h1 he (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by rw [hA w]; nlinarith [norm_nonneg (exp (exp (2*w)/4+(a-1/2)*w)), he w])
+  have g2 := pcfSect_isBigO_const_mul_envelope C2
+    (norm_nonneg ((1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(1:ℂ)*I*π*a))) h2 he
+    (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hB w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (-exp (2*w)/4-(a+1/2)*w)), he w])
+  refine (g1.add g2).congr' (Eventually.of_forall fun w => ?_) EventuallyEq.rfl
+  have z1 : exp (w + ((-π:ℝ):ℂ)*I) = -exp w := by
+    rw [Complex.exp_add, show ((-π:ℝ):ℂ)*I = -(π*I) by push_cast; ring, Complex.exp_neg,
+      Complex.exp_pi_mul_I]; ring
+  have z2 : exp (w + ((-(π/2):ℝ):ℂ)*I) = (-1:ℂ)*I*exp w := by
+    rw [Complex.exp_add, show ((-(π/2):ℝ):ℂ)*I = -(π/2*I) by push_cast; ring, Complex.exp_neg,
+      Complex.exp_pi_div_two_mul_I, Complex.inv_I]; ring
+  have s1 : ∑ s ∈ Finset.range N, pcfSect_uTerm a (exp (w + ((-π:ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfUTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by rw [z1]; exact pcfSect_uTerm_congr_sq a (by ring) s
+  have s2 : ∑ s ∈ Finset.range N, pcfSect_uTerm (-a) (exp (w + ((-(π/2):ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfVTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by
+      rw [z2]; exact pcfSect_uTerm_neg_eq_vTerm a (by ring_nf; rw [I_sq]; ring) s
+  dsimp only
+  rw [s1, s2, pcfU_rotated_connection_entire_neg a (exp w), ← z1, ← z2]
+  linear_combination (-(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j)) * hA w -
+    (∑ j ∈ Finset.range N, pcfVTerm a (exp w) j) * hB w
 
 /-- Two-exponential expansion with an absolute sum-of-envelopes remainder and inherited powers. -/
 @[dlmf 12.9.E3]
 theorem pcfU_adjacent_asymptotic_neg (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π/2) (N : ℕ) :
     (fun w : ℂ => pcfU a (exp w)-(exp (-exp (2*w)/4-(a+1/2)*w)*(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j)+(-1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(-1:ℂ)*I*π*a)*exp (exp (2*w)/4+(a-1/2)*w)*(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j))) =O[pcfLogWedge (-(5*π/4-δ)) (-(π/4+δ))] (fun w : ℂ => ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ)) := by
-  sorry
+  have h1 := pcfSect_U_logWedge a hδ π (lo := -(5*π/4-δ)) (hi := -(π/4+δ)) (by linarith) (by linarith) N
+  have h2 := pcfSect_U_logWedge (-a) hδ (π/2) (lo := -(5*π/4-δ)) (hi := -(π/4+δ)) (by linarith) (by linarith) N
+  set C1 : ℂ := (1:ℂ)*I*exp ((1:ℂ)*I*π*a)
+  set C2 : ℂ := (Real.sqrt (2*π):ℂ)/Gamma (1/2+a)*exp ((1:ℂ)*I*π*(a/2-1/4))
+  have e2a : ∀ w : ℂ, exp (2 * (w + ((π : ℝ) : ℂ) * I)) = exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * π : ℝ)) : ℂ) * I = ((1 : ℤ) : ℂ) * (2 * π * I) by push_cast; ring,
+      Complex.exp_int_mul_two_pi_mul_I, mul_one]
+  have e2b : ∀ w : ℂ, exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) = -exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * (π/2) : ℝ)) : ℂ) * I = π * I by push_cast; ring,
+      Complex.exp_pi_mul_I]; ring
+  have hIexp : I = exp (π / 2 * I) := Complex.exp_pi_div_two_mul_I.symm
+  have hm1 : (-1 : ℂ) = exp (π * I) := Complex.exp_pi_mul_I.symm
+  have hA : ∀ w, C1 * exp (-exp (2 * (w + ((π : ℝ) : ℂ) * I)) / 4 -
+      (a + 1 / 2) * (w + ((π : ℝ) : ℂ) * I)) = exp (-exp (2*w)/4-(a+1/2)*w) := fun w => by
+    have hC1 : C1 = exp (π / 2 * I + (1:ℂ) * I * π * a) := by
+      rw [Complex.exp_add, Complex.exp_pi_div_two_mul_I]; simp only [C1]; ring
+    rw [hC1, e2a, ← Complex.exp_add]
+    exact pcfSect_exp_eq_of_eq_add 0 (by push_cast; ring)
+  have hB : ∀ w, C2 * exp (-exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) / 4 -
+      (-a + 1 / 2) * (w + ((π/2 : ℝ) : ℂ) * I)) = (-1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(-1:ℂ)*I*π*a) * exp (exp (2*w)/4+(a-1/2)*w) := fun w => by
+    have h1 : C2 * exp (-exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) / 4 -
+        (-a + 1 / 2) * (w + ((π/2 : ℝ) : ℂ) * I)) = (Real.sqrt (2*π):ℂ)/Gamma (1/2+a) *
+        exp ((1:ℂ)*I*π*(a/2-1/4) + (-exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) / 4 -
+        (-a + 1 / 2) * (w + ((π/2 : ℝ) : ℂ) * I))) := by
+      simp only [C2]; rw [Complex.exp_add]; ring
+    have h2 : (-1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(-1:ℂ)*I*π*a) * exp (exp (2*w)/4+(a-1/2)*w) = (Real.sqrt (2*π):ℂ)/Gamma (1/2+a) *
+        exp (-(π / 2 * I) + (-(-1:ℂ)*I*π*a) + (exp (2*w)/4+(a-1/2)*w)) := by
+      rw [Complex.exp_add (-(π / 2 * I) + (-(-1:ℂ)*I*π*a)), Complex.exp_add (-(π / 2 * I)),
+        Complex.exp_neg, Complex.exp_pi_div_two_mul_I, Complex.inv_I]; ring
+    rw [h1, h2, e2b]
+    congr 1
+    exact pcfSect_exp_eq_of_eq_add 0 (by push_cast; ring)
+  have he : ∀ w : ℂ, 0 ≤ Real.exp (-2 * N * w.re) := fun w => (Real.exp_pos _).le
+  have g1 := pcfSect_isBigO_const_mul_envelope C1 zero_le_one h1 he (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by rw [hA w]; nlinarith [norm_nonneg (exp (exp (2*w)/4+(a-1/2)*w)), he w])
+  have g2 := pcfSect_isBigO_const_mul_envelope C2
+    (norm_nonneg ((-1:ℂ)*I*Real.sqrt (2*π)/Gamma (1/2+a)*exp (-(-1:ℂ)*I*π*a))) h2 he
+    (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hB w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (-exp (2*w)/4-(a+1/2)*w)), he w])
+  refine (g1.add g2).congr' (Eventually.of_forall fun w => ?_) EventuallyEq.rfl
+  have z1 : exp (w + ((π:ℝ):ℂ)*I) = -exp w := by
+    rw [Complex.exp_add, show ((π:ℝ):ℂ)*I = π*I by push_cast; ring,
+      Complex.exp_pi_mul_I]; ring
+  have z2 : exp (w + ((π/2:ℝ):ℂ)*I) = (1:ℂ)*I*exp w := by
+    rw [Complex.exp_add, show ((π/2:ℝ):ℂ)*I = π/2*I by push_cast; ring,
+      Complex.exp_pi_div_two_mul_I]; ring
+  have s1 : ∑ s ∈ Finset.range N, pcfSect_uTerm a (exp (w + ((π:ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfUTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by rw [z1]; exact pcfSect_uTerm_congr_sq a (by ring) s
+  have s2 : ∑ s ∈ Finset.range N, pcfSect_uTerm (-a) (exp (w + ((π/2:ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfVTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by
+      rw [z2]; exact pcfSect_uTerm_neg_eq_vTerm a (by ring_nf; rw [I_sq]; ring) s
+  dsimp only
+  rw [s1, s2, pcfU_rotated_connection_entire_pos a (exp w), ← z1, ← z2]
+  linear_combination (-(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j)) * hA w -
+    (∑ j ∈ Finset.range N, pcfVTerm a (exp w) j) * hB w
 
 /-- Two-exponential expansion with an absolute sum-of-envelopes remainder and inherited powers. -/
 @[dlmf 12.9.E4]
 theorem pcfV_adjacent_asymptotic_pos (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π/2) (N : ℕ) :
     (fun w : ℂ => pcfV a (exp w)-((Real.sqrt (2/π):ℂ)*exp (exp (2*w)/4+(a-1/2)*w)*(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j)+(1:ℂ)*I/Gamma (1/2-a)*exp (-exp (2*w)/4-(a+1/2)*w)*(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j))) =O[pcfLogWedge (-π/4+δ) (3*π/4-δ)] (fun w : ℂ => ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ)) := by
-  sorry
+  have h1 := pcfSect_U_logWedge a hδ 0 (lo := -π/4+δ) (hi := 3*π/4-δ) (by linarith) (by linarith) N
+  have h2 := pcfSect_U_logWedge (-a) hδ (-(π/2)) (lo := -π/4+δ) (hi := 3*π/4-δ) (by linarith) (by linarith) N
+  set C1 : ℂ := (1:ℂ)*I/Gamma (1/2-a)
+  set C2 : ℂ := (Real.sqrt (2/π):ℂ)*exp (I*π*(a/2-1/4))
+  have z1 : ∀ w : ℂ, w + ((0:ℝ):ℂ)*I = w := fun w => by simp
+  have e2b : ∀ w : ℂ, exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) = -exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * -(π/2) : ℝ)) : ℂ) * I = -(π * I) by push_cast; ring, Complex.exp_neg,
+      Complex.exp_pi_mul_I]; ring
+  have hA : ∀ w, C1 * exp (-exp (2 * (w + ((0 : ℝ) : ℂ) * I)) / 4 -
+      (a + 1 / 2) * (w + ((0 : ℝ) : ℂ) * I)) = C1 * exp (-exp (2*w)/4-(a+1/2)*w) := fun w => by
+    rw [z1]
+  have hB : ∀ w, C2 * exp (-exp (2 * (w + ((-(π/2) : ℝ) : ℂ) * I)) / 4 -
+      (-a + 1 / 2) * (w + ((-(π/2) : ℝ) : ℂ) * I)) =
+      (Real.sqrt (2/π):ℂ) * exp (exp (2*w)/4+(a-1/2)*w) := fun w => by
+    simp only [C2]
+    rw [e2b, mul_assoc, ← Complex.exp_add]
+    congr 1
+    exact pcfSect_exp_eq_of_eq_add 0 (by push_cast; ring)
+  have he : ∀ w : ℂ, 0 ≤ Real.exp (-2 * N * w.re) := fun w => (Real.exp_pos _).le
+  have g1 := pcfSect_isBigO_const_mul_envelope C1 (norm_nonneg C1) h1 he (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hA w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (exp (2*w)/4+(a-1/2)*w)), he w])
+  have g2 := pcfSect_isBigO_const_mul_envelope C2
+    (norm_nonneg (Real.sqrt (2/π):ℂ)) h2 he
+    (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hB w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (-exp (2*w)/4-(a+1/2)*w)), he w])
+  refine (g1.add g2).congr' (Eventually.of_forall fun w => ?_) EventuallyEq.rfl
+  have z2 : exp (w + ((-(π/2):ℝ):ℂ)*I) = -I*exp w := by
+    rw [Complex.exp_add, show ((-(π/2):ℝ):ℂ)*I = -(π/2*I) by push_cast; ring, Complex.exp_neg,
+      Complex.exp_pi_div_two_mul_I, Complex.inv_I]; ring
+  have s2 : ∑ s ∈ Finset.range N, pcfSect_uTerm (-a) (exp (w + ((-(π/2):ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfVTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by
+      rw [z2]; exact pcfSect_uTerm_neg_eq_vTerm a (by ring_nf; rw [I_sq]; ring) s
+  dsimp only
+  rw [z1, s2, pcfV_eq_mul_neg_I a (exp w), ← z2]
+  simp only [C1, C2]
+  have hu : ∑ s ∈ Finset.range N, pcfSect_uTerm a (exp w) s =
+      ∑ j ∈ Finset.range N, pcfUTerm a (exp w) j := rfl
+  rw [hu]
+  linear_combination (-(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j)) * hB w
 
 /-- Two-exponential expansion with an absolute sum-of-envelopes remainder and inherited powers. -/
 @[dlmf 12.9.E4]
 theorem pcfV_adjacent_asymptotic_neg (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π/2) (N : ℕ) :
     (fun w : ℂ => pcfV a (exp w)-((Real.sqrt (2/π):ℂ)*exp (exp (2*w)/4+(a-1/2)*w)*(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j)+(-1:ℂ)*I/Gamma (1/2-a)*exp (-exp (2*w)/4-(a+1/2)*w)*(∑ j ∈ Finset.range N, pcfUTerm a (exp w) j))) =O[pcfLogWedge (-(3*π/4-δ)) (-(-π/4+δ))] (fun w : ℂ => ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ)) := by
-  sorry
+  have h1 := pcfSect_U_logWedge a hδ 0 (lo := -(3*π/4-δ)) (hi := -(-π/4+δ)) (by linarith) (by linarith) N
+  have h2 := pcfSect_U_logWedge (-a) hδ (π/2) (lo := -(3*π/4-δ)) (hi := -(-π/4+δ)) (by linarith) (by linarith) N
+  set C1 : ℂ := (-1:ℂ)*I/Gamma (1/2-a)
+  set C2 : ℂ := (Real.sqrt (2/π):ℂ)*exp (-I*π*(a/2-1/4))
+  have z1 : ∀ w : ℂ, w + ((0:ℝ):ℂ)*I = w := fun w => by simp
+  have e2b : ∀ w : ℂ, exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) = -exp (2 * w) := fun w => by
+    rw [pcfSect_exp_two_mul_add]
+    rw [show (((2 * (π/2) : ℝ)) : ℂ) * I = π * I by push_cast; ring,
+      Complex.exp_pi_mul_I]; ring
+  have hA : ∀ w, C1 * exp (-exp (2 * (w + ((0 : ℝ) : ℂ) * I)) / 4 -
+      (a + 1 / 2) * (w + ((0 : ℝ) : ℂ) * I)) = C1 * exp (-exp (2*w)/4-(a+1/2)*w) := fun w => by
+    rw [z1]
+  have hB : ∀ w, C2 * exp (-exp (2 * (w + ((π/2 : ℝ) : ℂ) * I)) / 4 -
+      (-a + 1 / 2) * (w + ((π/2 : ℝ) : ℂ) * I)) =
+      (Real.sqrt (2/π):ℂ) * exp (exp (2*w)/4+(a-1/2)*w) := fun w => by
+    simp only [C2]
+    rw [e2b, mul_assoc, ← Complex.exp_add]
+    congr 1
+    exact pcfSect_exp_eq_of_eq_add 0 (by push_cast; ring)
+  have he : ∀ w : ℂ, 0 ≤ Real.exp (-2 * N * w.re) := fun w => (Real.exp_pos _).le
+  have g1 := pcfSect_isBigO_const_mul_envelope C1 (norm_nonneg C1) h1 he (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hA w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (exp (2*w)/4+(a-1/2)*w)), he w])
+  have g2 := pcfSect_isBigO_const_mul_envelope C2
+    (norm_nonneg (Real.sqrt (2/π):ℂ)) h2 he
+    (T := fun w : ℂ =>
+    ((‖exp (-exp (2*w)/4-(a+1/2)*w)‖+‖exp (exp (2*w)/4+(a-1/2)*w)‖)*Real.exp (-2*N*w.re):ℝ))
+    (fun w => by
+      rw [hB w, norm_mul, mul_assoc]
+      gcongr
+      nlinarith [norm_nonneg (exp (-exp (2*w)/4-(a+1/2)*w)), he w])
+  refine (g1.add g2).congr' (Eventually.of_forall fun w => ?_) EventuallyEq.rfl
+  have z2 : exp (w + ((π/2:ℝ):ℂ)*I) = I*exp w := by
+    rw [Complex.exp_add, show ((π/2:ℝ):ℂ)*I = π/2*I by push_cast; ring,
+      Complex.exp_pi_div_two_mul_I]; ring
+  have s2 : ∑ s ∈ Finset.range N, pcfSect_uTerm (-a) (exp (w + ((π/2:ℝ):ℂ)*I)) s =
+      ∑ j ∈ Finset.range N, pcfVTerm a (exp w) j :=
+    Finset.sum_congr rfl fun s _ => by
+      rw [z2]; exact pcfSect_uTerm_neg_eq_vTerm a (by ring_nf; rw [I_sq]; ring) s
+  dsimp only
+  rw [z1, s2, pcfV_eq_mul_I a (exp w), ← z2]
+  simp only [C1, C2]
+  have hu : ∑ s ∈ Finset.range N, pcfSect_uTerm a (exp w) s =
+      ∑ j ∈ Finset.range N, pcfUTerm a (exp w) j := rfl
+  rw [hu]
+  linear_combination (-(∑ j ∈ Finset.range N, pcfVTerm a (exp w) j)) * hB w
 
 /-- The integral over `(0,∞)` of a positive real function, viewed in `ℂ`, is nonzero. -/
 lemma integral_Ioi_ofReal_ne_zero {g : ℝ → ℝ} (hpos : ∀ t ∈ Ioi (0:ℝ), 0 < g t)

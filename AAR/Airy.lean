@@ -21,7 +21,6 @@ public import AAR.Airy.Products
 public import AAR.Airy.Generalized
 public import AAR.Airy.GeneralizedContours
 public import AAR.Airy.Incomplete
-public import AAR.Airy.Numerics
 
 /-!
 # Airy functions (DLMF Chapter 9; Beals–Wong §9.9)

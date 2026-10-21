@@ -38,12 +38,6 @@ theorem Real.expIntEi_unique_zero  :
     Real.expIntEiZero ≠ 0 ∧ Real.expIntEi Real.expIntEiZero=0 ∧ ∀ x : ℝ, x ≠ 0 → Real.expIntEi x=0 → x=Real.expIntEiZero := by
   sorry
 
-/-- Real.expIntEiZero decimal. -/
-@[dlmf 6.13.E1]
-theorem Real.expIntEiZero_decimal  :
-    372507410781366634461991866580/10^30 ≤ Real.expIntEiZero ∧ Real.expIntEiZero < 372507410781366634461991866581/10^30 := by
-  sorry
-
 /-- Real.cosIntZero spec. -/
 theorem Real.cosIntZero_spec (k : ℕ) :
     0 < Real.cosIntZero k ∧ (Real.cosInt) (Real.cosIntZero k)=0 ∧ ({y : ℝ | 0 < y ∧ y < Real.cosIntZero k ∧ (Real.cosInt) y=0} : Set ℝ).ncard=k := by

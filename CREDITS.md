@@ -818,3 +818,36 @@ and the project's existing cores. No code was copied from other projects. From T
 `TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral`) is used in the proof of
 `struveH_integral_one_div_sq`. The WZ certificates for the two terminating identities in
 `NeumannSeries.lean` were found with sympy; the identities themselves are proved in Lean.
+
+## DLMF 13.11.3 (2026-10-21)
+
+The branch-free form `regularizedHGFun_eq_besselExpansion` and the corrected Bessel form
+`regularizedHGFun_besselJ_series` in `AAR/Confluent/Series.lean` are original work. They use
+Mathlib's formal power series derivative (`PowerSeries.derivative`) and
+`PowerSeries.exp_mul_exp_eq_exp_add`, and the project's Neumann-series coefficient bounds
+(`exists_norm_regularized0F1Coeff_le`, `exists_norm_inv_Gamma_add_nat_le`,
+`norm_poch_le_factorial_mul_exp`). The telescoping certificate was found by hand after a sympy
+ansatz.
+
+## Reciprocal-Gamma strengthening (2026-10-21)
+
+`AAR/Gamma/InvGammaDeriv.lean`, `AAR/Hypergeometric/LogConnectionsInvGamma.lean` and the
+`_invGamma` theorems in the Confluent and Legendre files are original project work. They use
+Mathlib's `differentiable_one_div_Gamma`, `one_div_Gamma_eq_self_mul_one_div_Gamma_add_one`,
+`Complex.digamma` and `iteratedDeriv`. No code was copied from other projects.
+
+## Infrastructure round (2026-10-21)
+
+The new files `ToMathlib/Analysis/Asymptotics/AsymptoticInversion.lean`,
+`ToMathlib/Analysis/Integral/Improper.lean`, the five `ToMathlib/Analysis/ODE/LiouvilleGreen*.lean`
+files, `AAR/ParabolicCylinder/SectorAsymptotics.lean`, `AAR/ParabolicCylinder/UniformLG.lean`,
+`AAR/Legendre/IntegralTools.lean` and the scripts `scripts/DumpDLMF.lean` and
+`scripts/dlmf_ledgers.py` are original project work. No code was copied from other projects.
+The mathematical sources are F. W. J. Olver, *Asymptotics and Special Functions*, Chapters 6,
+10 and 11 (Liouville–Green error bounds), and DLMF §§11.5, 11.7, 12.9, 12.10, 14.6, 14.12 and
+14.17. They use Mathlib's formal substitution and compositional inverse of power series
+(`PowerSeries.subst`, `PowerSeries.substInvOfIsUnit`), `HasFPowerSeriesAt`, interval and
+improper integrals, and the `@[dlmf]` cross-reference attribute
+(`Mathlib/Tactic/CrossRefAttribute.lean`, by Damiano Testa), whose environment extension the
+dump script reads. The rotated-contour results reuse the project's
+`ToMathlib/Analysis/Asymptotics/WatsonRotated.lean`.

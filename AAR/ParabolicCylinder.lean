@@ -8,7 +8,9 @@ module
 public import AAR.ParabolicCylinder.Weber
 public import AAR.ParabolicCylinder.Integrals
 public import AAR.ParabolicCylinder.AsymptoticsZeros
+public import AAR.ParabolicCylinder.SectorAsymptotics
 public import AAR.ParabolicCylinder.Uniform
+public import AAR.ParabolicCylinder.UniformLG
 public import AAR.ParabolicCylinder.TurningPoint
 public import AAR.ParabolicCylinder.WeberUniform
 public import AAR.ParabolicCylinder.Computation

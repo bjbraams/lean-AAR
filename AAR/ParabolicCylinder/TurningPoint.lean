@@ -107,10 +107,11 @@ theorem pcfFirstZero_expansion (N : ℕ) :
     (fun μ : ℝ => (pcfDescendingZero (-μ^2/2) false 1/(Real.sqrt 2*μ):ℂ)-∑ j ∈ Finset.range N, pcfFirstZeroCoeff j*(μ:ℂ)^(-4*(j:ℂ)/3)) =O[atTop] (fun μ : ℝ => μ^(-4*(N:ℝ)/3)) := by
   sorry
 
-/-- Rational intervals encode the precision of the rounded DLMF coefficients. -/
+/-- Structural facts about the coefficients of DLMF 12.11.9. The decimal values of the
+coefficients printed there are numerical results and out of scope. -/
 @[dlmf 12.11.E9]
-theorem pcfFirstZero_coefficients  :
-    pcfFirstZeroCoeff 0=1 ∧ (∀ k : ℕ, (pcfFirstZeroCoeff k).im=0) ∧ |(pcfFirstZeroCoeff 1).re+1.85575708| ≤ 0.000000005 ∧ |(pcfFirstZeroCoeff 2).re+0.3443834| ≤ 0.00000005 ∧ |(pcfFirstZeroCoeff 3).re+0.168715| ≤ 0.0000005 ∧ |(pcfFirstZeroCoeff 4).re+0.11414| ≤ 0.000005 ∧ |(pcfFirstZeroCoeff 5).re+0.0808| ≤ 0.00005 := by
+theorem pcfFirstZero_coefficients :
+    pcfFirstZeroCoeff 0 = 1 ∧ ∀ k : ℕ, (pcfFirstZeroCoeff k).im = 0 := by
   sorry
 
 end AAR.Confluent

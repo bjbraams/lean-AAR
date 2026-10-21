@@ -376,3 +376,13 @@ Validation performed:
 | `AAR/SphericalHarmonics/Basic.lean` | 1 |
 | `AAR/SphericalHarmonics/Theorems.lean` | 5 |
 | **Total** | **154** |
+
+## Later additions (2026-10-21)
+
+Pole-free forms in `LogConnectionsInvGamma.lean`, all proved, with every integrality and pole
+hypothesis on the parameters dropped (stronger than DLMF); the original theorems in
+`ConnectionFormulas.lean` are unchanged:
+
+- [15.8.E9](https://dlmf.nist.gov/15.8.E9): `logarithmic_connection_one_div_one_sub_invGamma`.
+- [15.8.E10](https://dlmf.nist.gov/15.8.E10): `logarithmic_connection_one_sub_invGamma`.
+- [15.8.E11](https://dlmf.nist.gov/15.8.E11): `logarithmic_connection_one_sub_inv_invGamma`.

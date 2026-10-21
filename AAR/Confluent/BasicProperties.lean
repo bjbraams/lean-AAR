@@ -873,6 +873,26 @@ theorem kummerU_nat_log (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0)
   rw [h]
   ring
 
+open AAR.Gamma in
+/-- `kummerU_nat_log` with `ψ(a+k)/Γ(a-n)` written through `(1/Γ)'`.
+Stronger than `kummerU_nat_log`: valid for all `a`. -/
+theorem kummerU_nat_log_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
+    kummerU a ((n : ℂ) + 1) z =
+      (-1 : ℂ) ^ (n + 1) *
+        ((Gamma (a - n))⁻¹ * log z * regularizedHGFun {a} {(n : ℂ) + 1} z +
+          tricomiLogSeriesInvGamma a n z) +
+      (-1 : ℂ) ^ (n + 1) * z ^ (-(n : ℂ)) * (Gamma a)⁻¹ *
+        ∑ j ∈ Finset.range n, poch (a - n) j * z ^ j / j.factorial *
+          ((-1 : ℂ) ^ (n - 1 - j) * ((n - 1 - j).factorial : ℂ)) := by
+  have h := kummerU_nat_eq_deriv a (n + 1) hz
+  push_cast at h
+  rw [show (fun c => tricomiD a c z) = (fun c =>
+      regularizedHGFun {a} {c} z * (Gamma (a - c + 1))⁻¹ -
+        z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * (Gamma a)⁻¹) from rfl,
+    deriv_tricomi_numerator_nat_invGamma a n hz, tricomi_log_series_split_invGamma a n hz] at h
+  rw [h]
+  ring
+
 /-- A logarithm dominates constants in a punctured complex neighborhood of zero. -/
 lemma isBigO_one_log_zero :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun _ : ℂ => (1 : ℂ)) log := by
@@ -931,6 +951,56 @@ theorem kummerU_nat_denom (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane)
     simp only [mul_inv, div_eq_mul_inv]
     ring
   rw [htail, mul_add] at hU
+  rw [hU]
+  have hf := tricomi_finite_sum_eq a n hz0
+  linear_combination (Gamma a)⁻¹ * hf
+
+open AAR.Gamma in
+/-- DLMF 13.2.9 with each product `ψ(a+k)/Γ(a-n)` written as `-(a-n)_{n+k} (1/Γ)'(a+k)`.
+Stronger than DLMF: valid for all `a` (the digamma form needs `a - n ∉ {0, -1, -2, …}`
+because Mathlib's `ψ` is `0` at its poles). -/
+@[dlmf 13.2.E9]
+theorem kummerU_nat_denom_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    kummerU a (n + 1) z =
+      (-1 : ℂ) ^ (n + 1) / (n.factorial : ℂ) *
+        ∑' k : ℕ, poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
+          ((Gamma (a - n))⁻¹ * (log z - digamma (1 + k) - digamma (n + k + 1)) -
+            poch (a - n) (n + k) * invGammaDeriv 1 (a + k)) +
+        1 / Gamma a * ∑ k ∈ Finset.Icc 1 n,
+          ((k - 1).factorial : ℂ) * poch (1 - a + k) (n - k) /
+            ((n - k).factorial : ℂ) * z ^ (-(k : ℂ)) := by
+  have hz0 := slitPlane_ne_zero hz
+  have h := deriv_tricomi_numerator_nat_invGamma a n hz0
+  change deriv (fun c => tricomiD a c z) ((n : ℂ) + 1) = _ at h
+  have hU := kummerU_nat_eq_deriv a (n + 1) hz0
+  push_cast at hU
+  rw [h] at hU
+  have hΓ : ∀ k : ℕ, Gamma ((n : ℂ) + 1 + k) =
+      (n.factorial : ℂ) * poch ((n : ℂ) + 1) k := by
+    intro k
+    have hn : ∀ j : ℕ, (n : ℂ) + 1 ≠ -(j : ℂ) := by
+      intro j hj
+      have := congrArg re hj
+      simp at this
+      linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n), (Nat.cast_nonneg j : (0 : ℝ) ≤ j)]
+    have hG := Gamma_add_nat_div_Gamma_eq (n := k) ((n : ℂ) + 1) hn
+    rw [div_eq_iff (Gamma_ne_zero hn), Gamma_nat_eq_factorial] at hG
+    rw [hG]; ring
+  have htail : (∑' k : ℕ, (poch a k * z ^ k / k.factorial *
+      (Gamma ((n : ℂ) + 1 + k))⁻¹) *
+        ((Gamma (a - n))⁻¹ * (log z - digamma (k + 1) - digamma ((n : ℂ) + 1 + k)) -
+          poch (a - n) (n + k) * invGammaDeriv 1 (a + k))) =
+      (n.factorial : ℂ)⁻¹ * ∑' k : ℕ,
+        poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
+          ((Gamma (a - n))⁻¹ * (log z - digamma (1 + k) - digamma (n + k + 1)) -
+            poch (a - n) (n + k) * invGammaDeriv 1 (a + k)) := by
+    rw [← tsum_mul_left]
+    refine tsum_congr fun k => ?_
+    rw [hΓ, show (k : ℂ) + 1 = 1 + k by ring,
+      show (n : ℂ) + 1 + k = n + k + 1 by ring]
+    simp only [mul_inv, div_eq_mul_inv]
+    ring
+  rw [htail] at hU
   rw [hU]
   have hf := tricomi_finite_sum_eq a n hz0
   linear_combination (Gamma a)⁻¹ * hf
@@ -1394,6 +1464,43 @@ theorem isBigO_kummerU_at_zero_b_one (a : ℂ) (ha : ∀ k : ℕ, a ≠ -k) :
     simp only [hM0, hT0]
     simp only [sub_zero, mul_zero, add_zero]
     ring
+  · filter_upwards with z
+    simp
+
+open AAR.Gamma in
+/-- DLMF 13.2.19 with `ψ(a)/Γ(a)` written as `-(1/Γ)'(a)`:
+`U(a,1,z) + (log z + 2γ)/Γ(a) - (1/Γ)'(a) = O(z log z)`.
+Stronger than DLMF: valid for all `a`, including `a ∈ {0, -1, -2, …}`. -/
+@[dlmf 13.2.E19]
+theorem isBigO_kummerU_at_zero_b_one_invGamma (a : ℂ) :
+    Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
+      (fun z => kummerU a 1 z +
+        ((Gamma a)⁻¹ * (log z + 2 * (Real.eulerMascheroniConstant : ℂ)) -
+          invGammaDeriv 1 a))
+      (fun z => z * log z) := by
+  have hM0 : regularizedHGFun {a} {(0 : ℂ) + 1} 0 = 1 := by
+    simp [regularizedHGFunCoeff_singleton, poch_zero]
+  have hT0 : tricomiLogSeriesInvGamma a 0 0 =
+      2 * (Real.eulerMascheroniConstant : ℂ) * (Gamma a)⁻¹ - invGammaDeriv 1 a := by
+    rw [tricomiLogSeriesInvGamma_zero]; simp [digamma_one, poch_zero]; ring
+  have hM := ((differentiableAt_regularizedConfluent a ((0 : ℂ) + 1) 0).isBigO_sub).mono
+    (nhdsWithin_le_nhds (s := {0}ᶜ))
+  have hT := ((analyticAt_tricomiLogSeriesInvGamma a 0).differentiableAt.isBigO_sub).mono
+    (nhdsWithin_le_nhds (s := {0}ᶜ))
+  simp only [sub_zero] at hM hT
+  have hid : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z) (fun z => z * log z) := by
+    simpa using (Asymptotics.isBigO_refl (fun z : ℂ => z) (𝓝[≠] (0 : ℂ))).mul
+      isBigO_one_log_zero
+  have h := ((((hM.mul (Asymptotics.isBigO_refl log (𝓝[≠] (0 : ℂ)))).const_mul_left
+    (Gamma a)⁻¹).add (hT.trans hid))).const_mul_left (-1 : ℂ)
+  refine h.congr' ?_ ?_
+  · filter_upwards [self_mem_nhdsWithin] with z hz
+    have hUz := kummerU_nat_log_invGamma a 0 hz
+    norm_num only [Nat.cast_zero, zero_add, sub_zero] at hUz
+    rw [hUz]
+    simp only [hM0, hT0]
+    simp only [mul_zero, add_zero]
+    ring_nf
   · filter_upwards with z
     simp
 

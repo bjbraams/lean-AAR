@@ -7,6 +7,7 @@ module
 
 public import AAR.ParabolicCylinder.Integrals
 public import ToMathlib.Analysis.ODE.PowerSeriesUniqueness
+public import AAR.ParabolicCylinder.SectorAsymptotics
 
 /-!
 # The oscillatory parabolic cylinder function W
@@ -1384,11 +1385,98 @@ with z=1/2+i*a and n=2*r. The real part of z is positive, so its regularity
 hypothesis holds. `pcfWCoeff` uses the equivalent Pochhammer definition.
 This upstream gamma-ratio identity is not reproved here. -/
 
+/-- `s₁ + i s₂` of DLMF 12.14.17–18 is the normalized `e^{ζ²/4} ζ^{ia+1/2} U(ia, ζ)` at
+`ζ = x e^{-iπ/4}` (from the connection formula DLMF 12.14.4). -/
+lemma pcfSect_pcfWS_eq (a : ℝ) {x : ℝ} (hx : 0 < x) :
+    pcfWS a x = pcfSect_G (I * a) (exp ((Real.log x : ℂ) + ((-(π/4) : ℝ) : ℂ) * I)) := by
+  set v : ℂ := (Real.log x : ℂ) + ((-(π/4) : ℝ) : ℂ) * I
+  have hv1 : -π < v.im := by simp [v]; linarith [Real.pi_pos]
+  have hv2 : v.im ≤ π := by simp [v]; linarith [Real.pi_pos]
+  have hζ : (x : ℂ) * exp (-π * I / 4) = exp v := by
+    simp only [v]
+    rw [Complex.exp_add, ← Complex.ofReal_exp, Real.exp_log hx]
+    congr 1; push_cast; ring_nf
+  have hk := (pcfWK_inv a).1
+  have hs1 : (Real.sqrt (x / (2 * pcfWK a)) : ℂ) * (Real.sqrt (pcfWK a / 2) : ℂ) =
+      (Real.sqrt x : ℂ) / 2 := by
+    rw [← Complex.ofReal_mul, ← Real.sqrt_mul (by positivity),
+      show x / (2 * pcfWK a) * (pcfWK a / 2) = x / 4 by field_simp; ring,
+      Real.sqrt_div' _ (by norm_num : (0:ℝ) ≤ 4),
+      show (4:ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num : (0:ℝ) ≤ 2)]
+    push_cast; ring
+  have hs2 : (Real.sqrt (pcfWK a * x / 2) : ℂ) / (Real.sqrt (2 * pcfWK a) : ℂ) =
+      (Real.sqrt x : ℂ) / 2 := by
+    rw [← Complex.ofReal_div, ← Real.sqrt_div' _ (by positivity),
+      show pcfWK a * x / 2 / (2 * pcfWK a) = x / 4 by field_simp; ring,
+      Real.sqrt_div' _ (by norm_num : (0:ℝ) ≤ 4),
+      show (4:ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num : (0:ℝ) ≤ 2)]
+    push_cast; ring
+  have hsq : (Real.sqrt x : ℂ) = exp ((Real.log x : ℂ) / 2) := by
+    rw [Real.sqrt_eq_rpow, Real.rpow_def_of_pos hx, Complex.ofReal_exp]; push_cast; ring_nf
+  have hW1 := pcfW_connection a x
+  have hW2 := pcfW_connection_neg a x
+  rw [hζ, pcfSect_pcfU_exp (I * a) hv1 hv2] at hW1 hW2
+  set P := exp (-exp (2 * v) / 4 - (I * a + 1 / 2) * v)
+  set G := pcfSect_G (I * a) (exp v)
+  set U2 := pcfU (-I * a) (x * exp (π * I / 4))
+  set eA := exp (π * (a:ℂ) / 4)
+  set eρ := exp (I * (pcfWRho a : ℂ))
+  set eρ' := exp (-I * (pcfWRho a : ℂ))
+  have hW2' : I * (Real.sqrt (pcfWK a * x / 2) : ℂ) * pcfW a (-x) =
+      ((Real.sqrt (pcfWK a * x / 2) : ℂ) / (Real.sqrt (2 * pcfWK a) : ℂ)) * eA *
+        (eρ * (P * G) - eρ' * U2) := by
+    rw [hW2]
+    linear_combination (-((Real.sqrt (pcfWK a * x / 2) : ℂ) / (Real.sqrt (2 * pcfWK a) : ℂ)) *
+      eA * (eρ * (P * G) - eρ' * U2)) * I_sq
+  have h2v : exp (2 * v) = -I * (x : ℂ) ^ 2 := by
+    rw [show (2:ℂ) * v = ((2:ℕ):ℂ) * v by norm_num, Complex.exp_nat_mul, ← hζ, mul_pow,
+      exp_neg_pi_I_quarter_sq]; ring
+  have key : exp (-I * (pcfWOmega a x : ℂ)) * (Real.sqrt x : ℂ) * eA * eρ * P = 1 := by
+    simp only [P, eA, eρ]
+    rw [hsq, h2v, ← Complex.exp_add, ← Complex.exp_add, ← Complex.exp_add, ← Complex.exp_add]
+    refine (congrArg exp ?_).trans Complex.exp_zero
+    simp only [v, pcfWOmega, pcfWRho]
+    push_cast
+    linear_combination (π * a / 4) * I_sq
+  unfold pcfWS
+  rw [hW2', hW1]
+  linear_combination (exp (-I * (pcfWOmega a x : ℂ)) * eA * (eρ * (P * G) + eρ' * U2)) * hs1 +
+    (exp (-I * (pcfWOmega a x : ℂ)) * eA * (eρ * (P * G) - eρ' * U2)) * hs2 + G * key
+
 /-- pcfWS asymptotic. -/
 @[dlmf 12.14.E20, dlmf 12.14.E21, dlmf 12.14.E23]
 theorem pcfWS_asymptotic (a : ℝ) (N : ℕ) :
     (fun x : ℝ => pcfWS a x-∑ r ∈ Finset.range N, (-I)^r*pcfWCoeff a r/(2^r*(r.factorial:ℂ)*(x:ℂ)^(2*r))) =O[atTop] (fun x : ℝ => (x:ℂ)^(-(2*N:ℤ))) := by
-  sorry
+  have hT : Tendsto (fun x : ℝ => (Real.log x : ℂ)) atTop (pcfSect_logWedge 0 0) := by
+    refine tendsto_inf.mpr ⟨tendsto_comap_iff.mpr ?_, tendsto_principal.mpr
+      (Eventually.of_forall fun x => by simp)⟩
+    refine tendsto_id.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with x hx
+    simp [Real.exp_log hx]
+  have hS := (pcfSect_tendsto_exp_logWedge (δ := π/4) (by positivity) (-(π/4)) (lo := 0) (hi := 0)
+    (by linarith [Real.pi_pos]) (by linarith [Real.pi_pos])).comp hT
+  have h := (pcfSect_U_sector (I * a) (δ := π/4) (by positivity) N).comp_tendsto hS
+  refine IsBigO.trans (h.congr' ?_ EventuallyEq.rfl) ?_
+  · filter_upwards [eventually_gt_atTop 0] with x hx
+    simp only [Function.comp_apply]
+    rw [pcfSect_pcfWS_eq a hx]
+    congr 1
+    refine Finset.sum_congr rfl fun r _ => ?_
+    have hsq : (exp ((Real.log x : ℂ) + ((-(π/4) : ℝ) : ℂ) * I)) ^ 2 = -I * (x : ℂ) ^ 2 := by
+      rw [Complex.exp_add, ← Complex.ofReal_exp, Real.exp_log hx, mul_pow,
+        show ((-(π/4) : ℝ) : ℂ) * I = -π * I / 4 by push_cast; ring, exp_neg_pi_I_quarter_sq]
+      ring
+    have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hII : (-I) ^ r * (-I) ^ r = (-1) ^ r := by rw [← mul_pow]; simp
+    have hf : (r.factorial : ℂ) ≠ 0 := by exact_mod_cast r.factorial_ne_zero
+    rw [pcfSect_uTerm, hsq, pcfWCoeff, mul_pow, mul_pow, ← pow_mul, ← hII]
+    have hI : (-I) ^ r ≠ 0 := pow_ne_zero _ (neg_ne_zero.mpr I_ne_zero)
+    field_simp
+  · refine IsBigO.of_bound 1 ?_
+    filter_upwards [eventually_gt_atTop 0] with x hx
+    simp only [Function.comp_apply, norm_zpow, Complex.norm_exp, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_pos hx]
+    simp [Real.exp_log hx]
 
 /-- pcfWF. -/
 @[dlmf 12.14.E37]

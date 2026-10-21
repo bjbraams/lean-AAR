@@ -11,6 +11,7 @@ public import AAR.Hypergeometric.AnalyticProperties
 public import AAR.Hypergeometric.Asymptotics
 public import AAR.Hypergeometric.Basic
 public import AAR.Hypergeometric.ConnectionFormulas
+public import AAR.Hypergeometric.LogConnectionsInvGamma
 public import AAR.Hypergeometric.Contiguous
 public import AAR.Hypergeometric.ContinuedFractions
 public import AAR.Hypergeometric.Continuation

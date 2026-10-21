@@ -9,6 +9,8 @@ public import AAR.Struve.Properties
 public import AAR.Bessel.YIntegralRep
 public import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 public import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
+public import AAR.Bessel.Asymptotics
+public import ToMathlib.Analysis.Integral.Improper
 
 /-!
 # Struve integrals and Laplace transforms
@@ -159,11 +161,375 @@ theorem struveM_zero_integral (z : ℂ) :
       rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
     rw [hs, hp]
 
+/-! ### The sine transform of `(1+t²)^{ν-1/2}` (DLMF 11.5.7) -/
+/-- `(±i x/2)^w = (x/2)^w e^{±iπw/2}` for `x > 0`. -/
+lemma struveFour_cpow_I_mul {x : ℝ} (hx : 0 < x) (w : ℂ) :
+    (I * x / 2) ^ w = ((x : ℂ) / 2) ^ w * exp (I * w * π / 2) := by
+  have hx2 : ((x : ℂ) / 2) ≠ 0 := by
+    exact div_ne_zero (ofReal_ne_zero.mpr hx.ne') two_ne_zero
+  have harg : arg ((x : ℂ) / 2) = 0 := by
+    rw [show ((x : ℂ) / 2) = ((x / 2 : ℝ) : ℂ) by push_cast; ring]
+    exact arg_ofReal_of_nonneg (by positivity)
+  have hc := AAR.Confluent.cpow_mul_exp_mul_I hx2 (α := π / 2)
+    (by rw [harg]; linarith [Real.pi_pos]) (by rw [harg]; linarith [Real.pi_pos]) w
+  rw [exp_pi_div_two_mul_I'] at hc
+  rw [show I * (x : ℂ) / 2 = (x : ℂ) / 2 * I by ring, hc]
+  congr 2
+  push_cast; ring
+
+/-- `(-i x/2)^w = (x/2)^w e^{-iπw/2}` for `x > 0`. -/
+lemma struveFour_cpow_neg_I_mul {x : ℝ} (hx : 0 < x) (w : ℂ) :
+    (-I * x / 2) ^ w = ((x : ℂ) / 2) ^ w * exp (-(I * w * π / 2)) := by
+  have hx2 : ((x : ℂ) / 2) ≠ 0 := by
+    exact div_ne_zero (ofReal_ne_zero.mpr hx.ne') two_ne_zero
+  have harg : arg ((x : ℂ) / 2) = 0 := by
+    rw [show ((x : ℂ) / 2) = ((x / 2 : ℝ) : ℂ) by push_cast; ring]
+    exact arg_ofReal_of_nonneg (by positivity)
+  have hc := AAR.Confluent.cpow_mul_exp_mul_I hx2 (α := -(π / 2))
+    (by rw [harg]; linarith [Real.pi_pos]) (by rw [harg]; linarith [Real.pi_pos]) w
+  rw [exp_neg_pi_div_two_mul_I'] at hc
+  rw [show -I * (x : ℂ) / 2 = (x : ℂ) / 2 * -I by ring, hc]
+  congr 2
+  push_cast; ring
+
+/-- `(x/2)^ν (i x/2)^{-ν} = e^{-iπν/2}`. -/
+lemma struveFour_ratio_I {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    ((x : ℂ) / 2) ^ ν * (I * x / 2) ^ (-ν) = exp (-(I * ν * π / 2)) := by
+  have hx2 : ((x : ℂ) / 2) ≠ 0 := div_ne_zero (ofReal_ne_zero.mpr hx.ne') two_ne_zero
+  rw [struveFour_cpow_I_mul hx, cpow_neg, ← mul_assoc, mul_inv_cancel₀ (by
+    rw [Ne, cpow_eq_zero_iff]; tauto)]
+  ring_nf
+
+/-- `(x/2)^ν (-i x/2)^{-ν} = e^{iπν/2}`. -/
+lemma struveFour_ratio_neg_I {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    ((x : ℂ) / 2) ^ ν * (-I * x / 2) ^ (-ν) = exp (I * ν * π / 2) := by
+  have hx2 : ((x : ℂ) / 2) ≠ 0 := div_ne_zero (ofReal_ne_zero.mpr hx.ne') two_ne_zero
+  rw [struveFour_cpow_neg_I_mul hx, cpow_neg, ← mul_assoc, mul_inv_cancel₀ (by
+    rw [Ne, cpow_eq_zero_iff]; tauto)]
+  ring_nf
+
+/-- The Struve `H` series at `i x` is the Struve `L` series at `x`. -/
+lemma struveFour_core_I (ν : ℂ) (x : ℝ) : struveHCore ν (I * x) = struveLCore ν x := by
+  rw [struveHCore, struveLCore]
+  refine tsum_congr fun n => ?_
+  rw [pow_mul, pow_mul, show (I * x / 2) ^ 2 = -(((x : ℂ) / 2) ^ 2) by ring_nf; rw [I_sq]; ring,
+    neg_pow (((x : ℂ) / 2) ^ 2), ← mul_assoc, ← mul_pow]
+  norm_num
+
+/-- The Struve `H` series at `-i x` is the Struve `L` series at `x`. -/
+lemma struveFour_core_neg_I (ν : ℂ) (x : ℝ) : struveHCore ν (-I * x) = struveLCore ν x := by
+  rw [struveHCore, struveLCore]
+  refine tsum_congr fun n => ?_
+  rw [pow_mul, pow_mul, show (-I * x / 2) ^ 2 = -(((x : ℂ) / 2) ^ 2) by ring_nf; rw [I_sq]; ring,
+    neg_pow (((x : ℂ) / 2) ^ 2), ← mul_assoc, ← mul_pow]
+  norm_num
+
+/-- `H_ν(i x) = i e^{iπν/2} L_ν(x)` for `x > 0`. -/
+lemma struveFour_H_I {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    struveH ν (I * x) = I * exp (I * ν * π / 2) * struveL ν x := by
+  rw [struveH, struveL, struveFour_core_I, struveFour_cpow_I_mul hx]
+  rw [show I * (ν + 1) * π / 2 = I * ν * π / 2 + π / 2 * I by ring, exp_add,
+    show (π / 2 * I : ℂ) = ((π / 2 : ℝ) : ℂ) * I by push_cast; ring, exp_pi_div_two_mul_I']
+  ring
+
+/-- `H_ν(-i x) = -i e^{-iπν/2} L_ν(x)` for `x > 0`. -/
+lemma struveFour_H_neg_I {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    struveH ν (-I * x) = -I * exp (-(I * ν * π / 2)) * struveL ν x := by
+  rw [struveH, struveL, struveFour_core_neg_I, struveFour_cpow_neg_I_mul hx]
+  rw [show -(I * (ν + 1) * π / 2) = -(I * ν * π / 2) + (-(π / 2) : ℝ) * I by push_cast; ring,
+    exp_add, exp_neg_pi_div_two_mul_I']
+  ring
+
+
+/-- `J_μ(i x) = e^{iπμ/2} I_μ(x)` for `x > 0`. -/
+lemma struveFour_J_I {x : ℝ} (hx : 0 < x) (μ : ℂ) :
+    besselJ μ (I * x) = exp (I * μ * π / 2) * besselI μ x := by
+  have hz : I * (x : ℂ) ≠ 0 := mul_ne_zero I_ne_zero (ofReal_ne_zero.mpr hx.ne')
+  have harg : arg (I * (x : ℂ)) = π / 2 := by rw [mul_comm, arg_real_mul I hx, arg_I]
+  have h := besselI_neg_I_mul hz (by rw [harg]; linarith [Real.pi_pos]) μ
+  rw [show -I * (I * (x : ℂ)) = x by ring_nf; rw [I_sq]; ring] at h
+  rw [h, ← mul_assoc, ← exp_add]
+  simp
+
+/-- `J_μ(-i x) = e^{-iπμ/2} I_μ(x)` for `x > 0`. -/
+lemma struveFour_J_neg_I {x : ℝ} (hx : 0 < x) (μ : ℂ) :
+    besselJ μ (-I * x) = exp (-(I * μ * π / 2)) * besselI μ x := by
+  have hz : -I * (x : ℂ) ≠ 0 :=
+    mul_ne_zero (neg_ne_zero.mpr I_ne_zero) (ofReal_ne_zero.mpr hx.ne')
+  have harg : arg (-I * (x : ℂ)) = -(π / 2) := by rw [mul_comm, arg_real_mul _ hx, arg_neg_I]
+  have h := besselI_I_mul hz (by rw [harg]; linarith [Real.pi_pos]) μ
+  rw [show I * (-I * (x : ℂ)) = x by ring_nf; rw [I_sq]; ring] at h
+  rw [h, ← mul_assoc, ← exp_add]
+  simp
+
+/-- `i x` lies in the slit plane for `x > 0`. -/
+lemma struveFour_mem_slitPlane_I {x : ℝ} (hx : 0 < x) : I * (x : ℂ) ∈ slitPlane := by
+  right; simp [hx.ne']
+
+/-- `-i x` lies in the slit plane for `x > 0`. -/
+lemma struveFour_mem_slitPlane_neg_I {x : ℝ} (hx : 0 < x) : -I * (x : ℂ) ∈ slitPlane := by
+  right; simp [hx.ne']
+
+/-- `e^{iπν/2} Y_ν(-ix) - e^{-iπν/2} Y_ν(ix) = -2i I_{-ν}(x)` for all orders `ν`. -/
+lemma struveFour_Y {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    exp (I * ν * π / 2) * besselY ν (-I * x) - exp (-(I * ν * π / 2)) * besselY ν (I * x) =
+      -2 * I * besselI (-ν) x := by
+  refine AAR.Confluent.eq_of_continuousAt_of_integerComplement
+    (f := fun μ => exp (I * μ * π / 2) * besselY μ (-I * x) -
+      exp (-(I * μ * π / 2)) * besselY μ (I * x))
+    (g := fun μ => -2 * I * besselI (-μ) x) ?_ ?_ (fun c hc => ?_)
+  · exact ((by fun_prop : Continuous fun μ : ℂ => exp (I * μ * π / 2)).continuousAt.mul
+      (continuousAt_besselY_order (fun μ => μ) continuous_id ν
+        (struveFour_mem_slitPlane_neg_I hx))).sub
+      ((by fun_prop : Continuous fun μ : ℂ => exp (-(I * μ * π / 2))).continuousAt.mul
+      (continuousAt_besselY_order (fun μ => μ) continuous_id ν (struveFour_mem_slitPlane_I hx)))
+  · exact continuousAt_const.mul (continuousAt_besselI_order (fun μ => -μ) continuous_neg ν
+      (by simpa using ofReal_mem_slitPlane.mpr hx))
+  · have hc' := AAR.Confluent.forall_of_mem_integerComplement hc
+    have hs : sin (c * π) ≠ 0 := by
+      rw [Ne, Complex.sin_eq_zero_iff]
+      rintro ⟨k, hk⟩
+      exact hc' k (by
+        have := Real.pi_pos
+        have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr this.ne'
+        field_simp at hk; exact hk)
+    rw [besselY_eq_of_not_int hc', besselY_eq_of_not_int hc', besselD, besselD,
+      struveFour_J_I hx, struveFour_J_neg_I hx, struveFour_J_I hx, struveFour_J_neg_I hx]
+    have hsin : sin (c * π) = (exp (I * c * π) - exp (-(I * c * π))) / (2 * I) := by
+      rw [eq_div_iff (mul_ne_zero two_ne_zero I_ne_zero), Complex.sin]; ring_nf; rw [I_sq]; ring_nf
+    rw [hsin]
+    have e1 : exp (I * c * π) = exp (I * c * π / 2) * exp (I * c * π / 2) := by
+      rw [← exp_add]; ring_nf
+    have e2 : exp (-(I * c * π)) = exp (-(I * c * π / 2)) * exp (-(I * c * π / 2)) := by
+      rw [← exp_add]; ring_nf
+    have e3 : exp (I * c * π / 2) * exp (-(I * c * π / 2)) = 1 := by
+      rw [← exp_add]; simp
+    rw [e1, e2]
+    rw [show -(I * -c * π / 2) = I * c * π / 2 by ring, show I * -c * π / 2 = -(I * c * π / 2) by ring]
+    set E := exp (I * c * π / 2)
+    set F := exp (-(I * c * π / 2))
+    have hd : E * E - F * F ≠ 0 := by
+      intro h; apply hs; rw [hsin, e1, e2, h]; simp
+    have hd2 : E ^ 2 - F ^ 2 ≠ 0 := by rwa [sq, sq]
+    field_simp
+    ring_nf
+
+/-- The boundary value of the regularized sine transform, DLMF 11.5.7. -/
+lemma struveFour_value {x : ℝ} (hx : 0 < x) (ν : ℂ) :
+    1 / (2 * I) * (((x : ℂ) / 2) ^ ν * (-I * x / 2) ^ (-ν) * struveK ν (-I * x) -
+      ((x : ℂ) / 2) ^ ν * (I * x / 2) ^ (-ν) * struveK ν (I * x)) =
+      besselI (-ν) x - struveL ν x := by
+  rw [struveFour_ratio_neg_I hx, struveFour_ratio_I hx, struveK, struveK, struveFour_H_I hx,
+    struveFour_H_neg_I hx]
+  have hY := struveFour_Y hx ν
+  have e3 : exp (I * ν * π / 2) * exp (-(I * ν * π / 2)) = 1 := by rw [← exp_add]; simp
+  set Ym := besselY ν (-I * x)
+  set Yp := besselY ν (I * x)
+  field_simp
+  linear_combination (-(1:ℂ)) * hY + (-2 * I * struveL ν x) * e3
+
+/-- `1 + t²` as a real cast. -/
+lemma struveFour_one_add_sq (t : ℝ) : (1 + (t : ℂ) ^ 2) = ((1 + t ^ 2 : ℝ) : ℂ) := by
+  push_cast; ring
+
+/-- `1 + t²` lies in the slit plane. -/
+lemma struveFour_mem_slitPlane (t : ℝ) : (1 + (t : ℂ) ^ 2) ∈ slitPlane := by
+  rw [struveFour_one_add_sq]; exact ofReal_mem_slitPlane.mpr (by positivity)
+
+/-- `t ↦ (1+t²)^w` is continuous. -/
+lemma struveFour_continuous_cpow (w : ℂ) : Continuous fun t : ℝ => (1 + (t : ℂ) ^ 2) ^ w :=
+  (by fun_prop : Continuous fun t : ℝ => 1 + (t : ℂ) ^ 2).cpow continuous_const
+    struveFour_mem_slitPlane
+
+/-- `‖(1+t²)^w‖ = (1+t²)^{re w}`. -/
+lemma struveFour_norm_cpow (w : ℂ) (t : ℝ) : ‖(1 + (t : ℂ) ^ 2) ^ w‖ = (1 + t ^ 2) ^ w.re := by
+  rw [struveFour_one_add_sq, norm_cpow_eq_rpow_re_of_pos (by positivity)]
+
+/-- Derivative of `t ↦ (1+t²)^w`. -/
+lemma struveFour_hasDerivAt_cpow (w : ℂ) (t : ℝ) :
+    HasDerivAt (fun t : ℝ => (1 + (t : ℂ) ^ 2) ^ w)
+      (w * (1 + (t : ℂ) ^ 2) ^ (w - 1) * (2 * t)) t := by
+  have h1 : HasDerivAt (fun z : ℂ => 1 + z ^ 2) (2 * (t : ℂ)) (t : ℂ) := by
+    simpa using ((hasDerivAt_pow 2 (t : ℂ)).const_add 1)
+  have h2 := (h1.cpow_const (c := w) (struveFour_mem_slitPlane t)).comp_ofReal
+  simpa using h2
+
+/-- `(1+t²)^s → 0` as `t → ∞` for `s < 0`. -/
+lemma struveFour_tendsto_rpow {s : ℝ} (hs : s < 0) :
+    Tendsto (fun t : ℝ => (1 + t ^ 2) ^ s) atTop (𝓝 0) := by
+  have h := (tendsto_rpow_neg_atTop (y := -s) (by linarith)).comp
+    (tendsto_atTop_add_const_left _ 1 (tendsto_pow_atTop (two_ne_zero (α := ℕ))))
+  simpa [Function.comp_def] using h
+
+/-- `t (1+t²)^{s-1}` is integrable on `(0, ∞)` for `s < 0`. -/
+lemma struveFour_integrableOn {s : ℝ} (hs : s < 0) :
+    IntegrableOn (fun t : ℝ => t * (1 + t ^ 2) ^ (s - 1)) (Ioi 0) := by
+  have hG : ∀ t ∈ Ioi (0 : ℝ), HasDerivAt (fun t : ℝ => -(1 + t ^ 2) ^ s)
+      (-(2 * s) * (t * (1 + t ^ 2) ^ (s - 1))) t := by
+    intro t _
+    have h1 : HasDerivAt (fun t : ℝ => 1 + t ^ 2) (2 * t) t := by
+      simpa using ((hasDerivAt_pow 2 t).const_add 1)
+    have h2 := (h1.rpow_const (p := s) (Or.inl (by positivity))).neg
+    convert h2 using 1; ring
+  have hi := integrableOn_Ioi_deriv_of_nonneg (g := fun t : ℝ => -(1 + t ^ 2) ^ s)
+    (l := -0) ((by fun_prop : Continuous fun t : ℝ => 1 + t ^ 2).rpow_const
+      (fun _ => Or.inl (by positivity))).neg.continuousWithinAt hG
+    (fun t ht => mul_nonneg (by linarith) (mul_nonneg (le_of_lt ht) (by positivity)))
+    (struveFour_tendsto_rpow hs).neg
+  have := hi.const_mul (-(2 * s))⁻¹
+  have hs0 : s ≠ 0 := hs.ne
+  refine IntegrableOn.congr_fun this (fun t _ => ?_) measurableSet_Ioi
+  field_simp
+
+/-- Existence of the improper integral `∫₀^∞ (1+t²)^a sin(xt) dt` for `re a < 0`. -/
+lemma struveFour_exists {a : ℂ} (ha : a.re < 0) {x : ℝ} (hx : 0 < x) :
+    ∃ L, Tendsto (fun R : ℝ => ∫ t in (0 : ℝ)..R, (1 + (t : ℂ) ^ 2) ^ a * Real.sin (x * t))
+      atTop (𝓝 L) := by
+  set u' : ℝ → ℂ := fun t => a * (1 + (t : ℂ) ^ 2) ^ (a - 1) * (2 * t)
+  set v : ℝ → ℂ := fun t => -(Real.cos (x * t) : ℂ) / x
+  have hv : ∀ t : ℝ, HasDerivAt v (Real.sin (x * t) : ℂ) t := by
+    intro t
+    have h := (((Real.hasDerivAt_cos (x * t)).comp t
+      ((hasDerivAt_id t).const_mul x)).ofReal_comp).neg.div_const (x : ℂ)
+    have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+    convert h using 1
+    · funext y; simp [v]
+    · push_cast; field_simp
+  have hu'c : Continuous u' := by
+    have := struveFour_continuous_cpow (a - 1)
+    fun_prop
+  have hibp : ∀ X : ℝ, ∫ t in (0 : ℝ)..X, (1 + (t : ℂ) ^ 2) ^ a * Real.sin (x * t) =
+      (1 + (X : ℂ) ^ 2) ^ a * v X - (1 + ((0 : ℝ) : ℂ) ^ 2) ^ a * v 0 -
+        ∫ t in (0 : ℝ)..X, u' t * v t := by
+    intro X
+    exact intervalIntegral.integral_mul_deriv_eq_deriv_mul
+      (fun t _ => struveFour_hasDerivAt_cpow a t) (fun t _ => hv t)
+      (hu'c.intervalIntegrable _ _)
+      ((continuous_ofReal.comp (Real.continuous_sin.comp (continuous_const.mul continuous_id)))
+        |>.intervalIntegrable _ _)
+  have hgi : IntegrableOn (fun t => u' t * v t) (Ioi 0) := by
+    refine ((struveFour_integrableOn ha).const_mul (2 * ‖a‖ / x)).mono' ?_ ?_
+    · exact (hu'c.mul (by fun_prop)).aestronglyMeasurable
+    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+      simp only [u', v, norm_mul, norm_div, norm_neg, norm_real, Real.norm_eq_abs,
+        struveFour_norm_cpow, norm_ofNat]
+      have hc : |Real.cos (x * t)| ≤ 1 := Real.abs_cos_le_one _
+      rw [abs_of_pos hx, abs_of_pos (show (0:ℝ) < t from ht)]
+      have hre : (a - 1).re = a.re - 1 := by simp
+      rw [hre]
+      have h0 : 0 ≤ ‖a‖ * (1 + t ^ 2) ^ (a.re - 1) * (2 * t) / x := by
+        have := le_of_lt (show (0:ℝ) < t from ht); positivity
+      calc ‖a‖ * (1 + t ^ 2) ^ (a.re - 1) * (2 * t) * (|Real.cos (x * t)| / x)
+          ≤ ‖a‖ * (1 + t ^ 2) ^ (a.re - 1) * (2 * t) * (1 / x) := by
+            gcongr
+            have := le_of_lt (show (0:ℝ) < t from ht); positivity
+        _ = 2 * ‖a‖ / x * (t * (1 + t ^ 2) ^ (a.re - 1)) := by ring
+  have hb : Tendsto (fun X : ℝ => (1 + (X : ℂ) ^ 2) ^ a * v X) atTop (𝓝 0) := by
+    have hlim : Tendsto (fun X : ℝ => (1 + X ^ 2) ^ a.re / x) atTop (𝓝 0) := by
+      simpa using (struveFour_tendsto_rpow ha).div_const x
+    refine squeeze_zero_norm (fun X => ?_) hlim
+    simp only [v, norm_mul, norm_div, norm_neg, norm_real, Real.norm_eq_abs, struveFour_norm_cpow]
+    rw [abs_of_pos hx]
+    have hc : |Real.cos (x * X)| ≤ 1 := Real.abs_cos_le_one _
+    calc (1 + X ^ 2) ^ a.re * (|Real.cos (x * X)| / x) ≤ (1 + X ^ 2) ^ a.re * (1 / x) := by
+          gcongr
+      _ = _ := by ring
+  refine ⟨0 - (1 + ((0 : ℝ) : ℂ) ^ 2) ^ a * v 0 - ∫ t in Ioi 0, u' t * v t, ?_⟩
+  have := (hb.sub (tendsto_const_nhds (x := (1 + ((0 : ℝ) : ℂ) ^ 2) ^ a * v 0))).sub (intervalIntegral_tendsto_integral_Ioi 0 hgi tendsto_id)
+  exact this.congr fun X => (hibp X).symm
+
+/-- The regularized integrand splits into two Laplace kernels. -/
+lemma struveFour_regularized_eq (ν C : ℂ) (x ε t : ℝ) :
+    Real.exp (-(ε * t)) • (C * (1 + (t : ℂ) ^ 2) ^ (ν - 1 / 2) * Real.sin (x * t)) =
+      C / (2 * I) * (yLaplaceKernel ν (ε - I * x) t - yLaplaceKernel ν (ε + I * x) t) := by
+  rw [yLaplaceKernel, yLaplaceKernel, Complex.real_smul, ofReal_exp, ofReal_sin, Complex.sin]
+  rw [show -((ε : ℂ) - I * x) * t = -(ε * t : ℝ) + (x * t : ℝ) * I by push_cast; ring,
+    show -((ε : ℂ) + I * x) * t = -(ε * t : ℝ) + -((x * t : ℝ) * I) by push_cast; ring,
+    exp_add, exp_add]
+  push_cast
+  rw [show -(↑x * ↑t * I) = -(x * t : ℂ) * I by ring]
+  field_simp
+  ring_nf
+  rw [I_sq]
+  ring
+
+/-- `C ∫ e^{-zt}(1+t²)^{ν-1/2} dt = (x/2)^ν (z/2)^{-ν} K_ν(z)` for `re z > 0`. -/
+lemma struveFour_laplace (ν : ℂ) (x : ℝ) {z : ℂ} (hz : 0 < z.re) :
+    2 * ((x : ℂ) / 2) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2)) *
+      ∫ t in Ioi (0 : ℝ), yLaplaceKernel ν z t =
+      ((x : ℂ) / 2) ^ ν * (z / 2) ^ (-ν) * struveK ν z := by
+  have hz0 : z / 2 ≠ 0 := div_ne_zero (fun h => by simp [h] at hz) two_ne_zero
+  have hp : (z / 2) ^ ν ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; tauto
+  rw [struveK_eq_besselYLaplace ν hz, besselYLaplace, cpow_neg]
+  field_simp
+
+/-- `ε ↦ (x/2)^ν ((ε + w)/2)^{-ν} K_ν(ε + w)` is continuous at `0` for `w ∈ slitPlane`. -/
+lemma struveFour_continuousAt (ν : ℂ) (x : ℝ) {w : ℂ} (hw : w ∈ slitPlane) :
+    ContinuousAt (fun ε : ℝ => ((x : ℂ) / 2) ^ ν * ((ε + w) / 2) ^ (-ν) * struveK ν (ε + w)) 0 := by
+  have hw2 : w / 2 ∈ slitPlane := by
+    rw [div_eq_mul_inv, show (2 : ℂ)⁻¹ = ((2⁻¹ : ℝ) : ℂ) by push_cast; ring]
+    rcases hw with h | h
+    · left; simpa using h
+    · right; simpa using h
+  have hc : ContinuousAt (fun ε : ℝ => (ε : ℂ) + w) 0 := by fun_prop
+  have h1 : ContinuousAt (fun z : ℂ => (z / 2) ^ (-ν)) w :=
+    (continuousAt_id.div_const 2).cpow continuousAt_const hw2
+  have h2 : ContinuousAt (struveK ν) w := (analyticOnNhd_struveK ν w hw).continuousAt
+  exact (continuousAt_const.mul (h1.comp_of_eq hc (by simp))).mul (h2.comp_of_eq hc (by simp))
+
 /-- struveL fourier. -/
 @[dlmf 11.5.E7]
 theorem struveL_fourier {ν : ℂ} (hν : ν.re < 1/2) {x : ℝ} (hx : 0 < x) :
     HasIntegralAtTop (fun t : ℝ => 2*(x/2:ℂ)^ν/(Real.sqrt π*Gamma (ν+1/2))*(1+t^2:ℂ)^(ν-1/2)*Real.sin (x*t)) 0 (besselI (-ν) x-struveL ν x) := by
-  sorry
+  set C : ℂ := 2*(x/2:ℂ)^ν/(Real.sqrt π*Gamma (ν+1/2)) with hC
+  set f : ℝ → ℂ := fun t => C*(1+t^2:ℂ)^(ν-1/2)*Real.sin (x*t) with hf
+  have hfc : Continuous f := by
+    have := struveFour_continuous_cpow (ν - 1 / 2)
+    simp only [f]; fun_prop
+  have hfi : ∀ b, IntervalIntegrable f volume 0 b := fun b => hfc.intervalIntegrable _ _
+  obtain ⟨L0, hL0⟩ := struveFour_exists (a := ν - 1 / 2) (by simp; linarith) hx
+  have hL : Tendsto (fun R => ∫ t in (0 : ℝ)..R, f t) atTop (𝓝 (C * L0)) := by
+    refine (hL0.const_mul C).congr fun R => ?_
+    simp only [f, mul_assoc]
+    rw [intervalIntegral.integral_const_mul]
+  have hint : ∀ ε > (0 : ℝ), IntegrableOn (fun t => Real.exp (-(ε * t)) • f t) (Ioi 0) := by
+    intro ε hε
+    have h1 := integrableOn_yLaplaceKernel ν (z := ε - I * x) (by simpa using hε)
+    have h2 := integrableOn_yLaplaceKernel ν (z := ε + I * x) (by simpa using hε)
+    refine IntegrableOn.congr_fun ((h1.sub h2).const_mul (C / (2 * I))) (fun t _ => ?_)
+      measurableSet_Ioi
+    exact (struveFour_regularized_eq ν C x ε t).symm
+  set G : ℝ → ℂ := fun ε => ∫ t in Ioi (0 : ℝ), Real.exp (-(ε * t)) • f t
+  have hG : ∀ ε > (0 : ℝ), G ε = 1 / (2 * I) *
+      (((x : ℂ) / 2) ^ ν * ((ε + -I * x) / 2) ^ (-ν) * struveK ν (ε + -I * x) -
+        ((x : ℂ) / 2) ^ ν * ((ε + I * x) / 2) ^ (-ν) * struveK ν (ε + I * x)) := by
+    intro ε hε
+    have h1 := integrableOn_yLaplaceKernel ν (z := ε - I * x) (by simpa using hε)
+    have h2 := integrableOn_yLaplaceKernel ν (z := ε + I * x) (by simpa using hε)
+    simp only [G]
+    rw [integral_congr_ae (g := fun t => C / (2 * I) *
+      (yLaplaceKernel ν (ε - I * x) t - yLaplaceKernel ν (ε + I * x) t))
+      (Eventually.of_forall fun t => struveFour_regularized_eq ν C x ε t),
+      integral_const_mul, integral_sub h1 h2]
+    rw [show (ε : ℂ) + -I * x = ε - I * x by ring]
+    rw [← struveFour_laplace ν x (z := ε - I * x) (by simpa using hε),
+      ← struveFour_laplace ν x (z := ε + I * x) (by simpa using hε)]
+    simp only [C]
+    ring
+  have hM : Tendsto G (𝓝[>] 0) (𝓝 (besselI (-ν) x - struveL ν x)) := by
+    rw [← struveFour_value hx ν]
+    have hc := (struveFour_continuousAt ν x (struveFour_mem_slitPlane_neg_I hx)).sub
+      (struveFour_continuousAt ν x (struveFour_mem_slitPlane_I hx))
+    have hc' := (hc.const_mul (1 / (2 * I))).tendsto.mono_left
+      (nhdsWithin_le_nhds (s := Ioi (0 : ℝ)))
+    convert hc'.congr' ?_ using 2
+    · simp
+    · filter_upwards [self_mem_nhdsWithin] with ε hε
+      exact (hG ε hε).symm
+  have hLM := MeasureTheory.eq_of_tendsto_abel hfc.continuousOn hfi hL
+    (fun ε hε => intervalIntegral_tendsto_integral_Ioi 0 (hint ε hε) tendsto_id) hM
+  rw [hLM] at hL
+  exact hL
 
 /-- struveH barnes. -/
 @[dlmf 11.5.E8]
@@ -704,23 +1070,664 @@ theorem struveH_integral_one_div_sq  :
   field_simp
 
 
+
+/-! ### Mellin transforms of `H_ν` (DLMF 11.7.9–11.7.11)
+
+The improper integrals `∫₀^∞ t^{μ-ν-1} H_ν(t) dt` converge only conditionally. For `re ν > -1/2`
+the Poisson representation, the conditionally convergent Mellin transform of the sine
+(`Complex.tendsto_integral_cpow_mul_sin`, obtained by Abel regularization) and dominated
+convergence for improper parametric integrals give the value. Integration by parts with
+`d/dt (t^{ν+1} H_{ν+1}) = t^{ν+1} H_ν` extends it to `re ν > re μ - 3/2`; the boundary terms
+vanish by `H_ν = Y_ν + K_ν`, Hankel's expansion of `Y_ν` and the Laplace representation of `K_ν`.
+-/
+
+/-- `u^{μ-1} sin u = u^μ sinc u` for `u ≠ 0`. -/
+lemma struveMel_cpow_mul_sin_eq (μ : ℂ) {u : ℝ} (hu : u ≠ 0) :
+    (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ) = (u : ℂ) ^ μ * (Real.sinc u : ℂ) := by
+  rw [Real.sinc_of_ne_zero hu, cpow_sub _ _ (ofReal_ne_zero.mpr hu), cpow_one]
+  push_cast
+  field_simp
+
+/-- The Mellin sine integrand is interval integrable for `re μ > -1`. -/
+lemma struveMel_intervalIntegrable {μ : ℂ} (h0 : -1 < μ.re) (a b : ℝ) :
+    IntervalIntegrable (fun u : ℝ => (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ)) volume a b := by
+  have h := (intervalIntegral.intervalIntegrable_cpow' h0 (a := a) (b := b)).mul_continuousOn
+    (continuous_ofReal.comp Real.continuous_sinc).continuousOn
+  refine h.congr_ae ?_
+  have hn : ∀ᵐ u : ℝ ∂volume, u ≠ 0 := by
+    rw [ae_iff]; simp [measure_singleton]
+  refine ae_restrict_of_ae ?_
+  filter_upwards [hn] with u hu
+  exact (struveMel_cpow_mul_sin_eq μ hu).symm
+
+/-- **Mellin transform of the sine** including Dirichlet's integral at `μ = 0`:
+`∫₀^X u^{μ-1} sin u du → Γ(μ) sin(πμ/2)` (`π/2` at `μ = 0`) for `-1 < re μ < 1`. -/
+theorem struveMel_tendsto_sin {μ : ℂ} (h0 : -1 < μ.re) (h1 : μ.re < 1) :
+    Tendsto (fun X : ℝ => ∫ u in (0 : ℝ)..X, (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ)) atTop
+      (𝓝 (if μ = 0 then (π / 2 : ℂ) else Gamma μ * sin (π * μ / 2))) := by
+  split_ifs with hμ
+  · subst hμ
+    have h := (continuous_ofReal.tendsto _).comp TauCeti.Contour.tendsto_integral_sinc_atTop
+    refine (h.congr fun X => ?_).trans (by push_cast; exact le_rfl)
+    simp only [Function.comp, ← intervalIntegral.integral_ofReal]
+    refine intervalIntegral.integral_congr_ae ?_
+    have hn : ∀ᵐ u : ℝ ∂volume, u ≠ 0 := by
+      rw [ae_iff]; simp [measure_singleton]
+    filter_upwards [hn] with u hu _
+    rw [struveMel_cpow_mul_sin_eq 0 hu, cpow_zero, one_mul]
+  · exact Complex.tendsto_integral_cpow_mul_sin h0 h1 hμ
+
+/-- The partial Mellin sine integrals are bounded on `[0, ∞)`. -/
+lemma struveMel_exists_bound {μ : ℂ} (h0 : -1 < μ.re) (h1 : μ.re < 1) :
+    ∃ C, ∀ X : ℝ, 0 ≤ X →
+      ‖∫ u in (0 : ℝ)..X, (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ)‖ ≤ C := by
+  have hc : Continuous (fun X : ℝ => ∫ u in (0 : ℝ)..X, (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ)) :=
+    intervalIntegral.continuous_primitive (struveMel_intervalIntegrable h0) 0
+  obtain ⟨C, hC⟩ := MeasureTheory.exists_norm_le_of_continuousOn_of_tendsto hc.continuousOn
+    (struveMel_tendsto_sin h0 h1)
+  exact ⟨C, fun X hX => hC X hX⟩
+
+/-- Scaling: `∫₀^R t^{μ-1} sin(ct) dt = c^{-μ} ∫₀^{Rc} u^{μ-1} sin u du` for `c > 0`. -/
+lemma struveMel_integral_scale (μ : ℂ) {c : ℝ} (hc : 0 < c) {R : ℝ} (hR : 0 ≤ R) :
+    ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - 1) * (Real.sin (t * c) : ℂ) =
+      (c : ℂ) ^ (-μ) * ∫ u in (0 : ℝ)..R * c, (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ) := by
+  have h := intervalIntegral.integral_comp_mul_right
+    (fun u : ℝ => (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ)) hc.ne' (a := 0) (b := R)
+  simp only [zero_mul] at h
+  have hc0 : (c : ℂ) ≠ 0 := ofReal_ne_zero.mpr hc.ne'
+  have hpt : ∀ t : ℝ, 0 ≤ t → (t : ℂ) ^ (μ - 1) * (Real.sin (t * c) : ℂ) =
+      (c : ℂ) ^ (1 - μ) * (((t * c : ℝ) : ℂ) ^ (μ - 1) * (Real.sin (t * c) : ℂ)) := by
+    intro t ht
+    rw [ofReal_mul, mul_cpow_ofReal_nonneg ht hc.le, ← mul_assoc, ← mul_assoc,
+      mul_comm ((c : ℂ) ^ (1 - μ)), mul_assoc ((t : ℂ) ^ (μ - 1)), ← cpow_add _ _ hc0]
+    simp
+  rw [intervalIntegral.integral_congr (g := fun t : ℝ => (c : ℂ) ^ (1 - μ) *
+      (((t * c : ℝ) : ℂ) ^ (μ - 1) * (Real.sin (t * c) : ℂ))) (fun t ht => by
+        rw [uIcc_of_le hR] at ht; exact hpt t ht.1),
+    intervalIntegral.integral_const_mul, h, Complex.real_smul, ← mul_assoc]
+  congr 1
+  rw [show (1 - μ) = -μ + 1 by ring, cpow_add _ _ hc0, cpow_one, ofReal_inv]
+  field_simp
+
+/-- `sin^{2a-1} θ cos^{2b-1} θ` is integrable on `(0, π/2]` with the Beta value. -/
+lemma struveMel_trigBeta {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) :
+    IntegrableOn (fun θ : ℝ => (Real.sin θ : ℂ) ^ (2 * a - 1) * (Real.cos θ : ℂ) ^ (2 * b - 1))
+      (Ioc 0 (π / 2)) ∧
+    ∫ θ in Ioc 0 (π / 2), (Real.sin θ : ℂ) ^ (2 * a - 1) * (Real.cos θ : ℂ) ^ (2 * b - 1) =
+      Gamma a * Gamma b / (2 * Gamma (a + b)) := by
+  obtain ⟨h1, h2⟩ := trigBeta ha hb
+  refine ⟨(intervalIntegrable_iff_integrableOn_Ioc_of_le (by positivity)).mp h1, ?_⟩
+  rw [← intervalIntegral.integral_of_le (by positivity), h2]
+
+/-- The direct region of the Struve Mellin transform: for `re ν > -1/2` and `|re μ| < 1`,
+`∫₀^R t^{μ-ν-1} H_ν(t) dt` converges to the Poisson–Beta value. -/
+theorem struveMel_tendsto_direct {μ ν : ℂ} (hμ0 : -1 < μ.re) (hμ1 : μ.re < 1)
+    (hν : -1 / 2 < ν.re) :
+    Tendsto (fun R : ℝ => ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - ν - 1) * struveH ν t) atTop
+      (𝓝 (2 * (1 / 2 : ℂ) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2)) *
+        ((if μ = 0 then (π / 2 : ℂ) else Gamma μ * sin (π * μ / 2)) *
+          (Gamma (ν + 1 / 2) * Gamma ((1 - μ) / 2) / (2 * Gamma (ν + 1 / 2 + (1 - μ) / 2)))))) := by
+  set S : ℂ := if μ = 0 then (π / 2 : ℂ) else Gamma μ * sin (π * μ / 2)
+  set A : ℂ := 2 * (1 / 2 : ℂ) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2))
+  set K : ℝ → ℝ → ℂ := fun t θ =>
+    (t : ℂ) ^ (μ - 1) * (Real.sin (t * Real.cos θ) : ℂ) * (Real.sin θ : ℂ) ^ (2 * ν)
+  set m : Measure ℝ := volume.restrict (Ioc 0 (π / 2))
+  have ha : 0 < (ν + 1 / 2).re := by simp; linarith
+  have hb : 0 < ((1 - μ) / 2).re := by simp; linarith
+  have hb' : 0 < (1 / 2 : ℂ).re := by norm_num
+  -- the weight `sin^{2ν}` and the Beta weight
+  have hW := struveMel_trigBeta ha hb'
+  have hB := struveMel_trigBeta ha hb
+  have e1 : 2 * (ν + 1 / 2) - 1 = 2 * ν := by ring
+  have e2 : 2 * (1 / 2 : ℂ) - 1 = 0 := by norm_num
+  have e3 : 2 * ((1 - μ) / 2) - 1 = -μ := by ring
+  simp only [e1, e2, e3, cpow_zero, mul_one] at hW hB
+  obtain ⟨C, hC⟩ := struveMel_exists_bound hμ0 hμ1
+  have hθ : ∀ᵐ θ ∂m, θ ∈ Ioo 0 (π / 2) := by
+    have hn : ∀ᵐ θ : ℝ ∂volume, θ ≠ π / 2 := by
+      rw [ae_iff]; simp [measure_singleton]
+    filter_upwards [ae_restrict_mem measurableSet_Ioc, ae_restrict_of_ae hn] with θ h1 h2
+    exact ⟨h1.1, lt_of_le_of_ne h1.2 h2⟩
+  have hcos : ∀ θ ∈ Ioo 0 (π / 2), 0 < Real.cos θ := fun θ h =>
+    Real.cos_pos_of_mem_Ioo ⟨by linarith [h.1, Real.pi_pos], h.2⟩
+  have hinner : ∀ θ ∈ Ioo 0 (π / 2), ∀ R : ℝ, 0 ≤ R → ∫ t in (0 : ℝ)..R, K t θ =
+      (Real.sin θ : ℂ) ^ (2 * ν) * (Real.cos θ : ℂ) ^ (-μ) *
+        ∫ u in (0 : ℝ)..R * Real.cos θ, (u : ℂ) ^ (μ - 1) * (Real.sin u : ℂ) := by
+    intro θ hθ R hR
+    simp only [K]
+    rw [intervalIntegral.integral_mul_const, struveMel_integral_scale μ (hcos θ hθ) hR]
+    ring
+  have hsinpos : ∀ θ ∈ Ioc 0 (π / 2), 0 < Real.sin θ := fun θ h =>
+    Real.sin_pos_of_pos_of_lt_pi h.1 (by linarith [h.2, Real.pi_pos])
+  have hmain : Tendsto (fun R => ∫ t in (0 : ℝ)..R, ∫ θ, K t θ ∂m) atTop
+      (𝓝 (∫ θ, (Real.sin θ : ℂ) ^ (2 * ν) * (Real.cos θ : ℂ) ^ (-μ) * S ∂m)) := by
+    refine MeasureTheory.tendsto_intervalIntegral_integral_of_dominated
+      (bound := fun θ => C * ‖(Real.sin θ : ℂ) ^ (2 * ν) * (Real.cos θ : ℂ) ^ (-μ)‖)
+      (fun R hR => ?_) (fun R hR => ?_) (hB.1.norm.const_mul C) ?_
+    · have hT : Integrable (fun t : ℝ => t ^ μ.re) (volume.restrict (Ioc 0 R)) :=
+        (intervalIntegrable_iff_integrableOn_Ioc_of_le hR).mp
+          (intervalIntegral.intervalIntegrable_rpow' hμ0)
+      have hF : Integrable (fun p : ℝ × ℝ => p.1 ^ μ.re * ‖(Real.sin p.2 : ℂ) ^ (2 * ν)‖)
+          ((volume.restrict (Ioc 0 R)).prod m) := Integrable.mul_prod hT hW.1.norm
+      refine hF.mono' ?_ ?_
+      · rw [Measure.prod_restrict]
+        refine ContinuousOn.aestronglyMeasurable (fun p hp => ?_)
+          (measurableSet_Ioc.prod measurableSet_Ioc)
+        have ht : 0 < p.1 := hp.1.1
+        have hs : 0 < Real.sin p.2 := hsinpos p.2 hp.2
+        refine ContinuousAt.continuousWithinAt ?_
+        simp only [K]
+        refine ContinuousAt.mul (ContinuousAt.mul ?_ (by fun_prop)) ?_
+        · exact ((continuous_ofReal.continuousAt).cpow continuousAt_const
+            (ofReal_mem_slitPlane.mpr ht)).comp continuousAt_fst
+        · exact ContinuousAt.comp (x := p) (f := fun q : ℝ × ℝ => Real.sin q.2)
+            (g := fun x : ℝ => (x : ℂ) ^ (2 * ν))
+            ((continuous_ofReal.continuousAt).cpow continuousAt_const
+              (ofReal_mem_slitPlane.mpr hs)) (by fun_prop)
+      · rw [Measure.prod_restrict]
+        filter_upwards [ae_restrict_mem (measurableSet_Ioc.prod measurableSet_Ioc)] with p hp
+        have ht : 0 < p.1 := hp.1.1
+        simp only [K, Function.uncurry, norm_mul, norm_real, Real.norm_eq_abs,
+          norm_cpow_eq_rpow_re_of_pos ht]
+        have hsin : |Real.sin (p.1 * Real.cos p.2)| ≤ p.1 := by
+          refine (Real.abs_sin_le_abs).trans ?_
+          rw [abs_mul, abs_of_pos ht]
+          exact mul_le_of_le_one_right ht.le (Real.abs_cos_le_one _)
+        have hre : (μ - 1).re = μ.re - 1 := by simp
+        rw [hre]
+        have hp1 : p.1 ^ (μ.re - 1) * p.1 = p.1 ^ μ.re := by
+          rw [Real.rpow_sub_one ht.ne']; field_simp
+        calc p.1 ^ (μ.re - 1) * |Real.sin (p.1 * Real.cos p.2)| * ‖(Real.sin p.2 : ℂ) ^ (2 * ν)‖
+            ≤ p.1 ^ (μ.re - 1) * p.1 * ‖(Real.sin p.2 : ℂ) ^ (2 * ν)‖ := by gcongr
+          _ = _ := by rw [hp1]
+    · filter_upwards [hθ] with θ hθ'
+      rw [hinner θ hθ' R hR, norm_mul, mul_comm C]
+      exact mul_le_mul_of_nonneg_left (hC _ (mul_nonneg hR (hcos θ hθ').le)) (norm_nonneg _)
+    · filter_upwards [hθ] with θ hθ'
+      have h := ((struveMel_tendsto_sin hμ0 hμ1).comp
+        (tendsto_id.atTop_mul_const (hcos θ hθ'))).const_mul
+        ((Real.sin θ : ℂ) ^ (2 * ν) * (Real.cos θ : ℂ) ^ (-μ))
+      refine h.congr' ?_
+      filter_upwards [eventually_ge_atTop 0] with R hR
+      rw [hinner θ hθ' R hR]
+      rfl
+  rw [integral_mul_const, hB.2] at hmain
+  have hpt : ∀ t : ℝ, 0 < t → (t : ℂ) ^ (μ - ν - 1) * struveH ν t = A * ∫ θ, K t θ ∂m := by
+    intro t ht
+    have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    rw [struveH_trig_integral hν (ofReal_mem_slitPlane.mpr ht),
+      intervalIntegral.integral_of_le (by positivity)]
+    have hK : ∀ θ, K t θ = (t : ℂ) ^ (μ - 1) *
+        (sin ((t : ℂ) * (Real.cos θ : ℂ)) * (Real.sin θ : ℂ) ^ (2 * ν)) := by
+      intro θ; simp only [K]; push_cast; ring
+    simp_rw [hK]
+    rw [integral_const_mul]
+    have hh : (t : ℂ) / 2 = ((t : ℝ) : ℂ) * ((1 / 2 : ℝ) : ℂ) := by push_cast; ring
+    rw [hh, mul_cpow_ofReal_nonneg ht.le (by norm_num)]
+    have hc : (t : ℂ) ^ (μ - ν - 1) * (t : ℂ) ^ ν = (t : ℂ) ^ (μ - 1) := by
+      rw [← cpow_add _ _ ht0]; ring_nf
+    simp only [A, m]
+    rw [show ((1 / 2 : ℝ) : ℂ) = (1 / 2 : ℂ) by push_cast; ring, ← hc]
+    ring
+  refine (hmain.const_mul A).congr' ?_ |>.trans (by rw [mul_comm S])
+  filter_upwards [eventually_ge_atTop 0] with R hR
+  rw [← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun t ht => ?_)
+  rw [uIoc_of_le hR] at ht
+  exact (hpt t ht.1).symm
+
+/-- `(1/2)^ν = 2^{-ν}`. -/
+lemma struveMel_half_cpow (ν : ℂ) : (1 / 2 : ℂ) ^ ν = (2 : ℂ) ^ (-ν) := by
+  have h : (2 : ℂ).arg = 0 := by simp
+  rw [one_div, inv_cpow _ _ (by rw [h]; exact Real.pi_ne_zero.symm), cpow_neg]
+
+/-- `z / Γ(z+1) = 1/Γ(z)` for every complex `z` (with Mathlib's conventions at the poles). -/
+lemma struveMel_div_Gamma_add_one (z : ℂ) : z / Gamma (z + 1) = (Gamma z)⁻¹ := by
+  rcases eq_or_ne z 0 with rfl | hz
+  · simp
+  · rw [Complex.Gamma_add_one z hz]
+    rcases eq_or_ne (Gamma z) 0 with h | h
+    · simp [h]
+    · field_simp
+
+/-- The Struve Mellin value `V(μ, ν)` of DLMF 11.7.10–11.7.11. -/
+lemma struveMel_value_eq {μ ν : ℂ} (hμ0 : -1 < μ.re) (hμ1 : μ.re < 1) (hν : -1 / 2 < ν.re) :
+    2 * (1 / 2 : ℂ) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2)) *
+        ((if μ = 0 then (π / 2 : ℂ) else Gamma μ * sin (π * μ / 2)) *
+          (Gamma (ν + 1 / 2) * Gamma ((1 - μ) / 2) / (2 * Gamma (ν + 1 / 2 + (1 - μ) / 2)))) =
+      if μ = 0 then π / (2 ^ (ν + 1) * Gamma (ν + 1))
+      else Gamma (μ / 2) * 2 ^ (μ - ν - 1) * sin (π * μ / 2) /
+        (cos (π * μ / 2) * Gamma (ν - μ / 2 + 1)) := by
+  have hG1 : Gamma (ν + 1 / 2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+  have hsq : (Real.sqrt π : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hsq2 : (Real.sqrt π : ℂ) * (Real.sqrt π : ℂ) = π := by
+    rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+  have h2 : (2 : ℂ) ^ (-ν) * (2 : ℂ) ^ ν = 1 := by
+    rw [← cpow_add _ _ two_ne_zero]; simp
+  rw [struveMel_half_cpow]
+  split_ifs with hμ
+  · subst hμ
+    have hG : Gamma (ν + 1 / 2 + (1 - 0) / 2) = Gamma (ν + 1) := by ring_nf
+    rw [hG, show (1 - (0 : ℂ)) / 2 = 1 / 2 by ring, AAR.Confluent.Gamma_one_half_eq_sqrt,
+      cpow_add _ _ two_ne_zero, cpow_one]
+    generalize Gamma (ν + 1 / 2) = G at hG1 ⊢
+    rcases eq_or_ne (Gamma (ν + 1)) 0 with h | h
+    · simp [h]
+    · field_simp
+      linear_combination h2
+  · have hG2 : Gamma (ν + 1 / 2 + (1 - μ) / 2) = Gamma (ν - μ / 2 + 1) := by ring_nf
+    rw [hG2]
+    have hh : Gamma (μ / 2 + 1 / 2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+    have hD : Gamma (ν - μ / 2 + 1) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+    have hc : cos (π * μ / 2) ≠ 0 := by
+      rw [Ne, Complex.cos_eq_zero_iff]
+      rintro ⟨k, hk⟩
+      have hμk : μ = 2 * k + 1 := by
+        have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+        field_simp at hk
+        linear_combination hk
+      have hre := congrArg Complex.re hμk
+      simp at hre
+      have h1 : (2 * k + 1 : ℝ) < 1 := by linarith
+      have h2 : -1 < (2 * k + 1 : ℝ) := by linarith
+      have h3 : k < 0 := by exact_mod_cast (show (k : ℝ) < 0 by linarith)
+      have h4 : -1 < k := by exact_mod_cast (show (-1 : ℝ) < k by linarith)
+      omega
+    have hQ : (2 : ℂ) ^ (1 - μ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+    have hdup := Complex.Gamma_mul_Gamma_add_half (μ / 2)
+    rw [show 2 * (μ / 2) = μ by ring] at hdup
+    have hrefl := Complex.Gamma_mul_Gamma_one_sub (μ / 2 + 1 / 2)
+    rw [show 1 - (μ / 2 + 1 / 2) = (1 - μ) / 2 by ring,
+      show (π : ℂ) * (μ / 2 + 1 / 2) = π * μ / 2 + π / 2 by ring, Complex.sin_add_pi_div_two]
+      at hrefl
+    have hQT : (2 : ℂ) ^ (-ν) = (2 : ℂ) ^ (1 - μ) * (2 : ℂ) ^ (μ - ν - 1) := by
+      rw [← cpow_add _ _ two_ne_zero]; ring_nf
+    have ha : Gamma μ = Gamma (μ / 2) * Gamma (μ / 2 + 1 / 2) / ((2 : ℂ) ^ (1 - μ) * Real.sqrt π) := by
+      rw [hdup]; field_simp
+    have hb : Gamma ((1 - μ) / 2) = Real.sqrt π * Real.sqrt π /
+        (cos (π * μ / 2) * Gamma (μ / 2 + 1 / 2)) := by
+      rw [hsq2, eq_div_iff (mul_ne_zero hc hh), ← mul_assoc, mul_comm _ (cos _),
+        mul_assoc, mul_comm (Gamma _) (Gamma _), hrefl]
+      field_simp
+    rw [ha, hb, hQT]
+    generalize Gamma (ν + 1 / 2) = G at hG1 ⊢
+    generalize Gamma (μ / 2 + 1 / 2) = H at hh ⊢
+    generalize Gamma (ν - μ / 2 + 1) = D at hD ⊢
+    generalize cos (π * μ / 2) = c at hc ⊢
+    field_simp
+
+/-- `x^a = O(x^b)` at infinity when `a ≤ b`. -/
+lemma struveMel_rpow_isBigO_rpow {a b : ℝ} (h : a ≤ b) :
+    (fun x : ℝ => x ^ a) =O[atTop] (fun x : ℝ => x ^ b) := by
+  refine IsBigO.of_bound 1 ?_
+  filter_upwards [eventually_ge_atTop 1] with x hx
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.rpow_pos_of_pos (by linarith) _),
+    abs_of_pos (Real.rpow_pos_of_pos (by linarith) _), one_mul]
+  exact Real.rpow_le_rpow_of_exponent_le hx h
+
+/-- `Y_ν(x) = O(x^{-1/2})` as `x → +∞`, for every complex order. -/
+lemma struveMel_besselY_isBigO (ν : ℂ) :
+    (fun x : ℝ => besselY ν x) =O[atTop] (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) := by
+  -- the Hankel function
+  have hH : (fun x : ℝ => hankelH1 ν x) =O[atTop] (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) := by
+    have h0 := hasAsymptoticExpansion_hankelH1 ν 0
+    simp only [Finset.range_zero, Finset.sum_empty, sub_zero, Nat.cast_zero, zero_add] at h0
+    have hs : (fun x : ℝ => (2 * (-I * x)) ^ (-(1 / 2 : ℂ))) =O[atTop]
+        (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) := by
+      refine IsBigO.of_bound 1 ?_
+      filter_upwards [eventually_gt_atTop 0] with x hx
+      have hz : (2 * (-I * (x : ℂ))) ≠ 0 := by
+        simp [hx.ne', I_ne_zero]
+      rw [norm_cpow_of_ne_zero hz]
+      have him : (-(1 / 2 : ℂ)).im = 0 := by simp
+      have hre : (-(1 / 2 : ℂ)).re = -(1 / 2) := by norm_num
+      rw [him, hre, mul_zero, Real.exp_zero, div_one, Real.norm_eq_abs,
+        abs_of_pos (Real.rpow_pos_of_pos hx _), one_mul]
+      have hn : ‖2 * (-I * (x : ℂ))‖ = 2 * x := by
+        simp [abs_of_pos hx]
+      rw [hn, Real.mul_rpow (by norm_num) hx.le]
+      have h2 : (2 : ℝ) ^ (-(1 / 2) : ℝ) ≤ 1 :=
+        Real.rpow_le_one_of_one_le_of_nonpos (by norm_num) (by norm_num)
+      exact mul_le_of_le_one_left (Real.rpow_nonneg hx.le _) h2
+    have h1 := h0.trans hs
+    have he : (fun x : ℝ => exp (I * x)) =O[atTop] (fun _ : ℝ => (1 : ℝ)) :=
+      IsBigO.of_bound 1 (Eventually.of_forall fun x => by
+        rw [norm_exp_I_mul_ofReal]; simp)
+    have h2 := he.mul h1
+    simp only [one_mul] at h2
+    refine h2.congr' (Eventually.of_forall fun x => ?_) (Eventually.of_forall fun x => rfl)
+    dsimp only
+    rw [← mul_assoc, ← Complex.exp_add]
+    simp
+  -- the Bessel function `J`
+  have hJ : (fun x : ℝ => besselJ ν x) =O[atTop] (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) := by
+    have h1 := (besselJ_sub_cos_isBigO ν).trans (struveMel_rpow_isBigO_rpow
+      (show (-(3 / 2) : ℝ) ≤ -(1 / 2) by norm_num))
+    set c : ℂ := ν * π / 2 + π / 4
+    have hc : (fun x : ℝ => (Real.sqrt (2 / (π * x)) : ℂ) * cos (x - ν * π / 2 - π / 4)) =O[atTop]
+        (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) := by
+      refine IsBigO.of_bound (Real.sqrt (2 / π) * Real.exp |c.im|) ?_
+      filter_upwards [eventually_gt_atTop 0] with x hx
+      rw [norm_mul, norm_real, Real.norm_eq_abs, Real.norm_eq_abs,
+        abs_of_nonneg (Real.sqrt_nonneg _), abs_of_pos (Real.rpow_pos_of_pos hx _)]
+      have hs : Real.sqrt (2 / (π * x)) = Real.sqrt (2 / π) * x ^ (-(1 / 2) : ℝ) := by
+        rw [show 2 / (π * x) = 2 / π * x⁻¹ by field_simp, Real.sqrt_mul (by positivity),
+          Real.sqrt_inv, Real.rpow_neg hx.le, ← Real.sqrt_eq_rpow]
+      have hcos : ‖cos ((x : ℂ) - ν * π / 2 - π / 4)‖ ≤ Real.exp |c.im| := by
+        rw [show (x : ℂ) - ν * π / 2 - π / 4 = x - c by simp only [c]; ring, Complex.cos]
+        have e1 : ‖exp ((x - c) * I)‖ = Real.exp c.im := by
+          rw [Complex.norm_exp]; simp
+        have e2 : ‖exp (-(x - c) * I)‖ = Real.exp (-c.im) := by
+          rw [Complex.norm_exp]; simp
+        calc ‖(exp ((x - c) * I) + exp (-(x - c) * I)) / 2‖
+            ≤ (‖exp ((x - c) * I)‖ + ‖exp (-(x - c) * I)‖) / 2 := by
+              rw [norm_div]; simp only [Complex.norm_ofNat]
+              gcongr; exact norm_add_le _ _
+          _ ≤ (Real.exp |c.im| + Real.exp |c.im|) / 2 := by
+              rw [e1, e2]; gcongr
+              · exact le_abs_self _
+              · exact neg_le_abs _
+          _ = Real.exp |c.im| := by ring
+      rw [hs]
+      calc Real.sqrt (2 / π) * x ^ (-(1 / 2) : ℝ) * ‖cos ((x : ℂ) - ν * π / 2 - π / 4)‖
+          ≤ Real.sqrt (2 / π) * x ^ (-(1 / 2) : ℝ) * Real.exp |c.im| := by gcongr
+        _ = _ := by ring
+    exact (h1.add hc).congr' (Eventually.of_forall fun x => by ring)
+      (Eventually.of_forall fun x => rfl)
+  have h := (hH.sub hJ).const_mul_left (-I)
+  refine h.congr' (Eventually.of_forall fun x => ?_) (Eventually.of_forall fun x => rfl)
+  simp only [hankelH1]
+  ring_nf
+  rw [I_sq]; ring
+
+/-- `K_ν(x) = O(x^{re ν - 1})` as `x → +∞` when `re ν ≤ 1/2`, from the Laplace representation
+DLMF 11.5.2. -/
+lemma struveMel_struveK_isBigO {ν : ℂ} (hν : ν.re ≤ 1 / 2) :
+    (fun x : ℝ => struveK ν x) =O[atTop] (fun x : ℝ => x ^ (ν.re - 1)) := by
+  set A : ℝ := ‖2 / ((Real.sqrt π : ℂ) * Gamma (ν + 1 / 2))‖
+  refine IsBigO.of_bound (A * 2 ^ (-ν.re)) ?_
+  filter_upwards [eventually_gt_atTop 0] with x hx
+  have hre : 0 < (x : ℂ).re := by simpa using hx
+  rw [struveK_eq_besselYLaplace ν hre, besselYLaplace]
+  have hint : ‖∫ t in Ioi (0 : ℝ), yLaplaceKernel ν x t‖ ≤ 1 / x := by
+    have hg : IntegrableOn (fun t : ℝ => Real.exp (-x * t)) (Ioi 0) :=
+      exp_neg_integrableOn_Ioi 0 hx
+    have hval : ∫ t in Ioi (0 : ℝ), Real.exp (-x * t) = 1 / x := by
+      have := integral_exp_mul_Ioi (a := -x) (by linarith) 0
+      simp only [mul_zero, Real.exp_zero] at this
+      rw [this]; field_simp
+    rw [← hval]
+    refine norm_integral_le_of_norm_le hg ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    rw [yLaplaceKernel, norm_mul, Complex.norm_exp]
+    have h1 : (1 + (t : ℂ) ^ 2) = ((1 + t ^ 2 : ℝ) : ℂ) := by push_cast; ring
+    rw [h1, norm_cpow_eq_rpow_re_of_pos (by positivity)]
+    have h2 : (1 + t ^ 2) ^ (ν - 1 / 2).re ≤ 1 :=
+      Real.rpow_le_one_of_one_le_of_nonpos (by nlinarith) (by simp; linarith)
+    have h3 : (-(x : ℂ) * t).re = -x * t := by simp
+    rw [h3]
+    exact mul_le_of_le_one_right (Real.exp_pos _).le h2
+  have hpow : ‖((x : ℂ) / 2) ^ ν‖ = 2 ^ (-ν.re) * x ^ ν.re := by
+    rw [show (x : ℂ) / 2 = ((x / 2 : ℝ) : ℂ) by push_cast; ring,
+      norm_cpow_eq_rpow_re_of_pos (by positivity), Real.div_rpow hx.le (by norm_num),
+      Real.rpow_neg (by norm_num)]
+    ring
+  rw [Real.norm_eq_abs, abs_of_pos (Real.rpow_pos_of_pos hx _)]
+  calc ‖2 * ((x : ℂ) / 2) ^ ν / (Real.sqrt π * Gamma (ν + 1 / 2)) *
+        ∫ t in Ioi (0 : ℝ), yLaplaceKernel ν x t‖
+      = A * ‖((x : ℂ) / 2) ^ ν‖ * ‖∫ t in Ioi (0 : ℝ), yLaplaceKernel ν x t‖ := by
+        simp only [A, norm_mul, norm_div]; ring
+    _ ≤ A * (2 ^ (-ν.re) * x ^ ν.re) * (1 / x) := by
+        rw [hpow]; gcongr
+    _ = A * 2 ^ (-ν.re) * x ^ (ν.re - 1) := by
+        rw [Real.rpow_sub_one hx.ne']; ring
+
+/-- `H_ν(x) = O(x^{-1/2} + x^{re ν - 1})` as `x → +∞` when `re ν ≤ 1/2`. -/
+lemma struveMel_struveH_isBigO {ν : ℂ} (hν : ν.re ≤ 1 / 2) :
+    (fun x : ℝ => struveH ν x) =O[atTop] (fun x : ℝ => x ^ (-(1 / 2) : ℝ) + x ^ (ν.re - 1)) := by
+  have hY := struveMel_besselY_isBigO ν
+  have hK := struveMel_struveK_isBigO hν
+  have hpos : ∀ᶠ x : ℝ in atTop, 0 < x := eventually_gt_atTop 0
+  have h1 : (fun x : ℝ => x ^ (-(1 / 2) : ℝ)) =O[atTop]
+      (fun x : ℝ => x ^ (-(1 / 2) : ℝ) + x ^ (ν.re - 1)) := by
+    refine IsBigO.of_bound 1 ?_
+    filter_upwards [hpos] with x hx
+    have a := Real.rpow_pos_of_pos hx (-(1 / 2))
+    have b := Real.rpow_pos_of_pos hx (ν.re - 1)
+    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos a, abs_of_pos (by linarith)]
+    linarith
+  have h2 : (fun x : ℝ => x ^ (ν.re - 1)) =O[atTop]
+      (fun x : ℝ => x ^ (-(1 / 2) : ℝ) + x ^ (ν.re - 1)) := by
+    refine IsBigO.of_bound 1 ?_
+    filter_upwards [hpos] with x hx
+    have a := Real.rpow_pos_of_pos hx (-(1 / 2))
+    have b := Real.rpow_pos_of_pos hx (ν.re - 1)
+    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos b, abs_of_pos (by linarith)]
+    linarith
+  refine ((hY.trans h1).add (hK.trans h2)).congr' (Eventually.of_forall fun x => ?_)
+    (Eventually.of_forall fun x => rfl)
+  simp only [struveK]; ring
+
+/-- The integration-by-parts boundary term `R^{μ-ν} H_ν(R)` tends to zero when `re ν ≤ 1/2`,
+`re μ < 1` and `re μ < re ν + 1/2`. -/
+lemma struveMel_tendsto_boundary {μ ν : ℂ} (hν : ν.re ≤ 1 / 2) (h1 : μ.re < 1)
+    (h2 : μ.re < ν.re + 1 / 2) :
+    Tendsto (fun R : ℝ => (R : ℂ) ^ (μ - ν) * struveH ν R) atTop (𝓝 0) := by
+  have hp : (fun R : ℝ => (R : ℂ) ^ (μ - ν)) =O[atTop] (fun R : ℝ => R ^ (μ.re - ν.re)) := by
+    refine IsBigO.of_bound 1 ?_
+    filter_upwards [eventually_gt_atTop 0] with R hR
+    rw [norm_cpow_eq_rpow_re_of_pos hR, Real.norm_eq_abs,
+      abs_of_pos (Real.rpow_pos_of_pos hR _), one_mul]
+    simp
+  have hb := hp.mul (struveMel_struveH_isBigO hν)
+  refine hb.trans_tendsto ?_
+  have t1 := tendsto_rpow_neg_atTop (y := -(μ.re - ν.re - 1 / 2)) (by linarith)
+  have t2 := tendsto_rpow_neg_atTop (y := -(μ.re - 1)) (by linarith)
+  simp only [neg_neg] at t1 t2
+  refine (t1.add t2).congr' ?_ |>.trans (by rw [add_zero])
+  filter_upwards [eventually_gt_atTop 0] with R hR
+  rw [mul_add, ← Real.rpow_add hR, ← Real.rpow_add hR]
+  congr 1; ring_nf
+
+/-- For `t > 0`, `t^a H_ν(t) = t^{a+ν+1} (1/2)^{ν+1} H̃_ν(t)` with the entire core `H̃_ν`. -/
+lemma struveMel_cpow_mul_struveH (a ν : ℂ) {t : ℝ} (ht : 0 < t) :
+    (t : ℂ) ^ a * struveH ν t = (t : ℂ) ^ (a + ν + 1) * ((1 / 2 : ℂ) ^ (ν + 1) * struveHCore ν t) := by
+  have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+  rw [struveH, show (t : ℂ) / 2 = ((t : ℝ) : ℂ) * ((1 / 2 : ℝ) : ℂ) by push_cast; ring,
+    mul_cpow_ofReal_nonneg ht.le (by norm_num), show ((1 / 2 : ℝ) : ℂ) = (1 / 2 : ℂ) by push_cast; ring,
+    show a + ν + 1 = a + (ν + 1) by ring, cpow_add a (ν + 1) ht0]
+  ring
+
+/-- The Struve Mellin integrand `t^{μ-ν-1} H_ν(t)` is interval integrable on `[0, R]`
+when `re μ > -1`. -/
+lemma struveMel_intervalIntegrable_struveH {μ : ℂ} (hμ0 : -1 < μ.re) (ν : ℂ) {R : ℝ} (hR : 0 ≤ R) :
+    IntervalIntegrable (fun t : ℝ => (t : ℂ) ^ (μ - ν - 1) * struveH ν t) volume 0 R := by
+  have h := (intervalIntegral.intervalIntegrable_cpow' hμ0 (a := 0) (b := R)).mul_continuousOn
+    (g := fun t : ℝ => (1 / 2 : ℂ) ^ (ν + 1) * struveHCore ν t)
+    (continuous_const.mul ((entire_struveHCore ν).continuous.comp continuous_ofReal)).continuousOn
+  refine h.congr (fun t ht => ?_)
+  rw [uIoc_of_le hR] at ht
+  rw [struveMel_cpow_mul_struveH _ _ ht.1]
+  ring_nf
+
+/-- **Integration by parts** in the Struve Mellin integral, from `d/dt (t^{ν+1} H_{ν+1}) =
+t^{ν+1} H_ν` (DLMF 11.4.27). -/
+lemma struveMel_integral_by_parts {μ : ℂ} (hμ0 : -1 < μ.re) (ν : ℂ) {R : ℝ} (hR : 0 < R) :
+    ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - ν - 1) * struveH ν t =
+      (R : ℂ) ^ (μ - (ν + 1)) * struveH (ν + 1) R -
+        (μ - 2 * ν - 2) * ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - (ν + 1) - 1) * struveH (ν + 1) t := by
+  set F : ℝ → ℂ := fun t => (t : ℂ) ^ (μ + 1) * ((1 / 2 : ℂ) ^ (ν + 1 + 1) * struveHCore (ν + 1) t)
+  have hF : ∀ t : ℝ, 0 < t → F t = (t : ℂ) ^ (μ - (ν + 1)) * struveH (ν + 1) t := by
+    intro t ht
+    rw [struveMel_cpow_mul_struveH _ _ ht]
+    simp only [F]; ring_nf
+  have hFc : ContinuousOn F (Icc 0 R) := by
+    refine Continuous.continuousOn ?_
+    refine Continuous.mul ?_ (continuous_const.mul
+      ((entire_struveHCore (ν + 1)).continuous.comp continuous_ofReal))
+    exact continuous_iff_continuousAt.mpr fun t =>
+      continuousAt_ofReal_cpow_const t (μ + 1) (Or.inl (by simp; linarith))
+  have hF0 : F 0 = 0 := by
+    simp only [F, ofReal_zero]
+    rw [zero_cpow (by intro h; have := congrArg Complex.re h; simp at this; linarith), zero_mul]
+  set f' : ℝ → ℂ := fun t => (t : ℂ) ^ (μ - ν - 1) * struveH ν t +
+    (μ - 2 * ν - 2) * ((t : ℂ) ^ (μ - (ν + 1) - 1) * struveH (ν + 1) t)
+  have hderiv : ∀ t ∈ Ioo 0 R, HasDerivAt F (f' t) t := by
+    intro t ht
+    have ht0 : 0 < t := ht.1
+    have htc : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht0.ne'
+    have hs : (t : ℂ) ∈ slitPlane := ofReal_mem_slitPlane.mpr ht0
+    have hφ := (struveH_weighted_deriv_27 (ν + 1) hs).comp_ofReal
+    simp only [one_mul, add_sub_cancel_right] at hφ
+    have hψ : HasDerivAt (fun x : ℝ => (x : ℂ) ^ (μ - 2 * ν - 2))
+        ((μ - 2 * ν - 2) * (t : ℂ) ^ (μ - 2 * ν - 2 - 1)) t := by
+      have h := ((hasDerivAt_id (t : ℂ)).cpow_const (c := μ - 2 * ν - 2) hs).comp_ofReal
+      simpa using h
+    have hprod := hψ.mul hφ
+    have hev : (fun x : ℝ => (x : ℂ) ^ (μ - 2 * ν - 2) * ((x : ℂ) ^ (ν + 1) * struveH (ν + 1) x))
+        =ᶠ[𝓝 t] F := by
+      filter_upwards [Ioi_mem_nhds ht0] with x hx
+      have hxc : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr (ne_of_gt hx)
+      rw [hF x hx, ← mul_assoc, ← cpow_add _ _ hxc]
+      ring_nf
+    refine (hprod.congr_of_eventuallyEq hev.symm).congr_deriv ?_
+    simp only [f']
+    have e1 : (t : ℂ) ^ (μ - 2 * ν - 2 - 1) * ((t : ℂ) ^ (ν + 1) * struveH (ν + 1) t) =
+        (t : ℂ) ^ (μ - (ν + 1) - 1) * struveH (ν + 1) t := by
+      rw [← mul_assoc, ← cpow_add _ _ htc]; ring_nf
+    have e2 : (t : ℂ) ^ (μ - 2 * ν - 2) * ((t : ℂ) ^ (ν + 1) * struveH ν t) =
+        (t : ℂ) ^ (μ - ν - 1) * struveH ν t := by
+      rw [← mul_assoc, ← cpow_add _ _ htc]; ring_nf
+    linear_combination (μ - 2 * ν - 2) * e1 + e2
+  have hint1 := struveMel_intervalIntegrable_struveH hμ0 ν hR.le
+  have hint2 := struveMel_intervalIntegrable_struveH hμ0 (ν + 1) hR.le
+  have hftc := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le hR.le hFc hderiv
+    (hint1.add (hint2.const_mul _))
+  rw [hF0, sub_zero, hF R hR] at hftc
+  simp only [f'] at hftc
+  rw [intervalIntegral.integral_add hint1 (hint2.const_mul _),
+    intervalIntegral.integral_const_mul] at hftc
+  linear_combination hftc
+
+/-- The value of the Struve Mellin transform, DLMF 11.7.10–11.7.11 (removable case `μ = 0`). -/
+noncomputable def struveMel_value (μ ν : ℂ) : ℂ :=
+  if μ = 0 then π / (2 ^ (ν + 1) * Gamma (ν + 1))
+  else Gamma (μ / 2) * 2 ^ (μ - ν - 1) * sin (π * μ / 2) / (cos (π * μ / 2) * Gamma (ν - μ / 2 + 1))
+
+/-- The recurrence `V(μ, ν) = 2 (ν + 1 - μ/2) V(μ, ν + 1)`, valid for all parameters. -/
+lemma struveMel_value_succ (μ ν : ℂ) :
+    struveMel_value μ ν = -(μ - 2 * ν - 2) * struveMel_value μ (ν + 1) := by
+  have h2 : ∀ w : ℂ, (2 : ℂ) ^ (w + 1) = 2 * 2 ^ w := fun w => by
+    rw [cpow_add _ _ two_ne_zero, cpow_one]; ring
+  unfold struveMel_value
+  split_ifs with hμ
+  · have h := struveMel_div_Gamma_add_one (ν + 1)
+    rw [show ν + 1 + 1 = (ν + 1) + 1 by ring, h2 (ν + 1)]
+    rw [show -(μ - 2 * ν - 2) = 2 * (ν + 1) by rw [hμ]; ring]
+    calc π / (2 ^ (ν + 1) * Gamma (ν + 1)) = π / 2 ^ (ν + 1) * (Gamma (ν + 1))⁻¹ := by
+          rw [div_mul_eq_div_div, div_eq_mul_inv]
+      _ = π / 2 ^ (ν + 1) * ((ν + 1) / Gamma (ν + 1 + 1)) := by rw [h]
+      _ = _ := by
+          have h0 : (2 : ℂ) ^ (ν + 1) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+          field_simp
+  · have h := struveMel_div_Gamma_add_one (ν - μ / 2 + 1)
+    rw [show ν + 1 - μ / 2 + 1 = (ν - μ / 2 + 1) + 1 by ring,
+      show μ - ν - 1 = (μ - (ν + 1) - 1) + 1 by ring, h2 (μ - (ν + 1) - 1),
+      show -(μ - 2 * ν - 2) = 2 * (ν - μ / 2 + 1) by ring]
+    calc Gamma (μ / 2) * (2 * 2 ^ (μ - (ν + 1) - 1)) * sin (π * μ / 2) /
+          (cos (π * μ / 2) * Gamma (ν - μ / 2 + 1)) =
+        Gamma (μ / 2) * (2 * 2 ^ (μ - (ν + 1) - 1)) * sin (π * μ / 2) / cos (π * μ / 2) *
+          (Gamma (ν - μ / 2 + 1))⁻¹ := by
+          rw [div_mul_eq_div_div, div_eq_mul_inv]
+      _ = Gamma (μ / 2) * (2 * 2 ^ (μ - (ν + 1) - 1)) * sin (π * μ / 2) / cos (π * μ / 2) *
+          ((ν - μ / 2 + 1) / Gamma (ν - μ / 2 + 1 + 1)) := by rw [h]
+      _ = _ := by
+          rw [mul_div_assoc', div_mul_eq_div_div]
+          ring
+
+/-- **The Struve Mellin transform** as an improper integral: for `|re μ| < 1` and
+`re μ - 3/2 < re ν`, `∫₀^R t^{μ-ν-1} H_ν(t) dt → V(μ, ν)`. -/
+theorem struveMel_tendsto {μ ν : ℂ} (hμ0 : -1 < μ.re) (hμ1 : μ.re < 1)
+    (hν : μ.re - 3 / 2 < ν.re) :
+    Tendsto (fun R : ℝ => ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - ν - 1) * struveH ν t) atTop
+      (𝓝 (struveMel_value μ ν)) := by
+  suffices h : ∀ n : ℕ, ∀ ν : ℂ, -1 / 2 < ν.re + n → μ.re - 3 / 2 < ν.re →
+      Tendsto (fun R : ℝ => ∫ t in (0 : ℝ)..R, (t : ℂ) ^ (μ - ν - 1) * struveH ν t) atTop
+        (𝓝 (struveMel_value μ ν)) from h 2 ν (by push_cast; linarith) hν
+  intro n
+  induction n with
+  | zero =>
+    intro ν hν1 _
+    simp only [Nat.cast_zero, add_zero] at hν1
+    have h := struveMel_tendsto_direct hμ0 hμ1 hν1
+    rwa [struveMel_value_eq hμ0 hμ1 hν1] at h
+  | succ n ih =>
+    intro ν hν1 hν2
+    by_cases hd : -1 / 2 < ν.re
+    · have h := struveMel_tendsto_direct hμ0 hμ1 hd
+      rwa [struveMel_value_eq hμ0 hμ1 hd] at h
+    push Not at hd
+    have hnext := ih (ν + 1) (by simp; push_cast at hν1; linarith) (by simp; linarith)
+    have hb := struveMel_tendsto_boundary (μ := μ) (ν := ν + 1) (by simp; linarith) hμ1
+      (by simp; linarith)
+    rw [struveMel_value_succ μ ν]
+    have hlim := hb.sub (hnext.const_mul (μ - 2 * ν - 2))
+    rw [zero_sub, ← neg_mul] at hlim
+    refine hlim.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with R hR
+    rw [struveMel_integral_by_parts hμ0 ν hR]
+
 /-- struveH integral plain. -/
 @[dlmf 11.7.E9]
 theorem struveH_integral_plain {ν : ℂ} (h0 : -2 < ν.re) (h1 : ν.re < 0) :
     HasIntegralAtTop (fun t : ℝ => struveH ν t) 0 (-cos (π*ν/2)/sin (π*ν/2)) := by
-  sorry
+  have h := struveMel_tendsto (μ := ν + 1) (ν := ν) (by simp; linarith) (by simp; linarith)
+    (by simp; linarith)
+  have he : ∀ t : ℝ, (t : ℂ) ^ (ν + 1 - ν - 1) * struveH ν t = struveH ν t := fun t => by
+    rw [show ν + 1 - ν - 1 = 0 by ring, cpow_zero, one_mul]
+  simp only [he] at h
+  unfold HasIntegralAtTop
+  convert h using 2
+  unfold struveMel_value
+  have hs : sin (π * (ν + 1) / 2) = cos (π * ν / 2) := by
+    rw [show (π : ℂ) * (ν + 1) / 2 = π * ν / 2 + π / 2 by ring, Complex.sin_add_pi_div_two]
+  have hc : cos (π * (ν + 1) / 2) = -sin (π * ν / 2) := by
+    rw [show (π : ℂ) * (ν + 1) / 2 = π * ν / 2 + π / 2 by ring, Complex.cos_add_pi_div_two]
+  split_ifs with hν1
+  · have hν' : ν = -1 := by linear_combination hν1
+    subst hν'
+    rw [show (-1 : ℂ) + 1 = 0 by ring, Complex.Gamma_zero]
+    have h1 : sin (π * (-1 : ℂ) / 2) = -1 := by
+      rw [show (π : ℂ) * (-1) / 2 = -(π / 2) by ring, Complex.sin_neg, Complex.sin_pi_div_two]
+    have h2 : cos (π * (-1 : ℂ) / 2) = 0 := by
+      rw [show (π : ℂ) * (-1) / 2 = -(π / 2) by ring, Complex.cos_neg, Complex.cos_pi_div_two]
+    rw [h1, h2]; simp
+  · rw [hs, hc, show ν + 1 - ν - 1 = 0 by ring, cpow_zero, mul_one,
+      show ν - (ν + 1) / 2 + 1 = (ν + 1) / 2 by ring]
+    have hG : Gamma ((ν + 1) / 2) ≠ 0 := by
+      refine Complex.Gamma_ne_zero fun m hm => ?_
+      have hre := congrArg Complex.re hm
+      simp at hre
+      rcases m with _ | m
+      · exact hν1 (by simpa using hm)
+      · push_cast at hre; linarith
+    field_simp
 
 /-- struveH integral mellin zero. -/
 @[dlmf 11.7.E10]
 theorem struveH_integral_mellin_zero {ν : ℂ} (hν : -3/2 < ν.re) :
     HasIntegralAtTop (fun t : ℝ => (t:ℂ)^(-ν-1)*struveH ν t) 0 (π/(2^(ν+1)*Gamma (ν+1))) := by
-  sorry
+  have h := struveMel_tendsto (μ := 0) (ν := ν) (by norm_num) (by norm_num) (by simp; linarith)
+  simp only [struveMel_value, zero_sub] at h
+  exact h
 
 /-- struveH integral mellin. -/
 @[dlmf 11.7.E11]
 theorem struveH_integral_mellin {μ ν : ℂ} (hμ : |μ.re| < 1) (hν : μ.re-3/2 < ν.re) :
     HasIntegralAtTop (fun t : ℝ => (t:ℂ)^(μ-ν-1)*struveH ν t) 0 (if μ=0 then π/(2^(ν+1)*Gamma (ν+1)) else Gamma (μ/2)*2^(μ-ν-1)*sin (π*μ/2)/(cos (π*μ/2)*Gamma (ν-μ/2+1))) := by
-  sorry
+  obtain ⟨h0, h1⟩ := abs_lt.mp hμ
+  exact struveMel_tendsto h0 h1 hν
 
 /-- struveH integral product. DLMF 11.7.12 states only `Re(μ+ν) > 0`; the integral then
 diverges, e.g. at `μ = 3`, `ν = -2` the integrand grows like `t^(1/2) cos(...)`. The cross terms

@@ -42,6 +42,12 @@ and the meaning of totalized series and integrals when adopting upstream stateme
 
 - Cover definitions and mathematical theorems in the selected DLMF scope, including
   results stated in prose. Exclude graphical results and application notes.
+- Purely numerical results are out of scope: tabulated function values, decimal values of
+  zeros, constants or expansion coefficients (for example γ ≈ 0.5772156649). Exact values
+  and asymptotic expansions remain in scope. A crude numerical bound may be proved as an
+  untagged helper lemma when a proof needs it (for example `γ < 3/5` in
+  `AAR/Gamma/Inequalities.lean`). Record excluded items in the acquisition ledgers as
+  "excluded: numerical".
 - When a result is already in Mathlib, record a comment and a precise pointer to
   the upstream declaration instead of reproving it locally. Preserve any domain
   or branch differences when distinguishing upstream coverage from missing results.

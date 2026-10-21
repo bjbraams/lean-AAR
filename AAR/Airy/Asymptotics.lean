@@ -423,4 +423,51 @@ theorem airy_oscillatory_real_error (derivative : Bool) (parity : Fin 2)
       ((-1 : ℝ) ^ N * (if derivative then airyV (2 * N + parity.val) else airyU (2 * N + parity.val))) := by
   sorry
 
+/-! ### Exact values of χ at integers -/
+
+/-- The two-step recurrence `χ(x+2) = χ(x) (x+2)/(x+1)` for `x ≥ 0`. -/
+lemma airyChi_add_two {x : ℝ} (hx : 0 ≤ x) :
+    airyChi (x + 2) = airyChi x * ((x + 2) / (x + 1)) := by
+  have h1 : (x + 2) / 2 + 1 = (x / 2 + 1) + 1 := by ring
+  have h2 : (x + 2) / 2 + 1 / 2 = (x / 2 + 1 / 2) + 1 := by ring
+  have hp1 : 0 < x / 2 + 1 := by positivity
+  have hp2 : 0 < x / 2 + 1 / 2 := by positivity
+  have hG := (Real.Gamma_pos_of_pos hp2).ne'
+  rw [airyChi, airyChi, h1, h2, Real.Gamma_add_one hp1.ne', Real.Gamma_add_one hp2.ne']
+  have : x + 1 ≠ 0 := by positivity
+  field_simp
+
+/-- `χ(0) = 1`. -/
+lemma airyChi_zero : airyChi 0 = 1 := by
+  rw [airyChi]; norm_num [Real.Gamma_one_half_eq]
+  exact (Real.sqrt_pos.mpr Real.pi_pos).ne'
+
+/-- `χ(1) = π/2`. -/
+lemma airyChi_one : airyChi 1 = π / 2 := by
+  rw [airyChi, show (1 : ℝ) / 2 + 1 = 1 / 2 + 1 by ring, Real.Gamma_add_one (by norm_num),
+    Real.Gamma_one_half_eq, show (1 : ℝ) / 2 + 1 / 2 = 1 by ring, Real.Gamma_one]
+  rw [show Real.sqrt π * (1 / 2 * Real.sqrt π) = (Real.sqrt π) ^ 2 / 2 by ring,
+    Real.sq_sqrt Real.pi_pos.le]
+  ring
+
+/-- `χ(2m) = ∏_{j<m} (2j+2)/(2j+1)`. -/
+lemma airyChi_two_mul (m : ℕ) :
+    airyChi (2 * m) = ∏ j ∈ Finset.range m, ((2 * j + 2 : ℝ) / (2 * j + 1)) := by
+  induction m with
+  | zero => simpa using airyChi_zero
+  | succ m ih =>
+    rw [Finset.prod_range_succ, ← ih, show (2 * ((m + 1 : ℕ) : ℝ)) = 2 * m + 2 by push_cast; ring,
+      airyChi_add_two (by positivity)]
+
+/-- `χ(2m+1) = (π/2) ∏_{j<m} (2j+3)/(2j+2)`. -/
+lemma airyChi_two_mul_add_one (m : ℕ) :
+    airyChi (2 * m + 1) = π / 2 * ∏ j ∈ Finset.range m, ((2 * j + 3 : ℝ) / (2 * j + 2)) := by
+  induction m with
+  | zero => simpa using airyChi_one
+  | succ m ih =>
+    rw [Finset.prod_range_succ, ← mul_assoc, ← ih,
+      show (2 * ((m + 1 : ℕ) : ℝ)) + 1 = (2 * m + 1) + 2 by push_cast; ring,
+      airyChi_add_two (by positivity)]
+    congr 1; ring_nf
+
 end AAR.Airy
