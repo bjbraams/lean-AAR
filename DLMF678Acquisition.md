@@ -384,8 +384,8 @@ is not counted as a proved version of the incorrect universal claim.
 
 #### §7.2
 
-- [7.2.E1](https://dlmf.nist.gov/7.2.E1): [erf_complex_segment_integral](AAR/ErrorFunctions/Basic.lean#L247) (proved); [erf_eq_integral](AAR/Confluent/Basic.lean#L627) (proved).
-- [7.2.E2](https://dlmf.nist.gov/7.2.E2): [erfc_horizontal_integral](AAR/ErrorFunctions/Basic.lean#L328) (proved).
+- [7.2.E1](https://dlmf.nist.gov/7.2.E1): [erf_complex_segment_integral](AAR/ErrorFunctions/Basic.lean#L247) (proved); [erf_eq_integral](AAR/Confluent/Basic.lean#L627) (proved); TauCeti: [`TauCeti.Real.erf`](https://github.com/TauCetiProject/TauCeti/blob/5cdecf40e99d5a5ad0833afff31f5b007d68a149/TauCeti/Analysis/SpecialFunctions/Erf.lean#L61).
+- [7.2.E2](https://dlmf.nist.gov/7.2.E2): [erfc_horizontal_integral](AAR/ErrorFunctions/Basic.lean#L328) (proved); TauCeti: [`TauCeti.Real.erfc_def`](https://github.com/TauCetiProject/TauCeti/blob/5cdecf40e99d5a5ad0833afff31f5b007d68a149/TauCeti/Analysis/SpecialFunctions/Erf.lean#L70).
 - [7.2.E3](https://dlmf.nist.gov/7.2.E3): [faddeevaW](AAR/ErrorFunctions/Basic.lean#L24) (definition); [faddeevaW_integral](AAR/ErrorFunctions/Basic.lean#L350) (proved).
 - [7.2.E4](https://dlmf.nist.gov/7.2.E4): [erf_sector_limit](AAR/ErrorFunctions/Basic.lean#L514) (proved).
 - [7.2.E5](https://dlmf.nist.gov/7.2.E5): [dawsonF](AAR/ErrorFunctions/Basic.lean#L29) (definition); [Real.dawsonF](AAR/Confluent/ErrorFunctions.lean#L154) (definition).
@@ -445,7 +445,7 @@ is not counted as a proved version of the incorrect universal claim.
 - [7.7.E3](https://dlmf.nist.gov/7.7.E3): [gaussian_fourier_halfLine](AAR/ErrorFunctions/Integrals.lean#L303) (proved).
 - [7.7.E4](https://dlmf.nist.gov/7.7.E4): [gaussian_sqrt_laplace](AAR/ErrorFunctions/Integrals.lean#L330) (proved).
 - [7.7.E5](https://dlmf.nist.gov/7.7.E5): [erf_squared_integral](AAR/ErrorFunctions/Integrals.lean#L490) (proved).
-- [7.7.E6](https://dlmf.nist.gov/7.7.E6): [gaussian_quadratic_tail](AAR/ErrorFunctions/Integrals.lean#L568) (proved).
+- [7.7.E6](https://dlmf.nist.gov/7.7.E6): [gaussian_quadratic_tail](AAR/ErrorFunctions/Integrals.lean#L568) (proved); Mathlib: [`integral_gaussian_complex_Ioi`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.html#integral_gaussian_complex_Ioi); Mathlib: [`integral_gaussian_complex`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.html#integral_gaussian_complex).
 - [7.7.E7](https://dlmf.nist.gov/7.7.E7): [gaussian_reciprocal_tail](AAR/ErrorFunctions/Integrals.lean#L574) (proved).
 - [7.7.E8](https://dlmf.nist.gov/7.7.E8): [gaussian_reciprocal_integral](AAR/ErrorFunctions/Integrals.lean#L652) (proved).
 - [7.7.E9](https://dlmf.nist.gov/7.7.E9): [erf_primitive](AAR/ErrorFunctions/Integrals.lean#L711) (proved).
@@ -567,10 +567,10 @@ is not counted as a proved version of the incorrect universal claim.
 
 #### §8.2
 
-- [8.2.E1](https://dlmf.nist.gov/8.2.E1): [lowerIncGamma_eq_integral](AAR/Confluent/IncompleteGamma.lean#L165) (proved); [lowerIncGamma_segment_integral](AAR/IncompleteGamma/Basic.lean#L136) (proved).
+- [8.2.E1](https://dlmf.nist.gov/8.2.E1): [lowerIncGamma_eq_integral](AAR/Confluent/IncompleteGamma.lean#L165) (proved); [lowerIncGamma_segment_integral](AAR/IncompleteGamma/Basic.lean#L136) (proved); Mathlib: [`Complex.partialGamma`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Gamma/Basic.html#Complex.partialGamma); TauCeti: [`TauCeti.lowerIncompleteGamma_eq_integral`](https://github.com/TauCetiProject/TauCeti/blob/5cdecf40e99d5a5ad0833afff31f5b007d68a149/TauCeti/Analysis/SpecialFunctions/IncompleteGamma.lean#L123).
 - [8.2.E2](https://dlmf.nist.gov/8.2.E2): [upperIncGamma_eq_integral](AAR/Confluent/IncompleteGamma.lean#L92) (proved); [upperIncGamma_horizontal_integral](AAR/IncompleteGamma/Basic.lean#L564) (proved).
 - [8.2.E3](https://dlmf.nist.gov/8.2.E3): [lowerIncGamma_add_upperIncGamma](AAR/Confluent/IncompleteGamma.lean#L143) (proved).
-- [8.2.E4](https://dlmf.nist.gov/8.2.E4): [normIncGammaP](AAR/Statistical/IncompleteGamma.lean#L42) (definition); [normIncGammaQ](AAR/Statistical/IncompleteGamma.lean#L46) (definition); [normIncGammaPContinued](AAR/IncompleteGamma/Basic.lean#L35) (definition); [normIncGammaQContinued](AAR/IncompleteGamma/Basic.lean#L40) (definition); [normIncGammaPContinued_eq](AAR/IncompleteGamma/Basic.lean#L53) (proved); [normIncGammaQContinued_eq](AAR/IncompleteGamma/Basic.lean#L62) (proved).
+- [8.2.E4](https://dlmf.nist.gov/8.2.E4): [normIncGammaP](AAR/Statistical/IncompleteGamma.lean#L42) (definition); [normIncGammaQ](AAR/Statistical/IncompleteGamma.lean#L46) (definition); [normIncGammaPContinued](AAR/IncompleteGamma/Basic.lean#L35) (definition); [normIncGammaQContinued](AAR/IncompleteGamma/Basic.lean#L40) (definition); [normIncGammaPContinued_eq](AAR/IncompleteGamma/Basic.lean#L53) (proved); [normIncGammaQContinued_eq](AAR/IncompleteGamma/Basic.lean#L62) (proved); TauCeti: [`TauCeti.regularizedGamma_eq_div`](https://github.com/TauCetiProject/TauCeti/blob/5cdecf40e99d5a5ad0833afff31f5b007d68a149/TauCeti/Analysis/SpecialFunctions/IncompleteGamma.lean#L146).
 - [8.2.E5](https://dlmf.nist.gov/8.2.E5): [normIncGammaP_add_normIncGammaQ](AAR/Statistical/IncompleteGamma.lean#L50) (proved); [normIncGammaContinued_complement](AAR/IncompleteGamma/Basic.lean#L167) (proved).
 - [8.2.E6](https://dlmf.nist.gov/8.2.E6): [scIncGamma_eq](AAR/Statistical/IncompleteGamma.lean#L191) (proved).
 - [8.2.E7](https://dlmf.nist.gov/8.2.E7): [scIncGamma_eq_normIncGammaP](AAR/Statistical/IncompleteGamma.lean#L211) (proved); [scIncGamma_integral](AAR/IncompleteGamma/Basic.lean#L122) (proved).
@@ -634,7 +634,7 @@ is not counted as a proved version of the incorrect universal claim.
 
 #### §8.8
 
-- [8.8.E1](https://dlmf.nist.gov/8.8.E1): [lowerIncGamma_add_one](AAR/Statistical/IncompleteGamma.lean#L60) (proved).
+- [8.8.E1](https://dlmf.nist.gov/8.8.E1): [lowerIncGamma_add_one](AAR/Statistical/IncompleteGamma.lean#L60) (proved); Mathlib: [`Complex.partialGamma_add_one`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/SpecialFunctions/Gamma/Basic.html#Complex.partialGamma_add_one).
 - [8.8.E2](https://dlmf.nist.gov/8.8.E2): [upperIncGamma_add_one](AAR/Confluent/IncompleteGamma.lean#L194) (proved).
 - [8.8.E3](https://dlmf.nist.gov/8.8.E3): [incompleteGamma_threeTerm](AAR/IncompleteGamma/SeriesRecurrences.lean#L104) (proved).
 - [8.8.E4](https://dlmf.nist.gov/8.8.E4): [scIncGamma_recurrence](AAR/IncompleteGamma/Basic.lean#L83) (proved).
@@ -743,8 +743,8 @@ is not counted as a proved version of the incorrect universal claim.
 #### §8.17
 
 - [8.17.E1](https://dlmf.nist.gov/8.17.E1): [Real.incBeta](AAR/Statistical/IncompleteBeta.lean#L52) (definition); [incBeta_ofReal](AAR/IncompleteGamma/Beta.lean#L32) (proved).
-- [8.17.E2](https://dlmf.nist.gov/8.17.E2): [Real.normIncBetaI](AAR/Statistical/IncompleteBeta.lean#L57) (definition); [normIncBetaI_ofReal](AAR/IncompleteGamma/Beta.lean#L55) (proved).
-- [8.17.E3](https://dlmf.nist.gov/8.17.E3): Mathlib: [`Complex.betaIntegral_eq_Gamma_mul_div`](.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Gamma/Beta.lean#L537); see [the pointer comments](AAR/DLMF/MathlibCoverage.lean).
+- [8.17.E2](https://dlmf.nist.gov/8.17.E2): [Real.normIncBetaI](AAR/Statistical/IncompleteBeta.lean#L57) (definition); [normIncBetaI_ofReal](AAR/IncompleteGamma/Beta.lean#L55) (proved); TauCeti: [`TauCeti.regularizedIncompleteBeta_def_of_mem_Icc`](https://github.com/TauCetiProject/TauCeti/blob/5cdecf40e99d5a5ad0833afff31f5b007d68a149/TauCeti/Analysis/SpecialFunctions/IncompleteBeta.lean#L108).
+- [8.17.E3](https://dlmf.nist.gov/8.17.E3): Mathlib: [`Complex.betaIntegral_eq_Gamma_mul_div`](.lake/packages/mathlib/Mathlib/Analysis/SpecialFunctions/Gamma/Beta.lean#L537); see [the pointer comments](AAR/DLMF/MathlibCoverage.lean) (recorded with `dlmf_upstream`).
 - [8.17.E4](https://dlmf.nist.gov/8.17.E4): [Real.normIncBetaI_symm](AAR/Statistical/IncompleteBeta.lean#L107) (proved).
 - [8.17.E5](https://dlmf.nist.gov/8.17.E5): [Real.normIncBetaI_nat](AAR/Statistical/IncompleteBeta.lean#L276) (proved).
 - [8.17.E6](https://dlmf.nist.gov/8.17.E6): [normIncBetaI_quadratic](AAR/IncompleteGamma/Beta.lean#L139) (proved).

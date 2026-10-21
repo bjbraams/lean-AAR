@@ -5003,3 +5003,25 @@ statuses and module counts of the root acquisition ledgers from that dump.
   590 admissions and `olverQ_log_singular`, which is proved from the admitted
   `olverQ_log_singular_invGamma`. No other non-standard axiom occurs.
 - `git diff --check` is clean. No commit was made.
+
+## Upstream pointers (2026-10-21)
+
+The free-text notes recording DLMF results already in Mathlib or TauCeti are now 178 checked
+`dlmf_upstream` pointers (`AAR/DLMF/Upstream.lean`) in the `MathlibCoverage.lean` files of the
+DLMF, Gamma, Confluent, Hypergeometric, Bessel, Legendre, ParabolicCylinder, Elliptic and
+OrthogonalPolynomials areas and in `AAR/DLMF/UpstreamElementary.lean` (Chapters 4, 5, 24, 25).
+Each was compared with the live DLMF page (version 1.2.8) and the upstream statement, and
+carries a relation keyword. The comparison found three printed statements that fail at an edge
+case; the pointers record the upstream form as a special case:
+
+- 4.8.2, ln(z₁z₂) = ln z₁ + ln z₂ for −π ≤ ph z₁ + ph z₂ ≤ π, fails at ph z₁ + ph z₂ = −π
+  (z₁ = z₂ = −i gives iπ on the left and −iπ on the right).
+- 4.8.9, ln(exp z) = z for −π ≤ Im z ≤ π, fails at Im z = −π (z = −iπ gives iπ).
+- 24.4.7 at n = 0: with the sum printed from k = 1 the left side is m and the right side m + 1;
+  Mathlib's form sums from k = 0 with 0⁰ = 1 and holds for n = 0.
+
+The old note for `Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff` under Table 18.6.1 was not
+converted, because that table does not contain the result. No upstream declaration named in
+the old notes had been renamed or removed.
+
+Validation: the full build passes (9,891 jobs) with 590 `sorry` warnings, as before.

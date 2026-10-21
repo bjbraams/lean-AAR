@@ -851,3 +851,11 @@ improper integrals, and the `@[dlmf]` cross-reference attribute
 (`Mathlib/Tactic/CrossRefAttribute.lean`, by Damiano Testa), whose environment extension the
 dump script reads. The rotated-contour results reuse the project's
 `ToMathlib/Analysis/Asymptotics/WatsonRotated.lean`.
+
+## Upstream pointers (2026-10-21)
+
+The `dlmf_upstream` pointers record, without reproving them, results of Mathlib (172 pointers,
+among them the Gamma, Beta, digamma, Bernoulli, zeta, Hurwitz zeta, Chebyshev, Hermite,
+hypergeometric-series, AGM and Jacobi theta developments) and of TauCeti (6 pointers: real
+`erf`/`erfc`, the regularized incomplete Gamma and Beta functions, and the Beta integral in
+`TauCeti/Analysis/SpecialFunctions`). Ownership of those results stays with their libraries.

@@ -30,5 +30,6 @@ public import AAR.SphericalHarmonics
 public import AAR.QSeries
 public import AAR.Partitions
 public import AAR.Bailey
+public import AAR.DLMF.UpstreamElementary
 
 /-! # Special Functions following Andrews, Askey, and Roy (1999) -/

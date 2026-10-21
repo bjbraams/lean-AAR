@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 import Mathlib
 import ToMathlib
 import AAR
+import AAR.DLMF.Upstream
 
 /-!
 # Dump of all `@[dlmf]` cross-references
@@ -13,7 +14,11 @@ import AAR
 Writes every declaration carrying Mathlib's `@[dlmf REF "comment"]` attribute
 (`Mathlib/Tactic/CrossRefAttribute.lean`) in the imported environment to a JSON file, one
 entry per (DLMF reference, declaration) pair, with its project, module, source location and
-proof status. The status comes from the axiom audit (`Lean.collectAxioms`), not from the
+proof status. It also writes the checked pointers recorded with `dlmf_upstream`
+(`AAR/DLMF/Upstream.lean`) from DLMF items to untagged declarations of Mathlib or TauCeti:
+these entries have `"source": "pointer"` and name the module that recorded them in
+`recordedIn`; tagged entries have `"source": "tag"`. A pointer that duplicates a tag of the
+same declaration is omitted. The status comes from the axiom audit (`Lean.collectAxioms`), not from the
 source text: `proved` means only `propext`, `Classical.choice` and `Quot.sound` are used,
 `admitted` means `sorryAx` occurs in the transitive dependencies, and `nonstandard` means some
 other axiom (for example `Lean.ofReduceBool` from `native_decide`) occurs. For admitted
@@ -72,10 +77,10 @@ def projectInfo : IO Json := do
 def repoBase (url : String) : String :=
   if url.endsWith ".git" then (url.dropEnd 4).toString else url
 
-/-- One JSON entry for a DLMF cross-reference. -/
-def entry (info : Json) (t : Tag) : CoreM Json := do
+/-- One JSON entry for a DLMF cross-reference `tag` of the declaration `n`. -/
+def entry (info : Json) (n : Name) (tag comment source : String) (recordedIn : Option Name) :
+    CoreM Json := do
   let env ← getEnv
-  let n := t.declName
   let mod : Name := match env.getModuleIdxFor? n with
     | some i => env.header.moduleNames[i.toNat]!
     | none => .anonymous
@@ -110,9 +115,11 @@ def entry (info : Json) (t : Tag) : CoreM Json := do
       Json.str s!"https://leanprover-community.github.io/mathlib4_docs/{(modulePath mod).dropEnd 5}.html#{n}"
     else Json.null
   return Json.mkObj <| [
-    ("dlmf", Json.str t.tag),
-    ("dlmfUrl", Json.str (Database.dlmf.url t.tag)),
-    ("comment", Json.str t.comment),
+    ("dlmf", Json.str tag),
+    ("dlmfUrl", Json.str (Database.dlmf.url tag)),
+    ("comment", Json.str comment),
+    ("source", Json.str source),
+    ("recordedIn", match recordedIn with | some m => Json.str m.toString | none => Json.null),
     ("decl", Json.str n.toString),
     ("kind", Json.str kind),
     ("project", Json.str project),
@@ -133,6 +140,13 @@ def dlmfTags (env : Environment) : Array Tag :=
     |>.qsort fun a b => a.declName.toString < b.declName.toString ||
       (a.declName == b.declName && a.tag < b.tag)
 
+/-- All `dlmf_upstream` pointers with the module that recorded them. -/
+def upstreamPointers (env : Environment) : Array (AAR.DLMF.UpstreamPointer × Name) :=
+  let st := PersistentEnvExtension.getState AAR.DLMF.upstreamExt env
+  let imported := st.2.mapIdx fun i ps =>
+    ps.map fun p => (p, env.header.moduleNames[i]!)
+  imported.flatten ++ (st.1.toArray.map fun p => (p, env.mainModule))
+
 end DumpDLMF
 
 open DumpDLMF in
@@ -140,9 +154,13 @@ open DumpDLMF in
   let out := (← IO.getEnv "DLMF_DUMP_OUT").getD "dlmf-tags.json"
   let info ← projectInfo
   let tags := dlmfTags (← getEnv)
-  let entries ← tags.mapM (entry info)
+  let mut entries ← tags.mapM fun t => entry info t.declName t.tag t.comment "tag" none
+  for (p, m) in upstreamPointers (← getEnv) do
+    unless tags.any (fun t => t.declName == p.declName && t.tag == p.dlmf) do
+      entries := entries.push (← entry info p.declName p.dlmf p.comment "pointer" (some m))
   let count (p : Json → Bool) := (entries.filter p).size
   let summary := Json.mkObj [("entries", toJson entries.size),
+    ("pointers", toJson (count (·.getObjValD "source" == "pointer"))),
     ("proved", toJson (count (·.getObjValD "status" == "proved"))),
     ("admitted", toJson (count (·.getObjValD "status" == "admitted"))),
     ("nonstandard", toJson (count (·.getObjValD "status" == "nonstandard")))]

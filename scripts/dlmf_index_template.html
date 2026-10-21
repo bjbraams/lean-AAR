@@ -1,0 +1,349 @@
+<title>DLMF Formalization Index</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: a reference ledger. Chapters are rows with a coverage bar; each unfolds into
+   sections, and each section into equation keys with their formal declarations. */
+:root {
+  --paper: #f5f6f4;
+  --sheet: #ffffff;
+  --ink: #1a1f24;
+  --muted: #5b6570;
+  --rule: #d9ddd8;
+  --accent: #1d5d73;
+  --accent-soft: #e2edf0;
+  --proved: #2f7a4b;
+  --pfa: #8a7a1e;
+  --admitted: #b5651d;
+  --def: #5f5aa2;
+  --gap: #cfd4cf;
+  --font-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #13171a; --sheet: #1a1f23; --ink: #e5e9ec; --muted: #9aa5ae; --rule: #2c3338;
+    --accent: #7cc0d6; --accent-soft: #1f3138; --proved: #64c08a; --pfa: #cdb94f;
+    --admitted: #e39a52; --def: #a9a3ec; --gap: #3a4247; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #13171a; --sheet: #1a1f23; --ink: #e5e9ec; --muted: #9aa5ae; --rule: #2c3338;
+  --accent: #7cc0d6; --accent-soft: #1f3138; --proved: #64c08a; --pfa: #cdb94f;
+  --admitted: #e39a52; --def: #a9a3ec; --gap: #3a4247; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
+}
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.eyebrow b { color: var(--admitted); font-weight: 600; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 4.4vw, 40px);
+  line-height: 1.1; margin: 0; text-wrap: balance; }
+.lede { max-width: 66ch; margin: 0; color: var(--muted); }
+.snap { font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px;
+  background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.stat { background: var(--sheet); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .v { font-family: var(--font-display); font-size: 28px; font-weight: 600;
+  font-variant-numeric: tabular-nums; line-height: 1.15; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.search { flex: 1 1 260px; min-width: 0; display: flex; }
+.search input { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--rule);
+  border-radius: 5px; background: var(--sheet); color: var(--ink); }
+.seg { display: flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; padding: 7px 11px; border: 0; background: var(--sheet);
+  color: var(--ink); cursor: pointer; border-right: 1px solid var(--rule); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+.s-proved { background: var(--proved); } .s-pfa { background: var(--pfa); }
+.s-admitted { background: var(--admitted); } .s-def { background: var(--def); }
+.s-gap { background: var(--gap); }
+#list { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+details.ch { border-bottom: 1px solid var(--rule); }
+details.ch > summary, details.sec > summary { list-style: none; cursor: pointer; }
+details.ch > summary::-webkit-details-marker, details.sec > summary::-webkit-details-marker { display: none; }
+.chrow { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) minmax(120px, 220px) 7.5em;
+  gap: 12px; align-items: center; padding: 12px 4px; }
+.chnum { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.chtitle { font-family: var(--font-display); font-size: 18px; font-weight: 500; min-width: 0; }
+.chtitle small { display: block; font-family: var(--font-body); font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.empty .chtitle, .empty .chnum { color: var(--muted); }
+.bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--gap); min-width: 0; }
+.bar i { display: block; height: 100%; }
+.num { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); text-align: right;
+  font-variant-numeric: tabular-nums; }
+.chbody { padding: 0 0 14px 2.6em; display: flex; flex-direction: column; }
+details.sec { border-top: 1px dashed var(--rule); }
+.secrow { display: grid; grid-template-columns: 4.2em minmax(0, 1fr) minmax(90px, 160px) 7.5em;
+  gap: 12px; align-items: center; padding: 8px 4px; font-size: 14px; }
+.seckey { font-family: var(--font-mono); font-weight: 500; }
+.sectitle { color: var(--muted); min-width: 0; }
+.eqs { display: flex; flex-direction: column; padding: 2px 0 10px 4.2em; }
+.eq { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 10px; padding: 5px 0;
+  border-top: 1px solid var(--rule); font-size: 13.5px; }
+.eq:first-child { border-top: 0; }
+.eqid { font-family: var(--font-mono); font-weight: 500; white-space: nowrap; }
+.decls { display: flex; flex-wrap: wrap; gap: 4px 14px; min-width: 0; }
+.decl { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 100%; }
+.decl .sw { align-self: center; }
+.decl a { font-family: var(--font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
+.proj { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.proj.mathlib { color: var(--accent); font-weight: 600; }
+.ptr { font-size: 11px; color: var(--muted); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+.cmt { font-size: 12.5px; color: var(--muted); }
+.note { color: var(--muted); font-style: italic; }
+.results { display: flex; flex-direction: column; }
+.hint { color: var(--muted); font-size: 14px; padding: 12px 4px; }
+footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
+footer p { margin: 0; }
+code { font-family: var(--font-mono); font-size: 12.5px; }
+@media (max-width: 640px) {
+  .chrow { grid-template-columns: 2em minmax(0, 1fr) 6.5em; }
+  .chrow .bar { grid-column: 2 / 4; grid-row: 2; }
+  .secrow { grid-template-columns: 3.6em minmax(0, 1fr) 6.5em; }
+  .secrow .bar { grid-column: 2 / 4; grid-row: 2; }
+  .chbody { padding-left: 0; }
+  .eqs { padding-left: 0; }
+  .eq { grid-template-columns: 1fr; gap: 2px; }
+}
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width .2s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><b>Pilot</b> · unofficial · not affiliated with NIST</div>
+    <h1>DLMF Formalization Index</h1>
+    <p class="lede">Which equations of the NIST Digital Library of Mathematical Functions have a
+      formal counterpart in Lean, where it lives, and whether its proof is complete. Each key is a
+      DLMF permalink; each entry is a declaration tagged with Mathlib's <code>@[dlmf]</code>
+      attribute. Statuses come from the compiled axiom audit, not from the source text.</p>
+    <div class="snap" id="snap"></div>
+  </header>
+
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <div class="controls">
+    <label class="search" for="q"><input id="q" type="search" placeholder="Search a key (10.2, 13.11.E3) or a declaration name" autocomplete="off" aria-label="Search"></label>
+    <div class="seg" role="group" aria-label="Status filter" id="fstatus">
+      <button type="button" data-v="all" aria-pressed="true">All</button>
+      <button type="button" data-v="proved" aria-pressed="false">Proved</button>
+      <button type="button" data-v="admitted" aria-pressed="false">Statement only</button>
+      <button type="button" data-v="gap" aria-pressed="false">Not tagged</button>
+    </div>
+    <div class="seg" role="group" aria-label="Project filter" id="fproj">
+      <button type="button" data-v="all" aria-pressed="true">All projects</button>
+      <button type="button" data-v="Mathlib" aria-pressed="false">Mathlib</button>
+      <button type="button" data-v="TauCeti" aria-pressed="false">TauCeti</button>
+      <button type="button" data-v="AAR" aria-pressed="false">lean-AAR</button>
+    </div>
+  </div>
+
+  <div class="legend" aria-label="Legend">
+    <span><i class="sw s-proved"></i>proved</span>
+    <span><i class="sw s-pfa"></i>proved from admitted lemmas</span>
+    <span><i class="sw s-admitted"></i>statement only (admitted)</span>
+    <span><i class="sw s-def"></i>definition</span>
+    <span><i class="sw s-gap"></i>numbered equation without a tagged declaration</span>
+  </div>
+
+  <main id="list" aria-live="polite"></main>
+
+  <footer>
+    <p>A DLMF key counts once, by its best entry: proved, then proved from admitted lemmas, then
+      statement only, then definition. Within a key, Mathlib comes first, then TauCeti, then
+      lean-AAR. An upstream declaration marked <em>pointer</em> carries no <code>@[dlmf]</code>
+      tag itself; lean-AAR records the correspondence with its checked <code>dlmf_upstream</code>
+      command, which fails to build if the declaration disappears, and the note states how the
+      upstream statement relates to DLMF's. Section totals of numbered equations are shown only where
+      the lean-AAR project has enumerated a DLMF chapter (Chapters 6–9 and 11–14, and the section
+      counts recorded for 13 and 18), against DLMF version 1.2.8; elsewhere only tagged keys are
+      counted. Equation sub-labels such as <code>13.6.E11_1</code> count toward their equation.</p>
+    <p>Generated by <code>scripts/DumpDLMF.lean</code> and <code>scripts/dlmf_index_page.py</code>
+      in lean-AAR; the design is described in <code>DLMFIndex.md</code> there. TauCeti is
+      harvested only through the modules lean-AAR imports; the pinned revision carries no
+      <code>@[dlmf]</code> tags.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/null;
+const RANK = { proved: 0, pfa: 1, admitted: 2, def: 3, gap: 4 };
+const ST = ['proved', 'admitted', 'pfa', 'admitted'];
+const fmt = n => n.toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const state = { status: 'all', proj: 'all', q: '' };
+
+function rowStatus(r) { return r[3] === 1 ? 'def' : ST[r[2]]; }
+function rowsFor(id) {
+  const rows = D.ids[id] || [];
+  return state.proj === 'all' ? rows : rows.filter(r => D.projects[r[1]] === state.proj);
+}
+function keyStatus(id) {
+  const rows = rowsFor(id);
+  if (!rows.length) return 'gap';
+  return rows.map(rowStatus).sort((a, b) => RANK[a] - RANK[b])[0];
+}
+function passes(id) {
+  const s = keyStatus(id);
+  if (state.status === 'all') return s !== 'gap' || (state.proj === 'all' && !!D.notes[id]);
+  if (state.status === 'proved') return s === 'proved';
+  if (state.status === 'admitted') return s === 'admitted' || s === 'pfa';
+  return s === 'gap';
+}
+function baseId(id) { return id.replace(/_\d+$/, ''); }
+function secStats(sec) {
+  const c = { proved: 0, pfa: 0, admitted: 0, def: 0, gap: 0 };
+  const best = {};
+  for (const id of sec.ids) {
+    if (!/\.[ETF]\d+/.test(id)) continue;  // subsection keys are not numbered equations
+    const b = baseId(id), s = keyStatus(id);
+    if (!(b in best) || RANK[s] < RANK[best[b]]) best[b] = s;
+  }
+  for (const b in best) c[best[b]]++;
+  const tagged = c.proved + c.pfa + c.admitted + c.def;
+  const total = sec.count != null ? Math.max(sec.count, tagged) : null;
+  if (total != null) c.gap = total - tagged;
+  return { c, tagged, total, keys: sec.ids.filter(id => keyStatus(id) !== 'gap').length };
+}
+function sumStats(list) {
+  const c = { proved: 0, pfa: 0, admitted: 0, def: 0, gap: 0 };
+  let tagged = 0, total = 0, known = false, keys = 0;
+  for (const s of list) {
+    for (const k in c) c[k] += s.c[k];
+    tagged += s.tagged; keys += s.keys;
+    if (s.total != null) { total += s.total; known = true; } else total += s.tagged;
+  }
+  return { c, tagged, total: known ? total : null, keys };
+}
+function bar(st) {
+  const denom = (st.total != null ? st.total : st.tagged) || 1;
+  const segs = ['proved', 'pfa', 'admitted', 'def'].map(k =>
+    st.c[k] ? `<i class="s-${k}" style="width:${(100 * st.c[k] / denom).toFixed(2)}%"></i>` : '').join('');
+  return `<span class="bar" role="img" aria-label="${st.c.proved} proved, ${st.c.pfa} proved from admitted lemmas, ${st.c.admitted} statement only, ${st.c.def} definitions${st.total != null ? `, ${st.c.gap} not tagged` : ''}">${segs}</span>`;
+}
+function numText(st) {
+  return st.total != null ? `${fmt(st.c.proved + st.c.pfa)} / ${fmt(st.total)}` :
+    (st.tagged ? `${fmt(st.c.proved + st.c.pfa)} / ${fmt(st.tagged)}*` : '—');
+}
+function srcUrl(r) {
+  const p = D.projects[r[1]], repo = D.meta.repos[p], path = D.files[r[4]];
+  if (!repo || !repo.url || !path) return null;
+  return `${repo.url}/blob/${repo.rev}/${path}#L${r[5]}`;
+}
+function declHtml(r) {
+  const p = D.projects[r[1]], s = rowStatus(r), name = r[0];
+  const ptr = r[6] === 1, cmt = r[7] || '';
+  const short = name.split('.').slice(-1)[0];
+  const url = srcUrl(r);
+  const label = { proved: 'proved', pfa: 'proved from admitted lemmas', admitted: 'statement only', def: 'definition' }[s];
+  const doc = p === 'Mathlib' && D.files[r[4]] ?
+    ` <a class="proj mathlib" href="https://leanprover-community.github.io/mathlib4_docs/${esc(D.files[r[4]].replace(/\.lean$/, ''))}.html#${esc(name)}" target="_blank" rel="noopener">docs</a>` : '';
+  return `<span class="decl"><i class="sw s-${s}" title="${label}"></i>` +
+    (url ? `<a href="${esc(url)}" target="_blank" rel="noopener" title="${esc(name)} (${label})">${esc(short)}</a>` : `<span title="${esc(name)}">${esc(short)}</span>`) +
+    `<span class="proj ${p === 'Mathlib' ? 'mathlib' : ''}">${p === 'AAR' ? 'lean-AAR' : p}</span>${doc}` +
+    (ptr ? `<span class="ptr" title="Untagged upstream declaration; pointer recorded by lean-AAR in ${esc(r[8])}">pointer</span>` : '') +
+    (cmt ? `<span class="cmt">${esc(cmt)}</span>` : '') + `</span>`;
+}
+function eqHtml(id) {
+  const rows = rowsFor(id).slice().sort((a, b) => a[1] - b[1] || RANK[rowStatus(a)] - RANK[rowStatus(b)]);
+  const body = rows.length ? rows.map(declHtml).join('') :
+    `<span class="note">${esc(D.notes[id] || 'no tagged declaration')}</span>`;
+  return `<div class="eq"><a class="eqid" href="https://dlmf.nist.gov/${esc(id)}" target="_blank" rel="noopener">${esc(id)}</a><div class="decls">${body}</div></div>`;
+}
+function secHtml(sec, st) {
+  return `<details class="sec" data-sec="${esc(sec.key)}"><summary><div class="secrow">` +
+    `<span class="seckey">§${esc(sec.key)}</span><span class="sectitle">${esc(sec.title || '')}</span>` +
+    `${bar(st)}<span class="num">${numText(st)}</span></div></summary><div class="eqs"></div></details>`;
+}
+function render() {
+  const list = document.getElementById('list');
+  if (state.q) return renderSearch(list);
+  const parts = [];
+  for (const ch of D.chapters) {
+    const secs = ch.sections.map(s => ({ s, st: secStats(s) }));
+    const st = sumStats(secs.map(x => x.st));
+    const visible = secs.filter(x => x.s.ids.some(passes) || (state.status === 'gap' && x.st.c.gap > 0));
+    const empty = !st.keys;
+    const sub = empty ? 'no tagged declarations' :
+      `${fmt(st.keys)} keys tagged` + (st.total != null ? ` · ${fmt(st.total)} numbered equations enumerated` : '');
+    parts.push(`<details class="ch${empty ? ' empty' : ''}" id="ch-${ch.n}" data-ch="${ch.n}"><summary><div class="chrow">` +
+      `<span class="chnum">${ch.n}</span><span class="chtitle">${esc(ch.title)}<small>${sub}</small></span>` +
+      `${bar(st)}<span class="num">${numText(st)}</span></div></summary><div class="chbody">` +
+      (visible.length ? visible.map(x => secHtml(x.s, x.st)).join('') : '<div class="hint">Nothing in this chapter matches the filters.</div>') +
+      `</div></details>`);
+  }
+  list.innerHTML = parts.join('');
+  list.querySelectorAll('details.sec').forEach(d => d.addEventListener('toggle', () => {
+    if (!d.open) return;
+    const ch = D.chapters.find(c => String(c.n) === d.closest('details.ch').dataset.ch);
+    const sec = ch.sections.find(s => s.key === d.dataset.sec);
+    const ids = sec.ids.filter(passes);
+    d.querySelector('.eqs').innerHTML = ids.length ? ids.map(eqHtml).join('') :
+      `<div class="hint">${sec.count != null && state.status === 'gap' ? 'The untagged equations of this section are counted from the coverage table; they are not listed individually.' : 'No keys match the filters.'}</div>`;
+  }));
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (/^ch-\d+$/.test(h)) { const el = document.getElementById(h); if (el) el.open = true; }
+}
+function renderSearch(list) {
+  const q = state.q.toLowerCase();
+  const isKey = /^\d+(\.|$)/.test(q);
+  const all = Object.keys(D.ids).concat(Object.keys(D.notes));
+  let hits = all.filter(id => isKey ? id.toLowerCase().startsWith(q) || id.toLowerCase() === q :
+    (D.ids[id] || []).some(r => r[0].toLowerCase().includes(q)));
+  hits = [...new Set(hits)].filter(passes).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+  const shown = hits.slice(0, 400);
+  list.innerHTML = `<div class="hint">${fmt(hits.length)} key${hits.length === 1 ? '' : 's'} match${hits.length === 1 ? 'es' : ''}${hits.length > 400 ? '; the first 400 are shown' : ''}.</div>` +
+    `<div class="results">${shown.map(eqHtml).join('')}</div>`;
+}
+function initStats() {
+  const m = D.meta, s = m.summary;
+  const short = r => (r || '').slice(0, 7);
+  document.getElementById('snap').textContent =
+    `Snapshot: Mathlib ${short(m.repos.Mathlib.rev)} · TauCeti ${short(m.repos.TauCeti.rev)} · lean-AAR ${short(m.repos.AAR.rev)}`;
+  const items = [
+    [fmt(m.keys), 'DLMF keys with a tagged declaration'],
+    [fmt(s.entries), 'tagged declarations'],
+    [fmt(s.proved), 'proved (no sorryAx)'],
+    [fmt(s.admitted), 'statement only or depending on one'],
+    [`${fmt(m.byProject.Mathlib || 0)} · ${fmt(m.byProject.TauCeti || 0)} · ${fmt(m.byProject.AAR || 0)}`, `Mathlib · TauCeti · lean-AAR (${fmt(m.pointers || 0)} upstream pointers)`],
+  ];
+  document.getElementById('stats').innerHTML = items.map(([v, k]) =>
+    `<div class="stat"><span class="v">${v}</span><span class="k">${k}</span></div>`).join('');
+}
+function bindSeg(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    state[key] = b.dataset.v; render();
+  });
+}
+initStats();
+bindSeg('fstatus', 'status');
+bindSeg('fproj', 'proj');
+let t;
+document.getElementById('q').addEventListener('input', e => {
+  clearTimeout(t); t = setTimeout(() => { state.q = e.target.value.trim(); render(); }, 120);
+});
+window.addEventListener('hashchange', () => { if (!state.q) render(); });
+render();
+</script>

@@ -731,7 +731,7 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [12.14.E19](https://dlmf.nist.gov/12.14.E19): [`AAR.Confluent.pcfWOmega`](AAR/ParabolicCylinder/Weber.lean#L1311) (defined).
 - [12.14.E20](https://dlmf.nist.gov/12.14.E20): [`AAR.Confluent.pcfWS_asymptotic`](AAR/ParabolicCylinder/Weber.lean#L1446) (proved).
 - [12.14.E21](https://dlmf.nist.gov/12.14.E21): [`AAR.Confluent.pcfWS_asymptotic`](AAR/ParabolicCylinder/Weber.lean#L1446) (proved).
-- [12.14.E22](https://dlmf.nist.gov/12.14.E22): [`AAR.Confluent.pcfWCoeff`](AAR/ParabolicCylinder/Weber.lean#L1378) (defined); Gamma/Pochhammer identity: Mathlib `Complex.Gamma_add_nat_div_Gamma_eq`.
+- [12.14.E22](https://dlmf.nist.gov/12.14.E22): [`AAR.Confluent.pcfWCoeff`](AAR/ParabolicCylinder/Weber.lean#L1378) (defined); Gamma/Pochhammer identity: Mathlib `Complex.Gamma_add_nat_div_Gamma_eq` (recorded with `dlmf_upstream`).
 - [12.14.E23](https://dlmf.nist.gov/12.14.E23): [`AAR.Confluent.pcfWS_asymptotic`](AAR/ParabolicCylinder/Weber.lean#L1446) (proved).
 - [12.14.E24](https://dlmf.nist.gov/12.14.E24): [`AAR.Confluent.pcfW_parameter_scaling`](AAR/ParabolicCylinder/WeberUniform.lean#L24) (proved).
 - [12.14.E25](https://dlmf.nist.gov/12.14.E25): [`AAR.Confluent.pcfW_elementary_uniform`](AAR/ParabolicCylinder/WeberUniform.lean#L60) (admitted).
@@ -871,7 +871,7 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.7.E10](https://dlmf.nist.gov/14.7.E10): [`AAR.Legendre.ferrersP_nat_order_rodrigues`](AAR/Legendre/IntegerTheory.lean#L124) (proved).
 - [14.7.E11](https://dlmf.nist.gov/14.7.E11): [`AAR.Legendre.associatedP_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L1046) (proved).
 - [14.7.E12](https://dlmf.nist.gov/14.7.E12): [`AAR.Legendre.associatedQ_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L1152) (proved).
-- [14.7.E13](https://dlmf.nist.gov/14.7.E13): Mathlib `Polynomial.factorial_mul_shiftedLegendre_eq`; see the [upstream pointer](AAR/Legendre/IntegerTheory.lean).
+- [14.7.E13](https://dlmf.nist.gov/14.7.E13): Mathlib `Polynomial.factorial_mul_shiftedLegendre_eq`; see the [upstream pointer](AAR/Legendre/IntegerTheory.lean) (recorded with `dlmf_upstream`).
 - [14.7.E14](https://dlmf.nist.gov/14.7.E14): [`AAR.Legendre.associatedP_nat_order_rodrigues`](AAR/Legendre/IntegerTheory.lean#L156) (proved).
 - [14.7.E15](https://dlmf.nist.gov/14.7.E15): [`AAR.Legendre.associatedP_equal_nat_order`](AAR/Legendre/IntegerTheory.lean#L168) (proved).
 - [14.7.E16](https://dlmf.nist.gov/14.7.E16): [`AAR.Legendre.ferrersP_order_gt_degree`](AAR/Legendre/IntegerTheory.lean#L191) (proved); [`AAR.Legendre.associatedP_order_gt_degree`](AAR/Legendre/IntegerTheory.lean#L203) (proved).

@@ -26,6 +26,7 @@ public import AAR.Bessel.YIntegralRep
 public import AAR.Bessel.YSchlafli
 public import AAR.Bessel.WeberSeries
 public import AAR.Bessel.Zeros
+public import AAR.Bessel.MathlibCoverage
 
 /-!
 # Bessel functions (AAR Chapter 4, §§4.5–4.15; DLMF Chapter 10)

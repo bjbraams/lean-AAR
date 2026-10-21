@@ -37,6 +37,7 @@ public import AAR.Legendre.Laplace
 public import AAR.Legendre.Neumann
 public import AAR.Legendre.Recurrences
 public import AAR.Legendre.SecondKind
+public import AAR.Legendre.MathlibCoverage
 
 /-!
 # Legendre and related functions (Temme Chapter 8; DLMF Chapter 14)

@@ -19,6 +19,7 @@ public import AAR.ParabolicCylinder.Hermite
 public import AAR.ParabolicCylinder.BarnesContinuation
 public import AAR.ParabolicCylinder.Basic
 public import AAR.ParabolicCylinder.Relations
+public import AAR.ParabolicCylinder.MathlibCoverage
 
 /-!
 # Parabolic cylinder U/V/D and oscillatory W functions

@@ -13,6 +13,7 @@ public import AAR.Elliptic.SpecialValues
 public import AAR.Elliptic.Theta
 public import AAR.Elliptic.ThirdKind
 public import AAR.Elliptic.ThetaAGM
+public import AAR.Elliptic.MathlibCoverage
 
 /-!
 # Elliptic integrals and elliptic functions (Temme Chapter 12; DLMF Chapters 19, 20, 22)

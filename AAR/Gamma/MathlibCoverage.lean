@@ -5,120 +5,112 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.DLMF.Upstream
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 public import Mathlib.NumberTheory.Harmonic.EulerMascheroni
+public import TauCeti.Analysis.SpecialFunctions.Beta
 
 /-!
 # DLMF Chapter 5 results already in Mathlib 4.35.0-rc2
 
-The following statement excerpts are deliberately commented out: the declarations
-belong to Mathlib. Variables implicit in the excerpts retain their upstream context.
-DLMF tags are included in the commented excerpts; Mathlib’s cross-reference
-attribute cannot modify documentation on imported declarations.
+The `dlmf_upstream` commands below are checked pointers to Mathlib (and TauCeti)
+declarations, deliberately not duplicate local theorems; Mathlib's cross-reference
+attribute cannot modify documentation on imported declarations. Mathlib's `Complex.Gamma`
+is `0` at the poles `0, -1, -2, …` and `Complex.digamma = logDeriv Gamma` is therefore `0`
+there as well.
 -/
 
-public section
+-- Euler's integral.
+dlmf_upstream 5.2.E1 Complex.Gamma_eq_integral
+  "exact: Re z > 0; Mathlib's GammaIntegral s is ∫₀^∞ e^{-t} t^{s-1} dt"
+dlmf_upstream 5.2.E1 Real.Gamma_eq_integral "special case: real z > 0"
 
-/- Already in Mathlib: Euler's integral.
-@[dlmf 5.2.E1]
-theorem Gamma_eq_integral {s : ℂ} (hs : 0 < s.re) :
-    Gamma s = ∫ t : ℝ in Set.Ioi 0, exp (-t) * (t : ℂ) ^ (s - 1)
--/
--- Mathlib: Complex.Gamma_eq_integral, Real.Gamma_eq_integral
+-- Digamma as logarithmic derivative; the project's real form is `Real.digamma`.
+dlmf_upstream 5.2.E2 Complex.digamma
+  "different convention: ψ = logDeriv Γ, totalized to 0 at z = 0, -1, -2, …"
 
-/- Already in Mathlib: digamma as logarithmic derivative.
-@[dlmf 5.2.E2]
-def digamma : ℂ → ℂ := logDeriv Gamma
--/
--- Mathlib: Complex.digamma; project real form: Real.digamma
+-- Euler–Mascheroni constant.
+dlmf_upstream 5.2.E3 Real.tendsto_harmonic_sub_log
+  "partial: the limit H_n - ln n → γ, with γ = Real.eulerMascheroniConstant; the decimal \
+  value is not formalized (numerical, out of scope)"
 
-/- Already in Mathlib: Euler–Mascheroni constant.
-@[dlmf 5.2.E3]
-def eulerMascheroniConstant : ℝ
--/
--- Mathlib: Real.eulerMascheroniConstant
+-- `(a)_n = Γ(a+n)/Γ(a)` at regular `a`.
+dlmf_upstream 5.2.E5 Complex.Gamma_add_nat_div_Gamma_eq
+  "exact: a ≠ 0, -1, -2, …; (a)_n is (ascPochhammer ℂ n).eval a"
 
-/- Already in Mathlib: `(a)_n = Γ(a+n)/Γ(a)` at regular `a`.
-@[dlmf 5.2.E5]
-theorem Gamma_add_nat_div_Gamma_eq {n : ℕ} (z : ℂ) (hz : ∀ k : ℕ, z ≠ -k) :
-    Gamma (z + n) / Gamma z = (ascPochhammer ℂ n).eval z
--/
--- Mathlib: Complex.Gamma_add_nat_div_Gamma_eq
+-- `Γ(1) = 1` and `Γ(n+1) = n!`.
+dlmf_upstream 5.4.E1 Complex.Gamma_one "partial: first equality Γ(1) = 1"
+dlmf_upstream 5.4.E1 Complex.Gamma_nat_eq_factorial "partial: second equality n! = Γ(n+1)"
+dlmf_upstream 5.4.E1 Real.Gamma_one "partial: first equality, real Gamma"
+dlmf_upstream 5.4.E1 Real.Gamma_nat_eq_factorial "partial: second equality, real Gamma"
 
-/- Already in Mathlib: `Γ(1) = 1` and `Γ(n+1) = n!`.
-@[dlmf 5.4.E1]
-theorem Gamma_one : Gamma 1 = 1
-theorem Gamma_nat_eq_factorial (n : ℕ) : Gamma (n + 1) = n !
--/
--- Mathlib: Complex.Gamma_one, Complex.Gamma_nat_eq_factorial (and real analogues)
+-- `Γ(1/2) = √π`.
+dlmf_upstream 5.4.E6 Complex.Gamma_one_half_eq
+  "partial: Γ(1/2) = π^{1/2}; the decimal value is not formalized (numerical, out of scope)"
+dlmf_upstream 5.4.E6 Real.Gamma_one_half_eq
+  "partial: Γ(1/2) = √π for the real Gamma; the decimal value is out of scope"
 
-/- Already in Mathlib: `Γ(1/2) = √π`.
-@[dlmf 5.4.E6]
-theorem Gamma_one_half_eq : Gamma (1 / 2) = √π
--/
--- Mathlib: Complex.Gamma_one_half_eq, Real.Gamma_one_half_eq
+-- `ψ(1) = -γ`; project: `Real.digamma_one`.
+dlmf_upstream 5.4.E12 Complex.digamma_one
+  "partial: ψ(1) = -γ; the decimal value is not formalized (numerical, out of scope)"
 
-/- Already in Mathlib: `ψ(1) = -γ`.
-@[dlmf 5.4.E12]
-theorem digamma_one : digamma 1 = -eulerMascheroniConstant
--/
--- Mathlib: Complex.digamma_one; project: Real.digamma_one
+-- `ψ(1/2) = -γ - 2 ln 2`; project: `digamma_one_div_two`.
+dlmf_upstream 5.4.E13 Complex.digamma_one_half
+  "partial: ψ(1/2) = -γ - 2 ln 2; the decimal value is not formalized (numerical, out of scope)"
 
-/- Already in Mathlib: recurrence.
-@[dlmf 5.5.E1]
-theorem Gamma_add_one (s : ℂ) (h : s ≠ 0) : Gamma (s + 1) = s * Gamma s
--/
--- Mathlib: Complex.Gamma_add_one, Real.Gamma_add_one
+-- Recurrence.
+dlmf_upstream 5.5.E1 Complex.Gamma_add_one
+  "exact: z ≠ 0; at the other poles both sides are Mathlib's totalized value 0"
+dlmf_upstream 5.5.E1 Real.Gamma_add_one "special case: real z ≠ 0"
 
-/- Already in Mathlib: digamma recurrence.
-@[dlmf 5.5.E2]
-theorem digamma_apply_add_one (s : ℂ) (hs : ∀ m : ℕ, s ≠ -m) :
-    digamma (s + 1) = digamma s + s⁻¹
--/
--- Mathlib: Complex.digamma_apply_add_one; project: Real.digamma_add_one
+-- Digamma recurrence; project: `Real.digamma_add_one`.
+dlmf_upstream 5.5.E2 Complex.digamma_apply_add_one "exact: z ≠ 0, -1, -2, …"
 
-/- Already in Mathlib: Euler reflection.
-@[dlmf 5.5.E3]
-theorem Gamma_mul_Gamma_one_sub (z : ℂ) :
-    Gamma z * Gamma (1 - z) = π / sin (π * z)
--/
--- Mathlib: Complex.Gamma_mul_Gamma_one_sub, Real.Gamma_mul_Gamma_one_sub
+-- Euler reflection.
+dlmf_upstream 5.5.E3 Complex.Gamma_mul_Gamma_one_sub
+  "exact: stated for all z; at the integers both sides are Mathlib's totalized value 0"
+dlmf_upstream 5.5.E3 Real.Gamma_mul_Gamma_one_sub "special case: real z"
 
-/- Already in Mathlib: digamma reflection.
-@[dlmf 5.5.E4]
-theorem digamma_one_sub (s : ℂ) :
-    digamma (1 - s) = digamma s + π * cot (π * s)
--/
--- Mathlib: Complex.digamma_one_sub (equivalent form)
+-- Digamma reflection.
+dlmf_upstream 5.5.E4 Complex.digamma_one_sub
+  "exact: z ∉ ℤ, in the rearranged form ψ(1-z) = ψ(z) + π cot(πz)"
 
-/- Already in Mathlib: Legendre duplication.
-@[dlmf 5.5.E5]
-theorem Gamma_mul_Gamma_add_half (s : ℂ) :
-    Gamma s * Gamma (s + 1 / 2) = Gamma (2 * s) * 2 ^ (1 - 2 * s) * √π
--/
--- Mathlib: Complex.Gamma_mul_Gamma_add_half (equivalent to the DLMF form)
+-- Legendre duplication.
+dlmf_upstream 5.5.E5 Complex.Gamma_mul_Gamma_add_half
+  "exact: rearranged as Γ(z)Γ(z+1/2) = Γ(2z) 2^{1-2z} √π; stated for all z, both sides \
+  are Mathlib's totalized value 0 when 2z ∈ -ℕ"
+dlmf_upstream 5.5.E5 Real.Gamma_mul_Gamma_add_half "special case: real z, rearranged form"
 
-/- Already in Mathlib: digamma duplication.
-@[dlmf 5.5.E8]
-theorem digamma_two_mul (s : ℂ) :
-    digamma (2 * s) = (1 / 2) * (digamma s + digamma (s + 1 / 2)) + log 2
--/
--- Mathlib: Complex.digamma_two_mul; project real rearrangement: digamma_add_digamma_add_half
+-- Digamma duplication; project real rearrangement: `digamma_add_digamma_add_half`.
+dlmf_upstream 5.5.E8 Complex.digamma_two_mul "exact: 2z ≠ 0, -1, -2, …"
 
-/- Already in Mathlib: Gauss's product/limit.
-@[dlmf 5.8.E1]
-theorem GammaSeq_tendsto_Gamma (s : ℂ) :
-    Tendsto (fun n : ℕ => GammaSeq s n) atTop (𝓝 (Gamma s))
--/
--- Mathlib: Complex.GammaSeq_tendsto_Gamma, Real.GammaSeq_tendsto_Gamma
+-- Gauss's product/limit.
+dlmf_upstream 5.8.E1 Complex.GammaSeq_tendsto_Gamma
+  "exact: GammaSeq z k = k^z k!/(z(z+1)⋯(z+k)); stated for all z, both sides totalized to 0 \
+  at the poles"
+dlmf_upstream 5.8.E1 Real.GammaSeq_tendsto_Gamma "special case: real z"
 
-/- Already in Mathlib: Beta integral and Gamma quotient.
-@[dlmf 5.12.E1]
-def betaIntegral (u v : ℂ) : ℂ
-theorem Gamma_mul_Gamma_eq_betaIntegral {s t : ℂ} (hs : 0 < re s) (ht : 0 < re t) :
-    Gamma s * Gamma t = Gamma (s + t) * betaIntegral s t
--/
--- Mathlib: Complex.betaIntegral, Complex.Gamma_mul_Gamma_eq_betaIntegral
--- Project: selberg_integral_one
+-- Beta integral and Gamma quotient; project: `selberg_integral_one`.
+dlmf_upstream 5.12.E1 Complex.betaIntegral
+  "partial: the first equality, B(a,b) as the Euler integral; the interval integral is \
+  Bochner-totalized for Re a ≤ 0 or Re b ≤ 0"
+dlmf_upstream 5.12.E1 Complex.betaIntegral_eq_Gamma_mul_div
+  "exact: Re a > 0, Re b > 0 (both equalities, with Complex.betaIntegral as the integral)"
+dlmf_upstream 5.12.E1 Complex.Gamma_mul_Gamma_eq_betaIntegral
+  "partial: second equality in the form Γ(a)Γ(b) = Γ(a+b) B(a,b), Re a > 0, Re b > 0"
+dlmf_upstream 5.12.E1 TauCeti.integral_rpow_mul_one_sub_rpow
+  "special case: real a, b > 0, with B = ProbabilityTheory.beta, the Gamma quotient"
+
+/-! ### Further Chapter 5 statements in Mathlib -/
+
+-- §5.2(i): analytic properties of `Γ` and `1/Γ`.
+dlmf_upstream 5.2.i Complex.Gamma_ne_zero
+  "partial: Γ has no zeros, z ∉ {0, -1, -2, …} (Mathlib's totalized value at the poles is 0)"
+dlmf_upstream 5.2.i Complex.differentiable_one_div_Gamma "partial: 1/Γ is entire"
+
+-- §5.5(iv): the Bohr–Mollerup theorem.
+dlmf_upstream 5.5.iv Real.eq_Gamma_of_log_convex
+  "exact: a positive f on (0,∞) with f(x+1) = x f(x), f(1) = 1 and ln f convex equals Γ there"

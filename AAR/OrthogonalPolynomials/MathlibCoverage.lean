@@ -5,346 +5,124 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import AAR.DLMF.Upstream
 public import AAR.OrthogonalPolynomials.Classical
 public import AAR.QSeries.Identities
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.RingTheory.Polynomial.Hermite.Gaussian
+public import Mathlib.RingTheory.Polynomial.ShiftedLegendre
 
 /-!
 # DLMF Chapter 18 results already in Mathlib 4.35.0-rc2
 
-The following statement excerpts are deliberately commented out: the declarations
-belong to Mathlib. Variables implicit in the excerpts retain their upstream context.
-DLMF tags are included in the commented excerpts; Mathlib’s cross-reference
-attribute cannot modify documentation on imported declarations. Some polynomial normalizations differ; notably
-Mathlib's shifted Legendre is `P_n(1 - 2x)`, and `hermite` is the probabilists' family.
+The `dlmf_upstream` commands below are checked pointers to Mathlib declarations,
+deliberately not duplicate local theorems; Mathlib's cross-reference attribute cannot modify
+documentation on imported declarations. Some polynomial normalizations differ; notably
+Mathlib's shifted Legendre is `P_n(1 - 2x)`, and `hermite` is the probabilists' family `He_n`.
+Mathlib's Chebyshev polynomials `T R n`, `U R n` are indexed by `n : ℤ` over a commutative ring.
+
+DLMF items that Mathlib already tags with `@[dlmf]` get no pointer here: 18.5.1
+(`T_real_cos`, `T_real_cosh`; also `T_complex_cos`), 18.5.2 (`U_real_cos`, `U_real_cosh`; also
+`U_complex_cos`), 18.9.9 (`two_mul_T_eq_U_sub_U`; also `U_eq_two_mul_T_add_U`), 18.9.21
+(`T_derivative_eq_U`) and 18.18.21 (`T_mul_T`).
+
+`Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff` (`|T_n(x)| = 1` iff `x = cos(kπ/n)`) was
+formerly listed under Table 18.6.1, which does not contain it; it has no DLMF pointer.
+
+DLMF 18.1(i) repeats the q-Pochhammer definitions from Chapter 17; the single project
+definitions `qPochhammer`, `qPochhammerInf` are in AAR/QSeries/Pochhammer.lean. DLMF 18.28.13
+is the Laurent form `qGegenbauer` already defined in AAR/QSeries/Identities.lean.
 -/
 
-public section
+/- §18.1(ii): the rescaled Chebyshev polynomials `C_n`, `S_n`. -/
+dlmf_upstream 18.1.E3 Polynomial.Chebyshev.C_eq_two_mul_T_comp_half_mul_X
+  "partial: first equality C_n(x) = 2T_n(x/2), over a ring with 2 invertible, n ∈ ℤ"
+dlmf_upstream 18.1.E3 Polynomial.Chebyshev.S_eq_U_comp_half_mul_X
+  "partial: second equality S_n(x) = U_n(x/2), over a ring with 2 invertible, n ∈ ℤ"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.C_eq_two_mul_T_comp_half_mul_X`.
-@[dlmf 18.1.E3]
-theorem C_eq_two_mul_T_comp_half_mul_X [Invertible (2 : R)] (n : ℤ) :
-    C R n = 2 * (T R n).comp (Polynomial.C ⅟2 * X)
--/
--- Mathlib: Polynomial.Chebyshev.C_eq_two_mul_T_comp_half_mul_X
+/- Table 18.3.1: leading coefficients and the Chebyshev-T orthogonality data. -/
+dlmf_upstream 18.3.T1 Polynomial.Chebyshev.leadingCoeff_T
+  "partial: k_n of T_n (2^{n-1} for n > 0, 1 for n = 0), over a domain with 2 ≠ 0"
+dlmf_upstream 18.3.T1 Polynomial.Chebyshev.leadingCoeff_U_natCast
+  "partial: k_n = 2^n of U_n, over a domain with 2 ≠ 0"
+dlmf_upstream 18.3.T1 Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne
+  "partial: orthogonality of T_n on (-1,1) with weight (1-x²)^{-1/2} (measureT)"
+dlmf_upstream 18.3.T1 Polynomial.Chebyshev.integral_eval_T_real_mul_self_measureT_zero
+  "partial: h_0 = π for T_n"
+dlmf_upstream 18.3.T1 Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero
+  "partial: h_n = π/2 for T_n, n > 0"
+dlmf_upstream 18.3.T1 Polynomial.leadingCoeff_hermite
+  "partial: k_n = 1 of He_n (Mathlib's hermite, over ℤ)"
+dlmf_upstream 18.3.T1 Polynomial.hermite_monic
+  "partial: k_n = 1 of He_n, as monicity"
+dlmf_upstream 18.3.T1 Polynomial.degree_hermite
+  "partial: He_n has degree n (implicit in the k_n column)"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.S_eq_U_comp_half_mul_X`.
-@[dlmf 18.1.E3]
-theorem S_eq_U_comp_half_mul_X [Invertible (2 : R)] (n : ℤ) :
-    S R n = (U R n).comp (Polynomial.C ⅟2 * X)
--/
--- Mathlib: Polynomial.Chebyshev.S_eq_U_comp_half_mul_X
+/- Explicit representations and the first polynomials (§18.5). -/
+dlmf_upstream 18.5.E7 Polynomial.coeff_shiftedLegendre
+  "special case: α = β = 0 of the first sum, in the variable t = (1-x)/2; Mathlib's \
+  shiftedLegendre n is P_n(1-2t), with coefficient (-1)^k C(n,k) C(n+k,n)"
+dlmf_upstream 18.5.E14 Polynomial.Chebyshev.T_zero "partial: T_0(x) = 1"
+dlmf_upstream 18.5.E14 Polynomial.Chebyshev.T_one "partial: T_1(x) = x"
+dlmf_upstream 18.5.E14 Polynomial.Chebyshev.T_two "partial: T_2(x) = 2x² - 1"
+dlmf_upstream 18.5.E15 Polynomial.Chebyshev.U_zero "partial: U_0(x) = 1"
+dlmf_upstream 18.5.E15 Polynomial.Chebyshev.U_one "partial: U_1(x) = 2x"
+dlmf_upstream 18.5.E15 Polynomial.Chebyshev.U_two "partial: U_2(x) = 4x² - 1"
+dlmf_upstream 18.5.E19 Polynomial.hermite_zero "partial: He_0(x) = 1"
+dlmf_upstream 18.5.E19 Polynomial.hermite_one "partial: He_1(x) = x"
+dlmf_upstream 18.5.E19 Polynomial.coeff_hermite
+  "stronger: the general coefficient formula of He_n, from which the listed He_0, …, He_6 follow"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.leadingCoeff_T`.
-@[dlmf 18.3.T1]
-theorem leadingCoeff_T [IsDomain R] [NeZero (2 : R)] (n : ℤ) :
-    (T R n).leadingCoeff = 2 ^ (n.natAbs - 1)
--/
--- Mathlib: Polynomial.Chebyshev.leadingCoeff_T
+/- Table 18.5.1: Rodrigues formula for `He_n` (w = e^{-x²/2}, F = 1, κ_n = (-1)^n). -/
+dlmf_upstream 18.5.T1 Polynomial.hermite_eq_deriv_gaussian
+  "partial: He_n row, He_n(x) = (-1)^n e^{x²/2} dⁿ/dxⁿ e^{-x²/2}, real x"
+dlmf_upstream 18.5.T1 Polynomial.deriv_gaussian_eq_hermite_mul_gaussian
+  "partial: He_n row, in the form dⁿ/dxⁿ e^{-x²/2} = (-1)^n He_n(x) e^{-x²/2}"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.leadingCoeff_U_natCast`.
-@[dlmf 18.3.T1]
-theorem leadingCoeff_U_natCast [IsDomain R] [NeZero (2 : R)] (n : ℕ) :
-    (U R n).leadingCoeff = 2 ^ n
--/
--- Mathlib: Polynomial.Chebyshev.leadingCoeff_U_natCast
+/- Table 18.6.1: symmetry and special values. -/
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.T_eval_one "partial: T_n(1) = 1, n ∈ ℤ"
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.T_eval_neg_one
+  "partial: T_n(-1) = (-1)^n, combining the p_n(-x) and p_n(1) entries of the T_n row"
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.T_eval_neg "partial: T_n(-x) = (-1)^n T_n(x), n ∈ ℤ"
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.U_eval_one "partial: U_n(1) = n + 1, n ∈ ℤ"
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.U_eval_neg_one
+  "partial: U_n(-1) = (-1)^n (n+1), combining the p_n(-x) and p_n(1) entries of the U_n row"
+dlmf_upstream 18.6.T1 Polynomial.Chebyshev.U_eval_neg "partial: U_n(-x) = (-1)^n U_n(x), n ∈ ℕ"
+dlmf_upstream 18.6.T1 Polynomial.coeff_hermite_of_odd_add
+  "partial: He_n(-x) = (-1)^n He_n(x), in the equivalent coefficient form (coefficients of \
+  parity opposite to n vanish)"
+dlmf_upstream 18.6.T1 Polynomial.shiftedLegendre_eval_symm
+  "different convention: P_n(-x) = (-1)^n P_n(x) in the shifted variable, \
+  P̃_n(x) = (-1)^n P̃_n(1-x) with P̃_n(x) = P_n(1-2x)"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.T_zero`.
-@[dlmf 18.5.E14]
-theorem T_zero : T R 0 = 1
--/
--- Mathlib: Polynomial.Chebyshev.T_zero
+/- Table 18.8.1: differential equations. -/
+dlmf_upstream 18.8.T1 Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T
+  "partial: T_n row, (1-x²)T_n'' = xT_n' - n²T_n as a polynomial identity, n ∈ ℤ"
+dlmf_upstream 18.8.T1 Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U
+  "partial: U_n row, (1-x²)U_n'' = 3xU_n' - n(n+2)U_n as a polynomial identity, n ∈ ℤ"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.T_one`.
-@[dlmf 18.5.E14]
-theorem T_one : T R 1 = X
--/
--- Mathlib: Polynomial.Chebyshev.T_one
+/- Table 18.9.1 and §18.9(ii): recurrences and contiguous relations. -/
+dlmf_upstream 18.9.T1 Polynomial.Chebyshev.T_add_two
+  "partial: T_n row, T_{n+2} = 2xT_{n+1} - T_n, n ∈ ℤ"
+dlmf_upstream 18.9.T1 Polynomial.Chebyshev.U_add_two
+  "partial: U_n row, U_{n+2} = 2xU_{n+1} - U_n, n ∈ ℤ"
+dlmf_upstream 18.9.E10 Polynomial.Chebyshev.one_sub_X_sq_mul_U_eq_pol_in_T
+  "exact: in the equivalent form (1-x²)U_n = xT_{n+1} - T_{n+2}, which with T_add_two is \
+  -(T_{n+2} - T_n)/2; n ∈ ℤ"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.T_two`.
-@[dlmf 18.5.E14]
-theorem T_two : T R 2 = 2 * X ^ 2 - 1
--/
--- Mathlib: Polynomial.Chebyshev.T_two
+/- §18.14(i): the bound `|T_n(x)| ≤ 1` is (18.14.1) for α = β = -1/2, since
+`T_n = P_n^{(-1/2,-1/2)} / P_n^{(-1/2,-1/2)}(1)`. -/
+dlmf_upstream 18.14.E1 Polynomial.Chebyshev.abs_eval_T_real_le_one
+  "special case: α = β = -1/2, normalized as |T_n(x)| ≤ T_n(1) = 1 on [-1,1], n ∈ ℤ"
 
-/- Already in Mathlib: `Polynomial.Chebyshev.U_zero`.
-@[dlmf 18.5.E15]
-theorem U_zero : U R 0 = 1
--/
--- Mathlib: Polynomial.Chebyshev.U_zero
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_one`.
-@[dlmf 18.5.E15]
-theorem U_one : U R 1 = 2 * X
--/
--- Mathlib: Polynomial.Chebyshev.U_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_two`.
-@[dlmf 18.5.E15]
-theorem U_two : U R 2 = 4 * X ^ 2 - 1
--/
--- Mathlib: Polynomial.Chebyshev.U_two
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_eval_one`.
-@[dlmf 18.6.T1]
-theorem T_eval_one (n : ℤ) : (T R n).eval 1 = 1
--/
--- Mathlib: Polynomial.Chebyshev.T_eval_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_eval_neg_one`.
-@[dlmf 18.6.T1]
-theorem T_eval_neg_one (n : ℤ) : (T R n).eval (-1) = n.negOnePow
--/
--- Mathlib: Polynomial.Chebyshev.T_eval_neg_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_eval_neg`.
-@[dlmf 18.6.T1]
-theorem T_eval_neg (n : ℤ) (x : R) : (T R n).eval (-x) = n.negOnePow * (T R n).eval x
--/
--- Mathlib: Polynomial.Chebyshev.T_eval_neg
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_eval_one`.
-@[dlmf 18.6.T1]
-theorem U_eval_one (n : ℤ) : (U R n).eval 1 = n + 1
--/
--- Mathlib: Polynomial.Chebyshev.U_eval_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_eval_neg_one`.
-@[dlmf 18.6.T1]
-theorem U_eval_neg_one (n : ℤ) : (U R n).eval (-1) = n.negOnePow * (n + 1)
--/
--- Mathlib: Polynomial.Chebyshev.U_eval_neg_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_eval_neg`.
-@[dlmf 18.6.T1]
-theorem U_eval_neg (n : ℕ) (x : R) : (U R n).eval (-x) = (n : ℤ).negOnePow * (U R n).eval x
--/
--- Mathlib: Polynomial.Chebyshev.U_eval_neg
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_add_two`.
-@[dlmf 18.9.T1]
-theorem T_add_two : ∀ n, T R (n + 2) = 2 * X * T R (n + 1) - T R n
-  | (k : ℕ) => T.eq_3 R k
-  | -(k + 1 : ℕ) => by linear_combination (norm
--/
--- Mathlib: Polynomial.Chebyshev.T_add_two
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_add_two`.
-@[dlmf 18.9.T1]
-theorem U_add_two : ∀ n, U R (n + 2) = 2 * X * U R (n + 1) - U R n
-  | (k : ℕ) => U.eq_3 R k
-  | -(k + 1 : ℕ) => by linear_combination (norm
--/
--- Mathlib: Polynomial.Chebyshev.U_add_two
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_eq_two_mul_T_add_U`.
-@[dlmf 18.9.E9]
-theorem U_eq_two_mul_T_add_U (n : ℤ) : U R (n + 2) = 2 * T R (n + 2) + U R n
--/
--- Mathlib: Polynomial.Chebyshev.U_eq_two_mul_T_add_U
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_derivative_eq_U`.
-@[dlmf 18.9.E21]
-theorem T_derivative_eq_U (n : ℤ) : derivative (T R n) = n * U R (n - 1)
--/
--- Mathlib: Polynomial.Chebyshev.T_derivative_eq_U
-
-/- Already in Mathlib: `Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T`.
-@[dlmf 18.8.T1]
-theorem one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T (n : ℤ) :
-    (1 - X ^ 2) * derivative^[2] (T R n) = X * derivative (T R n) - (n ^ 2 : R[X]) * T R n
--/
--- Mathlib: Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_T_eq_poly_in_T
-
-/- Already in Mathlib: `Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U`.
-@[dlmf 18.8.T1]
-theorem one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U (n : ℤ) :
-    (1 - X ^ 2) * derivative^[2] (U R n) =
-      3 * X * derivative (U R n) - ((n + 2) * n : R[X]) * U R n
--/
--- Mathlib: Polynomial.Chebyshev.one_sub_X_sq_mul_derivative_derivative_U_eq_poly_in_U
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_mul_T`.
-@[dlmf 18.18.E21]
-theorem T_mul_T (m k : ℤ) : 2 * T R m * T R k = T R (m + k) + T R (m - k)
--/
--- Mathlib: Polynomial.Chebyshev.T_mul_T
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_real_cos`.
-@[dlmf 18.5.E1]
-theorem T_real_cos : (T ℝ n).eval (cos θ) = cos (n * θ)
--/
--- Mathlib: Polynomial.Chebyshev.T_real_cos
-
-/- Already in Mathlib: `Polynomial.Chebyshev.T_complex_cos`.
-@[dlmf 18.5.E1]
-theorem T_complex_cos (n : ℤ) : (T ℂ n).eval (cos θ) = cos (n * θ)
--/
--- Mathlib: Polynomial.Chebyshev.T_complex_cos
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_real_cos`.
-@[dlmf 18.5.E2]
-theorem U_real_cos : (U ℝ n).eval (cos θ) * sin θ = sin ((n + 1) * θ)
--/
--- Mathlib: Polynomial.Chebyshev.U_real_cos
-
-/- Already in Mathlib: `Polynomial.Chebyshev.U_complex_cos`.
-@[dlmf 18.5.E2]
-theorem U_complex_cos (n : ℤ) : (U ℂ n).eval (cos θ) * sin θ = sin ((n + 1) * θ)
--/
--- Mathlib: Polynomial.Chebyshev.U_complex_cos
-
-/- Already in Mathlib: `Polynomial.Chebyshev.roots_T_real`.
-@[dlmf 18.16.iii]
-theorem roots_T_real (n : ℕ) :
-    (T ℝ n).roots =
-    ((Finset.range n).image (fun (k : ℕ) => cos ((2 * k + 1) * π / (2 * n)))).val
--/
--- Mathlib: Polynomial.Chebyshev.roots_T_real
-
-/- Already in Mathlib: `Polynomial.Chebyshev.roots_U_real`.
-@[dlmf 18.16.iii]
-theorem roots_U_real (n : ℕ) :
-    (U ℝ n).roots =
-    ((Finset.range n).image (fun (k : ℕ) => cos ((k + 1) * π / (n + 1)))).val
--/
--- Mathlib: Polynomial.Chebyshev.roots_U_real
-
-/- Already in Mathlib: `Polynomial.Chebyshev.rootMultiplicity_T_real`.
-@[dlmf 18.16.iii]
-theorem rootMultiplicity_T_real {n k : ℕ} (hk : k < n) :
-    (T ℝ n).rootMultiplicity (cos ((2 * k + 1) * π / (2 * n))) = 1
--/
--- Mathlib: Polynomial.Chebyshev.rootMultiplicity_T_real
-
-/- Already in Mathlib: `Polynomial.Chebyshev.rootMultiplicity_U_real`.
-@[dlmf 18.16.iii]
-theorem rootMultiplicity_U_real {n k : ℕ} (hk : k < n) :
-    (U ℝ n).rootMultiplicity (cos ((k + 1) * π / (n + 1))) = 1
--/
--- Mathlib: Polynomial.Chebyshev.rootMultiplicity_U_real
-
-/- Already in Mathlib: `Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff`.
-@[dlmf 18.6.T1]
-theorem abs_eval_T_real_eq_one_iff {n : ℕ} (hn : n ≠ 0) (x : ℝ) :
-    |(T ℝ n).eval x| = 1 ↔ ∃ k ≤ n, x = cos (k * π / n)
--/
--- Mathlib: Polynomial.Chebyshev.abs_eval_T_real_eq_one_iff
-
-/- Already in Mathlib: `Polynomial.Chebyshev.abs_eval_T_real_le_one`.
-@[dlmf 18.14.i]
-theorem abs_eval_T_real_le_one (n : ℤ) {x : ℝ} (hx : |x| ≤ 1) :
-    |(T ℝ n).eval x| ≤ 1
--/
--- Mathlib: Polynomial.Chebyshev.abs_eval_T_real_le_one
-
-/- Already in Mathlib: `Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne`.
-@[dlmf 18.3.T1]
-theorem integral_eval_T_real_mul_eval_T_real_measureT_of_ne {n m : ℕ} (h : n ≠ m) :
-    ∫ x, (T ℝ n).eval x * (T ℝ m).eval x ∂measureT = 0
--/
--- Mathlib: Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne
-
-/- Already in Mathlib: `Polynomial.Chebyshev.integral_eval_T_real_mul_self_measureT_zero`.
-@[dlmf 18.3.T1]
-theorem integral_eval_T_real_mul_self_measureT_zero :
-    ∫ x, (T ℝ 0).eval x * (T ℝ 0).eval x ∂measureT = π
--/
--- Mathlib: Polynomial.Chebyshev.integral_eval_T_real_mul_self_measureT_zero
-
-/- Already in Mathlib: `Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero`.
-@[dlmf 18.3.T1]
-theorem integral_T_real_mul_self_measureT_of_ne_zero {n : ℕ} (hn : n ≠ 0) :
-    ∫ x, (T ℝ n).eval x * (T ℝ n).eval x ∂measureT = π / 2
--/
--- Mathlib: Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero
-
-/- Already in Mathlib: `Polynomial.degree_hermite`.
-@[dlmf 18.3.T1]
-theorem degree_hermite (n : ℕ) : (hermite n).degree = n
--/
--- Mathlib: Polynomial.degree_hermite
-
-/- Already in Mathlib: `Polynomial.hermite_monic`.
-@[dlmf 18.3.T1]
-theorem hermite_monic (n : ℕ) : (hermite n).Monic
--/
--- Mathlib: Polynomial.hermite_monic
-
-/- Already in Mathlib: `Polynomial.leadingCoeff_hermite`.
-@[dlmf 18.3.T1]
-theorem leadingCoeff_hermite (n : ℕ) : (hermite n).leadingCoeff = 1
--/
--- Mathlib: Polynomial.leadingCoeff_hermite
-
-/- Already in Mathlib: `Polynomial.hermite_zero`.
-@[dlmf 18.5.E19]
-theorem hermite_zero : hermite 0 = C 1
--/
--- Mathlib: Polynomial.hermite_zero
-
-/- Already in Mathlib: `Polynomial.hermite_one`.
-@[dlmf 18.5.E19]
-theorem hermite_one : hermite 1 = X
--/
--- Mathlib: Polynomial.hermite_one
-
-/- Already in Mathlib: `Polynomial.coeff_hermite`.
-@[dlmf 18.5.E19]
-theorem coeff_hermite (n k : ℕ) :
-    coeff (hermite n) k =
-      if Even (n + k) then (-1 : ℤ) ^ ((n - k) / 2) * (n - k - 1)‼ * Nat.choose n k else 0
--/
--- Mathlib: Polynomial.coeff_hermite
-
-/- Already in Mathlib: `Polynomial.coeff_hermite_of_odd_add`.
-@[dlmf 18.6.T1]
-theorem coeff_hermite_of_odd_add {n k : ℕ} (hnk : Odd (n + k)) : coeff (hermite n) k = 0
--/
--- Mathlib: Polynomial.coeff_hermite_of_odd_add
-
-/- Already in Mathlib: `Polynomial.deriv_gaussian_eq_hermite_mul_gaussian`.
-@[dlmf 18.5.T1]
-theorem deriv_gaussian_eq_hermite_mul_gaussian (n : ℕ) (x : ℝ) :
-    deriv^[n] (fun y => Real.exp (-(y ^ 2 / 2))) x =
-    (-1 : ℝ) ^ n * aeval x (hermite n) * Real.exp (-(x ^ 2 / 2))
--/
--- Mathlib: Polynomial.deriv_gaussian_eq_hermite_mul_gaussian
-
-/- Already in Mathlib: `Polynomial.hermite_eq_deriv_gaussian`.
-@[dlmf 18.5.T1]
-theorem hermite_eq_deriv_gaussian (n : ℕ) (x : ℝ) : aeval x (hermite n) =
-    (-1 : ℝ) ^ n * deriv^[n] (fun y => Real.exp (-(y ^ 2 / 2))) x / Real.exp (-(x ^ 2 / 2))
--/
--- Mathlib: Polynomial.hermite_eq_deriv_gaussian
-
-/- Already in Mathlib: `Polynomial.coeff_shiftedLegendre`.
-@[dlmf 18.5.E7]
-theorem coeff_shiftedLegendre (n k : ℕ) :
-    (shiftedLegendre n).coeff k = (-1) ^ k * n.choose k * (n + k).choose n
--/
--- Mathlib: Polynomial.coeff_shiftedLegendre
-
-/- Already in Mathlib: `Polynomial.shiftedLegendre_eval_symm`.
-@[dlmf 18.6.T1]
-lemma shiftedLegendre_eval_symm (n : ℕ) {R : Type*} [Ring R] (x : R) :
-    aeval x (shiftedLegendre n) = (-1) ^ n * aeval (1 - x) (shiftedLegendre n)
--/
--- Mathlib: Polynomial.shiftedLegendre_eval_symm
-
-/- DLMF 18.1(i) repeats the q-Pochhammer definitions from Chapter 17.
-These are already in our QSeries home; retain a single definition. -/
--- @[dlmf 18.1.i] def qPochhammer — see AAR/QSeries/Pochhammer.lean
--- @[dlmf 18.1.i] def qPochhammerInf — see AAR/QSeries/Pochhammer.lean
-
-/- DLMF 18.28.13 is the Laurent form already defined in QSeries/Identities. -/
--- @[dlmf 18.28.E13] def qGegenbauer — see AAR/QSeries/Identities.lean
-
-/- Already in Mathlib: `Polynomial.Chebyshev.one_sub_X_sq_mul_U_eq_pol_in_T`.
-Together with `Polynomial.Chebyshev.T_add_two`, this is DLMF 18.9.10.
-@[dlmf 18.9.E10]
-theorem one_sub_X_sq_mul_U_eq_pol_in_T (n : ℤ) :
-    (1 - X ^ 2) * U R n = X * T R (n + 1) - T R (n + 2)
--/
--- Mathlib: Polynomial.Chebyshev.one_sub_X_sq_mul_U_eq_pol_in_T
+/- §18.16(iii): the zeros of the Chebyshev polynomials can be read from (18.5.1)–(18.5.4). -/
+dlmf_upstream 18.16.iii Polynomial.Chebyshev.roots_T_real
+  "partial: zeros cos((2k+1)π/(2n)), k < n, of T_n, as the root multiset"
+dlmf_upstream 18.16.iii Polynomial.Chebyshev.roots_U_real
+  "partial: zeros cos((k+1)π/(n+1)), k < n, of U_n, as the root multiset"
+dlmf_upstream 18.16.iii Polynomial.Chebyshev.rootMultiplicity_T_real
+  "partial: the zeros of T_n are simple"
+dlmf_upstream 18.16.iii Polynomial.Chebyshev.rootMultiplicity_U_real
+  "partial: the zeros of U_n are simple"
