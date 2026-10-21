@@ -3,6 +3,11 @@ version = "0.1.0"
 defaultTargets = ["Main"]
 buildDir = ".lake/build-AAR"
 
+[leanOptions]
+# Mathlib convention: undeclared names in statements are errors, not auto-bound implicits.
+autoImplicit = false
+relaxedAutoImplicit = false
+
 [[lean_lib]]
 name = "Main"
 roots = ["AAR", "ToMathlib"]

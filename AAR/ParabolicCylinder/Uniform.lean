@@ -752,11 +752,8 @@ theorem pcf_oscillatory_parameter_uniform  :
 def IsCylinderGBarNormalizer (g : ℝ → ℂ) : Prop :=
   ∀ N : ℕ, (fun μ : ℝ => g μ*μ*Real.sqrt 2*pcfH μ-1-1/2*∑ j ∈ Finset.range N, (-1)^(j+1)*pcfGammaCoeff (j+1)/(μ^2/2:ℂ)^(j+1)) =O[atTop] (fun μ : ℝ => (μ:ℂ)^(-(2*(N+1):ℤ)))
 
-/-- pcf positive parameter uniform. -/
-@[dlmf 12.10.E25, dlmf 12.10.E29]
-theorem pcf_positive_parameter_uniform  :
-    ∃ g : ℝ → ℂ, IsCylinderGBarNormalizer g ∧ HasCylinderUniformExpansion (fun μ t => pcfU (μ^2/2) (μ*t*Real.sqrt 2)/(g μ*exp (-μ^2*pcfXiBar t)/(t^2+1:ℂ)^(1/4:ℂ))) (fun s t => pcfOlverUBar s t/(t^2+1:ℂ)^(3*(s:ℂ)/2)) univ ∧ HasCylinderUniformExpansion (fun μ t => pcfUDeriv (μ^2/2) (μ*t*Real.sqrt 2)/(-(μ:ℂ)/Real.sqrt 2*g μ*(t^2+1:ℂ)^(1/4:ℂ)*exp (-μ^2*pcfXiBar t))) (fun s t => pcfOlverVBar s t/(t^2+1:ℂ)^(3*(s:ℂ)/2)) univ := by
-  sorry
+-- `pcf_positive_parameter_uniform` (DLMF 12.10.25, 12.10.29) is stated and proved in
+-- `AAR/ParabolicCylinder/UniformLG2.lean`.
 
 /-- pcfTau. -/
 @[dlmf 12.10.E32]
@@ -844,11 +841,8 @@ theorem pcfTemmePoly_recurrence (s : ℕ) (τ : ℝ) :
   rw [hint, pcfTemmePoly]
   simp [q]
 
-/-- pcfU temme uniform. -/
-@[dlmf 12.10.E31]
-theorem pcfU_temme_uniform {δ : ℝ} (hδ : 0 < δ) :
-    HasCylinderUniformExpansion (fun μ t => pcfU (-μ^2/2) (μ*t*Real.sqrt 2)/(pcfH μ*exp (-μ^2*pcfXi t)/(t^2-1:ℂ)^(1/4:ℂ))) (fun s t => (((pcfTemmePoly s).eval (pcfTau t):ℝ):ℂ)) (Ici (1+δ)) := by
-  sorry
+-- `pcfU_temme_uniform` (DLMF 12.10.31) is stated and proved in
+-- `AAR/ParabolicCylinder/UniformLG2.lean`.
 
 /-- pcfZeta. -/
 @[dlmf 12.10.E39]

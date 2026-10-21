@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.ErrorFunctions.Relations
+public import AAR.IncompleteGamma.FractionTools
 public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 
@@ -95,19 +96,192 @@ theorem Real.dawsonF_normalized_strictAnti  :
 @[dlmf 7.9.E1]
 theorem erfc_continuedFraction_one {z : ℂ} (hz : 0 < z.re) :
     HasContinuedFraction (fun k => if k=0 then z else (k : ℂ)/2) (fun k => if Even k then z^2 else 1) (Real.sqrt π*exp (z^2)*erfc z) := by
-  sorry
+  have hz0 : z ≠ 0 := fun h => by simp [h] at hz
+  have hw : z ^ 2 ∈ slitPlane := by
+    rw [mem_slitPlane_iff]
+    by_cases hi : z.im = 0
+    · left
+      have : (z ^ 2).re = z.re ^ 2 := by simp [sq, hi]
+      rw [this]; positivity
+    · right
+      have : (z ^ 2).im = 2 * z.re * z.im := by simp [sq]; ring
+      rw [this]; exact mul_ne_zero (mul_ne_zero two_ne_zero hz.ne') hi
+  have hc : ∀ k : ℕ, 1 ≤ k → (k : ℂ) / 2 = (incGF_c (1/2) k : ℂ) := by
+    intro k _
+    unfold incGF_c
+    split_ifs with h
+    · have : (k : ℂ) = ((k / 2 : ℕ) : ℂ) * 2 + 1 := by
+        have : k = k / 2 * 2 + 1 := by omega
+        exact_mod_cast this
+      rw [this]; push_cast; ring
+    · have : (k : ℂ) = ((k / 2 : ℕ) : ℂ) * 2 := by
+        have : k = k / 2 * 2 := by omega
+        exact_mod_cast this
+      rw [this]; push_cast; ring
+  rw [incGF_hasContinuedFraction_iff (fun k hk => by
+    simp only [show k ≠ 0 by omega, ↓reduceIte]
+    exact div_ne_zero (Nat.cast_ne_zero.mpr (by omega)) two_ne_zero)]
+  have h := incGF_formB_tendsto (α := 1/2) (by norm_num) z hw
+    (a := fun k => if k=0 then z else (k : ℂ)/2) (by simp)
+    (fun k hk => by simp only [show k ≠ 0 by omega, ↓reduceIte]; exact hc k hk)
+  convert h using 2
+  have hp : (Real.sqrt π : ℂ) ≠ 0 := by
+    exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  rw [erfc_upperIncGamma hz, sq_cpow_of_re_pos hz]
+  push_cast
+  rw [show (2 : ℂ) * -(1/2) = -1 by norm_num, cpow_neg_one]
+  field_simp
 
 /-- erfc continuedFraction two. -/
 @[dlmf 7.9.E2]
 theorem erfc_continuedFraction_two {z : ℂ} (hz : 0 < z.re) :
     HasContinuedFraction (fun k => if k=0 then 2*z else -(2*k-1 : ℂ)*(2*k)) (fun k => 2*z^2+4*k+1) (Real.sqrt π*exp (z^2)*erfc z) := by
-  sorry
+  set a1 : ℕ → ℂ := fun k => if k=0 then z else (k : ℂ)/2 with ha1
+  set b1 : ℕ → ℂ := fun k => if Even k then z^2 else 1 with hb1
+  set a2 : ℕ → ℂ := fun k => if k=0 then 2*z else -(2*k-1 : ℂ)*(2*k) with ha2
+  set b2 : ℕ → ℂ := fun k => 2*z^2+4*k+1 with hb2
+  have h1 := erfc_continuedFraction_one hz
+  have hn1 : ∀ k, 1 ≤ k → a1 k ≠ 0 := fun k hk => by
+    simp only [a1, show k ≠ 0 by omega, ↓reduceIte]
+    exact div_ne_zero (Nat.cast_ne_zero.mpr (by omega)) two_ne_zero
+  have hn2 : ∀ k, 1 ≤ k → a2 k ≠ 0 := fun k hk => by
+    simp only [a2, show k ≠ 0 by omega, ↓reduceIte]
+    refine mul_ne_zero (neg_ne_zero.mpr ?_) (mul_ne_zero two_ne_zero
+      (Nat.cast_ne_zero.mpr (by omega)))
+    intro h
+    have : (2 * k - 1 : ℂ) = ((2 * k - 1 : ℕ) : ℂ) := by
+      rw [Nat.cast_sub (by omega)]; push_cast; ring
+    rw [this, Nat.cast_eq_zero] at h
+    omega
+  -- the even contraction of the continuants
+  have hb1o : ∀ n : ℕ, b1 (2 * n + 1) = 1 := fun n => by
+    have : ¬ Even (2 * n + 1) := Nat.not_even_iff_odd.mpr (odd_two_mul_add_one n)
+    simp only [b1, this, ↓reduceIte]
+  have hb1e : ∀ n : ℕ, b1 (2 * n + 2) = z ^ 2 := fun n => by
+    simp only [b1, show Even (2 * n + 2) from ⟨n + 1, by ring⟩, ↓reduceIte]
+  have hcontr : ∀ X : ℕ → ℂ, (∀ m, X (m + 2) = b1 (m + 1) * X (m + 1) + a1 (m + 1) * X m) →
+      ∀ n, X (2 * n + 4) = (z ^ 2 + a1 (2 * n + 2) + a1 (2 * n + 3)) * X (2 * n + 2)
+        - a1 (2 * n + 1) * a1 (2 * n + 2) * X (2 * n) := by
+    intro X hX n
+    have E1 : X (2 * n + 4) = b1 (2 * (n + 1) + 1) * X (2 * n + 3)
+        + a1 (2 * n + 3) * X (2 * n + 2) := hX (2 * n + 2)
+    have E2 : X (2 * n + 3) = b1 (2 * n + 2) * X (2 * n + 2)
+        + a1 (2 * n + 2) * X (2 * n + 1) := hX (2 * n + 1)
+    have E3 : X (2 * n + 2) = b1 (2 * n + 1) * X (2 * n + 1)
+        + a1 (2 * n + 1) * X (2 * n) := hX (2 * n)
+    rw [hb1o] at E1 E3
+    rw [hb1e] at E2
+    linear_combination E1 + E2 - a1 (2 * n + 2) * E3
+  have ha1v : ∀ n : ℕ, a1 (n + 1) = ((n : ℂ) + 1) / 2 := fun n => by
+    simp only [a1, Nat.succ_ne_zero, ↓reduceIte]; push_cast; ring
+  have key : ∀ X Y : ℕ → ℂ, (∀ m, X (m + 2) = b1 (m + 1) * X (m + 1) + a1 (m + 1) * X m) →
+      (∀ m, Y (m + 2) = b2 (m + 1) * Y (m + 1) + a2 (m + 1) * Y m) →
+      Y 0 = X 0 → Y 1 = 2 * X 2 → ∀ N, Y N = 2 ^ N * X (2 * N) := by
+    intro X Y hX hY h0 h1' N
+    induction N using Nat.strong_induction_on with
+    | _ N ih =>
+      rcases N with _ | _ | n
+      · simpa using h0
+      · simpa using h1'
+      · rw [hY n, ih (n + 1) (by omega), ih n (by omega),
+          show 2 * (n + 2) = 2 * n + 4 by ring, hcontr X hX n,
+          show 2 * (n + 1) = 2 * n + 2 by ring]
+        rw [show 2 * n + 2 = (2 * n + 1) + 1 by ring, show 2 * n + 3 = (2 * n + 2) + 1 by ring,
+          ha1v, ha1v, show 2 * n + 1 = (2 * n) + 1 by ring, ha1v]
+        simp only [b2, a2, Nat.succ_ne_zero, ↓reduceIte]
+        push_cast
+        ring
+  set g1 := GenContFract.cfConv_ofFun (0 : ℂ) a1 b1
+  set g2 := GenContFract.cfConv_ofFun (0 : ℂ) a2 b2
+  have hX : ∀ m, g1.nums (m + 2) = b1 (m + 1) * g1.nums (m + 1) + a1 (m + 1) * g1.nums m :=
+    GenContFract.cfConv_nums_step 0 a1 b1
+  have hXd : ∀ m, g1.dens (m + 2) = b1 (m + 1) * g1.dens (m + 1) + a1 (m + 1) * g1.dens m :=
+    GenContFract.cfConv_dens_step 0 a1 b1
+  have hNum := key _ _ hX (GenContFract.cfConv_nums_step 0 a2 b2) rfl (by
+      rw [GenContFract.cfConv_nums_one, show g1.nums 2 = g1.nums (0 + 2) from rfl, hX,
+        GenContFract.cfConv_nums_one, GenContFract.cfConv_nums_zero]
+      simp [a1, a2, b1, b2])
+  have hDen := key _ _ hXd (GenContFract.cfConv_dens_step 0 a2 b2) (by
+      simp [g1, g2, GenContFract.cfConv_dens_zero]) (by
+      rw [GenContFract.cfConv_dens_one, show g1.dens 2 = g1.dens (0 + 2) from rfl, hXd,
+        GenContFract.cfConv_dens_one, GenContFract.cfConv_dens_zero]
+      simp [a1, a2, b1, b2]; ring)
+  have htail : ∀ N, AAR.DLMF.cfTail a2 b2 0 N = AAR.DLMF.cfTail a1 b1 0 (2 * N) := by
+    intro N
+    rw [incGF_cfTail_eq hn2, incGF_cfTail_eq hn1]
+    change g2.nums N / g2.dens N = g1.nums (2 * N) / g1.dens (2 * N)
+    rw [hNum, hDen, mul_div_mul_left _ _ (pow_ne_zero _ two_ne_zero)]
+  unfold HasContinuedFraction at h1 ⊢
+  rw [show AAR.DLMF.cfTail a2 b2 0 = fun N => AAR.DLMF.cfTail a1 b1 0 (2 * N) from funext htail]
+  exact h1.comp (tendsto_atTop_mono (fun n => show n ≤ 2 * n by omega) tendsto_id)
 
 /-- faddeevaW continuedFraction. -/
 @[dlmf 7.9.E3]
 theorem faddeevaW_continuedFraction {z : ℂ} (hz : 0 < z.im) :
     HasContinuedFraction (fun k => if k=0 then I/Real.sqrt π else -(k : ℂ)/2) (fun _ => z) (faddeevaW z) := by
-  sorry
+  set ζ : ℂ := -I * z with hζ
+  have hζre : 0 < ζ.re := by simp [ζ, hz]
+  have hζ0 : ζ ≠ 0 := fun h => by simp [h] at hζre
+  have hp : (Real.sqrt π : ℂ) ≠ 0 := by
+    exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  set a1 : ℕ → ℂ := fun k => if k=0 then ζ else (k : ℂ)/2 with ha1
+  set b1 : ℕ → ℂ := fun k => if Even k then ζ^2 else 1 with hb1
+  set aE : ℕ → ℂ := fun k => if k=0 then I else -(k : ℂ)/2 with haE
+  have h1 := erfc_continuedFraction_one hζre
+  rw [incGF_hasContinuedFraction_iff (fun k hk => by
+    simp only [show k ≠ 0 by omega, ↓reduceIte]
+    exact div_ne_zero (Nat.cast_ne_zero.mpr (by omega)) two_ne_zero)] at h1
+  rw [incGF_hasContinuedFraction_iff (fun k hk => by
+    simp only [show k ≠ 0 by omega, ↓reduceIte]
+    exact div_ne_zero (neg_ne_zero.mpr (Nat.cast_ne_zero.mpr (by omega))) two_ne_zero)]
+  set r : ℕ → ℂ := fun k => if Even k then I / ζ else I * ζ with hr
+  have hr0 : ∀ k, r k ≠ 0 := fun k => by
+    simp only [r]; split_ifs
+    · exact div_ne_zero I_ne_zero hζ0
+    · exact mul_ne_zero I_ne_zero hζ0
+  have hIζ : I * ζ = z := by simp only [ζ]; ring_nf; rw [I_sq]; ring
+  have hEa : aE = fun k => (if k = 0 then r 0 else r (k - 1) * r k) * a1 k := by
+    funext k
+    rcases k with _ | j
+    · simp only [aE, a1, r, ↓reduceIte, show Even 0 from ⟨0, rfl⟩]; field_simp
+    · simp only [aE, a1, r, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
+      rcases Nat.even_or_odd j with hj | hj
+      · have hj' : ¬ Even (j + 1) := Nat.not_even_iff_odd.mpr hj.add_one
+        simp only [hj, hj', ↓reduceIte]
+        field_simp
+        rw [I_sq]
+      · have hj' : Even (j + 1) := hj.add_one
+        have hj2 : ¬ Even j := Nat.not_even_iff_odd.mpr hj
+        simp only [hj2, hj', ↓reduceIte]
+        field_simp
+        rw [I_sq]
+  have hEb : (fun _ : ℕ => z) = fun k => r k * b1 k := by
+    funext k
+    simp only [r, b1]
+    split_ifs
+    · rw [← hIζ]; field_simp
+    · rw [mul_one, hIζ]
+  have hconv : ∀ n, (GenContFract.cfConv_ofFun 0
+      (fun k => if k=0 then I/Real.sqrt π else -(k : ℂ)/2) (fun _ => z)).convs n =
+      (Real.sqrt π : ℂ)⁻¹ * (GenContFract.cfConv_ofFun 0 a1 b1).convs n := by
+    intro n
+    have e : (fun k : ℕ => if k=0 then I/Real.sqrt π else -(k : ℂ)/2) =
+        fun k : ℕ => if k = 0 then (Real.sqrt π : ℂ)⁻¹ * aE 0 else aE k := by
+      funext k
+      split_ifs with hk
+      · simp [aE, div_eq_inv_mul]
+      · simp [aE, hk]
+    rw [e, GenContFract.cfConv_convs_smul_a0, hEa, hEb, GenContFract.cfConv_equiv_convs r hr0]
+  rw [show (GenContFract.cfConv_ofFun 0
+      (fun k => if k=0 then I/Real.sqrt π else -(k : ℂ)/2) (fun _ => z)).convs =
+      fun n => (Real.sqrt π : ℂ)⁻¹ * (GenContFract.cfConv_ofFun 0 a1 b1).convs n from
+      funext hconv]
+  convert h1.const_mul ((Real.sqrt π : ℂ)⁻¹) using 2
+  simp only [faddeevaW, ζ]
+  field_simp
+  ring_nf
+  rw [I_sq]
+  ring_nf
 
 /-- The Gaussian kernel along a ray. -/
 lemma norm_cexp_neg_ofReal_mul_exp_ofReal_mul_I_sq (r y : ℝ) :

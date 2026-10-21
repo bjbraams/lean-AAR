@@ -14,6 +14,8 @@ public import AAR.Struve.Coefficients
 public import AAR.Struve.Basic
 public import AAR.Struve.Poisson
 public import AAR.Struve.Properties
+public import AAR.Struve.AsymptoticTools
+public import AAR.Struve.TurningTools
 
 /-!
 # Struve, Lommel and Anger–Weber functions

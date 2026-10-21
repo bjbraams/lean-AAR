@@ -30,6 +30,7 @@ public import AAR.Confluent.Coulomb
 public import AAR.Confluent.CoulombAsymptotics
 public import AAR.Confluent.CoulombIrregular
 public import AAR.Confluent.Zeros
+public import AAR.Confluent.KummerDecay
 public import AAR.Confluent.Integrals
 public import AAR.Confluent.Series
 public import AAR.Confluent.ProductsAddition

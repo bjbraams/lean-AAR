@@ -14,6 +14,8 @@ public import AAR.IncompleteGamma.Asymptotics
 public import AAR.IncompleteGamma.Representations
 public import AAR.IncompleteGamma.SeriesRecurrences
 public import AAR.IncompleteGamma.BoundsFractions
+public import AAR.IncompleteGamma.RealIntegrals
+public import AAR.IncompleteGamma.FractionTools
 
 /-!
 # Incomplete Gamma and related functions: DLMF Chapter 8

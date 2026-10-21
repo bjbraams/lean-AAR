@@ -6,6 +6,8 @@ public import AAR.ErrorFunctions.Series
 public import AAR.ErrorFunctions.InverseGeneralized
 public import AAR.ErrorFunctions.Repeated
 public import AAR.ErrorFunctions.Voigt
+public import AAR.ErrorFunctions.IntegralTools
+public import AAR.ErrorFunctions.ZeroTools
 public import AAR.ErrorFunctions.Zeros
 public import AAR.ErrorFunctions.Integrals
 public import AAR.ErrorFunctions.BoundsAsymptotics

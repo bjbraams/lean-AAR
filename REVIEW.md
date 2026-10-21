@@ -5025,3 +5025,244 @@ converted, because that table does not contain the result. No upstream declarati
 the old notes had been renamed or removed.
 
 Validation: the full build passes (9,891 jobs) with 590 `sorry` warnings, as before.
+
+## Round 6 (2026-10-21)
+
+Six parallel agents with file-level ownership, plus integration; 590 → 509 (81 admissions
+proved, none added). No statement was changed by the agents. The Struve agent found four statements
+that are false as formalized (below); all four were then corrected with the user's agreement
+(11.11.3 is proved; 11.11.6, 11.11.18 and 11.11.19 remain admitted in corrected form).
+
+New modules:
+
+- `ToMathlib/Analysis/ODE/LiouvilleGreenFinite.lean`: Liouville–Green solutions controlled from
+  a finite endpoint with error bounds, dominant (`lg2_exists_solution_expansion_exp_dom`) and
+  oscillatory (`lg2_exists_solution_expansion_osc`), with their Wronskian and the
+  linear-combination lemma.
+- `ToMathlib/Analysis/Complex/StarPrimitive.lean`: a primitive of a holomorphic function on a
+  star-convex open set (`Complex.starPrim`, `starPrim_hasDerivAt`).
+- `AAR/Confluent/KummerDecay.lean`: 13.7.2 for 𝐌(a, b, −t), 13.2.23, and the decay bound
+  ‖𝐌(a, b, −t)‖ ≤ C(1 + t)^{−Re a + ε}, locally uniform in (a, b), which unblocked the integral
+  representations.
+- `AAR/IncompleteGamma/RealIntegrals.lean`: real-integral helpers for §8.10.
+- `AAR/Legendre/BoundaryAsymptotics.lean`: 15.8.10 for m = 0 with all parameters (via the
+  derivative of 1/Γ), and the logarithmic boundary behaviour 14.8.3 and 14.8.9 for all ν.
+- `AAR/ParabolicCylinder/UniformLG2.lean`: a general recessive Liouville–Green core for U and
+  U′, the whole-line core for positive parameter, and the normalizer identity.
+- `AAR/Struve/AsymptoticTools.lean`: the Laplace form of the Anger function A_ν and its
+  expansion along rotated rays.
+
+Proved targets by area:
+
+- Confluent (−7): 13.4.6 (`kummerU_stieltjes_regularized`, moved to `KummerDecay.lean`),
+  13.10.12, 13.10.14, 13.10.15, 13.23.8, 13.23.10, 13.23.11.
+- Incomplete Gamma (−35): 8.10.1, 8.10.2, 8.10.4, 8.10.8; 8.19.9, 8.19.15, 8.19.19–22, 8.19.24;
+  8.12.1, 8.12.2, 8.12.9 and the inverse-function specifications; 8.18.15 and
+  `Real.betaGenerating_hasSum` (proved for all real b, stronger than the target); 8.21.3,
+  8.21.8–9, 8.21.12–13, 8.21.24–25 and the parameter analyticity and residues of the
+  generalized sine and cosine integrals; 8.11.3 and the real remainder bound of §8.11(i).
+- Exponential integrals (−1): 6.6.3 (`expIntE1_digamma_series`), from the incomplete-Gamma
+  helper `incG_expIntE1_digamma_series`.
+- Airy (−16): 9.7.5–9.7.14 (the large-argument and oscillatory expansions of Ai, Ai′, Bi, Bi′
+  and the rotated expansions of Bi, Bi′), the real-axis error bounds of §9.7(iii) and 9.7.15 for
+  Ai and Ai′, and the reality of all zeros of Ai and Ai′ (`airyAi_complex_zeros_real`,
+  `airyAiDeriv_complex_zeros_real`, via conj(Ai z₀)·Ai′(z₀) = 0).
+- Legendre (−17): `legendre_singular_4`–`_6`, `_11`–`_14`, 14.8.3 (`ferrersQ_log_singular`),
+  14.8.9 (`olverQ_log_singular_invGamma`, so `olverQ_log_singular` is now proved too), 14.8.10;
+  `ferrersP_reflected_dependence`, `associatedPQ_independent`; `ferrers_product_integral_10`,
+  `_12`, `_14`, 14.17.16 (`ferrersPQ_nat_integral`); `ferrersPP_integral_all_degrees`.
+- Parabolic cylinder (−2): 12.10.31 (`pcfU_temme_uniform`) and 12.10.25, 12.10.28–29
+  (`pcf_positive_parameter_uniform`), proved in `UniformLG2.lean`; both statements were moved
+  there unchanged from `Uniform.lean`, which `UniformLG2.lean` imports. The U part of 12.10.3
+  with a normalizer satisfying 12.10.14 is the new `pcf_negative_parameter_uniform_U_normalizer`.
+- Struve (−3): 11.11.2 (`angerJ_large_argument`), 11.11.4 (`angerA_large_argument`), 11.11.5
+  (`angerJ_large_order`), and 11.11.3 (`weberE_large_argument`, after correction; see below).
+
+### Statements false as formalized (corrected 2026-10-21)
+
+- `weberE_large_argument` (11.11.3): the finite sum bound only the F_k term; the `k` in the
+  G_k term was an auto-bound implicit variable, so the statement quantified over it.
+  Corrected (with the user's agreement) by bracketing the whole summand; the corrected
+  statement is proved (by the agent's `weberE_large_argument_sum`, now under the original
+  name). Net admissions after the correction: 508.
+- `weberE_large_order` (11.11.6): DLMF's error term O(ν⁻²) is wrong for complex ν, because
+  the remainder inherits the size e^{π|Im ν|} of sin²(πν/2) and cos²(πν/2). At z = 1,
+  |error|·|ν|² is about 0.58 at ν = 10.5 but 1.05·10¹³ at ν = 1/2 + 10i and 9.4·10⁵³ at
+  ν = 1/2 + 40i; divided by e^{π|Im ν|} it stays between 0.24 and 0.58. Corrected (with the
+  user's agreement) to the error bound e^{π|Im ν|}ν⁻² on the same filter, which is DLMF's form on
+  the real axis. Still admitted.
+- `angerJ_turning_equiv` (11.11.18) and `weberE_turning_equiv` (11.11.19): DLMF 1.1.2 extended
+  the condition ν → +∞ to ν → ∞ in |ph ν| ≤ π − δ ("Clarification", suggested 2021-04-05); the
+  extension fails. By 11.10.15, 𝐉_ν(ν) = J_ν(ν) + sin(πν)𝐀_ν(ν) with 𝐀_ν(ν) ~ 1/(2πν), and the
+  second term grows like e^{π|Im ν|}/|ν|. Numerically (Gauss–Legendre on the defining
+  integrals), the ratio of 𝐉_ν(ν) to the claimed leading term is 0.9997, 0.9999, 1.0000 at
+  ν = 20, 40, 80, but about 2.8·10⁶, 2.0·10¹⁴, 1.7·10³⁰ in modulus at the same |ν| with
+  ph ν = 0.3, matching sin(πν)𝐀_ν(ν) to three digits; 𝐄_ν(ν) behaves the same way through
+  cos(πν)𝐀_ν(ν) (11.10.16). Corrected (with the user's agreement) to real ν → +∞, the original
+  DLMF condition. Still admitted; the proof needs the Bessel transition asymptotics 10.19.8.
+- `angerA_turning_equiv` (11.11.16): verified numerically after the round (ratio 0.992, 0.995,
+  0.997 at |ν| = 20, 40, 80, on the real axis and at ph ν = ±0.3). It is not false.
+
+These three DLMF errata (11.11.6 error term, 11.11.18 and 11.11.19 sector) are candidates for a
+report to the DLMF editors.
+
+### Remaining blockers identified by the agents
+
+- Confluent: a Bessel-integral representation of 𝐌 and the Laplace transform of t^ν J_ν(at)
+  for 13.10.6; a J_ν kernel bound locally uniform in ν for 13.10.13 and 13.23.9; the large-b,
+  transition and large-(a, b) expansions 13.8.2, 13.8.6–7, 13.8.17–18.
+- Incomplete Gamma: convergence of continued fractions (8.9, 8.17.22, 8.19.17); Temme's uniform
+  expansions with error bounds (8.11.5–18, 8.12, 8.18); Mellin–Barnes and principal-value
+  representations (8.6, 8.17.10); zero counting (8.13).
+- Airy: Olver-type error bounds for Bi; complex binomial remainders on rotated rays (9.7.17);
+  hyperasymptotics (9.7.23); zero counting in sectors for Bi, Bi′. For 9.8.20–21 a route is
+  worked out: two convolution identities for the u_k and v_k coefficients, with
+  creative-telescoping certificates found but not formalized. Monotonicity in §9.8(iii) needs
+  Nicholson's integral.
+- Liouville–Green: the V parts of 12.10.3–6 need a connection across the turning point; the
+  oscillatory range 12.10(vi) and `pcfW_elementary_uniform` need matching through t = ±1.
+- Legendre: degree-uniform boundary bounds for the diagonal cases of 14.17.11, 14.17.13, 14.17.15
+  and 14.17.20; Green's identity on (1, ∞) for 14.17.18–19 (judged feasible); the Gaunt
+  expansion for 14.17.17; a 3F2 summation for 14.17.5; Sturm zero counting.
+- Struve: the 2γ/π constant (11.6.3–4); Laplace's method with the parameter in the exponent
+  (11.6.6, 11.6.7, 11.6.9); complex saddle points for the scaled and turning-point Anger results;
+  Mellin–Barnes residues (11.5.8–9); Parseval (11.7.12).
+
+### Validation
+
+- The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes (9,905 jobs) with no errors;
+  the source census finds 509 admissions.
+- A compiled audit of 9,887 `AAR`/`ToMathlib` theorems finds exactly 509 depending on `sorryAx`
+  and no other non-standard axiom.
+- The DLMF dump has 3,065 records (2,631 proved, 434 admitted, including 178 pointers); the
+  three acquisition ledgers were regenerated from it.
+- No commit was made.
+
+### autoImplicit switched off (2026-10-21)
+
+Lean's defaults `autoImplicit = true` and `relaxedAutoImplicit = true` let an undeclared name
+in a statement become an extra implicit variable. An audit compiled each of the 349 files that
+did not already set `autoImplicit false` with both options off, subtracting baseline errors:
+the only declaration that depended on an auto-bound name was `weberE_large_argument`
+(11.11.3), corrected above. Both options are now `false` under `[leanOptions]` in
+`lakefile.toml`, as in Mathlib. Note that `lake env lean FILE` does not apply package options;
+to reproduce the build setting by hand use `lake env lean -DautoImplicit=false
+-DrelaxedAutoImplicit=false FILE`.
+
+## Round 7 statement corrections (2026-10-21, user-approved)
+
+DLMF errata found by the round-7 agents and corrected in the formal statements:
+
+- DLMF 9.10.7 (`airyBi_negative_integral_asymptotic`, `AAR/Airy/Integrals.lean`): the leading
+  term has the wrong sign. The correct form is ∫_{−∞}^x Bi(t) dt =
+  −π^{−1/2}(−x)^{−3/4} sin(⅔(−x)^{3/2} + π/4) + O(|x|^{−9/4}) as x → −∞. At x = −10 the
+  integral is −0.01504 while the printed formula gives +0.01240; at x = −40 the values are
+  +0.007365 and −0.007249. Independently, by 9.7.11 the derivative of the printed leading term is
+  −Bi(x), while the same check for 9.10.6 gives +Ai(x). The statement now has the minus sign and
+  is proved.
+- DLMF 13.9.6 (`kummerM_posZeros_ceil_swap`, `AAR/Confluent/Zeros.lean`): DLMF states the count
+  of positive zeros for all real a, b with ⌈−b⌉ > ⌈−a⌉ > 0, but it fails when a is a nonpositive
+  integer, where M(a, b, ·) is a polynomial: at a = −1, b = −3/2, M = 1 + 2x/3 has no positive
+  zero while the formula gives one (proved as `kummerM_posZeros_ceil_swap_ne`; mpmath shows the
+  same at (−2, −4.5)). The statement now assumes a ∉ −ℕ and is proved.
+
+Transcription correction (not a DLMF erratum):
+
+- DLMF 13.17.1 and 13.17.3 (`whittakerM_continued_fraction_limit`,
+  `whittakerW_continued_fraction_limit`, `AAR/Confluent/ContinuedFractions.lean`): DLMF's
+  equations are identities of meromorphic functions. At a zero of the denominator the convergents
+  diverge, while Lean's division by zero gives 0 (μ = 0.5, κ = 12.3, x ≈ 0.5615 for 13.17.1;
+  μ = 0.7, κ = 6.3, x ≈ 0.4755 for 13.17.3). Both statements now assume the denominator is
+  nonzero.
+
+Together with 11.11.6, 11.11.18 and 11.11.19 (round 6), the DLMF errata 9.10.7, 13.9.6 and (below)
+14.14.1 are candidates for a report to the DLMF editors.
+
+## Round 7 (2026-10-21)
+
+Six parallel agents with file-level ownership, several sent back for further files; 508 → 391
+(117 admissions proved, none added). Statement changes were limited to the user-approved
+corrections listed in the previous section (9.10.7, 13.9.6, 13.17.1, 13.17.3).
+
+Removals by area: Airy −36, Legendre −28, Struve −9, error functions −9, Confluent −9,
+incomplete Gamma −9, parabolic cylinder −8, exponential integrals −6, hypergeometric −3.
+
+New modules:
+
+- `ToMathlib/Analysis/Complex/ZeroLocalization.lean`: exactly one zero of an analytic function
+  in a disc around an approximate zero (contraction form of Newton–Kantorovich), with a
+  sequence/filter version.
+- `ToMathlib/Topology/Order/ZeroEnumeration.lean`: unique zeros of strictly monotone functions
+  and the enumeration of zeros separated by a sequence of points.
+- `ToMathlib/Analysis/ContinuedFraction/Convergence.lean`: generalized continued fractions
+  through three-term recurrences: determinant and exact error formulas, Pincherle's theorem, a
+  ratio criterion (complex and real), bracketing for positive elements, a positive S-fraction
+  criterion, and tails (a fraction converges when a far tail is controlled).
+- `ToMathlib/Analysis/Asymptotics/StationaryPhase.lean`: oscillatory integrals with a cubic
+  stationary point at an endpoint.
+- `ToMathlib/Analysis/Complex/BarnesResidue.lean`: shifting vertical-line integrals across simple
+  poles and across pole-free strips, with sine and Gamma bounds for Barnes integrands.
+- AAR: `ErrorFunctions/ZeroTools.lean` (Rouché against an exponential model, using TauCeti's
+  Rouché theorem), `ErrorFunctions/IntegralTools.lean`, `IncompleteGamma/FractionTools.lean`,
+  `Struve/TurningTools.lean`, `Legendre/SeriesTools.lean`, `ParabolicCylinder/IntegralTools.lean`,
+  `Airy/ModulusTools.lean`, `Airy/IntegralTools.lean`.
+
+Main results proved:
+
+- Airy: 9.8.20–23 and the error bounds for M and N, all monotonicity results of §9.8(iii) (via
+  Nicholson's integral), 9.10.2–7, 9.10.11–16, 9.11.4, 9.12.25–31, and infinitely many complex
+  zeros of Bi and Bi′.
+- Legendre: 14.7.3, 14.7.4, 14.7.19–22, 14.11.1–5, 14.12.12, 14.17.11–15 and 14.17.18–20 (the
+  diagonal cases through parameter-uniform boundary bounds and dominated convergence),
+  `ferrersP_sq_integral_all_degrees`, 14.19.2, 14.19.3, 14.19.7, 14.19.8, 14.20.7, 14.20.8, and the
+  exterior-zero results for 𝑸.
+- Struve: 11.6.3, 11.6.4, 11.11.6, 11.11.14–19 (11.11.18–19 by cubic stationary phase).
+- Continued fractions: 6.9.1, 7.9.1–3, 7.18.13, 8.9.1, 8.10.5, 13.5.1, 13.5.3, 13.17.1, 13.17.3,
+  15.7.1, 15.7.3, 15.7.5, with stronger-than-DLMF forms of 13.5.1 and 13.5.3.
+- Zeros: 13.9.1, 13.9.4, 13.9.5, 13.9.6 (corrected), 13.9.9; Ei, Ci and si zeros (6.13); the real
+  zeros of γ*(a, x) and 8.13.1.
+- Integral representations: 7.7.2, 7.7.10, 7.7.11, 7.14.4 and companion, 8.6.10, 8.6.12, 8.19.26,
+  12.5.2, 12.5.3, 12.5.8, 12.5.9 and their continuation across poles, 12.12.1, 12.12.2.
+- Parabolic cylinder uniform expansions: the U and U′ parts of 12.10.3–4 with one normalizer
+  (`pcf_negative_parameter_uniform_U_UDeriv`).
+
+### Statement found false (14.14.1 corrected 2026-10-21)
+
+- DLMF 14.14.1 (`associatedP_continued_fraction`, `AAR/Legendre/Series.lean`): the statement
+  matches DLMF, but the continued fraction does not converge to ½(x²−1)^{1/2} P^μ_ν(x)/P^{μ−1}_ν(x).
+  P^μ_ν is a dominant solution of the order recurrence 14.10.6, and the fraction converges to the
+  ratio of the minimal solution w(μ) = Γ(ν+μ+1)P^{−μ}_ν(x)/Γ(ν−μ+1), that is, to
+  ½(x²−1)^{1/2}(ν+μ)(ν−μ+1)P^{−μ}_ν(x)/P^{1−μ}_ν(x). At (ν, μ, x) = (0.3, 0.4, 1.5) the fraction
+  is 0.345161187628545…, the printed right side 0.812720708269563…, and the minimal-solution ratio
+  agrees with the fraction to 30 digits; likewise at (1.7, 0.2, 3) and (2.2, 1.3, 1.2), and to 15
+  digits at four further points with complex ν, μ. DLMF erratum. Corrected with the user's
+  agreement: the statement now has the value ½(x²−1)^{1/2}(ν+μ)(ν−μ+1)P^{−μ}_ν(x)/P^{1−μ}_ν(x)
+  and the hypothesis P^{1−μ}_ν(x) ≠ 0 in place of P^{μ−1}_ν(x) ≠ 0. Still admitted.
+- `struveH_barnes` (11.5.8): a first quadrature check disagreed (−5.7947+0.2007i against
+  −5.8814+0.1482i), probably because of slow algebraic decay; unverified, not judged false.
+
+### Remaining blockers identified by the agents
+
+- Global zero counts on large contours (argument principle) for the erf/Fresnel, Airy Bi, Kummer U
+  sector zeros; all-order inversion of zero expansions; Sturm oscillation counts for Ferrers
+  functions and the Scorer functions.
+- Continued fractions with complex parameters (8.9.2, 8.19.17: parabola theorem or
+  Stieltjes–Vitali); large-parameter ₂F₁ bounds up to x < 1 (8.17.22); 14.14.3 (the sum
+  criterion).
+- Full-order Laplace and Watson expansions with parameter-dependent phases and coefficient
+  identification (11.6.6–7, 11.11.8–13); Debye asymptotics of I_ν(λν) for complex ν (11.6.9).
+- Hankel loop contours (12.5.5), Fourier inversion on vertical lines (12.5.6–7), principal-value
+  integrals (8.6.9, 9.10.19, 9.12.23), Stieltjes transforms (9.10.18, 9.12.22), Mellin–Barnes for
+  1/(1+t²) with complex scale (7.7.13–14).
+- Legendre: Mehler–Dirichlet and Laplace-type integrals (14.12, 14.25), Mehler–Fock (14.20.13–14),
+  addition theorems (14.18), Abel boundary convergence (14.13), Gaunt (14.17.17).
+- Turning-point theory for the V parts of 12.10.3–6 and for 14.15.
+
+### Validation
+
+- The ordinary build passes (9,959 jobs) with no errors; the source census finds 391 admissions.
+- A compiled audit of 10,967 `AAR`/`ToMathlib` theorems finds exactly 391 depending on `sorryAx`
+  and no other non-standard axiom.
+- The DLMF dump has 3,070 records (2,732 proved, 338 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- No commit was made.

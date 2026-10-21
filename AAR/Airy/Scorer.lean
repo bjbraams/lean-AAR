@@ -7,6 +7,7 @@ module
 
 public import AAR.Airy.Framework
 public import AAR.Airy.Equation
+public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import Mathlib.MeasureTheory.Integral.Gamma
 public import ToMathlib.Analysis.Complex.SegmentPrimitive
 
@@ -1019,52 +1020,6 @@ theorem scorerHi_mellinBarnes {z : ℂ} (hz0 : z ≠ 0) (hz : |arg (-z)| < 2 * �
       (2 * π ^ 2 * (3 : ℂ) ^ (2 / 3 : ℂ) * scorerHi z) := by
   sorry
 
-/-- scorerGi asymptotic (DLMF 9.12.25). -/
-@[dlmf 9.12.E25]
-theorem scorerGi_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) (N : ℕ) :
-    IsBigO (comap (fun z : ℂ => z) (airySector (π / 3 - δ)))
-      (fun z : ℂ => scorerGi z - 1 / (π * z ^ 1) *
-        ∑ k ∈ Finset.range N, (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
-      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 1))) := by
-  sorry
-
-/-- scorerGiDeriv asymptotic (DLMF 9.12.26). -/
-@[dlmf 9.12.E26]
-theorem scorerGiDeriv_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) (N : ℕ) :
-    IsBigO (comap (fun z : ℂ => z) (airySector (π / 3 - δ)))
-      (fun z : ℂ => scorerGiDeriv z - -1 / (π * z ^ 2) *
-        ∑ k ∈ Finset.range N, (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
-      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 2))) := by
-  sorry
-
-/-- scorerHi asymptotic (DLMF 9.12.27). -/
-@[dlmf 9.12.E27]
-theorem scorerHi_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < 2 * π / 3) (N : ℕ) :
-    IsBigO (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ)))
-      (fun z : ℂ => scorerHi z - -1 / (π * z ^ 1) *
-        ∑ k ∈ Finset.range N, (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
-      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 1))) := by
-  sorry
-
-/-- scorerHiDeriv asymptotic (DLMF 9.12.28). -/
-@[dlmf 9.12.E28]
-theorem scorerHiDeriv_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < 2 * π / 3) (N : ℕ) :
-    IsBigO (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ)))
-      (fun z : ℂ => scorerHiDeriv z - 1 / (π * z ^ 2) *
-        ∑ k ∈ Finset.range N, (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
-      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 2))) := by
-  sorry
-
-/-- All complex zeros are simple, DLMF §9.12(ix). -/
-theorem scorerGi_simple_zeros {z : ℂ} (hz : scorerGi z = 0) :
-    deriv scorerGi z ≠ 0 := by
-  sorry
-
-/-- All complex zeros are simple, DLMF §9.12(ix). -/
-theorem scorerHi_simple_zeros {z : ℂ} (hz : scorerHi z = 0) :
-    deriv scorerHi z ≠ 0 := by
-  sorry
-
 /-- `I_{k+1}/k!` form of the Hi′ coefficients. -/
 lemma scorerHiDeriv_coeff_eq_integral (k : ℕ) (z : ℂ) :
     (3 : ℂ) ^ (-1 / 3 : ℂ) / π * Gamma (((k : ℂ) + 2) / 3) * ((3 : ℂ) ^ (1 / 3 : ℂ) * z) ^ k /
@@ -1097,6 +1052,603 @@ lemma scorerHiDeriv_exp_integral (z : ℂ) :
   simp only [pow_one] at h
   refine (hasSum_scorerHiDeriv z).unique (h.congr_fun fun k => ?_)
   rw [scorerHiDeriv_coeff_eq_integral]
+
+/-! ### Asymptotic expansions of Hi, Hi', Gi, Gi' (DLMF 9.12(viii))
+
+The Laplace integrals `π Hi(z) = ∫₀^∞ e^{zt} e^{-t³/3} dt` and `π Hi'(z) = ∫₀^∞ e^{zt} t e^{-t³/3} dt`
+are rotated to rays `|arg t| < π/6` and expanded by Watson's lemma
+(`hasAsymptoticExpansion_integral_cexp_smul_rotate_comap`); two rotated rays cover the sector
+`|arg(-z)| < 2π/3`. The expansions of `Gi`, `Gi'` follow from the rotation formula 9.12.12. -/
+
+/-- The cubic kernel `e^{-t³/3}` along the ray `t = r e^{iy}`. -/
+lemma scorerAsym_norm_kernel (r y : ℝ) :
+    ‖cexp (-(((r : ℂ) * exp (y * I)) ^ 3 / 3))‖ = Real.exp (-(r ^ 3 * Real.cos (3 * y)) / 3) := by
+  rw [Complex.norm_exp]
+  congr 1
+  have h : ((r : ℂ) * exp (y * I)) ^ 3 = ((r ^ 3 : ℝ) : ℂ) * exp (((3 * y : ℝ) : ℂ) * I) := by
+    rw [mul_pow, ← Complex.exp_nat_mul]; push_cast; ring_nf
+  rw [h, neg_re, div_ofNat_re, re_ofReal_mul, exp_ofReal_mul_I_re]
+  ring
+
+/-- The cubic kernel is bounded by `1` in the sector `|arg t| ≤ π/6`. -/
+lemma scorerAsym_norm_kernel_le_one {r : ℝ} (hr : 0 ≤ r) {y : ℝ} (hy : |y| ≤ π / 6) :
+    ‖cexp (-(((r : ℂ) * exp (y * I)) ^ 3 / 3))‖ ≤ 1 := by
+  rw [scorerAsym_norm_kernel, Real.exp_le_one_iff]
+  have : 0 ≤ Real.cos (3 * y) := by
+    rw [← Real.cos_abs, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3)]
+    exact Real.cos_nonneg_of_mem_Icc ⟨by linarith [abs_nonneg y, Real.pi_pos], by linarith⟩
+  have := mul_nonneg (pow_nonneg hr 3) this
+  linarith
+
+/-- `r^m e^{-cr - br³}` is integrable on `(0, ∞)` for `b > 0`. -/
+lemma scorerAsym_integrableOn_pow_exp (m : ℕ) (c : ℝ) {b : ℝ} (hb : 0 < b) :
+    IntegrableOn (fun r : ℝ => r ^ m * Real.exp (-c * r - b * r ^ 3)) (Ioi 0) := by
+  set A : ℝ := |c| + 2
+  set R : ℝ := Real.sqrt (A / b)
+  have hA : 2 ≤ A := by simp only [A]; linarith [abs_nonneg c]
+  have hR0 : 0 ≤ R := Real.sqrt_nonneg _
+  have hR2 : R ^ 2 = A / b := Real.sq_sqrt (by positivity)
+  have hint : IntegrableOn (fun r : ℝ => (m.factorial * Real.exp (A * R)) * Real.exp (-1 * r))
+      (Ioi 0) := (exp_neg_integrableOn_Ioi 0 one_pos).const_mul _
+  refine hint.mono' (Continuous.aestronglyMeasurable (by fun_prop)) ?_
+  filter_upwards [ae_restrict_mem measurableSet_Ioi] with r (hr : 0 < r)
+  rw [norm_mul, norm_pow, Real.norm_of_nonneg hr.le, Real.norm_of_nonneg (Real.exp_pos _).le]
+  have h1 : r ^ m ≤ m.factorial * Real.exp r := by
+    have := Real.pow_div_factorial_le_exp r hr.le m
+    rwa [div_le_iff₀ (by positivity), mul_comm] at this
+  have hc : -c * r ≤ (A - 2) * r := by
+    have := neg_abs_le c
+    have : -c ≤ A - 2 := by simp only [A]; linarith
+    nlinarith
+  have h2 : -c * r - b * r ^ 3 ≤ A * R + -1 * r - r := by
+    rcases le_or_gt R r with h | h
+    · have : A * r ≤ b * r ^ 3 := by
+        have hb2 : A = b * R ^ 2 := by rw [hR2]; field_simp
+        rw [hb2]
+        have : R ^ 2 ≤ r ^ 2 := by nlinarith
+        nlinarith [mul_le_mul_of_nonneg_left this (mul_nonneg hb.le hr.le)]
+      nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ A) hR0]
+    · have : 0 ≤ b * r ^ 3 := by positivity
+      nlinarith
+  calc r ^ m * Real.exp (-c * r - b * r ^ 3)
+      ≤ (m.factorial * Real.exp r) * Real.exp (A * R + -1 * r - r) :=
+        mul_le_mul h1 (Real.exp_le_exp.mpr h2) (Real.exp_pos _).le (by positivity)
+    _ = (m.factorial * Real.exp (A * R)) * Real.exp (-1 * r) := by
+        rw [mul_assoc, ← Real.exp_add, mul_assoc, ← Real.exp_add]; ring_nf
+
+/-- The rotated kernel `(re^{iθ})^m e^{-(re^{iθ})³/3}` is Laplace-integrable for `|θ| < π/6`. -/
+lemma scorerAsym_integrableOn_rotate (m : ℕ) (c : ℝ) {θ : ℝ} (hθ : |θ| < π / 6) :
+    IntegrableOn (fun r : ℝ => Real.exp (-c * r) •
+      (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3)))) (Ioi 0) := by
+  have hb : 0 < Real.cos (3 * θ) / 3 := by
+    have : 0 < Real.cos (3 * θ) := by
+      rw [← Real.cos_abs, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3)]
+      exact Real.cos_pos_of_mem_Ioo ⟨by linarith [abs_nonneg θ, Real.pi_pos], by linarith⟩
+    positivity
+  refine (scorerAsym_integrableOn_pow_exp m c hb).mono' ?_ ?_
+  · exact (Continuous.aestronglyMeasurable (by fun_prop))
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with r (hr : 0 < r)
+    rw [norm_smul, norm_mul, norm_pow, norm_mul, norm_real, norm_exp_ofReal_mul_I, mul_one,
+      scorerAsym_norm_kernel, Real.norm_of_nonneg (Real.exp_pos _).le,
+      Real.norm_of_nonneg hr.le, ← mul_assoc, mul_comm (Real.exp _), mul_assoc, ← Real.exp_add]
+    apply le_of_eq; congr 2; ring
+
+
+/-- The Laplace integral `∫₀^∞ e^{-wt} t^m e^{-t³/3} dt` (an entire function of `w`). -/
+noncomputable def scorerAsym_laplace (m : ℕ) (w : ℂ) : ℂ :=
+  ∫ t in Ioi (0 : ℝ), cexp (-(w * t)) • ((t : ℂ) ^ m * cexp (-((t : ℂ) ^ 3 / 3)))
+
+lemma scorerAsym_integrableOn_zero (m : ℕ) (c : ℝ) :
+    IntegrableOn (fun t : ℝ => Real.exp (-c * t) • ((t : ℂ) ^ m * cexp (-((t : ℂ) ^ 3 / 3))))
+      (Ioi 0) := by
+  have h := scorerAsym_integrableOn_rotate m c (θ := 0) (by rw [abs_zero]; positivity)
+  simpa using h
+
+lemma scorerAsym_differentiable_laplace (m : ℕ) : Differentiable ℂ (scorerAsym_laplace m) :=
+  fun w => (differentiableOn_integral_cexp_neg_mul_smul
+    (scorerAsym_integrableOn_zero m (w.re - 1))).differentiableAt
+    ((isOpen_lt continuous_const continuous_re).mem_nhds (by simp))
+
+/-- Hi and Hi' as Laplace integrals: `π Hi(z) = L₀(-z)`, `π Hi'(z) = L₁(-z)`. -/
+lemma scorerAsym_scorerHi_eq (z : ℂ) : π * scorerHi z = scorerAsym_laplace 0 (-z) := by
+  rw [(scorerHi_exp_integral z).2, scorerAsym_laplace, mul_div_cancel₀ _
+    (ofReal_ne_zero.mpr Real.pi_ne_zero)]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+  simp only [smul_eq_mul, pow_zero, one_mul]
+  rw [← Complex.exp_add]; ring_nf
+
+lemma scorerAsym_scorerHiDeriv_eq (z : ℂ) : π * scorerHiDeriv z = scorerAsym_laplace 1 (-z) := by
+  rw [scorerHiDeriv_exp_integral z, scorerAsym_laplace, mul_div_cancel₀ _
+    (ofReal_ne_zero.mpr Real.pi_ne_zero)]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+  simp only [smul_eq_mul, pow_one]
+  rw [mul_left_comm, ← Complex.exp_add]; ring_nf
+
+/-- **Rotation of the Laplace contour** for `|θ| < π/6`, valid for every complex `w`. -/
+lemma scorerAsym_laplace_rotate (m : ℕ) {θ : ℝ} (hθ : |θ| < π / 6) (w : ℂ) :
+    scorerAsym_laplace m w = exp (θ * I) • ∫ r in Ioi (0 : ℝ), cexp (-(w * exp (θ * I) * r)) •
+      (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3))) := by
+  have hd2 : Differentiable ℂ (fun w : ℂ => exp (θ * I) • ∫ r in Ioi (0 : ℝ),
+      cexp (-(w * exp (θ * I) * r)) •
+        (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3)))) := by
+    have hL : Differentiable ℂ (fun v : ℂ => ∫ r in Ioi (0 : ℝ), cexp (-(v * r)) •
+        (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3)))) := fun v =>
+      (differentiableOn_integral_cexp_neg_mul_smul
+        (scorerAsym_integrableOn_rotate m (v.re - 1) hθ)).differentiableAt
+        ((isOpen_lt continuous_const continuous_re).mem_nhds (by simp))
+    exact (hL.comp (differentiable_id.mul_const (exp (θ * I)))).const_smul (exp (θ * I))
+  have hy : ∀ y ∈ uIcc 0 θ, |y| ≤ π / 6 := fun y hy =>
+    (abs_le_abs_of_mem_uIcc_zero hy).trans hθ.le
+  have hreal : ∀ x : ℝ, 0 < x → scorerAsym_laplace m x = exp (θ * I) • ∫ r in Ioi (0 : ℝ),
+      cexp (-((x : ℂ) * exp (θ * I) * r)) •
+        (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3))) := by
+    intro x hx
+    simp only [scorerAsym_laplace, smul_eq_mul]
+    refine integral_cexp_neg_mul_mul_eq_rotate (F := fun t => t ^ m * cexp (-(t ^ 3 / 3)))
+      (σ := m + 1) (C := 1) (k := m) (by positivity) (fun r _ y _ => by fun_prop)
+      (fun r hr _ y hy' => ?_) (fun r hr y hy' => ?_) (fun y hy' => ?_)
+    · rw [add_sub_cancel_right, one_mul, Real.rpow_natCast, norm_mul, norm_pow, norm_mul,
+        norm_real, Real.norm_of_nonneg hr.le, norm_exp_ofReal_mul_I, mul_one]
+      calc r ^ m * _ ≤ r ^ m * 1 := by
+            gcongr; exact scorerAsym_norm_kernel_le_one hr.le (hy y hy')
+        _ = r ^ m := mul_one _
+    · have hr0 : 0 ≤ r := by linarith
+      rw [one_mul, Real.rpow_natCast, norm_mul, norm_pow, norm_mul,
+        norm_real, Real.norm_of_nonneg hr0, norm_exp_ofReal_mul_I, mul_one]
+      calc r ^ m * _ ≤ r ^ m * 1 := by
+            gcongr; exact scorerAsym_norm_kernel_le_one hr0 (hy y hy')
+        _ = r ^ m := mul_one _
+    · rw [re_ofReal_mul, exp_ofReal_mul_I_re]
+      have := hy y hy'
+      exact mul_pos hx (Real.cos_pos_of_mem_Ioo ⟨by linarith [neg_abs_le y, Real.pi_pos],
+        by linarith [le_abs_self y, Real.pi_pos]⟩)
+  have hfreq : ∃ᶠ v in 𝓝[≠] (1 : ℂ), scorerAsym_laplace m v = exp (θ * I) •
+      ∫ r in Ioi (0 : ℝ), cexp (-(v * exp (θ * I) * r)) •
+        (((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3))) := by
+    have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] (1 : ℝ)) (𝓝[≠] (1 : ℂ)) := by
+      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+      · have := (continuous_ofReal.tendsto (1 : ℝ)).mono_left
+          (nhdsWithin_le_nhds (s := ({1}ᶜ : Set ℝ)))
+        rwa [ofReal_one] at this
+      · filter_upwards [self_mem_nhdsWithin] with r hr
+        simpa using hr
+    apply ht.frequently
+    apply Eventually.frequently
+    filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (zero_lt_one' ℝ))] with r hr
+    exact hreal r hr
+  exact ((scorerAsym_differentiable_laplace m).differentiableOn.analyticOnNhd
+    isOpen_univ).eqOn_of_preconnected_of_frequently_eq
+    (hd2.differentiableOn.analyticOnNhd isOpen_univ) isPreconnected_univ (mem_univ _) hfreq
+    (mem_univ w)
+
+
+/-- Taylor coefficients of `e^{-t³/3} = ∑ aₙ tⁿ`. -/
+noncomputable def scorerAsym_coeff (n : ℕ) : ℂ :=
+  if 3 ∣ n then (-1 / 3 : ℂ) ^ (n / 3) / ((n / 3).factorial : ℂ) else 0
+
+lemma scorerAsym_sum_coeff (t : ℂ) (M : ℕ) :
+    (∑ n ∈ Finset.range (3 * M), t ^ n * scorerAsym_coeff n =
+      ∑ k ∈ Finset.range M, (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ)) ∧
+    (∑ n ∈ Finset.range (3 * M + 1), t ^ n * scorerAsym_coeff n =
+      ∑ k ∈ Finset.range (M + 1), (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ)) ∧
+    (∑ n ∈ Finset.range (3 * M + 2), t ^ n * scorerAsym_coeff n =
+      ∑ k ∈ Finset.range (M + 1), (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ)) := by
+  have h0 : ∀ M : ℕ, ∑ n ∈ Finset.range (3 * M), t ^ n * scorerAsym_coeff n =
+      ∑ k ∈ Finset.range M, (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ) := by
+    intro M
+    induction M with
+    | zero => simp
+    | succ M ih =>
+      rw [show 3 * (M + 1) = 3 * M + 1 + 1 + 1 by ring, Finset.sum_range_succ,
+        Finset.sum_range_succ, Finset.sum_range_succ, ih, Finset.sum_range_succ]
+      have h1 : ¬ 3 ∣ 3 * M + 1 := by omega
+      have h2 : ¬ 3 ∣ 3 * M + 1 + 1 := by omega
+      have h3 : (3 * M) / 3 = M := by omega
+      simp only [scorerAsym_coeff, h1, h2, ite_false, mul_zero, add_zero,
+        dvd_mul_right, ite_true, h3]
+      congr 1
+      rw [pow_mul, neg_pow, div_pow]
+      field_simp
+      rw [div_pow]; field_simp
+  have h1 : ∑ n ∈ Finset.range (3 * M + 1), t ^ n * scorerAsym_coeff n =
+      ∑ k ∈ Finset.range (M + 1), (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ) := by
+    rw [Finset.sum_range_succ, h0, Finset.sum_range_succ]
+    have h3 : (3 * M) / 3 = M := by omega
+    simp only [scorerAsym_coeff, dvd_mul_right, ite_true, h3]
+    congr 1
+    rw [pow_mul, neg_pow, div_pow]
+    field_simp
+    rw [div_pow]; field_simp
+  refine ⟨h0 M, h1, ?_⟩
+  rw [Finset.sum_range_succ, h1]
+  have h2 : ¬ 3 ∣ 3 * M + 1 := by omega
+  simp [scorerAsym_coeff, h2]
+
+/-- Taylor remainders of `t^m e^{-t³/3}` along a ray, as required by Watson's lemma. -/
+lemma scorerAsym_sub_sum_isBigO (m : ℕ) (θ : ℝ) (N : ℕ) :
+    (fun r : ℝ => ((r : ℂ) * exp (θ * I)) ^ m * cexp (-(((r : ℂ) * exp (θ * I)) ^ 3 / 3)) -
+      ∑ n ∈ Finset.range N,
+        (((r : ℂ) * exp (θ * I)) ^ ((n : ℂ) + ((m : ℂ) + 1) - 1)) • scorerAsym_coeff n)
+      =O[𝓝[>] 0] fun r => r ^ ((N : ℝ) + ((m : ℂ) + 1).re - 1) := by
+  obtain ⟨M, hM⟩ : ∃ M : ℕ, N ≤ 3 * M ∧
+      ∀ t : ℂ, ∑ n ∈ Finset.range N, t ^ n * scorerAsym_coeff n =
+        ∑ k ∈ Finset.range M, (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ) := by
+    rcases (by omega : N % 3 = 0 ∨ N % 3 = 1 ∨ N % 3 = 2) with h | h | h
+    · obtain ⟨q, rfl⟩ : ∃ q, N = 3 * q := ⟨N / 3, by omega⟩
+      exact ⟨q, le_rfl, fun t => (scorerAsym_sum_coeff t q).1⟩
+    · obtain ⟨q, rfl⟩ : ∃ q, N = 3 * q + 1 := ⟨N / 3, by omega⟩
+      exact ⟨q + 1, by omega, fun t => (scorerAsym_sum_coeff t q).2.1⟩
+    · obtain ⟨q, rfl⟩ : ∃ q, N = 3 * q + 2 := ⟨N / 3, by omega⟩
+      exact ⟨q + 1, by omega, fun t => (scorerAsym_sum_coeff t q).2.2⟩
+  refine IsBigO.of_bound 3 ?_
+  filter_upwards [self_mem_nhdsWithin, nhdsWithin_le_nhds (Iio_mem_nhds (zero_lt_one' ℝ))]
+    with r hr hr1
+  have hr : (0 : ℝ) < r := hr
+  have hr1 : r < 1 := hr1
+  set t : ℂ := (r : ℂ) * exp (θ * I)
+  have hnt : ‖t‖ = r := by
+    simp only [t]; rw [norm_mul, norm_real, Real.norm_of_nonneg hr.le, norm_exp_ofReal_mul_I,
+      mul_one]
+  have hsum : ∑ n ∈ Finset.range N, (t ^ ((n : ℂ) + ((m : ℂ) + 1) - 1)) • scorerAsym_coeff n =
+      t ^ m * ∑ n ∈ Finset.range N, t ^ n * scorerAsym_coeff n := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun n _ => ?_
+    rw [show (n : ℂ) + ((m : ℂ) + 1) - 1 = ((n + m : ℕ) : ℂ) by push_cast; ring, cpow_natCast,
+      smul_eq_mul, pow_add]
+    ring
+  rw [hsum, hM.2, ← mul_sub]
+  have hb := Complex.norm_exp_sub_sum_le_norm_mul_exp (-(t ^ 3 / 3)) M
+  have hn : ‖-(t ^ 3 / 3)‖ = r ^ 3 / 3 := by
+    rw [norm_neg, norm_div, norm_pow, hnt]; simp
+  rw [hn] at hb
+  simp only [add_re, natCast_re, one_re]
+  rw [Real.norm_of_nonneg (Real.rpow_nonneg hr.le _),
+    show (N : ℝ) + ((m : ℝ) + 1) - 1 = ((N + m : ℕ) : ℝ) by push_cast; ring, Real.rpow_natCast, norm_mul,
+    norm_pow, hnt]
+  have h1 : (r ^ 3 / 3) ^ M ≤ r ^ N := by
+    calc (r ^ 3 / 3) ^ M ≤ (r ^ 3) ^ M := by
+          gcongr; linarith [pow_nonneg hr.le 3]
+      _ = r ^ (3 * M) := by rw [← pow_mul]
+      _ ≤ r ^ N := pow_le_pow_of_le_one hr.le hr1.le hM.1
+  have h2 : Real.exp (r ^ 3 / 3) ≤ 3 := by
+    have : r ^ 3 / 3 ≤ 1 := by nlinarith [pow_le_one₀ hr.le hr1.le (n := 3)]
+    calc Real.exp (r ^ 3 / 3) ≤ Real.exp 1 := Real.exp_le_exp.mpr this
+      _ ≤ 3 := by have := Real.exp_one_lt_d9; linarith
+  calc r ^ m * ‖cexp (-(t ^ 3 / 3)) - ∑ k ∈ Finset.range M, (-(t ^ 3 / 3)) ^ k / (k.factorial : ℂ)‖
+      ≤ r ^ m * ((r ^ 3 / 3) ^ M * Real.exp (r ^ 3 / 3)) := by gcongr
+    _ ≤ r ^ m * (r ^ N * 3) := by gcongr
+    _ = 3 * r ^ (N + m) := by ring
+
+
+/-- Watson's expansion of `L_m(w) = ∫₀^∞ e^{-wt} t^m e^{-t³/3} dt` in the sector
+`|arg w| ≤ α < 2π/3`, obtained from two rotated rays. -/
+lemma scorerAsym_laplace_expansion (m : ℕ) {α : ℝ} (hα0 : 0 ≤ α) (hα : α < 2 * π / 3) :
+    HasAsymptoticExpansion (airySector α) (fun (n : ℕ) (w : ℂ) => w ^ (-((n : ℂ) + ((m : ℂ) + 1))))
+      (fun n => Gamma ((n : ℂ) + ((m : ℂ) + 1)) • scorerAsym_coeff n) (scorerAsym_laplace m) := by
+  have hπ := Real.pi_pos
+  have hcov := le_sup_comap_rotate (α := α) (β := α / 4) (γ := 3 * α / 4)
+    (by linarith) (by linarith) (by linarith) (by linarith)
+  have hcos : 0 < Real.cos (3 * α / 4) :=
+    Real.cos_pos_of_mem_Ioo ⟨by linarith, by linarith⟩
+  have hrot : ∀ θ : ℝ, |θ| < π / 6 → HasAsymptoticExpansion
+      (comap (fun w : ℂ => w * exp (θ * I)) (sectorAtTop (Real.cos (3 * α / 4))))
+      (fun (n : ℕ) (w : ℂ) => w ^ (-((n : ℂ) + ((m : ℂ) + 1))))
+      (fun n => Gamma ((n : ℂ) + ((m : ℂ) + 1)) • scorerAsym_coeff n) (scorerAsym_laplace m) := by
+    intro θ hθ
+    have hθ' : |θ| < π / 2 := by linarith
+    have hμ : 0 < ((m : ℂ) + 1).re := by simp; positivity
+    refine (hasAsymptoticExpansion_integral_cexp_smul_rotate_comap
+      (F := fun t => t ^ m * cexp (-(t ^ 3 / 3))) (a := scorerAsym_coeff) (μ := (m : ℂ) + 1)
+      (c := 0) hθ' hμ hcos (scorerAsym_integrableOn_rotate m 0 hθ)
+      (scorerAsym_sub_sum_isBigO m θ)).congr' (Eventually.of_forall fun w => ?_)
+    exact (scorerAsym_laplace_rotate m hθ w).symm
+  have hb : |α / 4| < π / 6 := by rw [abs_of_nonneg (by linarith)]; linarith
+  have h1 := hrot (-(α / 4)) (by rwa [abs_neg])
+  have h2 := hrot (α / 4) hb
+  exact (h1.sup h2).mono hcov
+
+
+lemma scorerAsym_sum_three {g : ℕ → ℂ} (h1 : ∀ k, g (3 * k + 1) = 0) (h2 : ∀ k, g (3 * k + 2) = 0)
+    (N : ℕ) : ∑ n ∈ Finset.range (3 * N), g n = ∑ k ∈ Finset.range N, g (3 * k) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    rw [show 3 * (N + 1) = 3 * N + 1 + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
+      Finset.sum_range_succ, ih, Finset.sum_range_succ, h1, h2]
+    ring
+
+/-- The expansion of `L_m(-z)` in powers of `1/z`, truncated after `N` nonzero terms, for
+`-z` in the sector `|arg(-z)| ≤ α < 2π/3`. -/
+lemma scorerAsym_laplace_neg_isBigO (m : ℕ) {α : ℝ} (hα0 : 0 ≤ α) (hα : α < 2 * π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => -z) (airySector α))
+      (fun z => scorerAsym_laplace m (-z) - ∑ k ∈ Finset.range N,
+        ((3 * k + m).factorial : ℂ) * ((-1 / 3 : ℂ) ^ k / (k.factorial : ℂ)) *
+          ((-z) ^ (3 * k + m + 1))⁻¹)
+      (fun z => ((z ^ (3 * N + m + 1))⁻¹)) := by
+  have hE := (scorerAsym_laplace_expansion m hα0 hα (3 * N)).comp_tendsto
+    (tendsto_comap : Tendsto (fun z : ℂ => -z) (comap (fun z : ℂ => -z) (airySector α))
+      (airySector α))
+  have hpow : ∀ (j : ℕ) (w : ℂ), w ^ (-((j : ℂ) + ((m : ℂ) + 1))) = (w ^ (j + m + 1))⁻¹ := by
+    intro j w
+    rw [show ((j : ℂ) + ((m : ℂ) + 1)) = ((j + m + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
+      cpow_natCast]
+  refine (hE.congr' (Eventually.of_forall fun z => ?_) EventuallyEq.rfl).trans ?_
+  · simp only [Function.comp_apply]
+    congr 1
+    rw [scorerAsym_sum_three (g := fun n => (-z) ^ (-((n : ℂ) + ((m : ℂ) + 1))) •
+      (Gamma ((n : ℂ) + ((m : ℂ) + 1)) • scorerAsym_coeff n))]
+    · refine Finset.sum_congr rfl fun k _ => ?_
+      have hd : 3 ∣ 3 * k := dvd_mul_right 3 k
+      have hk : 3 * k / 3 = k := by omega
+      simp only [scorerAsym_coeff, hd, ite_true, hk, smul_eq_mul, hpow]
+      rw [show ((3 * k : ℕ) : ℂ) + ((m : ℂ) + 1) = ((3 * k + m : ℕ) : ℂ) + 1 by push_cast; ring,
+        Gamma_nat_eq_factorial]
+      ring
+    · intro k
+      have : ¬ 3 ∣ 3 * k + 1 := by omega
+      simp [scorerAsym_coeff, this]
+    · intro k
+      have : ¬ 3 ∣ 3 * k + 2 := by omega
+      simp [scorerAsym_coeff, this]
+  · refine IsBigO.of_bound 1 (Eventually.of_forall fun z => ?_)
+    simp only [Function.comp_apply]
+    rw [hpow, one_mul, norm_inv, norm_inv, norm_pow, norm_pow, norm_neg]
+
+
+lemma scorerAsym_eventually_ne_zero (α : ℝ) :
+    ∀ᶠ z in comap (fun z : ℂ => -z) (airySector α), z ≠ 0 := by
+  have h : ∀ᶠ w in airySector α, w ≠ 0 ∧ |arg w| ≤ α := mem_inf_of_right (mem_principal_self _)
+  exact (tendsto_comap.eventually h).mono fun z hz => neg_ne_zero.mp hz.1
+
+lemma scorerAsym_neg_one_pow (k j : ℕ) : (-1 : ℂ) ^ (3 * k + j) = (-1) ^ k * (-1) ^ j := by
+  rw [pow_add, pow_mul]; norm_num
+
+/-- `Hi(z) = -(πz)⁻¹ ∑_{k<N} (3k)!/(k!(3z³)^k) + O(z^{-3N-1})` for `|arg(-z)| ≤ α < 2π/3`. -/
+lemma scorerAsym_scorerHi_isBigO {α : ℝ} (hα0 : 0 ≤ α) (hα : α < 2 * π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => -z) (airySector α))
+      (fun z : ℂ => scorerHi z - -1 / (π * z ^ 1) *
+        ∑ k ∈ Finset.range N, (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => (z ^ (3 * N + 0 + 1))⁻¹) := by
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have h := (scorerAsym_laplace_neg_isBigO 0 hα0 hα N).const_mul_left (1 / π : ℂ)
+  refine h.congr' ?_ EventuallyEq.rfl
+  filter_upwards [scorerAsym_eventually_ne_zero α] with z hz
+  rw [← scorerAsym_scorerHi_eq, mul_sub, Finset.mul_sum, Finset.mul_sum]
+  congr 1
+  · field_simp
+  · refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [add_zero, pow_one]
+    rw [neg_pow, scorerAsym_neg_one_pow k 1, mul_pow, ← pow_mul, div_pow, pow_succ z]
+    have hf : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
+    field_simp
+
+/-- `Hi'(z) = (πz²)⁻¹ ∑_{k<N} (3k+1)!/(k!(3z³)^k) + O(z^{-3N-2})` for `|arg(-z)| ≤ α < 2π/3`. -/
+lemma scorerAsym_scorerHiDeriv_isBigO {α : ℝ} (hα0 : 0 ≤ α) (hα : α < 2 * π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => -z) (airySector α))
+      (fun z : ℂ => scorerHiDeriv z - 1 / (π * z ^ 2) *
+        ∑ k ∈ Finset.range N, (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => (z ^ (3 * N + 1 + 1))⁻¹) := by
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have h := (scorerAsym_laplace_neg_isBigO 1 hα0 hα N).const_mul_left (1 / π : ℂ)
+  refine h.congr' ?_ EventuallyEq.rfl
+  filter_upwards [scorerAsym_eventually_ne_zero α] with z hz
+  rw [← scorerAsym_scorerHiDeriv_eq, mul_sub, Finset.mul_sum, Finset.mul_sum]
+  congr 1
+  · field_simp
+  · refine Finset.sum_congr rfl fun k _ => ?_
+    rw [show 3 * k + 1 + 1 = 3 * k + 2 by ring, neg_pow, scorerAsym_neg_one_pow k 2, mul_pow,
+      ← pow_mul, div_pow, pow_add z (3 * k) 2]
+    have hf : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
+    field_simp
+
+lemma scorerAsym_arg_mul_exp {z : ℂ} (hz : z ≠ 0) {c : ℝ} (h1 : -π < arg z + c)
+    (h2 : arg z + c ≤ π) : arg (z * exp (c * I)) = arg z + c := by
+  conv_lhs => rw [← norm_mul_exp_arg_mul_I z]
+  rw [mul_assoc, ← Complex.exp_add, show (arg z : ℂ) * I + c * I = ((arg z + c : ℝ) : ℂ) * I by
+    push_cast; ring, exp_mul_I]
+  exact arg_mul_cos_add_sin_mul_I (norm_pos_iff.mpr hz) ⟨h1, h2⟩
+
+/-- Rotation by `c` maps the sector `|arg z| ≤ α` into `|arg z| ≤ β` when `|c| + α ≤ β < π`. -/
+lemma scorerAsym_tendsto_rotate {α β c : ℝ} (hc : |c| + α ≤ β) (hβ : β < π) :
+    Tendsto (fun z : ℂ => z * exp (c * I)) (airySector α) (airySector β) := by
+  refine tendsto_inf.mpr ⟨tendsto_comap_iff.mpr ?_, tendsto_principal.mpr ?_⟩
+  · refine (tendsto_comap.mono_left inf_le_left).congr fun z => ?_
+    simp only [Function.comp_apply, norm_mul, norm_exp_ofReal_mul_I, mul_one]
+  · have hev : ∀ᶠ z in airySector α, z ≠ 0 ∧ |arg z| ≤ α := mem_inf_of_right (mem_principal_self _)
+    filter_upwards [hev] with z hz
+    refine ⟨mul_ne_zero hz.1 (exp_ne_zero _), ?_⟩
+    have h1 := abs_le.mp hz.2
+    have h2 := le_abs_self c
+    have h3 := neg_abs_le c
+    rw [scorerAsym_arg_mul_exp hz.1 (by linarith) (by linarith)]
+    exact abs_le.mpr ⟨by linarith, by linarith⟩
+
+lemma scorerAsym_tendsto_omega {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) :
+    Tendsto (fun z : ℂ => z * exp (-2 * π * I / 3)) (airySector (π / 3 - δ))
+        (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ))) ∧
+      Tendsto (fun z : ℂ => z * exp (2 * π * I / 3)) (airySector (π / 3 - δ))
+        (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ))) := by
+  have hπ := Real.pi_pos
+  have e1 : ∀ z : ℂ, -(z * exp (-2 * π * I / 3)) = z * exp (((π / 3 : ℝ) : ℂ) * I) := fun z => by
+    rw [show (-2 * π * I / 3 : ℂ) = ((π / 3 : ℝ) : ℂ) * I - π * I by push_cast; ring,
+      Complex.exp_sub, exp_pi_mul_I]; field_simp
+  have e2 : ∀ z : ℂ, -(z * exp (2 * π * I / 3)) = z * exp (((-(π / 3)) : ℝ) * I) := fun z => by
+    rw [show (2 * π * I / 3 : ℂ) = ((-(π / 3)) : ℝ) * I + π * I by push_cast; ring,
+      Complex.exp_add, exp_pi_mul_I]; ring
+  constructor
+  · refine tendsto_comap_iff.mpr ?_
+    have := scorerAsym_tendsto_rotate (α := π / 3 - δ) (β := 2 * π / 3 - δ) (c := π / 3)
+      (by rw [abs_of_pos (by positivity)]; linarith) (by linarith)
+    exact this.congr fun z => (e1 z).symm
+  · refine tendsto_comap_iff.mpr ?_
+    have := scorerAsym_tendsto_rotate (α := π / 3 - δ) (β := 2 * π / 3 - δ) (c := -(π / 3))
+      (by rw [abs_neg, abs_of_pos (by positivity)]; linarith) (by linarith)
+    exact this.congr fun z => (e2 z).symm
+
+/-- The derivative of the rotation formula 9.12.12. -/
+lemma scorerAsym_scorerGiDeriv_rotations (z : ℂ) :
+    scorerGiDeriv z = exp (π * I / 3) / 2 * (scorerHiDeriv (z * exp (-2 * π * I / 3)) *
+        exp (-2 * π * I / 3)) +
+      exp (-π * I / 3) / 2 * (scorerHiDeriv (z * exp (2 * π * I / 3)) * exp (2 * π * I / 3)) := by
+  have hfun : scorerGi = fun z => exp (π * I / 3) / 2 * scorerHi (z * exp (-2 * π * I / 3)) +
+      exp (-π * I / 3) / 2 * scorerHi (z * exp (2 * π * I / 3)) := funext scorerGi_rotations
+  have h1 := (hasDerivAt_scorerHi (z * exp (-2 * π * I / 3))).comp z
+    ((hasDerivAt_id z).mul_const (exp (-2 * π * I / 3)))
+  have h2 := (hasDerivAt_scorerHi (z * exp (2 * π * I / 3))).comp z
+    ((hasDerivAt_id z).mul_const (exp (2 * π * I / 3)))
+  have h := (h1.const_mul (exp (π * I / 3) / 2)).add (h2.const_mul (exp (-π * I / 3) / 2))
+  rw [scorerGiDeriv, hfun]
+  refine h.deriv.trans ?_
+  simp
+
+lemma scorerAsym_norm_omega : ‖exp (-2 * π * I / 3)‖ = 1 ∧ ‖exp (2 * π * I / 3)‖ = 1 := by
+  constructor
+  · rw [show (-2 * π * I / 3 : ℂ) = ((-2 * π / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      norm_exp_ofReal_mul_I]
+  · rw [show (2 * π * I / 3 : ℂ) = ((2 * π / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      norm_exp_ofReal_mul_I]
+
+lemma scorerAsym_omega_cube : exp (-2 * π * I / 3) ^ 3 = 1 ∧ exp (2 * π * I / 3) ^ 3 = 1 := by
+  constructor
+  · rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_inv_cube
+  · exact omega_cube
+
+/-- Composite bound: `((z c)^n)⁻¹ = O((z^n)⁻¹)` when `‖c‖ = 1`. -/
+lemma scorerAsym_isBigO_inv_pow_mul {l : Filter ℂ} {c : ℂ} (hc : ‖c‖ = 1) (n : ℕ) :
+    (fun z : ℂ => ((z * c) ^ n)⁻¹) =O[l] (fun z : ℂ => (z ^ n)⁻¹) :=
+  IsBigO.of_bound 1 (Eventually.of_forall fun z => by
+    rw [one_mul, norm_inv, norm_inv, norm_pow, norm_pow, norm_mul, hc, mul_one])
+
+
+lemma scorerAsym_rot_coeffs :
+    exp (π * I / 3) / 2 = -exp (-2 * π * I / 3) / 2 ∧ exp (-π * I / 3) / 2 = -exp (2 * π * I / 3) / 2 := by
+  constructor
+  · rw [show (-2 * π * I / 3 : ℂ) = π * I / 3 - π * I by ring, Complex.exp_sub, exp_pi_mul_I]
+    ring
+  · rw [show (2 * π * I / 3 : ℂ) = -π * I / 3 + π * I by ring, Complex.exp_add, exp_pi_mul_I]
+    ring
+
+/-- scorerGi asymptotic (DLMF 9.12.25). -/
+@[dlmf 9.12.E25]
+theorem scorerGi_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => z) (airySector (π / 3 - δ)))
+      (fun z : ℂ => scorerGi z - 1 / (π * z ^ 1) *
+        ∑ k ∈ Finset.range N, (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 1))) := by
+  rw [comap_id']
+  have hπ := Real.pi_pos
+  obtain ⟨T1, T2⟩ := scorerAsym_tendsto_omega hδ hδ'
+  obtain ⟨n1, n2⟩ := scorerAsym_norm_omega
+  obtain ⟨c1, c2⟩ := scorerAsym_omega_cube
+  obtain ⟨ha, hb⟩ := scorerAsym_rot_coeffs
+  have H := scorerAsym_scorerHi_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith) N
+  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_inv_pow_mul n1 _)).const_mul_left
+    (exp (π * I / 3) / 2)
+  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_inv_pow_mul n2 _)).const_mul_left
+    (exp (-π * I / 3) / 2)
+  have hev : ∀ᶠ z in airySector (π / 3 - δ), z ≠ 0 ∧ |arg z| ≤ π / 3 - δ :=
+    mem_inf_of_right (mem_principal_self _)
+  refine (h1.add h2).congr' ?_ (Eventually.of_forall fun z => ?_)
+  · filter_upwards [hev] with z hz
+    have hz0 := hz.1
+    set S : ℂ → ℂ := fun w => ∑ k ∈ Finset.range N,
+      (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * w ^ 3) ^ k with hSdef
+    have hS : ∀ c : ℂ, c ^ 3 = 1 → S (z * c) = S z := fun c hc => by
+      simp only [hSdef, mul_pow, hc, mul_one]
+    simp only [Function.comp_apply]
+    change exp (π * I / 3) / 2 * (scorerHi (z * exp (-2 * π * I / 3)) -
+        -1 / (π * (z * exp (-2 * π * I / 3)) ^ 1) * S (z * exp (-2 * π * I / 3))) +
+      exp (-π * I / 3) / 2 * (scorerHi (z * exp (2 * π * I / 3)) -
+        -1 / (π * (z * exp (2 * π * I / 3)) ^ 1) * S (z * exp (2 * π * I / 3))) =
+      scorerGi z - 1 / (π * z ^ 1) * S z
+    rw [hS _ c1, hS _ c2, scorerGi_rotations, ha, hb]
+    have e1 : exp (-2 * π * I / 3) ≠ 0 := exp_ne_zero _
+    have e2 : exp (2 * π * I / 3) ≠ 0 := exp_ne_zero _
+    have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+    field_simp
+    ring
+  · simp only
+    rw [show (3 * (N : ℂ) + 1) = ((3 * N + 0 + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
+      cpow_natCast]
+
+/-- scorerGiDeriv asymptotic (DLMF 9.12.26). -/
+@[dlmf 9.12.E26]
+theorem scorerGiDeriv_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => z) (airySector (π / 3 - δ)))
+      (fun z : ℂ => scorerGiDeriv z - -1 / (π * z ^ 2) *
+        ∑ k ∈ Finset.range N, (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 2))) := by
+  rw [comap_id']
+  have hπ := Real.pi_pos
+  obtain ⟨T1, T2⟩ := scorerAsym_tendsto_omega hδ hδ'
+  obtain ⟨n1, n2⟩ := scorerAsym_norm_omega
+  obtain ⟨c1, c2⟩ := scorerAsym_omega_cube
+  obtain ⟨ha, hb⟩ := scorerAsym_rot_coeffs
+  have H := scorerAsym_scorerHiDeriv_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith) N
+  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_inv_pow_mul n1 _)).const_mul_left
+    (exp (π * I / 3) / 2 * exp (-2 * π * I / 3))
+  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_inv_pow_mul n2 _)).const_mul_left
+    (exp (-π * I / 3) / 2 * exp (2 * π * I / 3))
+  have hev : ∀ᶠ z in airySector (π / 3 - δ), z ≠ 0 ∧ |arg z| ≤ π / 3 - δ :=
+    mem_inf_of_right (mem_principal_self _)
+  refine (h1.add h2).congr' ?_ (Eventually.of_forall fun z => ?_)
+  · filter_upwards [hev] with z hz
+    have hz0 := hz.1
+    set S : ℂ → ℂ := fun w => ∑ k ∈ Finset.range N,
+      (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * w ^ 3) ^ k with hSdef
+    have hS : ∀ c : ℂ, c ^ 3 = 1 → S (z * c) = S z := fun c hc => by
+      simp only [hSdef, mul_pow, hc, mul_one]
+    simp only [Function.comp_apply]
+    change exp (π * I / 3) / 2 * exp (-2 * π * I / 3) * (scorerHiDeriv (z * exp (-2 * π * I / 3)) -
+        1 / (π * (z * exp (-2 * π * I / 3)) ^ 2) * S (z * exp (-2 * π * I / 3))) +
+      exp (-π * I / 3) / 2 * exp (2 * π * I / 3) * (scorerHiDeriv (z * exp (2 * π * I / 3)) -
+        1 / (π * (z * exp (2 * π * I / 3)) ^ 2) * S (z * exp (2 * π * I / 3))) =
+      scorerGiDeriv z - -1 / (π * z ^ 2) * S z
+    rw [hS _ c1, hS _ c2, scorerAsym_scorerGiDeriv_rotations, ha, hb]
+    have e1 : exp (-2 * π * I / 3) ≠ 0 := exp_ne_zero _
+    have e2 : exp (2 * π * I / 3) ≠ 0 := exp_ne_zero _
+    have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+    field_simp
+    ring
+  · simp only
+    rw [show (3 * (N : ℂ) + 2) = ((3 * N + 1 + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
+      cpow_natCast]
+
+/-- scorerHi asymptotic (DLMF 9.12.27). -/
+@[dlmf 9.12.E27]
+theorem scorerHi_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < 2 * π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ)))
+      (fun z : ℂ => scorerHi z - -1 / (π * z ^ 1) *
+        ∑ k ∈ Finset.range N, (((3 * k + 0).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 1))) := by
+  refine (scorerAsym_scorerHi_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith) N).congr'
+    EventuallyEq.rfl (Eventually.of_forall fun z => ?_)
+  simp only
+  rw [show (3 * (N : ℂ) + 1) = ((3 * N + 0 + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
+    cpow_natCast]
+
+/-- scorerHiDeriv asymptotic (DLMF 9.12.28). -/
+@[dlmf 9.12.E28]
+theorem scorerHiDeriv_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < 2 * π / 3) (N : ℕ) :
+    IsBigO (comap (fun z : ℂ => -z) (airySector (2 * π / 3 - δ)))
+      (fun z : ℂ => scorerHiDeriv z - 1 / (π * z ^ 2) *
+        ∑ k ∈ Finset.range N, (((3 * k + 1).factorial : ℂ) / k.factorial) / (3 * z ^ 3) ^ k)
+      (fun z : ℂ => z ^ (-(3 * (N : ℂ) + 2))) := by
+  refine (scorerAsym_scorerHiDeriv_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith)
+    N).congr' EventuallyEq.rfl (Eventually.of_forall fun z => ?_)
+  simp only
+  rw [show (3 * (N : ℂ) + 2) = ((3 * N + 1 + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
+    cpow_natCast]
+
+/-- All complex zeros are simple, DLMF §9.12(ix). -/
+theorem scorerGi_simple_zeros {z : ℂ} (hz : scorerGi z = 0) :
+    deriv scorerGi z ≠ 0 := by
+  sorry
+
+/-- All complex zeros are simple, DLMF §9.12(ix). -/
+theorem scorerHi_simple_zeros {z : ℂ} (hz : scorerHi z = 0) :
+    deriv scorerHi z ≠ 0 := by
+  sorry
 
 /-- On the real line the Laplace integral is real. -/
 lemma integral_pow_mul_exp_cubic_ofReal (m : ℕ) (x : ℝ) :

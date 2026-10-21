@@ -6,6 +6,8 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.ExpIntegrals.Asymptotics
+public import AAR.ExpIntegrals.Representations
+public import ToMathlib.Topology.Order.ZeroEnumeration
 
 /-!
 # Zeros, transforms, sums and computational recurrences, DLMF §§6.13–6.18
@@ -33,30 +35,378 @@ def Real.cosIntZero (k : ℕ) : ℝ :=
 def Real.sinIntTailZero (k : ℕ) : ℝ :=
   Classical.epsilon (fun x : ℝ => 0 < x ∧ Real.sinInt x-π/2=0 ∧ ({y : ℝ | 0 < y ∧ y < x ∧ Real.sinInt y-π/2=0} : Set ℝ).ncard=k)
 
+/-! ### Real zeros of `Ei`, `Ci` and `si`
+
+The signs of `Ci` and `si` at their critical points come from the positivity of the auxiliary
+function `f(x) = Ci(x) sin x - si(x) cos x` (DLMF 6.7.13); between consecutive critical points the
+functions are strictly monotone, which separates the zeros. -/
+
+/-- The real auxiliary function `f(x) = Ci(x) sin x - si(x) cos x`. -/
+lemma ezero_auxF_ofReal {x : ℝ} (hx : 0 < x) :
+    expIntAuxF x = ((Real.cosInt x * Real.sin x - (Real.sinInt x - π / 2) * Real.cos x : ℝ) : ℂ) := by
+  rw [expIntAuxF, cosInt_ofReal hx, sinIntTail, sinInt_ofReal, ← ofReal_sin, ← ofReal_cos]
+  push_cast; ring
+
+/-- `f(x) > 0` for `x > 0`, from the Laplace representation (DLMF 6.7.13). -/
+lemma ezero_auxF_pos {x : ℝ} (hx : 0 < x) :
+    0 < Real.cosInt x * Real.sin x - (Real.sinInt x - π / 2) * Real.cos x := by
+  have h := expIntAuxF_laplace_integral (z := (x : ℂ)) (by simp; linarith)
+  rw [ezero_auxF_ofReal hx] at h
+  have h' := (Complex.continuous_re.tendsto _).comp h
+  simp only [Function.comp_def, ofReal_re] at h'
+  set g : ℝ → ℝ := fun t => Real.exp (-x * t) / (t ^ 2 + 1) with hg
+  have hcg : Continuous g := by
+    refine Continuous.div (by fun_prop) (by fun_prop) fun t => by positivity
+  have hre : ∀ R : ℝ, (∫ t in (0 : ℝ)..R, (t : ℂ) ^ 0 * exp (-(x : ℂ) * t) / ((t : ℂ) ^ 2 + 1)).re =
+      ∫ t in (0 : ℝ)..R, g t := by
+    intro R
+    have : (fun t : ℝ => (t : ℂ) ^ 0 * exp (-(x : ℂ) * t) / ((t : ℂ) ^ 2 + 1)) =
+        fun t : ℝ => ((g t : ℝ) : ℂ) := by
+      funext t; simp only [hg]; push_cast; ring
+    rw [this, intervalIntegral.integral_ofReal, ofReal_re]
+  simp only [hre] at h'
+  have hlow : ∀ R : ℝ, 1 ≤ R → Real.exp (-x) / 2 ≤ ∫ t in (0 : ℝ)..R, g t := by
+    intro R hR
+    have h1 : ∫ t in (0 : ℝ)..1, g t ≤ ∫ t in (0 : ℝ)..R, g t :=
+      intervalIntegral.integral_mono_interval le_rfl zero_le_one hR
+        (Eventually.of_forall fun t => by simp only [hg, Pi.zero_apply]; positivity)
+        (hcg.intervalIntegrable _ _)
+    have h2 : ∫ t in (0 : ℝ)..1, Real.exp (-x) / 2 ≤ ∫ t in (0 : ℝ)..1, g t := by
+      refine intervalIntegral.integral_mono_on zero_le_one intervalIntegrable_const
+        (hcg.intervalIntegrable _ _) fun t ht => ?_
+      simp only [hg]
+      have he : Real.exp (-x) ≤ Real.exp (-x * t) := Real.exp_le_exp.mpr (by nlinarith [ht.2])
+      have ht2 : t ^ 2 + 1 ≤ 2 := by nlinarith [ht.1, ht.2]
+      calc Real.exp (-x) / 2 ≤ Real.exp (-x * t) / 2 := by gcongr
+        _ ≤ Real.exp (-x * t) / (t ^ 2 + 1) := by
+          gcongr
+    simp only [intervalIntegral.integral_const, sub_zero, smul_eq_mul, one_mul] at h2
+    linarith
+  have := ge_of_tendsto h' (eventually_atTop.mpr ⟨1, hlow⟩)
+  linarith [Real.exp_pos (-x)]
+
+/-- At the points `nπ`, `(-1)^n si(nπ) = -f(nπ)`. -/
+lemma ezero_si_nat_mul_pi {n : ℕ} (hn : 1 ≤ n) :
+    (-1) ^ n * (Real.sinInt (n * π) - π / 2) < 0 := by
+  have hx : 0 < (n : ℝ) * π := by have : (1 : ℝ) ≤ n := by exact_mod_cast hn
+                                  positivity
+  have h := ezero_auxF_pos hx
+  rw [Real.sin_nat_mul_pi, Real.cos_nat_mul_pi] at h
+  linarith
+
+/-- At the points `(m + 1/2)π`, `Ci = (-1)^m f`. -/
+lemma ezero_ci_half {m : ℕ} :
+    0 < (-1) ^ m * Real.cosInt ((m + 1 / 2) * π) := by
+  have hx : 0 < ((m : ℝ) + 1 / 2) * π := by positivity
+  have h := ezero_auxF_pos hx
+  have hs : Real.sin ((m + 1 / 2) * π) = (-1) ^ m := by
+    rw [show ((m : ℝ) + 1 / 2) * π = π / 2 + m * π by ring, Real.sin_add_nat_mul_pi, Real.sin_pi_div_two,
+      mul_one]
+  have hc : Real.cos ((m + 1 / 2) * π) = 0 := by
+    rw [show ((m : ℝ) + 1 / 2) * π = π / 2 + m * π by ring, Real.cos_add_nat_mul_pi, Real.cos_pi_div_two,
+      mul_zero]
+  rw [hs, hc] at h
+  have h1 : ((-1 : ℝ) ^ m) * (-1) ^ m = 1 := by rw [← mul_pow]; norm_num
+  nlinarith
+
+lemma ezero_sinInt_zero : Real.sinInt 0 = 0 := by simp [Real.sinInt]
+
+lemma ezero_si_mono (n : ℕ) :
+    StrictMonoOn (fun x => (-1) ^ n * (Real.sinInt x - π / 2)) (Icc (n * π) ((n + 1) * π)) := by
+  have hπ := Real.pi_pos
+  refine strictMonoOn_of_deriv_pos (convex_Icc _ _) ?_ fun x hx => ?_
+  · exact fun x _ => ((((Real.hasDerivAt_sinInt x).sub_const (π / 2)).const_mul
+      ((-1 : ℝ) ^ n)).continuousAt).continuousWithinAt
+  · rw [interior_Icc] at hx
+    have hx0 : 0 < x := lt_of_le_of_lt (by positivity) hx.1
+    rw [(((Real.hasDerivAt_sinInt x).sub_const (π / 2)).const_mul ((-1 : ℝ) ^ n)).deriv,
+      Real.sinc_of_ne_zero hx0.ne']
+    have hs : (-1) ^ n * Real.sin x > 0 := by
+      have hy : Real.sin x = (-1) ^ n * Real.sin (x - n * π) := by
+        rw [← Real.sin_add_nat_mul_pi, sub_add_cancel]
+      rw [hy, ← mul_assoc, ← mul_pow]; norm_num
+      exact Real.sin_pos_of_pos_of_lt_pi (by linarith [hx.1]) (by linarith [hx.2])
+    rw [mul_div_assoc']
+    exact div_pos hs hx0
+
+lemma ezero_si_unique (n : ℕ) :
+    ∃! x, x ∈ Ioo ((n : ℝ) * π) ((n + 1 : ℕ) * π) ∧ Real.sinInt x - π / 2 = 0 := by
+  have hπ := Real.pi_pos
+  have hne : ((-1 : ℝ) ^ n) ≠ 0 := pow_ne_zero _ (by norm_num)
+  have hm := ezero_si_mono n
+  have hlo : (-1) ^ n * (Real.sinInt (n * π) - π / 2) < 0 := by
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp [ezero_sinInt_zero]; linarith
+    · exact ezero_si_nat_mul_pi hn
+  have hhi : 0 < (-1) ^ n * (Real.sinInt ((n + 1) * π) - π / 2) := by
+    have := ezero_si_nat_mul_pi (n := n + 1) (by omega)
+    push_cast at this
+    rw [pow_succ] at this; linarith
+  have hc : ContinuousOn (fun x => (-1) ^ n * (Real.sinInt x - π / 2)) (Icc (n * π) ((n + 1) * π)) :=
+    fun x _ => ((((Real.hasDerivAt_sinInt x).sub_const (π / 2)).const_mul
+      ((-1 : ℝ) ^ n)).continuousAt).continuousWithinAt
+  obtain ⟨x, ⟨hx, hx0⟩, hxu⟩ := zcount_existsUnique_zero (by nlinarith) hc hm hlo hhi
+  push_cast
+  refine ⟨x, ⟨hx, ?_⟩, fun y ⟨hy, hy0⟩ => hxu y ⟨hy, by simp only [hy0, mul_zero]⟩⟩
+  simpa [hne] using hx0
+
+/-- The positive zeros of `si`, separated by the points `nπ`. -/
+lemma ezero_si_enum :
+    ∃ z : ℕ → ℝ, StrictMono z ∧ (∀ n : ℕ, z n ∈ Ioo ((n : ℝ) * π) (((n + 1 : ℕ) : ℝ) * π)) ∧
+      (∀ x, 0 < x → (Real.sinInt x - π / 2 = 0 ↔ ∃ k, z k = x)) ∧
+      (∀ k, 0 < z k ∧ Real.sinInt (z k) - π / 2 = 0 ∧
+        {y : ℝ | 0 < y ∧ y < z k ∧ Real.sinInt y - π / 2 = 0}.ncard = k) ∧
+      ∀ k, Classical.epsilon (fun x : ℝ => 0 < x ∧ Real.sinInt x - π / 2 = 0 ∧
+        {y : ℝ | 0 < y ∧ y < x ∧ Real.sinInt y - π / 2 = 0}.ncard = k) = z k := by
+  have hπ := Real.pi_pos
+  refine zcount_enum (P := fun x => Real.sinInt x - π / 2 = 0) (t := fun n => n * π) (by simp)
+    (fun m n h => by simp only; gcongr) (fun x => ⟨⌈x / π⌉₊, ?_⟩)
+    ezero_si_unique (fun n h => ?_)
+  · have := Nat.le_ceil (x / π)
+    rwa [div_le_iff₀ hπ] at this
+  · obtain ⟨x, ⟨hx, -⟩, -⟩ := ezero_si_unique n
+    have := ezero_si_nat_mul_pi (n := n + 1) (by omega)
+    rw [h, mul_zero] at this
+    exact lt_irrefl _ this
+
+lemma ezero_cosIntCin_nonneg {x : ℝ} (hx : 0 ≤ x) : 0 ≤ Real.cosIntCin x :=
+  intervalIntegral.integral_nonneg hx fun t ht =>
+    div_nonneg (sub_nonneg.mpr (Real.cos_le_one t)) ht.1
+
+lemma ezero_ci_neg : Real.cosInt (Real.exp (-1)) < 0 := by
+  rw [Real.cosInt, Real.log_exp]
+  have := ezero_cosIntCin_nonneg (Real.exp_pos (-1)).le
+  have := Real.eulerMascheroniConstant_lt_two_thirds
+  linarith
+
+lemma ezero_ci_contOn {s : Set ℝ} (hs : ∀ x ∈ s, 0 < x) : ContinuousOn Real.cosInt s :=
+  fun x hx => (Real.hasDerivAt_cosInt (hs x hx)).continuousAt.continuousWithinAt
+
+lemma ezero_ci_mono_first : StrictMonoOn Real.cosInt (Ioc 0 (π / 2)) := by
+  refine strictMonoOn_of_deriv_pos (convex_Ioc _ _) (ezero_ci_contOn fun x hx => hx.1)
+    fun x hx => ?_
+  rw [interior_Ioc] at hx
+  rw [(Real.hasDerivAt_cosInt hx.1).deriv]
+  exact div_pos (Real.cos_pos_of_mem_Ioo ⟨by linarith [hx.1, Real.pi_pos], hx.2⟩) hx.1
+
+lemma ezero_ci_mono (m : ℕ) :
+    StrictMonoOn (fun x => (-1) ^ (m + 1) * Real.cosInt x)
+      (Icc ((m + 1 / 2) * π) ((m + 1 + 1 / 2) * π)) := by
+  have hπ := Real.pi_pos
+  have hpos : ∀ x ∈ Icc (((m : ℝ) + 1 / 2) * π) ((m + 1 + 1 / 2) * π), 0 < x :=
+    fun x hx => lt_of_lt_of_le (by positivity) hx.1
+  refine strictMonoOn_of_deriv_pos (convex_Icc _ _)
+    (fun x hx => (((Real.hasDerivAt_cosInt (hpos x hx)).const_mul _).continuousAt).continuousWithinAt)
+    fun x hx => ?_
+  have hx0 := hpos x (interior_subset hx)
+  rw [interior_Icc] at hx
+  rw [((Real.hasDerivAt_cosInt hx0).const_mul _).deriv]
+  have hc : 0 < (-1) ^ (m + 1) * Real.cos x := by
+    have hy : Real.cos x = (-1) ^ (m + 1) * Real.cos (x - (m + 1 : ℕ) * π) := by
+      rw [← Real.cos_add_nat_mul_pi, sub_add_cancel]
+    rw [hy, ← mul_assoc, ← mul_pow]; norm_num
+    exact Real.cos_pos_of_mem_Ioo ⟨by linarith [hx.1], by linarith [hx.2]⟩
+  rw [mul_div_assoc']
+  exact div_pos hc hx0
+
+/-- The separating points for the zeros of `Ci`. -/
+noncomputable def ezero_ct (n : ℕ) : ℝ := if n = 0 then 0 else (n - 1 / 2) * π
+
+lemma ezero_ct_succ (n : ℕ) : ezero_ct (n + 1) = (n + 1 / 2) * π := by
+  simp [ezero_ct]; ring
+
+lemma ezero_ci_unique (n : ℕ) :
+    ∃! x, x ∈ Ioo (ezero_ct n) (ezero_ct (n + 1)) ∧ Real.cosInt x = 0 := by
+  have hπ := Real.pi_pos
+  rcases n with _ | m
+  · rw [ezero_ct_succ, show ezero_ct 0 = 0 by simp [ezero_ct]]
+    simp only [CharP.cast_eq_zero, zero_add, one_div]
+    have he1 : Real.exp (-1) < π / 2 := by
+      have := Real.exp_lt_one_iff.mpr (show (-1 : ℝ) < 0 by norm_num)
+      linarith [Real.pi_gt_three]
+    have hhi : 0 < Real.cosInt (π / 2) := by
+      have := ezero_ci_half (m := 0); simpa [div_eq_inv_mul] using this
+    obtain ⟨x, ⟨hx, hx0⟩, -⟩ := zcount_existsUnique_zero he1.le
+      (ezero_ci_contOn fun x hx => (Real.exp_pos _).trans_le hx.1)
+      (ezero_ci_mono_first.mono fun x hx => ⟨(Real.exp_pos _).trans_le hx.1, hx.2⟩)
+      ezero_ci_neg hhi
+    refine ⟨x, ⟨⟨(Real.exp_pos _).trans hx.1, by rw [← div_eq_inv_mul]; exact hx.2⟩, hx0⟩,
+      fun y ⟨hy, hy0⟩ => ezero_ci_mono_first.injOn ⟨hy.1, ?_⟩ ⟨(Real.exp_pos _).trans hx.1,
+        hx.2.le⟩ (hy0.trans hx0.symm)⟩
+    rw [← div_eq_inv_mul] at hy; exact hy.2.le
+  · rw [ezero_ct_succ, ezero_ct_succ]
+    have hne : ((-1 : ℝ) ^ (m + 1)) ≠ 0 := pow_ne_zero _ (by norm_num)
+    have hlo : (-1) ^ (m + 1) * Real.cosInt ((m + 1 / 2) * π) < 0 := by
+      have := ezero_ci_half (m := m); rw [pow_succ]; linarith
+    have hhi : 0 < (-1) ^ (m + 1) * Real.cosInt ((m + 1 + 1 / 2) * π) := by
+      have := ezero_ci_half (m := m + 1); push_cast at this; exact this
+    have hπ' : ((m : ℝ) + 1 / 2) * π ≤ (m + 1 + 1 / 2) * π := by nlinarith
+    obtain ⟨x, ⟨hx, hx0⟩, hxu⟩ := zcount_existsUnique_zero hπ'
+      (fun x hx => (((Real.hasDerivAt_cosInt (lt_of_lt_of_le (by positivity) hx.1)).const_mul
+        ((-1 : ℝ) ^ (m + 1))).continuousAt).continuousWithinAt) (ezero_ci_mono m) hlo hhi
+    push_cast
+    refine ⟨x, ⟨hx, by simpa [hne] using hx0⟩, fun y ⟨hy, hy0⟩ => hxu y ⟨hy, by simp [hy0]⟩⟩
+
+lemma ezero_ci_enum :
+    ∃ z : ℕ → ℝ, StrictMono z ∧ (∀ n : ℕ, z n ∈ Ioo (ezero_ct n) (ezero_ct (n + 1))) ∧
+      (∀ x, 0 < x → (Real.cosInt x = 0 ↔ ∃ k, z k = x)) ∧
+      (∀ k, 0 < z k ∧ Real.cosInt (z k) = 0 ∧
+        {y : ℝ | 0 < y ∧ y < z k ∧ Real.cosInt y = 0}.ncard = k) ∧
+      ∀ k, Classical.epsilon (fun x : ℝ => 0 < x ∧ Real.cosInt x = 0 ∧
+        {y : ℝ | 0 < y ∧ y < x ∧ Real.cosInt y = 0}.ncard = k) = z k := by
+  have hπ := Real.pi_pos
+  refine zcount_enum (P := fun x => Real.cosInt x = 0) (t := ezero_ct) (by simp [ezero_ct])
+    (strictMono_nat_of_lt_succ fun n => ?_) (fun x => ⟨⌈x / π⌉₊ + 1, ?_⟩)
+    ezero_ci_unique (fun n h => ?_)
+  · rw [ezero_ct_succ]
+    rcases n with _ | m
+    · simp [ezero_ct]; positivity
+    · rw [ezero_ct_succ]; push_cast; nlinarith
+  · rw [ezero_ct_succ]
+    have := Nat.le_ceil (x / π)
+    rw [div_le_iff₀ hπ] at this
+    nlinarith
+  · have := ezero_ci_half (m := n)
+    rw [ezero_ct_succ] at h
+    rw [h, mul_zero] at this
+    exact lt_irrefl _ this
+
+lemma ezero_ei_eq {x : ℝ} (hx : 0 < x) :
+    Real.expIntEi x = Real.eulerMascheroniConstant + Real.log x - Real.expIntEin (-x) := by
+  rw [Real.expIntEi, abs_of_pos hx, show -(x : ℂ) = ((-x : ℝ) : ℂ) by push_cast; ring,
+    expIntEin_ofReal, ofReal_re]
+
+lemma ezero_hasDerivAt_ein {t : ℝ} (ht : t ≠ 0) :
+    HasDerivAt Real.expIntEin ((1 - Real.exp (-t)) / t) t := by
+  have h := (hasDerivAt_expIntEin_complex (z := (t : ℂ)) (by exact_mod_cast ht)).real_of_complex
+  have hf : (fun y : ℝ => (expIntEin (y : ℂ)).re) = Real.expIntEin := by
+    funext y; rw [expIntEin_ofReal, ofReal_re]
+  rw [hf] at h
+  convert h using 1
+  rw [← ofReal_neg, ← ofReal_exp, ← ofReal_one, ← ofReal_sub, ← ofReal_div, ofReal_re]
+
+/-- The negative part of the real axis: `Ei(-y) = -E₁(y) < 0`. -/
+lemma ezero_ei_neg {y : ℝ} (hy : 0 < y) : Real.expIntEi (-y) < 0 := by
+  have h := Real.expIntEi_negative hy
+  rw [genExpIntE_one_eq_integral hy, ← ofReal_neg, ofReal_inj] at h
+  rw [h, neg_lt_zero]
+  have hint := integrableOn_exp_neg_div hy
+  rw [setIntegral_pos_iff_support_of_nonneg_ae _ hint]
+  · have : Function.support (fun t : ℝ => Real.exp (-t) / t) ∩ Ioi y = Ioi y := by
+      ext t
+      simp only [mem_inter_iff, Function.mem_support, mem_Ioi, and_iff_right_iff_imp]
+      intro ht; exact (div_pos (Real.exp_pos _) (hy.trans ht)).ne'
+    rw [this]; simp [Real.volume_Ioi]
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    exact (div_pos (Real.exp_pos _) (hy.trans ht)).le
+
+lemma ezero_ei_mono : StrictMonoOn
+    (fun x => Real.eulerMascheroniConstant + Real.log x - Real.expIntEin (-x)) (Ioi 0) := by
+  have hd : ∀ x : ℝ, 0 < x → HasDerivAt
+      (fun x => Real.eulerMascheroniConstant + Real.log x - Real.expIntEin (-x))
+      (Real.exp x / x) x := by
+    intro x hx
+    have h1 := ((ezero_hasDerivAt_ein (t := -x) (by linarith)).comp x (hasDerivAt_neg x))
+    have h2 := ((hasDerivAt_const x Real.eulerMascheroniConstant).add (Real.hasDerivAt_log hx.ne')).sub h1
+    refine h2.congr_deriv ?_
+    rw [neg_neg]; field_simp; ring
+  refine strictMonoOn_of_deriv_pos (convex_Ioi 0)
+    (fun x hx => (hd x hx).continuousAt.continuousWithinAt) fun x hx => ?_
+  rw [interior_Ioi] at hx
+  rw [(hd x hx).deriv]
+  exact div_pos (Real.exp_pos _) hx
+
+lemma ezero_ein_neg_series (x : ℝ) :
+    HasSum (fun k : ℕ => x ^ (k + 1) / ((k + 1) * (k + 1)!)) (-Real.expIntEin (-x)) := by
+  refine (Real.hasSum_expIntEin (-x)).neg.congr_fun fun k => ?_
+  have h1 : (-x) ^ (k + 1) = (-1) ^ (k + 1) * x ^ (k + 1) := neg_pow x (k + 1)
+  have h2 : ((-1 : ℝ) ^ k) * (-1) ^ (k + 1) = -1 := by
+    rw [← pow_add, show k + (k + 1) = 2 * k + 1 by ring, pow_succ, pow_mul]; norm_num
+  rw [h1, ← mul_assoc, h2]
+  ring
+
+lemma ezero_ei_one_pos :
+    0 < Real.eulerMascheroniConstant + Real.log 1 - Real.expIntEin (-1) := by
+  have h := (ezero_ein_neg_series 1).nonneg fun k => by positivity
+  have := Real.one_half_lt_eulerMascheroniConstant
+  rw [Real.log_one]; linarith
+
+lemma ezero_ei_small_neg :
+    Real.eulerMascheroniConstant + Real.log (Real.exp (-2)) - Real.expIntEin (-Real.exp (-2)) < 0 := by
+  set x := Real.exp (-2)
+  have hx0 : 0 < x := Real.exp_pos _
+  have hx2 : x ≤ 1 / 2 := by
+    have := Real.add_one_le_exp (2 : ℝ)
+    have h : x * Real.exp 2 = 1 := by rw [← Real.exp_add]; norm_num
+    nlinarith [Real.exp_pos 2]
+  have hle := hasSum_le (fun k => ?_) (ezero_ein_neg_series x) (hasSum_geometric_two.mul_left x)
+  · have := Real.eulerMascheroniConstant_lt_two_thirds
+    rw [Real.log_exp]; linarith
+  · have hk : (1 : ℝ) ≤ (k + 1) * (k + 1)! := by
+      have : (1 : ℝ) ≤ (k + 1)! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero _)
+      nlinarith
+    rw [div_le_iff₀ (by positivity)]
+    have hp : x ^ (k + 1) ≤ x * (1 / 2) ^ k := by
+      rw [pow_succ, mul_comm]; gcongr
+    have : 0 ≤ x * (1 / 2) ^ k := by positivity
+    nlinarith
+
+/-- **The unique real zero of `Ei`** (DLMF 6.13). -/
+lemma ezero_ei_existsUnique : ∃! x : ℝ, x ≠ 0 ∧ Real.expIntEi x = 0 := by
+  set E := fun x => Real.eulerMascheroniConstant + Real.log x - Real.expIntEin (-x)
+  have hlt : Real.exp (-2) < 1 := Real.exp_lt_one_iff.mpr (by norm_num)
+  have hc : ContinuousOn E (Icc (Real.exp (-2)) 1) := by
+    refine ContinuousOn.sub (continuousOn_const.add (Real.continuousOn_log.mono fun t ht =>
+      ((Real.exp_pos _).trans_le ht.1).ne')) fun t ht => ?_
+    exact ((ezero_hasDerivAt_ein (t := -t) (by linarith [(Real.exp_pos (-2)).trans_le ht.1])).comp t
+      (hasDerivAt_neg t)).continuousAt.continuousWithinAt
+  obtain ⟨x, ⟨hx, hx0⟩, -⟩ := zcount_existsUnique_zero hlt.le hc
+    (ezero_ei_mono.mono fun t ht => (Real.exp_pos _).trans_le ht.1) ezero_ei_small_neg
+    ezero_ei_one_pos
+  have hxpos : 0 < x := (Real.exp_pos _).trans hx.1
+  refine ⟨x, ⟨hxpos.ne', by rw [ezero_ei_eq hxpos]; exact hx0⟩, fun y ⟨hy0, hy⟩ => ?_⟩
+  rcases lt_or_gt_of_ne hy0 with hneg | hpos
+  · have := ezero_ei_neg (y := -y) (by linarith)
+    rw [neg_neg, hy] at this; exact absurd this (lt_irrefl _)
+  · rw [ezero_ei_eq hpos] at hy
+    exact ezero_ei_mono.injOn hpos hxpos (hy.trans hx0.symm)
+
 /-- Real.expIntEi unique zero. -/
 theorem Real.expIntEi_unique_zero  :
     Real.expIntEiZero ≠ 0 ∧ Real.expIntEi Real.expIntEiZero=0 ∧ ∀ x : ℝ, x ≠ 0 → Real.expIntEi x=0 → x=Real.expIntEiZero := by
-  sorry
+  obtain ⟨x, hx, hu⟩ := ezero_ei_existsUnique
+  have hs := Classical.epsilon_spec (p := fun x : ℝ => x ≠ 0 ∧ Real.expIntEi x = 0) ⟨x, hx⟩
+  have he : Real.expIntEiZero = x := hu _ hs
+  rw [he]
+  exact ⟨hx.1, hx.2, fun y hy0 hy => hu y ⟨hy0, hy⟩⟩
 
 /-- Real.cosIntZero spec. -/
 theorem Real.cosIntZero_spec (k : ℕ) :
     0 < Real.cosIntZero k ∧ (Real.cosInt) (Real.cosIntZero k)=0 ∧ ({y : ℝ | 0 < y ∧ y < Real.cosIntZero k ∧ (Real.cosInt) y=0} : Set ℝ).ncard=k := by
-  sorry
+  obtain ⟨z, -, -, -, hs, he⟩ := ezero_ci_enum
+  have hZ : Real.cosIntZero = z := funext he
+  rw [hZ]; exact hs k
 
 /-- Real.cosIntZero enumeration. -/
 theorem Real.cosIntZero_enumeration  :
     StrictMono Real.cosIntZero ∧ ∀ x : ℝ, 0 < x → ((Real.cosInt) x=0 ↔ ∃ k, Real.cosIntZero k=x) := by
-  sorry
+  obtain ⟨z, hm, -, hi, -, he⟩ := ezero_ci_enum
+  have hZ : Real.cosIntZero = z := funext he
+  rw [hZ]; exact ⟨hm, hi⟩
 
 /-- Real.sinIntTailZero spec. -/
 theorem Real.sinIntTailZero_spec (k : ℕ) :
     0 < Real.sinIntTailZero k ∧ (fun x => Real.sinInt x-π/2) (Real.sinIntTailZero k)=0 ∧ ({y : ℝ | 0 < y ∧ y < Real.sinIntTailZero k ∧ (fun x => Real.sinInt x-π/2) y=0} : Set ℝ).ncard=k := by
-  sorry
+  obtain ⟨z, -, -, -, hs, he⟩ := ezero_si_enum
+  have hZ : Real.sinIntTailZero = z := funext he
+  rw [hZ]; exact hs k
 
 /-- Real.sinIntTailZero enumeration. -/
 theorem Real.sinIntTailZero_enumeration  :
     StrictMono Real.sinIntTailZero ∧ ∀ x : ℝ, 0 < x → ((fun x => Real.sinInt x-π/2) x=0 ↔ ∃ k, Real.sinIntTailZero k=x) := by
-  sorry
+  obtain ⟨z, hm, -, hi, -, he⟩ := ezero_si_enum
+  have hZ : Real.sinIntTailZero = z := funext he
+  rw [hZ]; exact ⟨hm, hi⟩
 
 /-- Shared all-order zero expansions and signed next-term bounds. -/
 @[dlmf 6.13.E2]

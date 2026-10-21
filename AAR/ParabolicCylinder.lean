@@ -11,6 +11,8 @@ public import AAR.ParabolicCylinder.AsymptoticsZeros
 public import AAR.ParabolicCylinder.SectorAsymptotics
 public import AAR.ParabolicCylinder.Uniform
 public import AAR.ParabolicCylinder.UniformLG
+public import AAR.ParabolicCylinder.UniformLG2
+public import AAR.ParabolicCylinder.IntegralTools
 public import AAR.ParabolicCylinder.TurningPoint
 public import AAR.ParabolicCylinder.WeberUniform
 public import AAR.ParabolicCylinder.Computation

@@ -107,12 +107,114 @@ theorem legendre_infinite_singular_exponents (ν μ : ℂ) :
 /-- The reflected first-kind pair is dependent exactly at the exceptional parameters in DLMF 14.2(iii). -/
 theorem ferrersP_reflected_dependence (ν μ : ℂ) :
     (∃ A B : ℂ, (A ≠ 0 ∨ B ≠ 0) ∧ ∀ x ∈ Ioo (-1:ℝ) 1, A*ferrersP ν (-μ) x+B*ferrersP ν (-μ) (-x)=0) ↔ (∃ n : ℕ, μ-ν=-n) ∨ (∃ n : ℕ, μ+ν=-(n+1)) := by
-  sorry
+  set α : ℂ := 2^(-μ)*π*((Gamma ((1-ν+μ)/2))⁻¹*(Gamma ((ν+μ+2)/2))⁻¹) with hα
+  set β : ℂ := 2^(-μ)*π*((Gamma ((μ-ν)/2))⁻¹*(Gamma ((ν+μ+1)/2))⁻¹) with hβ
+  have hf : EqOn (ferrersP ν (-μ)) (fun y => α*ferrersEven ν μ y + -β*ferrersOdd ν μ y)
+      (Ioo (-1:ℝ) 1) := ferrersP_neg_eqOn_even_odd ν μ
+  have hg : EqOn (fun x => ferrersP ν (-μ) (-x)) (fun y => α*ferrersEven ν μ y + β*ferrersOdd ν μ y)
+      (Ioo (-1:ℝ) 1) := ferrersP_neg_reflect_eqOn_even_odd ν μ
+  have hg' : ∀ y ∈ Ioo (-1:ℝ) 1, ferrersP ν (-μ) (-y) = α*ferrersEven ν μ y + β*ferrersOdd ν μ y :=
+    fun y hy => hg hy
+  have h0 : (0:ℝ) ∈ Ioo (-1:ℝ) 1 := by norm_num
+  have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  -- αβ vanishes exactly at the exceptional parameters
+  have hW : 4*(α*β)/π = 2/(Gamma (μ-ν)*Gamma (ν+μ+1)) := by
+    have e1 := ferrersWronskian_of_even_odd hf hg h0
+    have e2 := ferrers_wronskian_3 ν μ h0
+    rw [e1] at e2
+    simp only [ofReal_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, sub_zero,
+      mul_one] at e2
+    rw [← e2]; ring
+  have hab : α*β = 0 ↔ (∃ n : ℕ, μ-ν=-n) ∨ (∃ n : ℕ, μ+ν=-(n+1)) := by
+    have : α*β = 0 ↔ Gamma (μ-ν)*Gamma (ν+μ+1) = 0 := by
+      constructor
+      · intro h; rw [h, mul_zero, zero_div] at hW
+        by_contra hc; exact (div_ne_zero two_ne_zero hc) hW.symm
+      · intro h; rw [h, div_zero] at hW
+        have := hW; field_simp at this; simpa using this
+    rw [this, mul_eq_zero, Complex.Gamma_eq_zero_iff, Complex.Gamma_eq_zero_iff]
+    refine or_congr Iff.rfl ⟨fun ⟨n, hn⟩ => ⟨n, by linear_combination hn⟩,
+      fun ⟨n, hn⟩ => ⟨n, by linear_combination hn⟩⟩
+  rw [← hab]
+  constructor
+  · rintro ⟨A, B, hAB, hrel⟩
+    by_contra hne
+    have hα0 : α ≠ 0 := left_ne_zero_of_mul hne
+    have hβ0 : β ≠ 0 := right_ne_zero_of_mul hne
+    have hz : EqOn (fun _ : ℝ => (0:ℂ)) (fun y => ((A+B)*α)*ferrersEven ν μ y+((B-A)*β)*ferrersOdd ν μ y)
+        (Ioo (-1:ℝ) 1) := by
+      intro y hy
+      have := hrel y hy
+      simp only at this ⊢
+      rw [hf hy, hg' y hy] at this
+      linear_combination -this
+    have hE : EqOn (ferrersEven ν μ) (fun y => (1:ℂ)*ferrersEven ν μ y+0*ferrersOdd ν μ y) (Ioo (-1:ℝ) 1) :=
+      fun y _ => by simp
+    have hO : EqOn (ferrersOdd ν μ) (fun y => (0:ℂ)*ferrersEven ν μ y+1*ferrersOdd ν μ y) (Ioo (-1:ℝ) 1) :=
+      fun y _ => by simp
+    have w1 := ferrersWronskian_of_even_odd hz hO h0
+    have w2 := ferrersWronskian_of_even_odd hz hE h0
+    simp only [ferrersWronskian, zero_mul, sub_zero, deriv_const, mul_zero, ofReal_zero,
+      ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, mul_one, zero_sub] at w1 w2
+    have hk : (2:ℂ)/π ≠ 0 := div_ne_zero two_ne_zero hpi
+    have a1 : (A+B)*α = 0 := by
+      rcases mul_eq_zero.mp w1.symm with h | h
+      · exact h
+      · exact absurd h hk
+    have a2 : (B-A)*β = 0 := by
+      have : -((B-A)*β)*(2/π) = 0 := by linear_combination -w2
+      rcases mul_eq_zero.mp this with h | h
+      · exact neg_eq_zero.mp h
+      · exact absurd h hk
+    have s1 : A+B = 0 := (mul_eq_zero.mp a1).resolve_right hα0
+    have s2 : B-A = 0 := (mul_eq_zero.mp a2).resolve_right hβ0
+    have hA : A = 0 := by linear_combination (s1 - s2)/2
+    have hB : B = 0 := by linear_combination (s1 + s2)/2
+    rcases hAB with h | h
+    · exact h hA
+    · exact h hB
+  · intro h
+    rcases mul_eq_zero.mp h with h | h
+    · refine ⟨1, 1, Or.inl one_ne_zero, fun x hx => ?_⟩
+      rw [hf hx, hg' x hx, h]; ring
+    · refine ⟨1, -1, Or.inl one_ne_zero, fun x hx => ?_⟩
+      rw [hf hx, hg' x hx, h]; ring
 
 /-- Independence of the recessive principal pair in DLMF 14.2(iii) and 14.21(ii). -/
 theorem associatedPQ_independent {ν μ : ℂ} (hν : -1/2 ≤ ν.re) (hμ : 0 ≤ μ.re) :
     ¬∃ A B : ℂ, (A ≠ 0 ∨ B ≠ 0) ∧ ∀ x : ℝ, 1 < x → A*associatedP ν (-μ) x+B*olverQ ν μ x=0 := by
-  sorry
+  rintro ⟨A, B, hAB, hrel⟩
+  have h2 : ((2:ℝ):ℂ) - 1 ∈ slitPlane := by norm_num
+  have hfa := (associatedP_analytic ν (-μ) _ h2).differentiableAt
+  have hga := (olverQ_analytic ν μ _ h2).differentiableAt
+  set h : ℂ → ℂ := fun z => A*associatedP ν (-μ) z + B*olverQ ν μ z with hh
+  have hd : HasDerivAt h (A*deriv (associatedP ν (-μ)) ((2:ℝ):ℂ) + B*deriv (olverQ ν μ) ((2:ℝ):ℂ))
+      ((2:ℝ):ℂ) := (hfa.hasDerivAt.const_mul A).add (hga.hasDerivAt.const_mul B)
+  have hr := hd.comp_ofReal
+  have hz : HasDerivAt (fun x : ℝ => h x) 0 2 := by
+    refine (hasDerivAt_const (2:ℝ) (0:ℂ)).congr_of_eventuallyEq ?_
+    filter_upwards [lt_mem_nhds (show (1:ℝ) < 2 by norm_num)] with x hx
+    exact hrel x hx
+  have e1 : A*deriv (associatedP ν (-μ)) ((2:ℝ):ℂ) + B*deriv (olverQ ν μ) ((2:ℝ):ℂ) = 0 :=
+    hr.unique hz
+  have e0 : A*associatedP ν (-μ) ((2:ℝ):ℂ) + B*olverQ ν μ ((2:ℝ):ℂ) = 0 := hrel 2 (by norm_num)
+  have hW := associated_wronskian_8 ν μ h2
+  unfold LegendreWronskian at hW
+  have hG : Gamma (ν+μ+1) ≠ 0 :=
+    Complex.Gamma_ne_zero_of_re_pos (by simp only [add_re, one_re]; linarith)
+  have hR : -1/(Gamma (ν+μ+1)*(((2:ℝ):ℂ)^2-1)) ≠ 0 := by
+    refine div_ne_zero (by norm_num) (mul_ne_zero hG (by push_cast; norm_num))
+  apply hR
+  rw [← hW]
+  rcases hAB with hA | hB
+  · have : A * (associatedP ν (-μ) ((2:ℝ):ℂ) * deriv (olverQ ν μ) ((2:ℝ):ℂ) -
+        olverQ ν μ ((2:ℝ):ℂ) * deriv (associatedP ν (-μ)) ((2:ℝ):ℂ)) = 0 := by
+      linear_combination deriv (olverQ ν μ) ((2:ℝ):ℂ) * e0 - olverQ ν μ ((2:ℝ):ℂ) * e1
+    exact (mul_eq_zero.mp this).resolve_left hA
+  · have : B * (associatedP ν (-μ) ((2:ℝ):ℂ) * deriv (olverQ ν μ) ((2:ℝ):ℂ) -
+        olverQ ν μ ((2:ℝ):ℂ) * deriv (associatedP ν (-μ)) ((2:ℝ):ℂ)) = 0 := by
+      linear_combination associatedP ν (-μ) ((2:ℝ):ℂ) * e1 - deriv (associatedP ν (-μ)) ((2:ℝ):ℂ) * e0
+    exact (mul_eq_zero.mp this).resolve_left hB
 
 /-- Integral-order completion of the interior zero count in DLMF 14.16(ii). -/
 theorem ferrersP_positive_integer_order_zero_count {ν : ℝ} (hν : -1/2 ≤ ν) (m : ℕ) (hnondeg : ∃ x ∈ Ioo (-1:ℝ) 1, ferrersP ν m x ≠ 0) :

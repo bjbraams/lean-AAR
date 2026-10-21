@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.ExpIntegrals.Continuation
+public import AAR.IncompleteGamma.ExponentialIntegral
 
 /-!
 # Power, inverse factorial and spherical Bessel series, DLMF §§6.6 and 6.10–6.11
@@ -41,8 +42,8 @@ theorem Real.hasSum_expIntEi {x : ℝ} (hx : 0 < x) :
 /-- expIntE1 digamma series. -/
 @[dlmf 6.6.E3]
 theorem expIntE1_digamma_series {z : ℂ} (hz : z ≠ 0) :
-    HasSum (fun k : ℕ => z^k/(k.factorial : ℂ)*digamma (k+1)) (exp z*(genExpIntE 1 z+log z)) := by
-  sorry
+    HasSum (fun k : ℕ => z^k/(k.factorial : ℂ)*digamma (k+1)) (exp z*(genExpIntE 1 z+log z)) :=
+  incG_expIntE1_digamma_series hz
 
 /-- expIntE1 hasSum. -/
 @[dlmf 6.6.E2]

@@ -79,25 +79,204 @@ theorem genCosIntTail_parameter_entire (w : ℂ) :
   exact (((by fun_prop : Differentiable ℂ fun a : ℂ => exp (π*I*a/2)).mul h1).add
     ((by fun_prop : Differentiable ℂ fun a : ℂ => exp (-π*I*a/2)).mul h2)).div_const 2
 
+/-- Factorial decay controls the generalized trigonometric coefficients for every parameter;
+totalized exceptional terms affect only finitely many coefficients. -/
+theorem summable_genTrig_coeff (a z : ℂ) (ε : ℕ) :
+    Summable (fun n : ℕ => (-1:ℂ)^n*z^(2*n+ε)/((2*n+ε).factorial*((2*n+ε:ℕ)+a))) := by
+  have hd : Function.Injective (fun n : ℕ => 2*n+ε) := by intro n m h; dsimp only at h; omega
+  apply Summable.of_norm_bounded_eventually_nat
+    ((Real.summable_pow_div_factorial ‖z‖).comp_injective hd)
+  obtain ⟨N,hN⟩ := exists_nat_gt (1+|a.re|)
+  filter_upwards [eventually_ge_atTop N] with n hn
+  have hnr : (N:ℝ)≤n := by exact_mod_cast hn
+  have he0 : (0:ℝ)≤ε := by positivity
+  have hb : 1≤‖((2*n+ε:ℕ):ℂ)+a‖ := by
+    calc
+      1 ≤ (((2*n+ε:ℕ):ℂ)+a).re := by
+        rw [add_re,Complex.natCast_re]
+        push_cast
+        linarith [le_abs_self (-a.re),abs_neg a.re]
+      _ ≤ ‖((2*n+ε:ℕ):ℂ)+a‖ := Complex.re_le_norm _
+  rw [norm_div,norm_mul,norm_mul,norm_pow,norm_neg,norm_one,one_pow,one_mul,norm_pow,Complex.norm_natCast]
+  calc
+    ‖z‖^(2*n+ε)/((2*n+ε).factorial*‖((2*n+ε:ℕ):ℂ)+a‖)
+      ≤ ‖z‖^(2*n+ε)/((2*n+ε).factorial*1) := by gcongr
+    _ = _ := by simp only [Function.comp_apply,mul_one]
+
+/-- Terms of the generalized trigonometric series, with a finite set of indices removed. -/
+noncomputable def incG_trigTerm (z : ℂ) (ε : ℕ) (s : Finset ℕ) (k : ℕ) (a : ℂ) : ℂ :=
+  if k ∈ s then 0 else (-1:ℂ)^k*z^(2*k+ε)/(((2*k+ε).factorial : ℂ)*(((2*k+ε:ℕ):ℂ)+a))
+
+/-- Summability of the modified trigonometric series for every parameter. -/
+lemma incG_trigTerm_summable (z : ℂ) (ε : ℕ) (s : Finset ℕ) (a : ℂ) :
+    Summable (fun k => incG_trigTerm z ε s k a) := by
+  have h := (summable_genTrig_coeff a z ε).indicator ((↑s : Set ℕ)ᶜ)
+  refine h.congr fun k => ?_
+  simp only [incG_trigTerm, Set.indicator, Set.mem_compl_iff, Finset.mem_coe]
+  split_ifs <;> rfl
+
+/-- The modified trigonometric series is analytic in the parameter at every point which is
+not a pole of a retained term. -/
+lemma incG_trigTerm_analyticAt (z : ℂ) (ε : ℕ) (s : Finset ℕ) {a₀ : ℂ}
+    (ha : ∀ k ∉ s, ((2*k+ε:ℕ):ℂ)+a₀ ≠ 0) :
+    AnalyticAt ℂ (fun a => ∑' k, incG_trigTerm z ε s k a) a₀ := by
+  rw [Complex.analyticAt_iff_eventually_differentiableAt]
+  obtain ⟨K, hK⟩ := exists_nat_gt (‖a₀‖+1)
+  have hsplit : (fun a => ∑' k, incG_trigTerm z ε s k a) = fun a =>
+      (∑ k ∈ Finset.range K, incG_trigTerm z ε s k a) + ∑' j, incG_trigTerm z ε s (j+K) a := by
+    funext a; exact ((incG_trigTerm_summable z ε s a).sum_add_tsum_nat_add K).symm
+  rw [hsplit]
+  -- each term is differentiable where its denominator does not vanish
+  have hterm : ∀ k, ∀ a, (k ∉ s → ((2*k+ε:ℕ):ℂ)+a ≠ 0) →
+      DifferentiableAt ℂ (fun a => incG_trigTerm z ε s k a) a := by
+    intro k a h
+    unfold incG_trigTerm
+    by_cases hk : k ∈ s
+    · simp only [hk, ite_true]; exact differentiableAt_const _
+    · simp only [hk, ite_false]
+      refine (differentiableAt_const _).div ((differentiableAt_const _).mul
+        ((differentiableAt_const _).add differentiableAt_id)) ?_
+      exact mul_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)) (h hk)
+  have hfin : ∀ᶠ a in 𝓝 a₀, ∀ k ∈ Finset.range K,
+      DifferentiableAt ℂ (fun a => incG_trigTerm z ε s k a) a := by
+    rw [Filter.eventually_all_finset]
+    intro k _
+    by_cases hk : k ∈ s
+    · exact Eventually.of_forall fun a => hterm k a (fun h => absurd hk h)
+    · have hc : ContinuousAt (fun a : ℂ => ((2*k+ε:ℕ):ℂ)+a) a₀ := by fun_prop
+      filter_upwards [hc.eventually_ne (ha k hk)] with a ha'
+      exact hterm k a fun _ => ha'
+  -- the tail is a locally uniform limit on the ball of radius 1/2
+  have htail : DifferentiableOn ℂ (fun a => ∑' j, incG_trigTerm z ε s (j+K) a)
+      (Metric.ball a₀ (1/2)) := by
+    have hinj : Function.Injective (fun j : ℕ => 2*(j+K)+ε) := by
+      intro i j h; dsimp only at h; omega
+    have hlow : ∀ j : ℕ, ∀ a ∈ Metric.ball a₀ (1/2), 1 ≤ ‖((2*(j+K)+ε:ℕ):ℂ)+a‖ := by
+      intro j a ha'
+      have h1 : ‖a‖ ≤ ‖a₀‖ + 1/2 := by
+        have := norm_le_norm_add_norm_sub' a a₀
+        rw [Metric.mem_ball, dist_eq_norm] at ha'; linarith
+      have h2 : (((2*(j+K)+ε:ℕ):ℂ)+a).re ≤ ‖((2*(j+K)+ε:ℕ):ℂ)+a‖ := Complex.re_le_norm _
+      have h3 : -‖a‖ ≤ a.re := by have := Complex.abs_re_le_norm a; rw [abs_le] at this; linarith
+      rw [add_re, Complex.natCast_re] at h2
+      have : (2*K:ℝ) ≤ ((2*(j+K)+ε : ℕ):ℝ) := by push_cast; linarith [(Nat.cast_nonneg j : (0:ℝ) ≤ j),
+        (Nat.cast_nonneg ε : (0:ℝ) ≤ ε), (Nat.cast_nonneg K : (0:ℝ) ≤ K)]
+      linarith [norm_nonneg a₀]
+    refine Complex.differentiableOn_tsum_of_summable_norm
+      ((Real.summable_pow_div_factorial ‖z‖).comp_injective hinj)
+      (fun j a ha' => (hterm (j+K) a fun _ h0 => by
+        have := hlow j a ha'; rw [h0, norm_zero] at this; linarith).differentiableWithinAt)
+      Metric.isOpen_ball fun j a ha' => ?_
+    unfold incG_trigTerm
+    split_ifs
+    · simp only [norm_zero, Function.comp_apply]; positivity
+    · simp only [Function.comp_apply, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow,
+        one_mul, Complex.norm_natCast]
+      have hl := hlow j a ha'
+      have hf : (0:ℝ) < ((2*(j+K)+ε).factorial : ℝ) := by positivity
+      rw [div_le_div_iff₀ (by positivity) hf]
+      calc ‖z‖^(2*(j+K)+ε) * ((2*(j+K)+ε).factorial : ℝ)
+          = ‖z‖^(2*(j+K)+ε) * ((2*(j+K)+ε).factorial : ℝ) * 1 := by ring
+        _ ≤ ‖z‖^(2*(j+K)+ε) * (((2*(j+K)+ε).factorial : ℝ) * ‖((2*(j+K)+ε:ℕ):ℂ)+a‖) := by
+          rw [← mul_assoc]; gcongr
+  have htail' : ∀ᶠ a in 𝓝 a₀, DifferentiableAt ℂ (fun a => ∑' j, incG_trigTerm z ε s (j+K) a) a := by
+    filter_upwards [Metric.ball_mem_nhds a₀ (by norm_num : (0:ℝ) < 1/2)] with a ha'
+    exact htail.differentiableAt (Metric.isOpen_ball.mem_nhds ha')
+  filter_upwards [hfin, htail'] with a h1 h2
+  exact (DifferentiableAt.fun_sum fun k hk => h1 k hk).add h2
+
+/-- The lower sine series in terms of `incG_trigTerm`. -/
+lemma incG_genSinIntOnLog_eq (b w : ℂ) :
+    genSinIntOnLog b w = exp (b*w)*∑' k, incG_trigTerm (exp w) 1 ∅ k b := by
+  unfold genSinIntOnLog incG_trigTerm
+  congr 1; refine tsum_congr fun k => ?_
+  simp only [Finset.notMem_empty, ite_false]
+  rw [show (2*k+1:ℂ)*w = ((2*k+1:ℕ):ℂ)*w by push_cast; ring, exp_nat_mul]
+  push_cast; ring
+
+/-- The lower cosine series in terms of `incG_trigTerm`. -/
+lemma incG_genCosIntOnLog_eq (b w : ℂ) :
+    genCosIntOnLog b w = exp (b*w)*∑' k, incG_trigTerm (exp w) 0 ∅ k b := by
+  unfold genCosIntOnLog incG_trigTerm
+  congr 1; refine tsum_congr fun k => ?_
+  simp only [Finset.notMem_empty, ite_false]
+  rw [show (2*k:ℂ)*w = ((2*k:ℕ):ℂ)*w by push_cast; ring, exp_nat_mul]
+  push_cast; ring_nf
+
+/-- Residue of the modified series at the pole `a = -(2n+ε)`. -/
+lemma incG_trig_residue (w : ℂ) (ε n : ℕ) :
+    Tendsto (fun a : ℂ => (a+((2*n+ε:ℕ):ℂ))*(exp (a*w)*∑' k, incG_trigTerm (exp w) ε ∅ k a))
+      (𝓝[≠] (-((2*n+ε:ℕ):ℂ))) (𝓝 ((-1 : ℂ)^n/(2*n+ε).factorial)) := by
+  set d : ℂ := ((2*n+ε:ℕ):ℂ)
+  have hR := (incG_trigTerm_analyticAt (exp w) ε {n} (a₀ := -d) (fun k hk => by
+    have hk' : k ≠ n := by simpa using hk
+    simp only [d]; intro h
+    have : ((2*k+ε:ℕ):ℂ) = ((2*n+ε:ℕ):ℂ) := by linear_combination h
+    have := Nat.cast_injective this; omega)).continuousAt
+  have hsplit : ∀ a, ∑' k, incG_trigTerm (exp w) ε ∅ k a =
+      (∑' k, incG_trigTerm (exp w) ε {n} k a) +
+        (-1:ℂ)^n*(exp w)^(2*n+ε)/(((2*n+ε).factorial : ℂ)*(d+a)) := by
+    intro a
+    rw [← (hasSum_ite_eq n ((-1:ℂ)^n*(exp w)^(2*n+ε)/(((2*n+ε).factorial : ℂ)*(d+a)))).tsum_eq,
+      ← Summable.tsum_add (incG_trigTerm_summable _ _ _ _) (hasSum_ite_eq _ _).summable]
+    refine tsum_congr fun k => ?_
+    unfold incG_trigTerm
+    by_cases hk : k = n
+    · subst hk; simp [d]
+    · simp [hk]
+  have hlim : Tendsto (fun a : ℂ => exp (a*w)*((a+d)*(∑' k, incG_trigTerm (exp w) ε {n} k a) +
+      (-1:ℂ)^n*(exp w)^(2*n+ε)/((2*n+ε).factorial : ℂ))) (𝓝 (-d))
+      (𝓝 (exp (-d*w)*((-d+d)*(∑' k, incG_trigTerm (exp w) ε {n} k (-d)) +
+        (-1:ℂ)^n*(exp w)^(2*n+ε)/((2*n+ε).factorial : ℂ)))) := by
+    refine ((continuous_exp.comp (continuous_id.mul continuous_const)).continuousAt.tendsto).mul
+      ((((continuous_id.add continuous_const).continuousAt.tendsto).mul hR.tendsto).add tendsto_const_nhds)
+  have hval : exp (-d*w)*((-d+d)*(∑' k, incG_trigTerm (exp w) ε {n} k (-d)) +
+      (-1:ℂ)^n*(exp w)^(2*n+ε)/((2*n+ε).factorial : ℂ)) = (-1 : ℂ)^n/(2*n+ε).factorial := by
+    have : exp (-d*w)*(exp w)^(2*n+ε) = 1 := by
+      rw [← exp_nat_mul, ← Complex.exp_add, show -d*w + ((2*n+ε:ℕ):ℂ)*w = 0 by simp only [d]; ring,
+        Complex.exp_zero]
+    rw [neg_add_cancel, zero_mul, zero_add]
+    linear_combination ((-1:ℂ)^n/((2*n+ε).factorial : ℂ))*this
+  rw [hval] at hlim
+  refine (hlim.mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with a ha
+  have had : d+a ≠ 0 := by
+    intro h; apply ha; simp only [Set.mem_singleton_iff]; linear_combination h
+  rw [hsplit a]
+  field_simp
+  ring
+
 /-- genSinInt parameter analytic. -/
 theorem genSinInt_parameter_analytic {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) (w : ℂ) :
     AnalyticAt ℂ (fun b => genSinIntOnLog b w) a := by
-  sorry
+  simp_rw [incG_genSinIntOnLog_eq]
+  refine (analyticAt_cexp.comp ((analyticAt_id).mul analyticAt_const)).mul
+    (incG_trigTerm_analyticAt (exp w) 1 ∅ fun k _ h => ha k ?_)
+  push_cast at h; linear_combination h
 
 /-- genCosInt parameter analytic. -/
 theorem genCosInt_parameter_analytic {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) (w : ℂ) :
     AnalyticAt ℂ (fun b => genCosIntOnLog b w) a := by
-  sorry
+  simp_rw [incG_genCosIntOnLog_eq]
+  refine (analyticAt_cexp.comp ((analyticAt_id).mul analyticAt_const)).mul
+    (incG_trigTerm_analyticAt (exp w) 0 ∅ fun k _ h => ha k ?_)
+  push_cast at h; linear_combination h
 
 /-- genSinInt parameter residue. -/
 theorem genSinInt_parameter_residue (n : ℕ) (w : ℂ) :
     Tendsto (fun a : ℂ => (a+(2*n+1))*genSinIntOnLog a w) (𝓝[≠] (-(2*n+1 : ℂ))) (𝓝 ((-1 : ℂ)^n/(2*n+1).factorial)) := by
-  sorry
+  have h := incG_trig_residue w 1 n
+  push_cast at h
+  simp_rw [incG_genSinIntOnLog_eq]
+  exact h
 
 /-- genCosInt parameter residue. -/
 theorem genCosInt_parameter_residue (n : ℕ) (w : ℂ) :
     Tendsto (fun a : ℂ => (a+2*n)*genCosIntOnLog a w) (𝓝[≠] (-(2*n : ℂ))) (𝓝 ((-1 : ℂ)^n/(2*n).factorial)) := by
-  sorry
+  have h := incG_trig_residue w 0 n
+  push_cast at h
+  simp_rw [incG_genCosIntOnLog_eq]
+  simpa using h
 
 /-- `Γ(a, ε i (z+t)) → 0` along horizontal rays when `re a < 1`. -/
 theorem tendsto_upperIncGamma_mul_I_add_ofReal {a : ℂ} (ha : a.re < 1) (z : ℂ) {ε : ℝ}
@@ -203,11 +382,79 @@ theorem tendsto_genTrigTail_add_ofReal {a : ℂ} (ha : a.re < 1) (z : ℂ) :
     filter_upwards [eventually_re_add_ofReal_pos z] with t ht
     rw [(genTrigTail_eq_upperIncGamma a ht).2]; push_cast; ring_nf
 
+/-- `∫₀^R t^{a-1} e^{iεt} dt = (-iε)^{-a} (Γ(a) - Γ(a, -iεR))` for `R > 0`. -/
+lemma incG_integral_rpow_mul_exp_I {a : ℂ} (ha0 : 0 < a.re) {ε : ℝ} (hε : ε=1 ∨ ε = -1)
+    {R : ℝ} (hR : 0 < R) :
+    (∫ t in (0:ℝ)..R, (t : ℂ)^(a-1)*exp (ε*I*t)) =
+      (-(ε*I))^(-a) * (Gamma a - upperIncGamma a (-(ε*I)*R)) := by
+  have ha' : ∀ k : ℕ, a ≠ -k := fun k hk => by
+    have := congrArg Complex.re hk
+    simp at this
+    linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hG0 := Gamma_ne_zero ha'
+  have hc0 : (-(ε*I) : ℂ) ≠ 0 := by
+    rcases hε with rfl | rfl <;> simp
+  have hw0 : (-(ε*I)*R : ℂ) ≠ 0 := mul_ne_zero hc0 (ofReal_ne_zero.mpr hR.ne')
+  -- change of variables t = R s
+  have hsub : (∫ t in (0:ℝ)..R, (t : ℂ)^(a-1)*exp (ε*I*t)) =
+      R * ∫ s in (0:ℝ)..1, ((R*s : ℝ) : ℂ)^(a-1)*exp (ε*I*((R*s : ℝ) : ℂ)) := by
+    have := intervalIntegral.integral_comp_mul_left
+      (fun t : ℝ => (t : ℂ)^(a-1)*exp (ε*I*t)) (c := R) hR.ne' (a := 0) (b := 1)
+    simp only [mul_zero, mul_one] at this
+    rw [this, Complex.real_smul, ← mul_assoc, ofReal_inv, mul_inv_cancel₀ (ofReal_ne_zero.mpr hR.ne'),
+      one_mul]
+  have hpt : ∀ s ∈ Set.uIcc (0:ℝ) 1, ((R*s : ℝ) : ℂ)^(a-1)*exp (ε*I*((R*s : ℝ) : ℂ)) =
+      (R:ℂ)^(a-1) * ((s:ℂ)^(a-1)*exp (-(-(ε*I)*R)*s)) := by
+    intro s hs
+    rw [Set.uIcc_of_le zero_le_one] at hs
+    rw [ofReal_mul, mul_cpow_ofReal_nonneg hR.le hs.1]
+    ring_nf
+  rw [hsub, intervalIntegral.integral_congr hpt, intervalIntegral.integral_const_mul]
+  have hsc := scIncGamma_integral ha0 (-(ε*I)*R)
+  have hQ := normIncGammaQContinued_eq ha' hw0
+  rw [normIncGammaQContinued, normIncGammaPContinued, AAR.Statistical.normIncGammaQ, hsc] at hQ
+  have hpow : (-(ε*I)*(R:ℂ))^a = (-(ε*I))^a * (R:ℂ)^a := by
+    rw [mul_comm, ofReal_mul_cpow_of_pos hR hc0, mul_comm]
+  rw [hpow] at hQ
+  have hRa : (R:ℂ) * (R:ℂ)^(a-1) = (R:ℂ)^a := by
+    rw [cpow_sub _ _ (ofReal_ne_zero.mpr hR.ne'), cpow_one, ← mul_div_assoc,
+      mul_div_cancel_left₀ _ (ofReal_ne_zero.mpr hR.ne')]
+  have hca : (-(ε*I))^(-a) * (-(ε*I))^a = 1 := by
+    have : (-(ε*I) : ℂ)^a ≠ 0 := by rw [cpow_def_of_ne_zero hc0]; exact Complex.exp_ne_zero _
+    rw [cpow_neg, inv_mul_cancel₀ this]
+  set J := ∫ (x : ℝ) in (0:ℝ)..1, (x:ℂ) ^ (a - 1) * exp (-(-(ε * I) * R) * x)
+  have hU : upperIncGamma a (-(ε*I)*R) = Gamma a - (-(ε*I))^a * (R:ℂ)^a * J := by
+    rw [eq_div_iff hG0] at hQ
+    have e : (1 - (-(ε*I))^a * (R:ℂ)^a * (1 / Gamma a * J)) * Gamma a =
+        Gamma a - (-(ε*I))^a * (R:ℂ)^a * J := by field_simp
+    linear_combination -hQ + e
+  rw [hU]
+  linear_combination J * hRa - (R:ℂ)^a * J * hca
+
+theorem incG_gamma_rotated_oscillatory_integral {a : ℂ} (ha0 : 0 < a.re) (ha1 : a.re < 1) {ε : ℝ} (hε : ε=1 ∨ ε = -1) :
+    HasIntegralAtTop (fun t : ℝ => (t : ℂ)^(a-1)*exp (ε*I*t)) 0 (exp (ε*π*I*a/2)*Gamma a) := by
+  have hε' : -ε = 1 ∨ -ε = -1 := by rcases hε with rfl | rfl <;> simp
+  have hT := tendsto_upperIncGamma_mul_I_add_ofReal ha1 0 hε'
+  have hc : (-(ε*I) : ℂ)^(-a) = exp (ε*π*I*a/2) := by
+    have hc0 : (-(ε*I) : ℂ) ≠ 0 := by rcases hε with rfl | rfl <;> simp
+    rw [cpow_def_of_ne_zero hc0]
+    rcases hε with rfl | rfl
+    · simp only [ofReal_one, one_mul, log_neg_I]; congr 1; ring
+    · simp only [ofReal_neg, ofReal_one, neg_mul, one_mul, neg_neg, log_I]; congr 1; ring
+  have hL := ((tendsto_const_nhds (x := Gamma a)).sub hT).const_mul ((-(ε*I) : ℂ)^(-a))
+  rw [sub_zero, hc] at hL
+  unfold HasIntegralAtTop
+  refine hL.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with R hR
+  rw [incG_integral_rpow_mul_exp_I ha0 hε hR, hc]
+  congr 3
+  push_cast; ring
+
 /-- gamma rotated oscillatory integral. -/
 @[dlmf 8.21.E3]
 theorem gamma_rotated_oscillatory_integral {a : ℂ} (ha0 : 0 < a.re) (ha1 : a.re < 1) {ε : ℝ} (hε : ε=1 ∨ ε = -1) :
-    HasIntegralAtTop (fun t : ℝ => (t : ℂ)^(a-1)*exp (ε*I*t)) 0 (exp (ε*π*I*a/2)*Gamma a) := by
-  sorry
+    HasIntegralAtTop (fun t : ℝ => (t : ℂ)^(a-1)*exp (ε*I*t)) 0 (exp (ε*π*I*a/2)*Gamma a) :=
+  incG_gamma_rotated_oscillatory_integral ha0 ha1 hε
 
 /-- genSinIntTail horizontal integral. -/
 @[dlmf 8.21.E4]
@@ -249,17 +496,186 @@ def gammaSinHalfPiContinued (a : ℂ) : ℂ :=
 def gammaCosHalfPiContinued (a : ℂ) : ℂ :=
   limUnder (𝓝[≠] a) (fun b : ℂ => Gamma b*cos (π*b/2))
 
+/-- Punctured neighbourhoods avoid the nonpositive integers. -/
+lemma incG_eventually_nhdsNE_regular (a : ℂ) : ∀ᶠ b : ℂ in 𝓝[≠] a, ∀ m : ℕ, b ≠ -m := by
+  by_cases h : ∃ n : ℕ, a = -n
+  · obtain ⟨n, rfl⟩ := h; exact eventually_nhdsNE_neg_nat_ne n
+  · push Not at h
+    filter_upwards [nhdsWithin_le_nhds ((differentiable_one_div_Gamma a).continuousAt.eventually_ne
+      (inv_ne_zero (Gamma_ne_zero h)))] with b hb m hm
+    apply hb; rw [hm, Gamma_neg_nat_eq_zero, inv_zero]
+
+lemma incG_exp_log_sub_half_pi {z : ℂ} (hz : z ≠ 0) : exp (log z - π*I/2) = -I*z := by
+  have hI : exp (π*I/2) = I := by
+    rw [show (π:ℂ)*I/2 = ((π/2:ℝ):ℂ)*I by push_cast; ring, Complex.exp_mul_I]; simp
+  rw [Complex.exp_sub, Complex.exp_log hz, hI]; field_simp; rw [I_sq]; ring
+
+lemma incG_exp_log_add_half_pi {z : ℂ} (hz : z ≠ 0) : exp (log z + π*I/2) = I*z := by
+  have hI : exp (π*I/2) = I := by
+    rw [show (π:ℂ)*I/2 = ((π/2:ℝ):ℂ)*I by push_cast; ring, Complex.exp_mul_I]; simp
+  rw [Complex.exp_add, Complex.exp_log hz, hI]; ring
+
+/-- `si(a,z) + Si(a,z) = Γ(a) sin(πa/2)` at regular parameters. -/
+lemma incG_genSin_add_tail {a : ℂ} (ha : ∀ n : ℕ, a ≠ -n) {z : ℂ} (hz : z ≠ 0) :
+    genSinInt a z + genSinIntTail a z = Gamma a * sin (π*a/2) := by
+  have hG := Gamma_ne_zero ha
+  have hs₁ := scIncGamma_hasSum_alternating ha (-I*z)
+  have hs₂ := scIncGamma_hasSum_alternating ha (I*z)
+  have hD := (hs₁.sub hs₂).mul_left (Gamma a/(2*I))
+  have hodd : HasSum (fun m : ℕ => incG_trigTerm z 1 ∅ m a)
+      (Gamma a/(2*I)*(AAR.Statistical.scIncGamma a (-I*z) - AAR.Statistical.scIncGamma a (I*z))) := by
+    have hinj : Function.Injective (fun m : ℕ => 2*m+1) := fun m n h => by simp at h; omega
+    rw [← hinj.hasSum_iff] at hD
+    · refine hD.congr_fun fun m => ?_
+      simp only [Function.comp_apply, incG_trigTerm, Finset.notMem_empty, ite_false]
+      have hk : a + ((2*m+1:ℕ):ℂ) ≠ 0 := by
+        intro h; exact ha (2*m+1) (by linear_combination h)
+      have hI2 : I^(2*m+1) = I*(-1)^m := by rw [pow_succ, pow_mul, I_sq]; ring
+      have hnI2 : (-I)^(2*m+1) = -(I*(-1)^m) := by rw [pow_succ, pow_mul, neg_sq, I_sq]; ring
+      rw [show (-(-I*z)) = I*z by ring, show (-(I*z)) = (-I)*z by ring, mul_pow, mul_pow, hI2, hnI2]
+      have hf : ((2*m+1).factorial : ℂ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero _
+      have hk' : ((2*m+1:ℕ):ℂ) + a ≠ 0 := by rw [add_comm]; exact hk
+      field_simp
+      ring
+    · intro k hk
+      obtain ⟨m, rfl⟩ : ∃ m, k = 2*m := by
+        rcases Nat.even_or_odd k with ⟨r, hr⟩ | ⟨r, hr⟩
+        · exact ⟨r, by omega⟩
+        · exact absurd ⟨r, hr.symm⟩ hk
+      have hI2 : I^(2*m) = (-1)^m := by rw [pow_mul, I_sq]
+      have hnI2 : (-I)^(2*m) = (-1)^m := by rw [pow_mul, neg_sq, I_sq]
+      rw [show (-(-I*z)) = I*z by ring, show (-(I*z)) = (-I)*z by ring, mul_pow, mul_pow, hI2, hnI2,
+        sub_self, mul_zero]
+  have hsi : genSinInt a z = exp (a*log z) * (Gamma a/(2*I)*(AAR.Statistical.scIncGamma a (-I*z) - AAR.Statistical.scIncGamma a (I*z))) := by
+    rw [genSinInt, incG_genSinIntOnLog_eq, Complex.exp_log hz, hodd.tsum_eq]
+  rw [hsi, genSinIntTail, genSinIntTailOnLog, upperIncGammaOnLog_eq_Gamma_sub ha,
+    upperIncGammaOnLog_eq_Gamma_sub ha, lowerIncGammaOnLog, lowerIncGammaOnLog,
+    incG_exp_log_sub_half_pi hz, incG_exp_log_add_half_pi hz,
+    show a*(log z - π*I/2) = a*log z + (-π*I*a/2) by ring,
+    show a*(log z + π*I/2) = a*log z + π*I*a/2 by ring, Complex.exp_add, Complex.exp_add]
+  have hE : exp (π*I*a/2) * exp (-π*I*a/2) = 1 := by rw [← Complex.exp_add]; ring_nf; simp
+  have hsin : sin (π*a/2) = (exp (-π*I*a/2) - exp (π*I*a/2))*I/2 := by
+    rw [Complex.sin]; ring_nf
+  rw [hsin]
+  set E := exp (π*I*a/2)
+  set E' := exp (-π*I*a/2)
+  set X := exp (a*log z)
+  field_simp
+  linear_combination (-(X*AAR.Statistical.scIncGamma a (-(I*z))) + X*AAR.Statistical.scIncGamma a (I*z))*hE + (E - E')*I_sq
+
+/-- `ci(a,z) + Ci(a,z) = Γ(a) cos(πa/2)` at regular parameters. -/
+lemma incG_genCos_add_tail {a : ℂ} (ha : ∀ n : ℕ, a ≠ -n) {z : ℂ} (hz : z ≠ 0) :
+    genCosInt a z + genCosIntTail a z = Gamma a * cos (π*a/2) := by
+  have hG := Gamma_ne_zero ha
+  have hs₁ := scIncGamma_hasSum_alternating ha (-I*z)
+  have hs₂ := scIncGamma_hasSum_alternating ha (I*z)
+  have hD := (hs₁.add hs₂).mul_left (Gamma a/2)
+  have heven : HasSum (fun m : ℕ => incG_trigTerm z 0 ∅ m a)
+      (Gamma a/2*(AAR.Statistical.scIncGamma a (-I*z) + AAR.Statistical.scIncGamma a (I*z))) := by
+    have hinj : Function.Injective (fun m : ℕ => 2*m) := fun m n h => by simp at h; omega
+    rw [← hinj.hasSum_iff] at hD
+    · refine hD.congr_fun fun m => ?_
+      simp only [Function.comp_apply, incG_trigTerm, Finset.notMem_empty, ite_false, add_zero]
+      have hk : a + ((2*m:ℕ):ℂ) ≠ 0 := by
+        intro h; exact ha (2*m) (by linear_combination h)
+      have hI2 : I^(2*m) = (-1)^m := by rw [pow_mul, I_sq]
+      have hnI2 : (-I)^(2*m) = (-1)^m := by rw [pow_mul, neg_sq, I_sq]
+      rw [show (-(-I*z)) = I*z by ring, show (-(I*z)) = (-I)*z by ring, mul_pow, mul_pow, hI2, hnI2]
+      have hf : ((2*m).factorial : ℂ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero _
+      have hk' : ((2*m:ℕ):ℂ) + a ≠ 0 := by rw [add_comm]; exact hk
+      field_simp
+      ring
+    · intro k hk
+      obtain ⟨m, rfl⟩ : ∃ m, k = 2*m+1 := by
+        rcases Nat.even_or_odd k with ⟨r, hr⟩ | ⟨r, hr⟩
+        · exact absurd ⟨r, by simp only; omega⟩ hk
+        · exact ⟨r, hr⟩
+      have hI2 : I^(2*m+1) = I*(-1)^m := by rw [pow_succ, pow_mul, I_sq]; ring
+      have hnI2 : (-I)^(2*m+1) = -(I*(-1)^m) := by rw [pow_succ, pow_mul, neg_sq, I_sq]; ring
+      rw [show (-(-I*z)) = I*z by ring, show (-(I*z)) = (-I)*z by ring, mul_pow, mul_pow, hI2, hnI2]
+      ring
+  have hci : genCosInt a z = exp (a*log z) * (Gamma a/2*(AAR.Statistical.scIncGamma a (-I*z) + AAR.Statistical.scIncGamma a (I*z))) := by
+    rw [genCosInt, incG_genCosIntOnLog_eq, Complex.exp_log hz, heven.tsum_eq]
+  rw [hci, genCosIntTail, genCosIntTailOnLog, upperIncGammaOnLog_eq_Gamma_sub ha,
+    upperIncGammaOnLog_eq_Gamma_sub ha, lowerIncGammaOnLog, lowerIncGammaOnLog,
+    incG_exp_log_sub_half_pi hz, incG_exp_log_add_half_pi hz,
+    show a*(log z - π*I/2) = a*log z + (-π*I*a/2) by ring,
+    show a*(log z + π*I/2) = a*log z + π*I*a/2 by ring, Complex.exp_add, Complex.exp_add]
+  have hE : exp (π*I*a/2) * exp (-π*I*a/2) = 1 := by rw [← Complex.exp_add]; ring_nf; simp
+  have hcos : cos (π*a/2) = (exp (π*I*a/2) + exp (-π*I*a/2))/2 := by
+    rw [Complex.cos]; ring_nf
+  rw [hcos]
+  set E := exp (π*I*a/2)
+  set E' := exp (-π*I*a/2)
+  set X := exp (a*log z)
+  field_simp
+  linear_combination (-(X*AAR.Statistical.scIncGamma a (-(I*z))) - X*AAR.Statistical.scIncGamma a (I*z))*hE
+
+lemma incG_genSinIntTail_continuous (z : ℂ) : Continuous fun b => genSinIntTail b z := by
+  unfold genSinIntTail genSinIntTailOnLog
+  have h1 := continuous_upperIncGammaOnLog_param (log z - π*I/2)
+  have h2 := continuous_upperIncGammaOnLog_param (log z + π*I/2)
+  exact (((by fun_prop : Continuous fun b : ℂ => exp (π*I*b/2)).mul h1).sub
+    ((by fun_prop : Continuous fun b : ℂ => exp (-π*I*b/2)).mul h2)).div_const _
+
+lemma incG_genCosIntTail_continuous (z : ℂ) : Continuous fun b => genCosIntTail b z := by
+  unfold genCosIntTail genCosIntTailOnLog
+  have h1 := continuous_upperIncGammaOnLog_param (log z - π*I/2)
+  have h2 := continuous_upperIncGammaOnLog_param (log z + π*I/2)
+  exact (((by fun_prop : Continuous fun b : ℂ => exp (π*I*b/2)).mul h1).add
+    ((by fun_prop : Continuous fun b : ℂ => exp (-π*I*b/2)).mul h2)).div_const _
+
+theorem incG_genSinInt_complement {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) {z : ℂ} (hz : z ≠ 0) :
+    genSinInt a z=gammaSinHalfPiContinued a-genSinIntTail a z := by
+  have hcont : ContinuousAt (fun b => genSinInt b z + genSinIntTail b z) a :=
+    (genSinInt_parameter_analytic ha (log z)).continuousAt.add
+      (incG_genSinIntTail_continuous z).continuousAt
+  have hlim : Tendsto (fun b : ℂ => Gamma b*sin (π*b/2)) (𝓝[≠] a)
+      (𝓝 (genSinInt a z + genSinIntTail a z)) := by
+    refine (hcont.tendsto.mono_left nhdsWithin_le_nhds).congr' ?_
+    filter_upwards [incG_eventually_nhdsNE_regular a] with b hb
+    exact incG_genSin_add_tail hb hz
+  rw [gammaSinHalfPiContinued, hlim.limUnder_eq]; ring
+
+theorem incG_genCosInt_complement {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) {z : ℂ} (hz : z ≠ 0) :
+    genCosInt a z=gammaCosHalfPiContinued a-genCosIntTail a z := by
+  have hcont : ContinuousAt (fun b => genCosInt b z + genCosIntTail b z) a :=
+    (genCosInt_parameter_analytic ha (log z)).continuousAt.add
+      (incG_genCosIntTail_continuous z).continuousAt
+  have hlim : Tendsto (fun b : ℂ => Gamma b*cos (π*b/2)) (𝓝[≠] a)
+      (𝓝 (genCosInt a z + genCosIntTail a z)) := by
+    refine (hcont.tendsto.mono_left nhdsWithin_le_nhds).congr' ?_
+    filter_upwards [incG_eventually_nhdsNE_regular a] with b hb
+    exact incG_genCos_add_tail hb hz
+  rw [gammaCosHalfPiContinued, hlim.limUnder_eq]; ring
+
+theorem incG_genSinInt_value_at_infinity {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) (ha1 : a.re < 1) :
+    Tendsto (fun x : ℝ => genSinInt a x) atTop (𝓝 (gammaSinHalfPiContinued a)) := by
+  have h := ((tendsto_genTrigTail_add_ofReal ha1 0).1).const_sub (gammaSinHalfPiContinued a)
+  rw [sub_zero] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with x hx
+  rw [zero_add, incG_genSinInt_complement ha (ofReal_ne_zero.mpr hx.ne')]
+
+theorem incG_genCosInt_value_at_infinity {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) (ha1 : a.re < 1) :
+    Tendsto (fun x : ℝ => genCosInt a x) atTop (𝓝 (gammaCosHalfPiContinued a)) := by
+  have h := ((tendsto_genTrigTail_add_ofReal ha1 0).2).const_sub (gammaCosHalfPiContinued a)
+  rw [sub_zero] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with x hx
+  rw [zero_add, incG_genCosInt_complement ha (ofReal_ne_zero.mpr hx.ne')]
+
 /-- genSinInt complement. -/
 @[dlmf 8.21.E8]
 theorem genSinInt_complement {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) {z : ℂ} (hz : z ≠ 0) :
-    genSinInt a z=gammaSinHalfPiContinued a-genSinIntTail a z := by
-  sorry
+    genSinInt a z=gammaSinHalfPiContinued a-genSinIntTail a z :=
+  incG_genSinInt_complement ha hz
 
 /-- genCosInt complement. -/
 @[dlmf 8.21.E9]
 theorem genCosInt_complement {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) {z : ℂ} (hz : z ≠ 0) :
-    genCosInt a z=gammaCosHalfPiContinued a-genCosIntTail a z := by
-  sorry
+    genCosInt a z=gammaCosHalfPiContinued a-genCosIntTail a z :=
+  incG_genCosInt_complement ha hz
 
 /-- Ein at the negative rotated argument, by the parities of Cin and Si. -/
 lemma expIntEin_neg_mul_I_eq (z : ℂ) : expIntEin (-I*z)=cosIntCin z-I*sinInt z := by
@@ -302,38 +718,14 @@ theorem genSinInt_order_zero {z : ℂ} (hz : z ≠ 0) :
 /-- Ordinary infinity limits need Re a<1; other values are interpreted by parameter continuation. -/
 @[dlmf 8.21.E12]
 theorem genSinInt_value_at_infinity {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) (ha1 : a.re < 1) :
-    Tendsto (fun x : ℝ => genSinInt a x) atTop (𝓝 (gammaSinHalfPiContinued a)) := by
-  sorry
+    Tendsto (fun x : ℝ => genSinInt a x) atTop (𝓝 (gammaSinHalfPiContinued a)) :=
+  incG_genSinInt_value_at_infinity ha ha1
 
 /-- genCosInt value at infinity. -/
 @[dlmf 8.21.E13]
 theorem genCosInt_value_at_infinity {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) (ha1 : a.re < 1) :
-    Tendsto (fun x : ℝ => genCosInt a x) atTop (𝓝 (gammaCosHalfPiContinued a)) := by
-  sorry
-
-/-- Factorial decay controls the generalized trigonometric coefficients for every parameter;
-totalized exceptional terms affect only finitely many coefficients. -/
-theorem summable_genTrig_coeff (a z : ℂ) (ε : ℕ) :
-    Summable (fun n : ℕ => (-1:ℂ)^n*z^(2*n+ε)/((2*n+ε).factorial*((2*n+ε:ℕ)+a))) := by
-  have hd : Function.Injective (fun n : ℕ => 2*n+ε) := by intro n m h; dsimp only at h; omega
-  apply Summable.of_norm_bounded_eventually_nat
-    ((Real.summable_pow_div_factorial ‖z‖).comp_injective hd)
-  obtain ⟨N,hN⟩ := exists_nat_gt (1+|a.re|)
-  filter_upwards [eventually_ge_atTop N] with n hn
-  have hnr : (N:ℝ)≤n := by exact_mod_cast hn
-  have he0 : (0:ℝ)≤ε := by positivity
-  have hb : 1≤‖((2*n+ε:ℕ):ℂ)+a‖ := by
-    calc
-      1 ≤ (((2*n+ε:ℕ):ℂ)+a).re := by
-        rw [add_re,Complex.natCast_re]
-        push_cast
-        linarith [le_abs_self (-a.re),abs_neg a.re]
-      _ ≤ ‖((2*n+ε:ℕ):ℂ)+a‖ := Complex.re_le_norm _
-  rw [norm_div,norm_mul,norm_mul,norm_pow,norm_neg,norm_one,one_pow,one_mul,norm_pow,Complex.norm_natCast]
-  calc
-    ‖z‖^(2*n+ε)/((2*n+ε).factorial*‖((2*n+ε:ℕ):ℂ)+a‖)
-      ≤ ‖z‖^(2*n+ε)/((2*n+ε).factorial*1) := by gcongr
-    _ = _ := by simp only [Function.comp_apply,mul_one]
+    Tendsto (fun x : ℝ => genCosInt a x) atTop (𝓝 (gammaCosHalfPiContinued a)) :=
+  incG_genCosInt_value_at_infinity ha ha1
 
 /-- The logarithmic cosine series is absolutely convergent at every logarithmic argument. -/
 theorem genCosIntOnLog_hasSum (a w : ℂ) :
@@ -668,17 +1060,278 @@ theorem genTrigAuxG_oscillatory_integral {a : ℂ} (ha : a.re < 1) {z : ℂ} (hz
   convert h using 1
   simp [genTrigAuxG]; ring
 
+lemma incG_unit_cases {c : ℂ} (hc : c = I ∨ c = -I) : c.re = 0 ∧ (c.im = 1 ∨ c.im = -1) := by
+  rcases hc with rfl | rfl <;> simp
+
+/-- `(1+t)^k e^{-bt}` is integrable on `(0,∞)` for `b > 0`. -/
+lemma incG_integrableOn_one_add_rpow_mul_exp {k b : ℝ} (hb : 0 < b) :
+    IntegrableOn (fun t : ℝ => (1+t)^k * Real.exp (-b*t)) (Ioi 0) := by
+  refine integrable_of_isBigO_exp_neg (b := b/2) (by positivity) ?_ ?_
+  · intro t ht
+    have ht0 : (0:ℝ) < 1+t := by have : (0:ℝ) ≤ t := ht; linarith
+    exact ((Real.continuousAt_rpow_const _ _ (Or.inl ht0.ne')).comp
+      (continuousAt_const.add continuousAt_id) |>.mul
+      (Real.continuous_exp.continuousAt.comp (continuousAt_const.mul continuousAt_id))).continuousWithinAt
+  · have h1 := (isLittleO_rpow_exp_pos_mul_atTop k (b := b/2) (by positivity)).isBigO.comp_tendsto
+      (tendsto_atTop_add_const_left atTop 1 tendsto_id)
+    have h := h1.mul (isBigO_refl (fun t : ℝ => Real.exp (-b*t)) atTop)
+    have h2 : (fun t : ℝ => Real.exp (b/2*(1+t)) * Real.exp (-b*t)) =O[atTop]
+        fun t => Real.exp (-(b/2)*t) := by
+      refine (isBigO_const_mul_self (Real.exp (b/2)) _ _).congr' (Eventually.of_forall fun t => ?_)
+        (Eventually.of_forall fun t => rfl)
+      simp only; rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+    exact (h.trans h2).congr' (Eventually.of_forall fun t => by simp [id]) (Eventually.of_forall fun _ => rfl)
+
+lemma incG_norm_one_add_cpow_le {c : ℂ} (hc : c = I ∨ c = -I) (a : ℂ) {t : ℝ} (ht : 0 ≤ t) :
+    ‖(1+c*t)^(a-1)‖ ≤ (1+t)^|a.re-1| * Real.exp (π/2*|a.im|) := by
+  obtain ⟨hre, him⟩ := incG_unit_cases hc
+  have hu0 : (1+c*t) ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp [hre] at this
+  have hre1 : (1+c*(t:ℂ)).re = 1 := by simp [hre]
+  rw [norm_cpow_of_ne_zero hu0]
+  have hn1 : 1 ≤ ‖1+c*(t:ℂ)‖ := by
+    have := Complex.abs_re_le_norm (1+c*(t:ℂ)); rw [hre1] at this; simpa using this
+  have hn2 : ‖1+c*(t:ℂ)‖ ≤ 1+t := by
+    refine (norm_add_le _ _).trans ?_
+    rw [norm_one, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg ht]
+    have : ‖c‖ = 1 := by rcases hc with rfl | rfl <;> simp
+    rw [this, one_mul]
+  have harg : |arg (1+c*(t:ℂ))| ≤ π/2 := abs_arg_le_pi_div_two_iff.mpr (by rw [hre1]; norm_num)
+  have hA : ‖1+c*(t:ℂ)‖ ^ (a-1).re ≤ (1+t)^|a.re-1| := by
+    rw [show (a-1).re = a.re - 1 by simp]
+    rcases le_or_gt 0 (a.re-1) with h | h
+    · rw [abs_of_nonneg h]; exact Real.rpow_le_rpow (by linarith) hn2 h
+    · calc ‖1+c*(t:ℂ)‖ ^ (a.re-1) ≤ 1 := Real.rpow_le_one_of_one_le_of_nonpos hn1 h.le
+        _ ≤ (1+t)^|a.re-1| := Real.one_le_rpow (by linarith) (abs_nonneg _)
+  have hB : 1 / Real.exp (arg (1+c*(t:ℂ)) * (a-1).im) ≤ Real.exp (π/2*|a.im|) := by
+    rw [one_div, ← Real.exp_neg, Real.exp_le_exp, show (a-1).im = a.im by simp]
+    have := abs_mul (arg (1+c*(t:ℂ))) a.im
+    have h2 : |arg (1+c*(t:ℂ))| * |a.im| ≤ π/2 * |a.im| := mul_le_mul_of_nonneg_right harg (abs_nonneg _)
+    nlinarith [neg_abs_le (arg (1+c*(t:ℂ)) * a.im)]
+  calc ‖1+c*(t:ℂ)‖ ^ (a-1).re / Real.exp (arg (1+c*(t:ℂ)) * (a-1).im)
+      = ‖1+c*(t:ℂ)‖ ^ (a-1).re * (1 / Real.exp (arg (1+c*(t:ℂ)) * (a-1).im)) := by ring
+    _ ≤ (1+t)^|a.re-1| * Real.exp (π/2*|a.im|) :=
+        mul_le_mul hA hB (by positivity) (by positivity)
+
+lemma incG_one_add_mul_mem_slitPlane {c : ℂ} (hc : c = I ∨ c = -I) (t : ℝ) :
+    1 + c*t ∈ slitPlane := Or.inl (by obtain ⟨hre, _⟩ := incG_unit_cases hc; simp [hre])
+
+lemma incG_integrableOn_trigLap {c : ℂ} (hc : c = I ∨ c = -I) (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    IntegrableOn (fun t : ℝ => (1+c*t)^(a-1)*exp (-z*t)) (Ioi 0) := by
+  refine Integrable.mono' ((incG_integrableOn_one_add_rpow_mul_exp (k := |a.re-1|) hz).mul_const
+    (Real.exp (π/2*|a.im|))) ?_ ?_
+  · refine ContinuousOn.aestronglyMeasurable (fun t _ => ContinuousAt.continuousWithinAt ?_) measurableSet_Ioi
+    refine ContinuousAt.mul ?_ (by fun_prop)
+    exact (continuousAt_const.add (continuousAt_const.mul continuous_ofReal.continuousAt)).cpow
+      continuousAt_const (incG_one_add_mul_mem_slitPlane hc t)
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    have ht0 : (0:ℝ) ≤ t := le_of_lt ht
+    rw [norm_mul, Complex.norm_exp]
+    have hre : (-z*(t:ℂ)).re = -z.re*t := by simp
+    rw [hre]
+    calc ‖(1+c*(t:ℂ))^(a-1)‖ * Real.exp (-z.re*t)
+        ≤ ((1+t)^|a.re-1| * Real.exp (π/2*|a.im|)) * Real.exp (-z.re*t) :=
+          mul_le_mul_of_nonneg_right (incG_norm_one_add_cpow_le hc a ht0) (Real.exp_pos _).le
+      _ = (1+t)^|a.re-1| * Real.exp (-z.re*t) * Real.exp (π/2*|a.im|) := by ring
+
+lemma incG_ray_mem_slitPlane {c : ℂ} (hc : c = I ∨ c = -I) {z : ℂ} (hz : 0 < z.re) {t : ℝ}
+    (ht : 0 ≤ t) : z*(t-c) ∈ slitPlane := by
+  obtain ⟨hre, him⟩ := incG_unit_cases hc
+  rw [mem_slitPlane_iff]
+  by_cases h : (z*((t:ℂ)-c)).im = 0
+  · left
+    simp only [mul_im, mul_re, sub_re, sub_im, ofReal_re, ofReal_im, hre] at h ⊢
+    rcases him with h1 | h1 <;> rw [h1] at h ⊢ <;>
+    · rcases ht.eq_or_lt with h0 | h0
+      · subst h0; nlinarith
+      · nlinarith [mul_pos hz h0, sq_nonneg t]
+  · exact Or.inr h
+
+/-- Splitting the power along the ray. -/
+lemma incG_ray_cpow {c : ℂ} (hc : c = I ∨ c = -I) (a : ℂ) {z : ℂ} (hz : 0 < z.re) {t : ℝ}
+    (ht : 0 ≤ t) :
+    (z*(t-c))^(a-1) = z^(a-1)*((-c)^(a-1)*(1+c*t)^(a-1)) := by
+  have hz0 : z ≠ 0 := by intro h; rw [h] at hz; simp at hz
+  obtain ⟨hre, him⟩ := incG_unit_cases hc
+  have hc0 : c ≠ 0 := by intro h; rw [h] at him; simp at him
+  have hw0 : ((t:ℂ)-c) ≠ 0 := by intro h; have := congrArg Complex.im h; simp at this; rcases him with h1 | h1 <;> linarith
+  have hv0 : (1+c*(t:ℂ)) ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp [hre] at this
+  have hfac : ((t:ℂ)-c) = (-c)*(1+c*t) := by
+    have : c*c = -1 := by rcases hc with rfl | rfl <;> simp
+    linear_combination (t:ℂ) * this
+  have hzarg : |arg z| < π/2 := abs_arg_lt_pi_div_two_iff.mpr (Or.inl hz)
+  have hwarg : |arg ((t:ℂ)-c)| ≤ π/2 := abs_arg_le_pi_div_two_iff.mpr (by simp [hre, ht])
+  have hl1 : log (z*((t:ℂ)-c)) = log z + log ((t:ℂ)-c) := by
+    refine Complex.log_mul hz0 hw0 ?_
+    constructor <;> [skip; skip] <;> rw [abs_lt] at hzarg <;> rw [abs_le] at hwarg <;> linarith
+  have hl2 : log ((-c)*(1+c*(t:ℂ))) = log (-c) + log (1+c*(t:ℂ)) := by
+    refine Complex.log_mul (neg_ne_zero.mpr hc0) hv0 ?_
+    have hv : |arg (1+c*(t:ℂ))| ≤ π/2 := abs_arg_le_pi_div_two_iff.mpr (by simp [hre])
+    rcases hc with rfl | rfl
+    · have : 0 ≤ arg (1+I*(t:ℂ)) := arg_nonneg_iff.mpr (by simp [ht])
+      simp only [arg_neg_I]; rw [abs_le] at hv; constructor <;> linarith [Real.pi_pos]
+    · have : arg (1+(-I)*(t:ℂ)) ≤ 0 := by
+        rcases ht.eq_or_lt with h0 | h0
+        · subst h0; simp
+        · exact (arg_neg_iff.mpr (by simp [h0])).le
+      simp only [neg_neg, arg_I]; rw [abs_le] at hv; constructor <;> linarith [Real.pi_pos]
+  rw [cpow_def_of_ne_zero (mul_ne_zero hz0 hw0), hl1, cpow_def_of_ne_zero hz0,
+    hfac, hl2, cpow_def_of_ne_zero (neg_ne_zero.mpr hc0), cpow_def_of_ne_zero hv0,
+    ← Complex.exp_add, ← Complex.exp_add]
+  congr 1; ring
+
+/-- `Γ(a, z(t-c)) → 0` along the ray. -/
+lemma incG_tendsto_upperIncGamma_ray (c : ℂ) (a : ℂ) {z : ℂ}
+    (hz : 0 < z.re) :
+    Tendsto (fun t : ℝ => upperIncGamma a (z*(t-c))) atTop (𝓝 0) := by
+  have hz0 : z ≠ 0 := by intro h; rw [h] at hz; simp at hz
+  have hn : (0:ℝ) < ‖z‖ := norm_pos_iff.mpr hz0
+  set u : ℂ := z/‖z‖
+  have hu : ‖u‖ = 1 := by simp [u, hn.ne']
+  have hure : 0 < u.re := by simp [u]; exact div_pos hz hn
+  have hray := tendsto_ray_sectorAtTop (-c*‖z‖) u hu (δ := u.re/2) (by positivity) (by linarith)
+  have hs : Tendsto (fun t : ℝ => t*‖z‖) atTop atTop := tendsto_id.atTop_mul_const hn
+  have h := (tendsto_exp_neg_mul_kummerU_sectorAtTop (1-a) (1-a) (δ := u.re/2) (by positivity)).comp
+    (hray.comp hs)
+  refine h.congr fun t => ?_
+  simp only [Function.comp_apply, upperIncGamma]
+  have hn' : ((‖z‖:ℝ):ℂ) ≠ 0 := by exact_mod_cast hn.ne'
+  congr 2 <;> · simp only [u]; push_cast; field_simp; ring
+
+/-- Rotating the upper Gamma integral onto the ray `z(t - c)`, `c = ±i`. -/
+lemma incG_upperIncGamma_rot {c : ℂ} (hc : c = I ∨ c = -I) (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    upperIncGamma a (-c*z) = z^a*(-c)^(a-1)*exp (c*z) *
+      ∫ t : ℝ in Ioi 0, (1+c*t)^(a-1)*exp (-z*t) := by
+  have hz0 : z ≠ 0 := by intro h; rw [h] at hz; simp at hz
+  set F : ℝ → ℂ := fun t => upperIncGamma a (z*(t-c))
+  set F' : ℝ → ℂ := fun t => -(z*(t-c))^(a-1)*exp (-(z*(t-c)))*z
+  have hd : ∀ t : ℝ, 0 ≤ t → HasDerivAt F (F' t) t := by
+    intro t ht
+    have h1 : HasDerivAt (fun t : ℝ => z*((t:ℂ)-c)) z t := by
+      simpa using ((hasDerivAt_id t).ofReal_comp.sub_const c).const_mul z
+    exact (hasDerivAt_upperIncGamma_complex a (incG_ray_mem_slitPlane hc hz ht)).comp t h1
+  have hF' : ∀ t : ℝ, 0 ≤ t → F' t = -(z^a*(-c)^(a-1)*exp (c*z)) * ((1+c*t)^(a-1)*exp (-z*t)) := by
+    intro t ht
+    simp only [F']
+    rw [incG_ray_cpow hc a hz ht, show -(z*((t:ℂ)-c)) = c*z + -z*t by ring, Complex.exp_add,
+      cpow_sub _ _ hz0, cpow_one]
+    field_simp
+  have hint : IntegrableOn F' (Ioi 0) := by
+    have h0 : IntegrableOn (fun t : ℝ => -(z^a*(-c)^(a-1)*exp (c*z)) * ((1+c*t)^(a-1)*exp (-z*t)))
+        (Ioi 0) := (incG_integrableOn_trigLap hc a hz).const_mul _
+    exact h0.congr_fun (fun t ht => (hF' t (le_of_lt ht)).symm) measurableSet_Ioi
+  have hcont : ContinuousWithinAt F (Ici 0) 0 := (hd 0 le_rfl).continuousAt.continuousWithinAt
+  have h := integral_Ioi_of_hasDerivAt_of_tendsto hcont (fun t ht => hd t (le_of_lt ht)) hint
+    (incG_tendsto_upperIncGamma_ray c a hz)
+  rw [setIntegral_congr_fun measurableSet_Ioi (fun t ht => hF' t (le_of_lt ht)),
+    integral_const_mul] at h
+  simp only [F, ofReal_zero, zero_sub] at h
+  rw [show z*(-c) = -c*z by ring] at h
+  linear_combination h
+
+/-- The two rotated upper Gamma values in the tails, as Laplace integrals. -/
+lemma incG_trigTail_rot (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    genSinIntTail a z = (exp (π*I*a/2)*upperIncGamma a (-I*z) -
+        exp (-π*I*a/2)*upperIncGamma a (I*z))/(2*I) ∧
+    genCosIntTail a z = (exp (π*I*a/2)*upperIncGamma a (-I*z) +
+        exp (-π*I*a/2)*upperIncGamma a (I*z))/2 := by
+  have hz0 : z ≠ 0 := by intro h; rw [h] at hz; simp at hz
+  have harg : |arg z| < π/2 := abs_arg_lt_pi_div_two_iff.mpr (Or.inl hz)
+  rw [abs_lt] at harg
+  have h1 : upperIncGammaOnLog a (log z - π*I/2) = upperIncGamma a (-I*z) := by
+    rw [upperIncGammaOnLog_eq_upperIncGamma]
+    · rw [sub_eq_add_neg, Complex.exp_add, Complex.exp_log hz0]
+      congr 1
+      rw [show -(↑π*I/2) = ((-(π/2):ℝ):ℂ)*I by push_cast; ring, Complex.exp_mul_I]
+      simp; ring
+    · simp [log_im]; linarith
+    · simp [log_im]; linarith
+  have h2 : upperIncGammaOnLog a (log z + π*I/2) = upperIncGamma a (I*z) := by
+    rw [upperIncGammaOnLog_eq_upperIncGamma]
+    · rw [Complex.exp_add, Complex.exp_log hz0]
+      congr 1
+      rw [show (↑π*I/2) = (((π/2):ℝ):ℂ)*I by push_cast; ring, Complex.exp_mul_I]
+      simp; ring
+    · simp [log_im]; linarith
+    · simp [log_im]; linarith
+  constructor
+  · rw [genSinIntTail, genSinIntTailOnLog, h1, h2]
+  · rw [genCosIntTail, genCosIntTailOnLog, h1, h2]
+
+lemma incG_negI_cpow (a : ℂ) : (-I)^(a-1) = exp (-π*I*a/2)*I := by
+  rw [cpow_sub _ _ (neg_ne_zero.mpr I_ne_zero), cpow_one, cpow_def_of_ne_zero (neg_ne_zero.mpr I_ne_zero),
+    log_neg_I]
+  field_simp
+  ring_nf
+  rw [I_sq]
+
+lemma incG_I_cpow (a : ℂ) : I^(a-1) = -(exp (π*I*a/2)*I) := by
+  rw [cpow_sub _ _ I_ne_zero, cpow_one, cpow_def_of_ne_zero I_ne_zero, log_I]
+  field_simp
+  ring_nf
+  rw [I_sq]; ring_nf
+
+theorem incG_genTrigAux_laplace (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    genTrigAuxF a z=z^a/2*(∫ t : ℝ in Ioi 0, ((1+I*t)^(a-1)+(1-I*t)^(a-1))*exp (-z*t)) ∧
+    genTrigAuxG a z=z^a/(2*I)*(∫ t : ℝ in Ioi 0, ((1-I*t)^(a-1)-(1+I*t)^(a-1))*exp (-z*t)) := by
+  obtain ⟨hS, hC⟩ := incG_trigTail_rot a hz
+  have K1 := incG_upperIncGamma_rot (c := I) (Or.inl rfl) a hz
+  have K2 := incG_upperIncGamma_rot (c := -I) (Or.inr rfl) a hz
+  rw [neg_neg] at K2
+  have hJ2 : (∫ t : ℝ in Ioi 0, (1+(-I)*t)^(a-1)*exp (-z*t)) =
+      ∫ t : ℝ in Ioi 0, (1-I*t)^(a-1)*exp (-z*t) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+    rw [neg_mul, ← sub_eq_add_neg]
+  rw [hJ2, incG_I_cpow] at K2
+  rw [incG_negI_cpow] at K1
+  set Jp := ∫ t : ℝ in Ioi 0, (1+I*t)^(a-1)*exp (-z*t)
+  set Jm := ∫ t : ℝ in Ioi 0, (1-I*t)^(a-1)*exp (-z*t)
+  have hip := incG_integrableOn_trigLap (c := I) (Or.inl rfl) a hz
+  have him : IntegrableOn (fun t : ℝ => (1-I*t)^(a-1)*exp (-z*t)) (Ioi 0) := by
+    have := incG_integrableOn_trigLap (c := -I) (Or.inr rfl) a hz
+    refine this.congr_fun (fun t _ => ?_) measurableSet_Ioi
+    simp only; rw [neg_mul, ← sub_eq_add_neg]
+  have hsum : (∫ t : ℝ in Ioi 0, ((1+I*t)^(a-1)+(1-I*t)^(a-1))*exp (-z*t)) = Jp + Jm := by
+    rw [← integral_add hip him]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+    ring
+  have hdiff : (∫ t : ℝ in Ioi 0, ((1-I*t)^(a-1)-(1+I*t)^(a-1))*exp (-z*t)) = Jm - Jp := by
+    rw [← integral_sub him hip]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+    ring
+  rw [hsum, hdiff]
+  have e1 : exp (-π*I*a/2) = (exp (π*I*a/2))⁻¹ := by rw [← Complex.exp_neg]; ring_nf
+  have e2 : exp (-I*z) = (exp (I*z))⁻¹ := by rw [← Complex.exp_neg]; ring_nf
+  have hcos' : cos z = (exp (I*z) + (exp (I*z))⁻¹)/2 := by
+    have := two_cos z
+    rw [show z*I = I*z by ring, show -z*I = -(I*z) by ring, Complex.exp_neg] at this
+    linear_combination this/2
+  have hsin' : sin z = ((exp (I*z))⁻¹ - exp (I*z))*I/2 := by
+    have := two_sin z
+    rw [show z*I = I*z by ring, show -z*I = -(I*z) by ring, Complex.exp_neg] at this
+    linear_combination this/2
+  have hE0 := Complex.exp_ne_zero (π*I*a/2)
+  have hW0 := Complex.exp_ne_zero (I*z)
+  constructor
+  · rw [genTrigAuxF, hS, hC, K1, K2, hcos', hsin', e1, e2]
+    field_simp
+    ring_nf; rw [I_sq]; ring
+  · rw [genTrigAuxG, hS, hC, K1, K2, hcos', hsin', e1, e2]
+    field_simp
+    ring_nf; rw [I_sq]; ring
+
 /-- genTrigAuxF laplace integral. -/
 @[dlmf 8.21.E24]
 theorem genTrigAuxF_laplace_integral (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
-    genTrigAuxF a z=z^a/2*(∫ t : ℝ in Ioi 0, ((1+I*t)^(a-1)+(1-I*t)^(a-1))*exp (-z*t)) := by
-  sorry
+    genTrigAuxF a z=z^a/2*(∫ t : ℝ in Ioi 0, ((1+I*t)^(a-1)+(1-I*t)^(a-1))*exp (-z*t)) :=
+  (incG_genTrigAux_laplace a hz).1
 
 /-- genTrigAuxG laplace integral. -/
 @[dlmf 8.21.E25]
 theorem genTrigAuxG_laplace_integral (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
-    genTrigAuxG a z=z^a/(2*I)*(∫ t : ℝ in Ioi 0, ((1-I*t)^(a-1)-(1+I*t)^(a-1))*exp (-z*t)) := by
-  sorry
+    genTrigAuxG a z=z^a/(2*I)*(∫ t : ℝ in Ioi 0, ((1-I*t)^(a-1)-(1+I*t)^(a-1))*exp (-z*t)) :=
+  (incG_genTrigAux_laplace a hz).2
 
 /-- `e^{e^w} Γ(a, e^w) ~ ∑ (-1)^k (1-a)_k e^{(a-1-k) w}` on the logarithmic sector
 `|im w| ≤ 3π/2 - δ` (DLMF 8.11.2 continued to the logarithmic plane). -/

@@ -7,6 +7,7 @@ module
 
 public import AAR.IncompleteGamma.Asymptotics
 public import AAR.Gamma.Asymptotics
+public import ToMathlib.Analysis.Complex.StarPrimitive
 
 /-!
 # Uniform incomplete-Gamma expansions and inversion, DLMF §8.12
@@ -40,23 +41,243 @@ def gammaEtaFactor (w : ℂ) : ℂ :=
 def gammaUniformEtaOnLog (w : ℂ) : ℂ :=
   w*exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w/2)
 
+/-- Real core of the zero-free strip: `e^x sin u = u`, `e^x cos u = 1+x` has no solution with
+`0 < u < 2π`. -/
+lemma incG_no_root_aux {x u : ℝ} (hu0 : 0 < u) (hu : u < 2*π)
+    (hs : Real.exp x * Real.sin u = u) (hc : Real.exp x * Real.cos u = 1+x) : False := by
+  have hex := Real.exp_pos x
+  by_cases hπ : π ≤ u
+  · have h1 := Real.sin_nonneg_of_nonneg_of_le_pi (x := u - π) (by linarith) (by linarith)
+    rw [Real.sin_sub_pi] at h1
+    nlinarith
+  push Not at hπ
+  have hsin : 0 < Real.sin u := Real.sin_pos_of_pos_of_lt_pi hu0 hπ
+  have hlt : Real.sin u < u := Real.sin_lt hu0
+  have hx : 0 < x := by
+    by_contra hx; push Not at hx
+    have : Real.exp x ≤ 1 := Real.exp_le_one_iff.mpr hx
+    nlinarith
+  have hkey : u * Real.cos u < Real.sin u := by
+    by_cases hc0 : Real.cos u ≤ 0
+    · nlinarith
+    push Not at hc0
+    have hu2 : u < π/2 := by
+      by_contra h; push Not at h
+      have := Real.cos_nonpos_of_pi_div_two_le_of_le h (by linarith); linarith
+    have := Real.lt_tan hu0 hu2
+    rw [Real.tan_eq_sin_div_cos, lt_div_iff₀ hc0] at this
+    linarith
+  have : (1+x)*Real.sin u = u*Real.cos u := by
+    linear_combination (-Real.sin u)*hc + Real.cos u*hs
+  nlinarith
+
+/-- `e^w = 1 + w` has no nonzero root in the strip `|Im w| < 2π`. -/
+theorem incG_exp_sub_one_sub_ne_zero {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
+    exp w - 1 - w ≠ 0 := by
+  intro h
+  have hre := congrArg Complex.re h
+  have him := congrArg Complex.im h
+  simp only [sub_re, sub_im, Complex.exp_re, Complex.exp_im, one_re, one_im, zero_re, zero_im] at hre him
+  rcases lt_trichotomy w.im 0 with hy | hy | hy
+  · refine incG_no_root_aux (x := w.re) (u := -w.im) (by linarith) (by rw [abs_lt] at hw; linarith)
+      ?_ ?_
+    · rw [Real.sin_neg]; linarith
+    · rw [Real.cos_neg]; linarith
+  · have hx : w.re ≠ 0 := fun hx => hw0 (Complex.ext hx hy)
+    rw [hy, Real.cos_zero, mul_one] at hre
+    have := Real.add_one_lt_exp hx
+    linarith
+  · exact incG_no_root_aux (x := w.re) (u := w.im) hy (by rw [abs_lt] at hw; linarith)
+      (by linarith) (by linarith)
+
+/-- `(e^w-1-w)/w² → 1/2` as `w → 0`. -/
+lemma incG_tendsto_etaQuot :
+    Tendsto (fun w : ℂ => (exp w - 1 - w)/w^2) (𝓝[≠] 0) (𝓝 (1/2)) := by
+  rw [tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero' (Eventually.of_forall fun _ => norm_nonneg _) ?_
+    ((continuous_norm.tendsto (0:ℂ)).mono_left nhdsWithin_le_nhds |>.trans (by simp))
+  have hb : ∀ᶠ w in 𝓝[≠] (0:ℂ), ‖w‖ ≤ 1 ∧ w ≠ 0 := by
+    filter_upwards [nhdsWithin_le_nhds (Metric.closedBall_mem_nhds (0:ℂ) one_pos),
+      self_mem_nhdsWithin] with w hw hw0
+    exact ⟨by simpa using hw, hw0⟩
+  filter_upwards [hb] with w ⟨hw, hw0⟩
+  have h := Complex.exp_bound hw (n := 3) (by norm_num)
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, pow_zero, Nat.factorial] at h
+  norm_num at h
+  have hw2 : (0:ℝ) < ‖w‖^2 := by positivity
+  have e : (exp w - 1 - w)/w^2 - 1/2 = (exp w - (1 + w + w^2/2))/w^2 := by
+    field_simp; ring
+  rw [e, norm_div, norm_pow, div_le_iff₀ hw2]
+  calc ‖exp w - (1 + w + w^2/2)‖ ≤ ‖w‖^3 * (2/9) := by convert h using 2
+    _ ≤ ‖w‖ * ‖w‖^2 := by nlinarith [norm_nonneg w]
+
+/-- The factor `2(e^w-1-w)/w²`, filled in by `1` at the origin, is entire. -/
+theorem incG_gammaEtaFactor_differentiable : Differentiable ℂ gammaEtaFactor := by
+  have hne : ∀ w : ℂ, w ≠ 0 → gammaEtaFactor =ᶠ[𝓝 w] fun v => 2*(exp v-1-v)/v^2 := by
+    intro w hw
+    filter_upwards [isOpen_compl_singleton.mem_nhds hw] with v hv
+    simp [gammaEtaFactor, show v ≠ 0 from hv]
+  have hd : ∀ w : ℂ, w ≠ 0 → DifferentiableAt ℂ gammaEtaFactor w := by
+    intro w hw
+    refine DifferentiableAt.congr_of_eventuallyEq ?_ (hne w hw)
+    exact ((by fun_prop : Differentiable ℂ fun v : ℂ => 2*(exp v-1-v)) w).div
+      (by fun_prop) (pow_ne_zero 2 hw)
+  intro w
+  by_cases hw : w = 0
+  · subst hw
+    have hc : ContinuousAt gammaEtaFactor 0 := by
+      rw [← continuousWithinAt_compl_self, ContinuousWithinAt]
+      have h := incG_tendsto_etaQuot.const_mul (2:ℂ)
+      rw [show (2:ℂ)*(1/2) = gammaEtaFactor 0 by simp [gammaEtaFactor]] at h
+      refine h.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with v hv
+      simp [gammaEtaFactor, show v ≠ 0 from hv]; ring
+    exact (Complex.analyticAt_of_differentiable_on_punctured_nhds_of_continuousAt
+      (by filter_upwards [self_mem_nhdsWithin] with v hv using hd v hv) hc).differentiableAt
+  · exact hd w hw
+
+/-- The strip `|Im w| < 2π`. -/
+def incG_strip : Set ℂ := {w : ℂ | |w.im| < 2*π}
+
+lemma incG_strip_isOpen : IsOpen incG_strip :=
+  isOpen_lt (continuous_abs.comp continuous_im) continuous_const
+
+lemma incG_strip_convex : Convex ℝ incG_strip := by
+  intro u hu v hv a b ha hb hab
+  simp only [incG_strip, Set.mem_ofPred_eq] at *
+  have : (a • u + b • v).im = a*u.im + b*v.im := by simp
+  rw [this]
+  calc |a*u.im + b*v.im| ≤ a*|u.im| + b*|v.im| := by
+        refine (abs_add_le _ _).trans ?_
+        rw [abs_mul, abs_mul, abs_of_nonneg ha, abs_of_nonneg hb]
+    _ < 2*π := by
+        rcases ha.eq_or_lt with h | h
+        · subst h; simp at hab; subst hab; simpa using hv
+        · have hb' : b*|v.im| ≤ b*(2*π) := mul_le_mul_of_nonneg_left hv.le hb
+          have ha' : a*|u.im| < a*(2*π) := mul_lt_mul_of_pos_left hu h
+          have hs : a*(2*π)+b*(2*π) = 2*π := by rw [← add_mul, hab, one_mul]
+          linarith
+
+lemma incG_zero_mem_strip : (0:ℂ) ∈ incG_strip := by simp [incG_strip, Real.pi_pos]
+
+lemma incG_gammaEtaFactor_ne_zero {w : ℂ} (hw : w ∈ incG_strip) : gammaEtaFactor w ≠ 0 := by
+  by_cases h0 : w = 0
+  · simp [gammaEtaFactor, h0]
+  · simp only [gammaEtaFactor, h0, ↓reduceIte]
+    exact div_ne_zero (mul_ne_zero two_ne_zero (incG_exp_sub_one_sub_ne_zero hw h0))
+      (pow_ne_zero 2 h0)
+
+/-- The logarithmic derivative of the factor is holomorphic on the strip. -/
+lemma incG_logDeriv_differentiableOn :
+    DifferentiableOn ℂ (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) incG_strip := by
+  have hd := incG_gammaEtaFactor_differentiable
+  have hdd : Differentiable ℂ (deriv gammaEtaFactor) := fun w =>
+    ((hd.differentiableOn.analyticOnNhd isOpen_univ).deriv w (mem_univ w)).differentiableAt
+  exact (hdd.differentiableOn).div hd.differentiableOn fun w hw => incG_gammaEtaFactor_ne_zero hw
+
+/-- The primitive in the definition of η has the expected derivative on the strip. -/
+lemma incG_hasDerivAt_etaPrimitive {w : ℂ} (hw : w ∈ incG_strip) :
+    HasDerivAt (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t))
+      (deriv gammaEtaFactor w/gammaEtaFactor w) w := by
+  have he : primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) =
+      fun v => v * ∫ t in (0:ℝ)..1, (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) (t*v) := by
+    funext v; simp [primitive, segmentIntegral]
+  rw [he]
+  exact Complex.starPrim_hasDerivAt incG_strip_isOpen (incG_strip_convex.starConvex incG_zero_mem_strip)
+    incG_logDeriv_differentiableOn hw
+
+/-- `exp` of the primitive of the logarithmic derivative recovers the factor on the strip. -/
+lemma incG_exp_etaPrimitive {w : ℂ} (hw : w ∈ incG_strip) :
+    exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w) = gammaEtaFactor w := by
+  set P := primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t)
+  set f := gammaEtaFactor
+  have hf := incG_gammaEtaFactor_differentiable
+  have hD : ∀ v ∈ incG_strip, HasDerivAt (fun v => f v * exp (-P v)) 0 v := by
+    intro v hv
+    have h1 := (hf v).hasDerivAt
+    have h2 := ((incG_hasDerivAt_etaPrimitive hv).neg).cexp
+    have := h1.mul h2
+    convert this using 1
+    have := incG_gammaEtaFactor_ne_zero hv
+    field_simp; ring
+  have hc := incG_strip_isOpen.is_const_of_deriv_eq_zero (incG_strip_convex.isPreconnected)
+    (fun v hv => (hD v hv).differentiableAt.differentiableWithinAt)
+    (fun v hv => (hD v hv).deriv) hw incG_zero_mem_strip
+  simp only [P, primitive_zero, neg_zero, Complex.exp_zero, mul_one] at hc
+  have h0 : f 0 = 1 := by simp [f, gammaEtaFactor]
+  rw [h0] at hc
+  have : exp (P w) * exp (-P w) = 1 := by rw [← Complex.exp_add]; simp
+  calc exp (P w) = exp (P w) * (f w * exp (-P w)) := by rw [hc, mul_one]
+    _ = f w * (exp (P w) * exp (-P w)) := by ring
+    _ = f w := by rw [this, mul_one]
+
+theorem incG_gammaUniformEta_sq {w : ℂ} (hw : |w.im| < 2*π) :
+    gammaUniformEtaOnLog w^2/2=exp w-1-w := by
+  have he := incG_exp_etaPrimitive (w := w) hw
+  unfold gammaUniformEtaOnLog
+  rw [mul_pow, ← Complex.exp_nat_mul, show ((2:ℕ):ℂ) * (primitive (fun t => deriv gammaEtaFactor t / gammaEtaFactor t) w / 2) = primitive (fun t => deriv gammaEtaFactor t / gammaEtaFactor t) w by push_cast; ring, he]
+  by_cases h0 : w = 0
+  · subst h0; simp
+  · simp only [gammaEtaFactor, h0, ↓reduceIte]
+    field_simp
+
+theorem incG_gammaUniformEta_normalization :
+    HasDerivAt gammaUniformEtaOnLog 1 0 ∧ gammaUniformEtaOnLog 0=0 := by
+  refine ⟨?_, by simp [gammaUniformEtaOnLog]⟩
+  have hP := incG_hasDerivAt_etaPrimitive incG_zero_mem_strip
+  have h := (hasDerivAt_id (0:ℂ)).mul ((hP.div_const 2).cexp)
+  have e : gammaUniformEtaOnLog = fun w => id w * exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w/2) := rfl
+  rw [e]
+  convert h using 1
+  simp
+
+theorem incG_gammaUniformEta_derivative {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
+    HasDerivAt gammaUniformEtaOnLog ((exp w-1)/gammaUniformEtaOnLog w) w := by
+  have hws : w ∈ incG_strip := hw
+  have hP := incG_hasDerivAt_etaPrimitive hws
+  have h := (hasDerivAt_id w).mul ((hP.div_const 2).cexp)
+  have e : gammaUniformEtaOnLog = fun w => id w * exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w/2) := rfl
+  set d := 1 * exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w/2) + id w * (exp (primitive (fun t => deriv gammaEtaFactor t/gammaEtaFactor t) w/2) * (deriv gammaEtaFactor w/gammaEtaFactor w/2))
+  have hη : HasDerivAt gammaUniformEtaOnLog d w := by rw [e]; exact h
+  -- differentiate η² = 2(e^w-1-w) near w
+  have hsq : HasDerivAt (fun v => gammaUniformEtaOnLog v^2) (2*gammaUniformEtaOnLog w*d) w := by
+    have := hη.fun_pow 2; simpa [mul_comm, mul_assoc, mul_left_comm] using this
+  have hsq' : HasDerivAt (fun v => gammaUniformEtaOnLog v^2) (2*(exp w-1)) w := by
+    have h2 : HasDerivAt (fun v : ℂ => 2*(exp v-1-v)) (2*(exp w-1)) w := by
+      have := (((Complex.hasDerivAt_exp w).sub_const 1).sub (hasDerivAt_id w)).const_mul (2:ℂ)
+      simpa using this
+    refine h2.congr_of_eventuallyEq ?_
+    filter_upwards [incG_strip_isOpen.mem_nhds hws] with v hv
+    have := incG_gammaUniformEta_sq (w := v) hv
+    linear_combination 2*this
+  have huniq := hsq.unique hsq'
+  have hη0 : gammaUniformEtaOnLog w ≠ 0 := by
+    intro h0
+    have := incG_gammaUniformEta_sq hw
+    rw [h0] at this
+    exact incG_exp_sub_one_sub_ne_zero hw hw0 (by rw [← this]; ring)
+  have : d = (exp w-1)/gammaUniformEtaOnLog w := by
+    field_simp
+    linear_combination huniq/2
+  rw [← this]; exact hη
+
 /-- gammaUniformEta equation. -/
 @[dlmf 8.12.E2]
 theorem gammaUniformEta_equation {w : ℂ} (hw : |w.im| < 2*π) :
-    gammaUniformEtaOnLog w^2/2=exp w-1-w := by
-  sorry
+    gammaUniformEtaOnLog w^2/2=exp w-1-w :=
+  incG_gammaUniformEta_sq hw
 
 /-- gammaUniformEta derivative. -/
 @[dlmf 8.12.E2]
 theorem gammaUniformEta_derivative {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
-    HasDerivAt gammaUniformEtaOnLog ((exp w-1)/gammaUniformEtaOnLog w) w := by
-  sorry
+    HasDerivAt gammaUniformEtaOnLog ((exp w-1)/gammaUniformEtaOnLog w) w :=
+  incG_gammaUniformEta_derivative hw hw0
 
 /-- gammaUniformEta normalization. -/
 @[dlmf 8.12.E1]
 theorem gammaUniformEta_normalization  :
-    HasDerivAt gammaUniformEtaOnLog 1 0 ∧ gammaUniformEtaOnLog 0=0 := by
-  sorry
+    HasDerivAt gammaUniformEtaOnLog 1 0 ∧ gammaUniformEtaOnLog 0=0 :=
+  incG_gammaUniformEta_normalization
 
 /-- The exact S remainder, with w the logarithm of λ. -/
 @[dlmf 8.12.E4]
@@ -192,11 +413,159 @@ def gammaUniformC : ℕ → ℂ → ℂ
       (fun t => deriv (gammaUniformC k) t/(exp t-1)+(-1 : ℂ)^(k+1)*gammaStirlingCoeff (k+1)/(exp t-1))
     else deriv (gammaUniformC k) w/(exp w-1)+(-1 : ℂ)^(k+1)*gammaStirlingCoeff (k+1)/(exp w-1)
 
+/-- On the positive axis the scaled Gamma function is `exp` of Binet's integral. -/
+lemma incG_gammaScaled_ofReal {t : ℝ} (ht : 0 < t) :
+    gammaScaled t = ((Real.exp (AAR.Gamma.binetIntegral t) : ℝ) : ℂ) := by
+  have hG : Real.Gamma t = (2*π)^(1/2:ℝ) * Real.exp ((t-1/2)*Real.log t - t) *
+      Real.exp (AAR.Gamma.binetIntegral t) := by
+    rw [← Real.exp_log (Real.Gamma_pos_of_pos ht), AAR.Gamma.log_Gamma_eq_add_binetIntegral ht,
+      Real.rpow_def_of_pos (by positivity), ← Real.exp_add, ← Real.exp_add]
+    congr 1; ring
+  have hpos : (0:ℝ) < (2*π)^(1/2:ℝ) * Real.exp ((t-1/2)*Real.log t - t) := by positivity
+  have e1 : ((2*π : ℂ))^(1/2 : ℂ) = (((2*π)^(1/2:ℝ) : ℝ) : ℂ) := by
+    rw [ofReal_cpow (by positivity)]; push_cast; rfl
+  have e2 : exp (((t:ℂ)-1/2)*log t - t) = ((Real.exp ((t-1/2)*Real.log t - t) : ℝ) : ℂ) := by
+    rw [ofReal_exp, ← ofReal_log ht.le]; push_cast; rfl
+  rw [gammaScaled, Complex.Gamma_ofReal, e1, e2, hG]
+  push_cast
+  have : (((2*π)^(1/2:ℝ) : ℝ) : ℂ) * ((Real.exp ((t-1/2)*Real.log t - t) : ℝ) : ℂ) ≠ 0 := by
+    exact_mod_cast hpos.ne'
+  field_simp
+
+lemma incG_tendsto_binetIntegral :
+    Tendsto AAR.Gamma.binetIntegral atTop (𝓝 0) := by
+  have hu : Tendsto (fun t : ℝ => 1/(12*t)) atTop (𝓝 0) := by
+    exact tendsto_const_nhds.div_atTop (tendsto_id.const_mul_atTop (by norm_num : (0:ℝ) < 12))
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hu ?_ ?_
+  · filter_upwards [eventually_gt_atTop 0] with t ht using (AAR.Gamma.binetIntegral_mem ht).1
+  · filter_upwards [eventually_gt_atTop 0] with t ht using (AAR.Gamma.binetIntegral_mem ht).2
+
+lemma incG_tendsto_mul_binetIntegral :
+    Tendsto (fun t : ℝ => t * AAR.Gamma.binetIntegral t) atTop (𝓝 (1/12)) := by
+  have h := AAR.Gamma.hasAsymptoticExpansion_binetIntegral 1
+  simp only [Finset.range_one, Finset.sum_singleton, CharP.cast_eq_zero, zero_add, smul_eq_mul,
+    Nat.cast_one] at h
+  have hb : (bernoulli 2 : ℝ) / ((0+1)*(0+2)) = 1/12 := by
+    rw [bernoulli_eq_bernoulli'_of_ne_one (by norm_num), bernoulli'_two]; norm_num
+  have hb' : (bernoulli 2 : ℝ) / (1*2) = 1/12 := by simpa using hb
+  -- t * (Φ t - t⁻¹/12) = O(t⁻¹)
+  have h2 : (fun t : ℝ => t * (AAR.Gamma.binetIntegral t - t ^ (-(1:ℝ)) * (1/12))) =O[atTop]
+      fun t : ℝ => t * t ^ (-((1:ℝ)+1)) := by
+    rw [hb'] at h
+    exact (isBigO_refl (fun t : ℝ => t) atTop).mul h
+  have h3 : Tendsto (fun t : ℝ => t * t ^ (-((1:ℝ)+1))) atTop (𝓝 0) := by
+    refine (tendsto_inv_atTop_zero).congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with t ht
+    rw [show -((1:ℝ)+1) = -2 by norm_num, Real.rpow_neg ht.le, Real.rpow_two]; field_simp
+  have h4 := h2.trans_tendsto h3
+  have h5 := h4.add (tendsto_const_nhds (x := (1/12 : ℝ)))
+  rw [zero_add] at h5
+  refine h5.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  rw [Real.rpow_neg_one]; field_simp; ring
+
+lemma incG_tendsto_mul_exp_binet_sub_one :
+    Tendsto (fun t : ℝ => t * (Real.exp (AAR.Gamma.binetIntegral t) - 1)) atTop (𝓝 (1/12)) := by
+  have hr : Tendsto (fun t : ℝ => t * (Real.exp (AAR.Gamma.binetIntegral t) - 1 -
+      AAR.Gamma.binetIntegral t)) atTop (𝓝 0) := by
+    have hu : Tendsto (fun t : ℝ => 1/(144*t)) atTop (𝓝 0) := by
+      exact tendsto_const_nhds.div_atTop (tendsto_id.const_mul_atTop (by norm_num : (0:ℝ) < 144))
+    rw [tendsto_zero_iff_abs_tendsto_zero]
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hu
+      (Eventually.of_forall fun _ => abs_nonneg _) ?_
+    filter_upwards [eventually_ge_atTop 1] with t ht
+    have ht0 : 0 < t := by linarith
+    obtain ⟨h0, h1⟩ := AAR.Gamma.binetIntegral_mem ht0
+    have hle : |AAR.Gamma.binetIntegral t| ≤ 1 := by
+      rw [abs_of_nonneg h0]; refine h1.trans ?_; rw [div_le_one (by positivity)]; linarith
+    have hq := Real.abs_exp_sub_one_sub_id_le hle
+    simp only [Function.comp_apply]
+    rw [abs_mul, abs_of_pos ht0]
+    have hsq : AAR.Gamma.binetIntegral t ^ 2 ≤ (1/(12*t))^2 := pow_le_pow_left₀ h0 h1 2
+    calc t * |Real.exp (AAR.Gamma.binetIntegral t) - 1 - AAR.Gamma.binetIntegral t|
+        ≤ t * (1/(12*t))^2 := mul_le_mul_of_nonneg_left (hq.trans hsq) ht0.le
+      _ = 1/(144*t) := by field_simp; ring
+  have := hr.add incG_tendsto_mul_binetIntegral
+  rw [zero_add] at this
+  exact this.congr fun t => by ring
+
+/-- `g₀ = 1`. -/
+lemma incG_gammaStirlingCoeff_zero : gammaStirlingCoeff 0 = 1 := by
+  rw [gammaStirlingCoeff, asymptoticCoeff]
+  refine Tendsto.limUnder_eq ?_
+  have h1 : Tendsto (fun t => Real.exp (AAR.Gamma.binetIntegral t)) atTop (𝓝 1) := by
+    have := (Real.continuous_exp.tendsto 0).comp incG_tendsto_binetIntegral
+    rwa [Real.exp_zero] at this
+  have h := (continuous_ofReal.tendsto 1).comp h1
+  simp only [ofReal_one] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  simp [incG_gammaScaled_ofReal ht]
+
+/-- `g₁ = 1/12`. -/
+lemma incG_gammaStirlingCoeff_one : gammaStirlingCoeff 1 = 1/12 := by
+  have h0 := incG_gammaStirlingCoeff_zero
+  rw [gammaStirlingCoeff] at h0 ⊢
+  rw [asymptoticCoeff]
+  simp only [Finset.range_one, Finset.sum_singleton, Nat.sub_zero, h0, CharP.cast_eq_zero,
+    neg_zero, zpow_zero, mul_one, zero_add, pow_one]
+  refine Tendsto.limUnder_eq ?_
+  have h := (continuous_ofReal.tendsto _).comp incG_tendsto_mul_exp_binet_sub_one
+  refine (by simpa using h : Tendsto _ _ (𝓝 ((1:ℂ)/12))).congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  simp [incG_gammaScaled_ofReal ht]
+
+/-- `e^w ≠ 1` on the punctured strip `0 < |Im w| < 2π` or real `w ≠ 0`. -/
+lemma incG_exp_sub_one_ne_zero {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) : exp w - 1 ≠ 0 := by
+  intro h
+  obtain ⟨n, hn⟩ := Complex.exp_eq_one_iff.mp (sub_eq_zero.mp h)
+  have him : w.im = n*(2*π) := by rw [hn]; simp
+  have hn0 : n = 0 := by
+    rw [him, abs_mul, abs_of_pos Real.two_pi_pos] at hw
+    have : |(n:ℝ)| < 1 := by nlinarith [Real.pi_pos]
+    have : |n| < 1 := by exact_mod_cast this
+    exact Int.abs_lt_one_iff.mp this
+  exact hw0 (by rw [hn, hn0]; simp)
+
+/-- η does not vanish on the punctured strip. -/
+lemma incG_gammaUniformEta_ne_zero {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
+    gammaUniformEtaOnLog w ≠ 0 := by
+  intro h0
+  have := gammaUniformEta_equation hw
+  rw [h0] at this
+  exact incG_exp_sub_one_sub_ne_zero hw hw0 (by rw [← this]; ring)
+
+theorem incG_gammaUniformC_first {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
+    gammaUniformC 0 w=1/(exp w-1)-1/gammaUniformEtaOnLog w ∧ gammaUniformC 1 w=1/gammaUniformEtaOnLog w^3-1/(exp w-1)^3-1/(exp w-1)^2-1/(12*(exp w-1)) := by
+  have h0 : ∀ v : ℂ, v ≠ 0 → gammaUniformC 0 v = 1/(exp v-1)-1/gammaUniformEtaOnLog v := by
+    intro v hv; simp [gammaUniformC, hv]
+  refine ⟨h0 w hw0, ?_⟩
+  have hE := incG_exp_sub_one_ne_zero hw hw0
+  have hη := incG_gammaUniformEta_ne_zero hw hw0
+  have hD : HasDerivAt (gammaUniformC 0)
+      (-exp w/(exp w-1)^2 + ((exp w-1)/gammaUniformEtaOnLog w)/gammaUniformEtaOnLog w^2) w := by
+    have h1 : HasDerivAt (fun v => 1/(exp v-1)) (-exp w/(exp w-1)^2) w := by
+      have := ((Complex.hasDerivAt_exp w).sub_const 1).fun_inv hE
+      simpa [one_div, neg_div] using this
+    have h2 : HasDerivAt (fun v => 1/gammaUniformEtaOnLog v)
+        (-((exp w-1)/gammaUniformEtaOnLog w)/gammaUniformEtaOnLog w^2) w := by
+      have := (gammaUniformEta_derivative hw hw0).fun_inv hη
+      simpa [one_div, neg_div] using this
+    have := h1.sub h2
+    refine (this.congr_of_eventuallyEq ?_).congr_deriv (by ring)
+    filter_upwards [isOpen_compl_singleton.mem_nhds hw0] with v hv
+    exact h0 v hv
+  rw [show (1:ℕ) = 0+1 from rfl, gammaUniformC]
+  simp only [hw0, ↓reduceIte]
+  rw [hD.deriv, incG_gammaStirlingCoeff_one]
+  field_simp
+  ring
+
 /-- gammaUniformC first. -/
 @[dlmf 8.12.E9]
 theorem gammaUniformC_first {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
-    gammaUniformC 0 w=1/(exp w-1)-1/gammaUniformEtaOnLog w ∧ gammaUniformC 1 w=1/gammaUniformEtaOnLog w^3-1/(exp w-1)^3-1/(exp w-1)^2-1/(12*(exp w-1)) := by
-  sorry
+    gammaUniformC 0 w=1/(exp w-1)-1/gammaUniformEtaOnLog w ∧ gammaUniformC 1 w=1/gammaUniformEtaOnLog w^3-1/(exp w-1)^3-1/(exp w-1)^2-1/(12*(exp w-1)) :=
+  incG_gammaUniformC_first hw hw0
 
 /-- Uniform large-a filter with independently bounded log arguments of a and λ. -/
 def gammaUniformFilter (α β : ℝ) : Filter (ℂ × ℂ) :=
@@ -308,11 +677,61 @@ theorem gammaParis_uniform_expansion (upper : Bool) {δ B : ℝ} (hδ : 0 < δ) 
 def gammaQInverse (a q : ℝ) : ℝ≥0∞ :=
   if q=0 then ∞ else if q=1 then 0 else ENNReal.ofReal (Classical.epsilon (fun x : ℝ => 0 ≤ x ∧ (normIncGammaQContinued a x).re=q))
 
+/-- The continued `P(a,x)` for real `a > 0`, `x ≥ 0` is TauCeti's regularized lower Gamma. -/
+theorem incG_normIncGammaPContinued_ofReal {a : ℝ} (ha : 0 < a) {x : ℝ} (hx : 0 ≤ x) :
+    normIncGammaPContinued a x = ((TauCeti.lowerIncompleteGamma a x / Real.Gamma a : ℝ) : ℂ) := by
+  rcases hx.eq_or_lt with h0 | h0
+  · subst h0
+    rw [TauCeti.lowerIncompleteGamma_eq_zero_of_nonpos_right a le_rfl, normIncGammaPContinued,
+      ofReal_zero, zero_cpow (ofReal_ne_zero.mpr ha.ne')]
+    simp
+  · have ha' : ∀ n : ℕ, (a:ℂ) ≠ -n := fun n h => by
+      have := congrArg Complex.re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]
+    rw [normIncGammaPContinued_eq ha', normIncGammaP, lowerIncGamma_ofReal ha h0,
+      Complex.Gamma_ofReal]
+    push_cast; rfl
+
+/-- Existence of a real point `x ≥ 0` with `Q(a,x) = q` for `0 < q < 1`. -/
+theorem incG_exists_normIncGammaQ_eq {a : ℝ} (ha : 0 < a) {q : ℝ} (hq : 0 < q) (hq1 : q < 1) :
+    ∃ x : ℝ, 0 ≤ x ∧ (normIncGammaQContinued a x).re = q := by
+  set f : ℝ → ℝ := fun x => TauCeti.lowerIncompleteGamma a x / Real.Gamma a
+  have hf : Continuous f := (TauCeti.continuous_lowerIncompleteGamma a).div_const _
+  have hG := Real.Gamma_pos_of_pos ha
+  have hlim : Tendsto f atTop (𝓝 1) := by
+    have := (TauCeti.tendsto_lowerIncompleteGamma_atTop ha).div_const (Real.Gamma a)
+    rwa [div_self hG.ne'] at this
+  obtain ⟨R, hR⟩ := (hlim.eventually (lt_mem_nhds (show 1-q < 1 by linarith))).exists_forall_of_atTop
+  set R' := max R 0
+  have hR' := hR R' (le_max_left _ _)
+  have h0 : f 0 = 0 := by
+    simp [f]
+  obtain ⟨x, hx, hfx⟩ := intermediate_value_Icc (le_max_right R 0) hf.continuousOn
+    ⟨by rw [h0]; linarith, hR'.le⟩
+  refine ⟨x, hx.1, ?_⟩
+  rw [normIncGammaQContinued, incG_normIncGammaPContinued_ofReal ha hx.1, sub_re, one_re, ofReal_re]
+  change 1 - f x = q
+  rw [hfx]; ring
+
 /-- gammaQInverse spec. -/
 @[dlmf 8.12.E21]
 theorem gammaQInverse_spec {a q : ℝ} (ha : 0 < a) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     (if gammaQInverse a q=∞ then 0 else (normIncGammaQContinued a (gammaQInverse a q).toReal).re)=q ∧ (q ≠ 0 → gammaQInverse a q ≠ ∞) := by
-  sorry
+  rcases hq.eq_or_lt with h0 | h0
+  · subst h0; simp [gammaQInverse]
+  rcases hq1.eq_or_lt with h1 | h1
+  · subst h1
+    have : gammaQInverse a 1 = 0 := by simp [gammaQInverse]
+    simp only [this, ENNReal.zero_ne_top, ite_false, ENNReal.toReal_zero, ofReal_zero,
+      normIncGammaQContinued, normIncGammaPContinued, zero_cpow (ofReal_ne_zero.mpr ha.ne')]
+    simp
+  have hex := incG_exists_normIncGammaQ_eq ha h0 h1
+  have hs := Classical.epsilon_spec (p := fun x : ℝ => 0 ≤ x ∧ (normIncGammaQContinued a x).re = q) hex
+  have hg : gammaQInverse a q = ENNReal.ofReal (Classical.epsilon (fun x : ℝ => 0 ≤ x ∧ (normIncGammaQContinued a x).re=q)) := by
+    simp [gammaQInverse, h0.ne', h1.ne]
+  rw [hg]
+  simp only [ENNReal.ofReal_ne_top, ite_false, ENNReal.toReal_ofReal hs.1]
+  exact ⟨hs.2, fun _ => ENNReal.ofReal_ne_top⟩
+
 
 /-- gammaQInverse median asymptotic. -/
 @[dlmf 8.12.E22]

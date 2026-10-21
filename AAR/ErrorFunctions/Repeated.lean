@@ -684,7 +684,106 @@ theorem iteratedErfc_probability (n : ℕ) (z : ℂ) :
 @[dlmf 7.18.E13]
 theorem iteratedErfc_continuedFraction (n : ℕ) {z : ℂ} (hz : 0 < z.re) :
     HasContinuedFraction (fun k => if k=0 then 1/2 else (n+k : ℂ)/2) (fun _ => z) (iteratedErfc n z/iteratedErfc ((n : ℤ)-1) z) := by
-  sorry
+  have hz0 : z ≠ 0 := fun h => by simp [h] at hz
+  set aR : ℕ → ℕ → ℂ := fun n k => if k=0 then 1/2 else (n+k : ℂ)/2 with haR
+  set ρ : ℕ → ℂ := fun n => iteratedErfc n z/iteratedErfc ((n : ℤ)-1) z with hρ
+  have hpos : ∀ n k : ℕ, 1 ≤ k → aR n k = (((n + k : ℝ) / 2 : ℝ) : ℂ) := fun n k hk => by
+    simp only [aR, show k ≠ 0 by omega, ↓reduceIte]; push_cast; ring
+  have hpos' : ∀ n k : ℕ, 1 ≤ k → (0 : ℝ) < (n + k : ℝ) / 2 := fun n k hk => by
+    have : (1 : ℝ) ≤ k := by exact_mod_cast hk
+    positivity
+  have hne : ∀ k, 1 ≤ k → aR n k ≠ 0 := fun k hk => by
+    rw [hpos n k hk]; exact_mod_cast (hpos' n k hk).ne'
+  rw [incGF_hasContinuedFraction_iff hne]
+  suffices H : ∀ m, Tendsto (GenContFract.cfConv_ofFun 0 (aR m) (fun _ => z)).convs atTop
+      (𝓝 (ρ m)) from H n
+  intro m
+  induction m with
+  | zero =>
+    -- the case `n = 0` is DLMF 7.9.1 after an equivalence transformation
+    have h1 := erfc_continuedFraction_one hz
+    rw [incGF_hasContinuedFraction_iff (fun k hk => by
+      simp only [show k ≠ 0 by omega, ↓reduceIte]
+      exact div_ne_zero (Nat.cast_ne_zero.mpr (by omega)) two_ne_zero)] at h1
+    set r : ℕ → ℂ := fun k => if Even k then z⁻¹ else z with hr
+    have hr0 : ∀ k, r k ≠ 0 := fun k => by
+      simp only [r]; split_ifs
+      · exact inv_ne_zero hz0
+      · exact hz0
+    set A1 : ℕ → ℂ := fun k => if k = 0 then 1 else (k : ℂ) / 2 with hA1
+    have hEa : A1 = fun k => (if k = 0 then r 0 else r (k - 1) * r k) *
+          (if k = 0 then z else (k : ℂ) / 2) := by
+      funext k
+      rcases k with _ | j
+      · simp only [A1, r, ↓reduceIte, show Even 0 from ⟨0, rfl⟩]; field_simp
+      · simp only [A1, r, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
+        rcases Nat.even_or_odd j with hj | hj
+        · have hj' : ¬ Even (j + 1) := Nat.not_even_iff_odd.mpr hj.add_one
+          simp only [hj, hj', ↓reduceIte]
+          field_simp
+        · have hj' : Even (j + 1) := hj.add_one
+          have hj2 : ¬ Even j := Nat.not_even_iff_odd.mpr hj
+          simp only [hj2, hj', ↓reduceIte]
+          field_simp
+    have hEb : (fun _ : ℕ => z) = fun k => r k * (if Even k then z ^ 2 else 1) := by
+      funext k
+      simp only [r]
+      split_ifs
+      · field_simp
+      · rw [mul_one]
+    have e0 : aR 0 = fun k : ℕ => if k = 0 then (1/2 : ℂ) * A1 0 else A1 k := by
+      funext k; rcases k with _ | k <;> simp [aR, A1]
+    have hconv : ∀ N, (GenContFract.cfConv_ofFun 0 (aR 0) (fun _ => z)).convs N =
+        (1/2 : ℂ) * (GenContFract.cfConv_ofFun 0 (fun k => if k=0 then z else (k : ℂ)/2)
+          (fun k => if Even k then z^2 else 1)).convs N := by
+      intro N
+      rw [e0, GenContFract.cfConv_convs_smul_a0, hEa, hEb, GenContFract.cfConv_equiv_convs r hr0]
+    rw [show (GenContFract.cfConv_ofFun 0 (aR 0) (fun _ => z)).convs = fun N =>
+      (1/2 : ℂ) * (GenContFract.cfConv_ofFun 0 (fun k => if k=0 then z else (k : ℂ)/2)
+          (fun k => if Even k then z^2 else 1)).convs N from funext hconv]
+    convert h1.const_mul (1/2 : ℂ) using 2
+    obtain ⟨hm1, h0⟩ := iteratedErfc_initial z
+    have hp : (Real.sqrt π : ℂ) ≠ 0 := by
+      exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    simp only [ρ, Nat.cast_zero, zero_sub]
+    rw [h0, hm1, show -z ^ 2 = -(z ^ 2) by ring, Complex.exp_neg]
+    field_simp
+  | succ m ih =>
+    have hv : ρ m ≠ 0 := GenContFract.cfConv_sfrac_const_ne_zero hz (c := fun k => (m + k : ℝ) / 2)
+      (fun k hk => hpos' m k hk) (fun k hk => hpos m k hk) (by simp [aR]) ih
+    have ht := GenContFract.cfConv_tail_tendsto hv ih
+    have e : aR (m + 1) = fun k => if k = 0 then ((m : ℂ) + 1)⁻¹ * aR m (0 + 1)
+        else aR m (k + 1) := by
+      funext k
+      rcases k with _ | k
+      · simp only [aR, ↓reduceIte, one_ne_zero, zero_add, Nat.cast_one]
+        have : (m : ℂ) + 1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero m
+        field_simp
+      · simp only [aR, Nat.succ_ne_zero, ↓reduceIte]; push_cast; ring
+    rw [show (GenContFract.cfConv_ofFun 0 (aR (m + 1)) (fun _ => z)).convs = fun N =>
+      ((m : ℂ) + 1)⁻¹ * (GenContFract.cfConv_ofFun 0 (fun k => aR m (k + 1))
+        (fun _ => z)).convs N from funext fun N => by
+          rw [e]
+          exact GenContFract.cfConv_convs_smul_a0 (a := fun k => aR m (k + 1))
+            (b := fun _ => z) _ N]
+    convert ht.const_mul ((m : ℂ) + 1)⁻¹ using 2
+    -- the three-term recurrence DLMF 7.18.7
+    have hrec := iteratedErfc_recurrence (n := m + 1) (by omega) z
+    have i1 : ((m + 1 : ℕ) : ℤ) - 1 = (m : ℤ) := by push_cast; ring
+    have i2 : ((m + 1 : ℕ) : ℤ) - 2 = (m : ℤ) - 1 := by push_cast; ring
+    rw [i1, i2] at hrec
+    simp only [ρ] at hv ⊢
+    rw [i1]
+    set P := iteratedErfc (m : ℤ) z
+    set Q := iteratedErfc ((m : ℤ) - 1) z
+    have hP : P ≠ 0 := fun h0 => hv (by rw [h0, zero_div])
+    have hQ : Q ≠ 0 := fun h0 => hv (by rw [h0, div_zero])
+    have hm : (m : ℂ) + 1 ≠ 0 := by exact_mod_cast Nat.succ_ne_zero m
+    rw [hrec]
+    simp only [aR, ↓reduceIte]
+    push_cast
+    field_simp
+    ring
 
 /-- iteratedErfc asymptotic. -/
 @[dlmf 7.18.E14]

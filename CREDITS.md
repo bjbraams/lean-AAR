@@ -859,3 +859,37 @@ among them the Gamma, Beta, digamma, Bernoulli, zeta, Hurwitz zeta, Chebyshev, H
 hypergeometric-series, AGM and Jacobi theta developments) and of TauCeti (6 pointers: real
 `erf`/`erfc`, the regularized incomplete Gamma and Beta functions, and the Beta integral in
 `TauCeti/Analysis/SpecialFunctions`). Ownership of those results stays with their libraries.
+
+## Round 6 (2026-10-21)
+
+The new files `ToMathlib/Analysis/ODE/LiouvilleGreenFinite.lean`,
+`ToMathlib/Analysis/Complex/StarPrimitive.lean`, `AAR/Confluent/KummerDecay.lean`,
+`AAR/IncompleteGamma/RealIntegrals.lean`, `AAR/Legendre/BoundaryAsymptotics.lean`,
+`AAR/ParabolicCylinder/UniformLG2.lean` and `AAR/Struve/AsymptoticTools.lean`, and the proofs
+added in this round, are original project work. No code was copied from other projects. The
+mathematical sources are DLMF Chapters 6, 8, 9, 11–15, F. W. J. Olver, *Asymptotics and Special
+Functions* (Liouville–Green theory from a finite endpoint), and N. M. Temme, *Asymptotic
+Methods for Integrals*. The proofs build on Mathlib's interval and improper integration, Cauchy
+integral and identity-theorem APIs, and on the project's earlier ToMathlib layers (Watson's lemma on
+rotated rays, parametric holomorphy, asymptotic power series).
+
+## Round 7 (2026-10-21)
+
+The new ToMathlib files `Analysis/Complex/ZeroLocalization.lean`,
+`Topology/Order/ZeroEnumeration.lean`, `Analysis/ContinuedFraction/Convergence.lean`,
+`Analysis/Asymptotics/StationaryPhase.lean` and `Analysis/Complex/BarnesResidue.lean`, the new AAR
+tool files and the proofs of this round are original project work, with these uses of other
+work:
+
+- The Rouché theorem, argument principle and zero-count tools of TauCeti
+  (`TauCeti.Analysis.Complex.Conformal`, `TauCeti.Analysis.Complex.ZeroCount`) are used in
+  `AAR/ErrorFunctions/ZeroTools.lean`; the helper `erfZ_count_eq_single` there is adapted from a
+  private TauCeti lemma (`count_eq_single`), as credited in the module header.
+- The primitive argument in `ToMathlib/Analysis/Complex/BarnesResidue.lean` follows the approach
+  of TauCeti's Perron formula development (`TauCeti/.../Perron/Basic`), as noted in its docstring.
+- The continued-fraction theory builds on Mathlib's generalized continued fractions
+  (`Mathlib/Algebra/ContinuedFractions`).
+
+The mathematical sources are DLMF Chapters 6–9 and 11–15, the classical Pincherle theorem on
+continued fractions and minimal solutions, and F. W. J. Olver, *Asymptotics and Special
+Functions*.

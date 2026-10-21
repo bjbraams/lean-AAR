@@ -12,10 +12,12 @@ public import AAR.Airy.Equation
 public import AAR.Airy.IntegralRepresentations
 public import AAR.Airy.Relations
 public import AAR.Airy.Asymptotics
+public import AAR.Airy.ModulusTools
 public import AAR.Airy.ModulusPhase
 public import AAR.Airy.Zeros
 public import AAR.Airy.Scorer
 public import AAR.Airy.ScorerAsymptotics
+public import AAR.Airy.IntegralTools
 public import AAR.Airy.Integrals
 public import AAR.Airy.Products
 public import AAR.Airy.Generalized

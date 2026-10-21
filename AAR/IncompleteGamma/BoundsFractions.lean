@@ -6,6 +6,8 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.IncompleteGamma.SpecialValues
+public import AAR.IncompleteGamma.RealIntegrals
+public import AAR.IncompleteGamma.FractionTools
 
 /-!
 # Continued fractions and inequalities, DLMF §§8.9–8.10
@@ -26,7 +28,39 @@ open AAR.Statistical
 @[dlmf 8.9.E1]
 theorem scIncGamma_continuedFraction {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(n+1)) (z : ℂ) :
     HasContinuedFraction (fun k => if k=0 then 1 else if Odd k then -(if k=1 then 1 else ((k-1 : ℕ)/2 : ℂ)+a)*z else ((k : ℕ)/2 : ℂ)*z) (fun k => if k=0 then 1 else a+k) (Gamma (a+1)*exp z*scIncGamma a z) := by
-  sorry
+  have hc : ∀ k : ℕ, a + 1 ≠ -k := fun k h => ha k (by linear_combination h)
+  have hval : Gamma (a + 1) * exp z * scIncGamma a z = kummerM 1 (a + 1) z := by
+    rw [scIncGamma, kummerM_eq_mul_regularizedHGFun hc,
+      show Gamma (a + 1) * exp z * (exp (-z) * regularizedHGFun {1} {a + 1} z) =
+        Gamma (a + 1) * regularizedHGFun {1} {a + 1} z * (exp z * exp (-z)) by ring,
+      ← Complex.exp_add, add_neg_cancel, Complex.exp_zero, mul_one]
+  rw [hval]
+  set A : ℕ → ℂ := (fun k => if k=0 then 1 else if Odd k then -(if k=1 then 1 else ((k-1 : ℕ)/2 : ℂ)+a)*z else ((k : ℕ)/2 : ℂ)*z) with hAdef
+  have hA0 : A 0 = 1 := by simp [A]
+  have hA1 : A 1 = -z := by simp [A]
+  have hAo : ∀ m ≥ 1, A (2 * m + 1) = -(m + a) * z := by
+    intro m hm
+    simp only [A, show 2 * m + 1 ≠ 0 by omega, ↓reduceIte, odd_two_mul_add_one,
+      show 2 * m + 1 ≠ 1 by omega, Nat.add_sub_cancel]
+    push_cast; ring
+  have hAe : ∀ m ≥ 1, A (2 * m) = m * z := by
+    intro m hm
+    have : ¬ Odd (2 * m) := by simp
+    simp only [A, show 2 * m ≠ 0 by omega, ↓reduceIte, this]
+    push_cast; ring
+  by_cases hz : z = 0
+  · subst hz
+    unfold AAR.DLMF.HasContinuedFraction
+    rw [kummerM_zero]
+    refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_ge_atTop 1] with n hn
+    rw [incGF_cfTail_freeze (by simp [A]) hn, hA0]
+    simp
+  · refine (incGF_hasContinuedFraction_iff ?_ _).mpr ?_
+    · intro k _
+      exact incGF_gammaStar_A_ne ha hz hA0 hA1 hAo hAe k
+    exact incGF_gammaStar_tendsto ha hz hA0 hA1 hAo hAe (by simp)
+      (fun k hk => by simp [show k ≠ 0 by omega])
 
 /-- upperIncGamma continuedFraction complex. -/
 @[dlmf 8.9.E2]
@@ -38,25 +72,35 @@ theorem upperIncGamma_continuedFraction_complex (a : ℂ) {z : ℂ} (hz : z ∈ 
 @[dlmf 8.10.E1]
 theorem upperIncGamma_bound_le_one {a x : ℝ} (ha : 0 < a) (ha1 : a ≤ 1) (hx : 0 < x) :
     x^(1-a)*Real.exp x*(upperIncGamma a x).re ≤ 1 := by
-  sorry
+  have h := incG_upperIncGamma_re_le ha1 hx
+  have e : x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) = 1 := by
+    rw [show x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) = (x^(1-a)*x^(a-1))*(Real.exp x*Real.exp (-x)) by ring,
+      ← Real.rpow_add hx, ← Real.exp_add]; simp
+  calc _ ≤ x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) := by gcongr
+    _ = 1 := e
 
 /-- lowerIncGamma bound ge. -/
 @[dlmf 8.10.E2]
 theorem lowerIncGamma_bound_ge {a x : ℝ} (ha : 0 < a) (ha1 : a ≤ 1) (hx : 0 < x) :
-    (lowerIncGamma a x).re ≥ x^(a-1)/a*(1-Real.exp (-x)) := by
-  sorry
+    (lowerIncGamma a x).re ≥ x^(a-1)/a*(1-Real.exp (-x)) :=
+  incG_lowerIncGamma_bound_ge ha ha1 hx
 
 /-- upperIncGamma bound ge one. -/
 @[dlmf 8.10.E1]
 theorem upperIncGamma_bound_ge_one {a x : ℝ} (ha : 1 ≤ a) (hx : 0 < x) :
     1 ≤ x^(1-a)*Real.exp x*(upperIncGamma a x).re := by
-  sorry
+  have h := incG_upperIncGamma_re_ge ha hx
+  have e : x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) = 1 := by
+    rw [show x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) = (x^(1-a)*x^(a-1))*(Real.exp x*Real.exp (-x)) by ring,
+      ← Real.rpow_add hx, ← Real.exp_add]; simp
+  calc (1:ℝ) = x^(1-a)*Real.exp x*(x^(a-1)*Real.exp (-x)) := e.symm
+    _ ≤ _ := by gcongr
 
 /-- lowerIncGamma bound le. -/
 @[dlmf 8.10.E2]
 theorem lowerIncGamma_bound_le {a x : ℝ} (ha : 1 ≤ a) (hx : 0 < x) :
-    (lowerIncGamma a x).re ≤ x^(a-1)/a*(1-Real.exp (-x)) := by
-  sorry
+    (lowerIncGamma a x).re ≤ x^(a-1)/a*(1-Real.exp (-x)) :=
+  incG_lowerIncGamma_bound_le ha hx
 
 /-- The first-order real incomplete-Gamma remainder ratio. -/
 @[dlmf 8.10.E3]
@@ -139,7 +183,37 @@ theorem Real.upperGammaTheta_limit (a : ℝ) :
 @[dlmf 8.10.E4]
 theorem Real.upperGammaTheta_bounds {a x : ℝ} (ha : a ≤ 2) (hx : 0 < x) :
     0 < Real.upperGammaTheta a x ∧ Real.upperGammaTheta a x ≤ 1 := by
-  sorry
+  by_cases h1 : a = 1
+  · simp [Real.upperGammaTheta, h1]
+  have hx0 : (x:ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hrec := upperIncGamma_add_one ((a:ℂ)-1) hx0
+  rw [sub_add_cancel] at hrec
+  have e : ((x:ℂ)^((a:ℂ)-1)*exp (-(x:ℂ))).re = x^(a-1)*Real.exp (-x) := by
+    rw [show (a:ℂ)-1 = ((a-1:ℝ):ℂ) by push_cast; ring, ← ofReal_cpow hx.le, ← ofReal_neg,
+      ← ofReal_exp, ← ofReal_mul, ofReal_re]
+  have hre : (upperIncGamma a x).re = (a-1)*(upperIncGamma ((a-1:ℝ):ℂ) x).re + x^(a-1)*Real.exp (-x) := by
+    rw [hrec, add_re, e]; push_cast
+    simp [Complex.mul_re]
+  have hθ : Real.upperGammaTheta a x = x^(2-a)*Real.exp x*(upperIncGamma ((a-1:ℝ):ℂ) x).re := by
+    have ha1 : a - 1 ≠ 0 := sub_ne_zero.mpr h1
+    simp only [Real.upperGammaTheta, h1, ↓reduceIte]
+    rw [hre]
+    have hu : x^(1-a)*x^(a-1) = 1 := by rw [← Real.rpow_add hx]; simp
+    have hv : x^(2-a) = x^(1-a)*x := by rw [← Real.rpow_add_one hx.ne']; ring_nf
+    have hee : Real.exp x * Real.exp (-x) = 1 := by rw [← Real.exp_add]; simp
+    rw [hv]
+    field_simp
+    linear_combination Real.exp x*Real.exp (-x)*hu + hee
+  have hle := incG_upperIncGamma_re_le (a := a-1) (by linarith) hx
+  have hpos := incG_upperIncGamma_re_pos (a := a-1) hx (incG_integrableOn_rpow_exp_of_le_one (by linarith) hx)
+  rw [hθ]
+  refine ⟨by positivity, ?_⟩
+  calc x^(2-a)*Real.exp x*(upperIncGamma ((a-1:ℝ):ℂ) x).re ≤ x^(2-a)*Real.exp x*(x^(a-1-1)*Real.exp (-x)) := by
+        gcongr
+    _ = 1 := by
+      rw [show x^(2-a)*Real.exp x*(x^(a-1-1)*Real.exp (-x)) = (x^(2-a)*x^(a-1-1))*(Real.exp x*Real.exp (-x)) by ring,
+        ← Real.rpow_add hx, ← Real.exp_add]; ring_nf; simp
+
 
 /-- Finite Legendre convergents giving A_n and B_n. -/
 def Real.upperGammaPade (upper : Bool) (n : ℕ) (a x : ℝ) : ℝ :=
@@ -149,7 +223,31 @@ def Real.upperGammaPade (upper : Bool) (n : ℕ) (a x : ℝ) : ℝ :=
 @[dlmf 8.10.E5]
 theorem Real.upperGammaPade_bounds {a x : ℝ} (ha : a < 1) (hx : 0 < x) {n : ℕ} (hn : 1 ≤ n) :
     Real.upperGammaPade false n a x < x^(1-a)*Real.exp x*(upperIncGamma a x).re ∧ x^(1-a)*Real.exp x*(upperIncGamma a x).re < Real.upperGammaPade true n a x := by
-  sorry
+  have key : ∀ (u : Bool), Real.upperGammaPade u n a x =
+      (GenContFract.cfConv_ofFun 0 (incGF_padeNum a x) (AAR.Statistical.gammaIncCFDen x)).convs
+        (2*n+if u then 1 else 0) := by
+    intro u
+    rw [Real.upperGammaPade, incGF_cfTail_ofReal (a := incGF_padeNum a x)
+      (b := AAR.Statistical.gammaIncCFDen x) (fun k => ?_) (fun k => ?_)
+      (fun k _ => (incGF_padeNum_pos ha hx k).ne'), ofReal_re]
+    · simp only [incGF_padeNum, AAR.Statistical.gammaIncCFNum]
+      rcases Nat.even_or_odd k with hk | hk
+      · have h2 : k % 2 = 0 := Nat.even_iff.mp hk
+        have : ¬ Odd k := Nat.not_odd_iff_even.mpr hk
+        split_ifs <;> simp_all
+      · have h2 : k % 2 = 1 := Nat.odd_iff.mp hk
+        split_ifs with h0
+        · simp_all
+        · have : (k + 1) / 2 = k / 2 + 1 := by omega
+          rw [this]; push_cast; ring
+    · simp only [AAR.Statistical.gammaIncCFDen]
+      rcases Nat.even_or_odd k with hk | hk
+      · simp [hk, Nat.even_iff.mp hk]
+      · have h1 : ¬ Even k := Nat.not_even_iff_odd.mpr hk
+        have h2 : ¬ k % 2 = 0 := by have := Nat.odd_iff.mp hk; omega
+        simp [h1, h2]
+  rw [key, key]
+  exact ⟨incGF_pade_lt ha hx hn, by simpa using incGF_lt_pade ha hx n⟩
 
 /-- Real.upperGammaPade first. -/
 @[dlmf 8.10.E6]
@@ -205,11 +303,112 @@ theorem incompleteGamma_positive_exponential_integral {a : ℂ} (ha : 0 < a.re) 
     conv_lhs => rw [show a = 1 + (a-1) by ring, cpow_add _ _ hx0, cpow_one]
   rw [ha1, mul_assoc, hsub, Complex.real_smul, ← mul_assoc, ofReal_inv, mul_inv_cancel₀ hx0, one_mul]
 
+/-- A function continuous on `[0,∞)`, vanishing at `0`, with positive derivative on `(0,∞)`
+is positive on `(0,∞)`. -/
+lemma incG_pos_of_hasDerivAt {f f' : ℝ → ℝ} (hc : ContinuousOn f (Ici 0))
+    (hd : ∀ x, 0 < x → HasDerivAt f (f' x) x) (hp : ∀ x, 0 < x → 0 < f' x) (h0 : f 0 = 0)
+    {x : ℝ} (hx : 0 < x) : 0 < f x := by
+  have hm : StrictMonoOn f (Ici 0) := strictMonoOn_of_deriv_pos (convex_Ici 0) hc
+    (fun y hy => by rw [interior_Ici] at hy; rw [(hd y hy).deriv]; exact hp y hy)
+  have := hm self_mem_Ici (mem_Ici.mpr hx.le) hx
+  rwa [h0] at this
+
+lemma incG_hasDerivAt_rpow_mul_exp {a x : ℝ} (hx : 0 < x) :
+    HasDerivAt (fun x : ℝ => x^a*Real.exp x) ((a/x+1)*(x^a*Real.exp x)) x := by
+  have h := ((Real.hasDerivAt_rpow_const (p := a) (Or.inl hx.ne')).mul (Real.hasDerivAt_exp x))
+  convert h using 1
+  rw [Real.rpow_sub hx, Real.rpow_one]; field_simp
+
+lemma incG_continuous_rpow_mul_exp {a : ℝ} (ha : 0 < a) :
+    Continuous (fun x : ℝ => x^a*Real.exp x) :=
+  (Real.continuous_rpow_const ha.le).mul Real.continuous_exp
+
+lemma incG_intervalIntegrable_rpow_mul_exp {a : ℝ} (ha : 0 < a) (u v : ℝ) :
+    IntervalIntegrable (fun t : ℝ => t^(a-1)*Real.exp t) volume u v :=
+  (intervalIntegral.intervalIntegrable_rpow' (by linarith)).mul_continuousOn
+    Real.continuous_exp.continuousOn
+
+lemma incG_continuous_primitive_rpow_mul_exp {a : ℝ} (ha : 0 < a) :
+    Continuous (fun x : ℝ => ∫ t in (0:ℝ)..x, t^(a-1)*Real.exp t) :=
+  intervalIntegral.continuous_primitive (incG_intervalIntegrable_rpow_mul_exp ha) 0
+
+lemma incG_hasDerivAt_primitive_rpow_mul_exp {a x : ℝ} (ha : 0 < a) (hx : 0 < x) :
+    HasDerivAt (fun x : ℝ => ∫ t in (0:ℝ)..x, t^(a-1)*Real.exp t) (x^(a-1)*Real.exp x) x := by
+  have hcont : ContinuousOn (fun t : ℝ => t^(a-1)*Real.exp t) (Ioi 0) := fun t ht =>
+    ((Real.continuousAt_rpow_const _ _ (Or.inl (ne_of_gt ht))).mul
+      Real.continuous_exp.continuousAt).continuousWithinAt
+  exact intervalIntegral.integral_hasDerivAt_right (incG_intervalIntegrable_rpow_mul_exp ha 0 x)
+    (hcont.stronglyMeasurableAtFilter isOpen_Ioi x hx)
+    (hcont.continuousAt (isOpen_Ioi.mem_nhds hx))
+
+theorem incG_positive_exponential_bounds {a x : ℝ} (ha : 0 < a) (hx : 0 < x) :
+    (a+1)*(a+2)-x < ((a+1)*(a+2+x))*(a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t)) ∧ a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t) < (a+1)/(a+1+x) := by
+  set P : ℝ → ℝ := fun x => x^a*Real.exp x with hPdef
+  set G : ℝ → ℝ := fun x => ∫ t in (0:ℝ)..x, t^(a-1)*Real.exp t with hGdef
+  have hP := fun y (hy : 0 < y) => incG_hasDerivAt_rpow_mul_exp (a := a) hy
+  have hG := fun y (hy : 0 < y) => incG_hasDerivAt_primitive_rpow_mul_exp ha hy
+  have hGd : ∀ y, 0 < y → y^(a-1)*Real.exp y = P y / y := by
+    intro y hy; simp only [P]; rw [Real.rpow_sub hy, Real.rpow_one]; ring
+  have hPc : Continuous P := incG_continuous_rpow_mul_exp ha
+  have hGc : Continuous G := incG_continuous_primitive_rpow_mul_exp ha
+  have hP0 : P 0 = 0 := by simp [P, Real.zero_rpow ha.ne']
+  have hG0 : G 0 = 0 := by simp [G]
+  have hPpos : ∀ y, 0 < y → 0 < P y := fun y hy => by simp only [P]; positivity
+  -- k = P - aG
+  have hk : ∀ y, 0 < y → 0 < P y - a*G y := by
+    intro y hy
+    refine incG_pos_of_hasDerivAt (f := fun y => P y - a*G y) (f' := P)
+      (hPc.sub (continuous_const.mul hGc)).continuousOn (fun z hz => ?_) hPpos
+      (by simp [hP0, hG0]) hy
+    convert (hP z hz).sub ((hG z hz).const_mul a) using 1
+    rw [hGd z hz]; field_simp; ring
+  -- m1 = xP - (a+1)k
+  have hm1 : ∀ y, 0 < y → 0 < y*P y - (a+1)*(P y - a*G y) := by
+    intro y hy
+    refine incG_pos_of_hasDerivAt (f := fun y => y*P y - (a+1)*(P y - a*G y))
+      (f' := fun y => y * P y)
+      ((continuous_id.mul hPc).sub (continuous_const.mul
+        (hPc.sub (continuous_const.mul hGc)))).continuousOn (fun z hz => ?_)
+      (fun z hz => mul_pos hz (hPpos z hz)) (by simp [hP0, hG0]) hy
+    convert ((hasDerivAt_id z).mul (hP z hz)).sub
+      (((hP z hz).sub ((hG z hz).const_mul a)).const_mul (a+1)) using 1
+    · funext y; simp only [Pi.sub_apply, Pi.mul_apply, id, P, G]
+    · rw [hGd z hz]; simp only [id]; field_simp; ring
+  -- m = a(a+1)(a+2+x)G - ((a+1)(a+2)-x)P
+  have hm : 0 < a*(a+1)*(a+2+x)*G x - ((a+1)*(a+2)-x)*P x := by
+    refine incG_pos_of_hasDerivAt (f := fun y => a*(a+1)*(a+2+y)*G y - ((a+1)*(a+2)-y)*P y)
+      (f' := fun y => y*P y - (a+1)*(P y - a*G y))
+      (((continuous_const.mul (continuous_const.add continuous_id)).mul hGc).sub
+        ((continuous_const.sub continuous_id).mul hPc)).continuousOn (fun z hz => ?_)
+      hm1 (by simp [hP0, hG0]) hx
+    convert ((((hasDerivAt_id z).const_add (a+2)).const_mul (a*(a+1))).mul (hG z hz)).sub
+      (((hasDerivAt_id z).const_sub ((a+1)*(a+2))).mul (hP z hz)) using 1
+    · funext y; simp only [Pi.sub_apply, Pi.mul_apply, id, P, G]
+    · rw [hGd z hz]; simp only [id]; field_simp; ring
+  -- h = (a+1)P - a(a+1+x)G
+  have hh : 0 < (a+1)*P x - a*(a+1+x)*G x := by
+    refine incG_pos_of_hasDerivAt (f := fun y => (a+1)*P y - a*(a+1+y)*G y)
+      (f' := fun y => P y - a*G y)
+      ((continuous_const.mul hPc).sub ((continuous_const.mul
+        (continuous_const.add continuous_id)).mul hGc)).continuousOn (fun z hz => ?_)
+      hk (by simp [hP0, hG0]) hx
+    convert ((hP z hz).const_mul (a+1)).sub
+      ((((hasDerivAt_id z).const_add (a+1)).const_mul a).mul (hG z hz)) using 1
+    · funext y; simp only [Pi.sub_apply, Pi.mul_apply, id, P, G]
+    · rw [hGd z hz]; simp only [id]; field_simp; ring
+  have hF : a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t) = a*G x/P x := by
+    simp only [P, G]; rw [Real.rpow_neg hx.le, Real.exp_neg]; field_simp
+  rw [hF]
+  have hPx := hPpos x hx
+  constructor
+  · rw [← mul_div_assoc, lt_div_iff₀ hPx]; nlinarith
+  · rw [div_lt_div_iff₀ hPx (by linarith)]; nlinarith
+
 /-- The integral needs a>0; the a=0 boundary is acquired separately as a limit. -/
 @[dlmf 8.10.E8]
 theorem incompleteGamma_positive_exponential_bounds {a x : ℝ} (ha : 0 < a) (hx : 0 < x) :
-    (a+1)*(a+2)-x < ((a+1)*(a+2+x))*(a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t)) ∧ a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t) < (a+1)/(a+1+x) := by
-  sorry
+    (a+1)*(a+2)-x < ((a+1)*(a+2+x))*(a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t)) ∧ a*x^(-a)*Real.exp (-x)*(∫ t in (0 : ℝ)..x, t^(a-1)*Real.exp t) < (a+1)/(a+1+x) :=
+  incG_positive_exponential_bounds ha hx
 
 /-- incompleteGamma positive exponential limit. -/
 @[dlmf 8.10.E8]

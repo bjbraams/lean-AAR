@@ -7,6 +7,7 @@ module
 
 public import AAR.Airy.Scorer
 public import AAR.Airy.Zeros
+public import AAR.Airy.ModulusTools
 
 /-!
 # Products of Airy solutions, DLMF §9.11
@@ -83,8 +84,8 @@ theorem airy_modulus_sq_exp_integral (z : ℂ) :
     IntegrableOn (fun t : ℝ => exp (z * t - (t : ℂ) ^ 3 / 12) * (t : ℂ) ^ (-1 / 2 : ℂ)) (Ioi 0) ∧
       airyAi z ^ 2 + airyBi z ^ 2 =
         (∫ t : ℝ in Ioi 0, exp (z * t - (t : ℂ) ^ 3 / 12) * (t : ℂ) ^ (-1 / 2 : ℂ)) /
-          (π : ℂ) ^ (3 / 2 : ℂ) := by
-  sorry
+          (π : ℂ) ^ (3 / 2 : ℂ) :=
+  airyMod_modulus_sq_exp_integral z
 
 /-- airy product antiderivative 5 (DLMF 9.11.5). -/
 @[dlmf 9.11.E5]

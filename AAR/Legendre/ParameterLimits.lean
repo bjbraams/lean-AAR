@@ -140,13 +140,39 @@ theorem legendreSinSqTrigamma_limit (ν : ℂ) :
 @[dlmf 14.17.E10]
 theorem ferrersPP_integral_all_degrees (ν lam : ℂ) (h0 : lam ≠ ν) (h1 : lam ≠ -ν-1) :
     (∫ x : ℝ in -1..1, ferrersP ν 0 x*ferrersP lam 0 x)=2*(2*(sin (π*lam)*legendreSinDigamma ν-sin (π*ν)*legendreSinDigamma lam)+π*sin ((lam-ν)*π))/(π^2*(lam-ν)*(lam+ν+1)) := by
-  sorry
+  have hd1 : lam - ν ≠ 0 := sub_ne_zero.mpr h0
+  have hd2 : lam + ν + 1 ≠ 0 := fun h => h1 (by linear_combination h)
+  have hc : ν*(ν+1) - lam*(lam+1) ≠ 0 := by
+    rw [show ν*(ν+1) - lam*(lam+1) = -((lam-ν)*(lam+ν+1)) by ring]
+    exact neg_ne_zero.mpr (mul_ne_zero hd1 hd2)
+  have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hB := legPI_boundary_const_all ν lam
+  rw [legPI_integral_PP ν lam hc, legendreSinDigamma_eq, legendreSinDigamma_eq,
+    show 2*(sin (π*lam)*(π * AAR.Gamma.invGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹) -
+      sin (π*ν)*(π * AAR.Gamma.invGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) + π*sin ((lam-ν)*π) =
+      (π:ℂ)^2 * (legPIK ν * legPIC lam - legPIK lam * legPIC ν) by rw [hB]; ring]
+  field_simp
+  ring
 
 /-- ferrersP sq integral all degrees. -/
 @[dlmf 14.17.E11]
 theorem ferrersP_sq_integral_all_degrees {ν : ℂ} (hν : ν ≠ -1/2) :
     (∫ x : ℝ in -1..1, (ferrersP ν 0 x)^2)=(π^2-2*legendreSinSqTrigamma ν)/(π^2*(ν+1/2)) := by
-  sorry
+  have hπ : (π:ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
+  have h3 : ν + 1/2 ≠ 0 := fun h => hν (by linear_combination h)
+  have hne : ∀ᶠ v in 𝓝[≠] ν, v ≠ -1/2 :=
+    nhdsWithin_le_nhds (continuousAt_id.eventually_ne hν)
+  have heq : (fun v : ℂ => ∫ x : ℝ in -1..1, (ferrersP v 0 x)^2) =ᶠ[𝓝[≠] ν]
+      fun v => (π^2-2*((sin (π*v))^2*deriv digamma (v+1)))/(π^2*(v+1/2)) := by
+    filter_upwards [eventually_affine_ne_neg_nat one_ne_zero 1 ν, hne] with v hv hv2
+    have hr : LegendreQRegular v 0 := fun n h => hv n (by rw [one_mul]; linear_combination h)
+    rw [ferrers_product_integral_11 v hv2 hr, mul_comm (v:ℂ) π]; ring
+  have hR : Tendsto (fun v : ℂ => (π^2-2*((sin (π*v))^2*deriv digamma (v+1)))/(π^2*(v+1/2)))
+      (𝓝[≠] ν) (𝓝 ((π^2-2*legendreSinSqTrigamma ν)/(π^2*(ν+1/2)))) := by
+    refine (tendsto_const_nhds.sub (tendsto_const_nhds.mul (legendreSinSqTrigamma_limit ν))).div
+      ((tendsto_const_nhds.mul ((continuousAt_id.add continuousAt_const).tendsto)).mono_left
+        nhdsWithin_le_nhds) (mul_ne_zero (pow_ne_zero 2 hπ) h3)
+  exact tendsto_nhds_unique (((legPIU_tendsto_sq ν).mono_left nhdsWithin_le_nhds).congr' heq) hR
 
 /-- ferrersP negative order parameter limit. -/
 @[dlmf 14.9.E3]

@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.ExpIntegrals.Continuation
+public import AAR.IncompleteGamma.FractionTools
 
 /-!
 # Exponential integral representations and inequalities, DLMF §§6.7–6.9
@@ -918,6 +919,23 @@ theorem expIntE1_inequality_3 {x : ℝ} (hx : 0 < x) :
 @[dlmf 6.9.E1]
 theorem expIntE1_continuedFraction {z : ℂ} (hz : z ∈ slitPlane) :
     HasContinuedFraction (fun k => if k=0 then exp (-z) else ((k+1)/2 : ℕ)) (fun k => if Even k then z else 1) (genExpIntE 1 z) := by
-  sorry
+  have hc : ∀ k, 1 ≤ k → (((k + 1) / 2 : ℕ) : ℂ) = (incGF_c 0 k : ℂ) := by
+    intro k _
+    unfold incGF_c
+    split_ifs with h
+    · have : (k + 1) / 2 = k / 2 + 1 := by omega
+      rw [this]; push_cast; ring
+    · have : (k + 1) / 2 = k / 2 := by omega
+      rw [this]; push_cast; ring
+  rw [incGF_hasContinuedFraction_iff (fun k hk => by
+    simp only [show k ≠ 0 by omega, ↓reduceIte]
+    exact Nat.cast_ne_zero.mpr (by omega))]
+  have h := incGF_formB_tendsto (α := 0) (by norm_num) (exp (-z)) hz
+    (a := fun k => if k=0 then exp (-z) else (((k+1)/2 : ℕ) : ℂ)) (by simp)
+    (fun k hk => by simp only [show k ≠ 0 by omega, ↓reduceIte]; exact hc k hk)
+  convert h using 2
+  rw [genExpIntE]
+  simp only [sub_self, cpow_zero, one_mul, ofReal_zero, neg_zero, mul_one]
+  rw [← exp_add, neg_add_cancel, exp_zero, one_mul]
 
 end AAR.Confluent

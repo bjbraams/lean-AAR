@@ -40,7 +40,7 @@ integrability theorem supplies the fixed majorant; Mathlib's real Bernoulli
 inequality and dominated convergence justify the limit. Holomorphic continuation
 in the argument and continuity in the second parameter cover every parameter.
 The Whittaker W Laplace representation follows by an affine substitution.
-The Gauss and Stieltjes representations 13.4.5, 13.4.8, 13.16.6 and 13.16.9 use the
+The Gauss and Stieltjes representations 13.4.5, 13.4.6, 13.4.8, 13.16.6 and 13.16.9 use the
 Kummer and Tricomi Laplace transforms, so they are proved in `AAR.Confluent.Integrals`.
 The exponential Barnes integrals 13.4.18 and 13.16.12 insert the Cahen–Mellin integral for
 `e^{-x(1+τ)}` into Tricomi's Laplace integral and evaluate Euler's second Beta integral
@@ -703,16 +703,6 @@ lemma kummerU_laplace_shift_one {a z : ℂ} (ha : 0 < a.re) (hz : 0 < z.re) :
     kummerU a (a + 1) z = 1 / Gamma a * ∫ t : ℝ in Set.Ioi 0,
       exp (-z * t) * (t : ℂ) ^ (a - 1) * (1 + (t : ℂ)) ^ ((a + 1) - a - 1) :=
   kummerU_laplace ha hz
-
-@[dlmf 13.4.E6]
-theorem kummerU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : z ∈ slitPlane)
-    (hn0 : -b.re < n) (hn1 : (n : ℝ) < 1 + (a - b).re) :
-    kummerU a b z =
-      (-1 : ℂ) ^ n * z ^ (1 - b - n) / Gamma (1 + a - b) *
-        ∫ t : ℝ in Set.Ioi 0,
-          regularizedHGFun {b - a} {b} t * exp (-(t : ℂ)) * (t : ℂ) ^ (b + n - 1) /
-            ((t : ℂ) + z) := by
-  sorry
 
 section BesselKIntegral
 

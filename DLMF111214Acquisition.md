@@ -224,7 +224,7 @@ and source checks. They are acquired statements unless listed as proved above.
 
 - [AAR/Legendre/AssociatedRecurrences.lean](AAR/Legendre/AssociatedRecurrences.lean): 0 definitions, 70 statements, 70 proved, 0 admitted.
 
-- [AAR/Legendre/Conical.lean](AAR/Legendre/Conical.lean): 4 definitions, 15 statements, 10 proved, 5 admitted.
+- [AAR/Legendre/Conical.lean](AAR/Legendre/Conical.lean): 4 definitions, 18 statements, 15 proved, 3 admitted.
   Additional assertions: [`AAR.Legendre.conical_positive`](AAR/Legendre/Conical.lean#L89).
 
 - [AAR/Legendre/ConicalAsymptotics.lean](AAR/Legendre/ConicalAsymptotics.lean): 6 definitions, 8 statements, 0 proved, 8 admitted.
@@ -238,28 +238,28 @@ and source checks. They are acquired statements unless listed as proved above.
 - [AAR/Legendre/Harmonics.lean](AAR/Legendre/Harmonics.lean): 7 definitions, 18 statements, 14 proved, 4 admitted.
   Additional assertions: [`AAR.Legendre.herglotz_generating`](AAR/Legendre/Harmonics.lean#L105), [`AAR.Legendre.scaledOblate_real`](AAR/Legendre/Harmonics.lean#L118).
 
-- [AAR/Legendre/Hypergeometric.lean](AAR/Legendre/Hypergeometric.lean): 2 definitions, 17 statements, 9 proved, 8 admitted.
+- [AAR/Legendre/Hypergeometric.lean](AAR/Legendre/Hypergeometric.lean): 3 definitions, 38 statements, 36 proved, 2 admitted.
 
 - [AAR/Legendre/IntegerTheory.lean](AAR/Legendre/IntegerTheory.lean): 1 definitions, 20 statements, 20 proved, 0 admitted.
 
-- [AAR/Legendre/IntegralRepresentations.lean](AAR/Legendre/IntegralRepresentations.lean): 1 definitions, 20 statements, 13 proved, 7 admitted.
+- [AAR/Legendre/IntegralRepresentations.lean](AAR/Legendre/IntegralRepresentations.lean): 1 definitions, 25 statements, 19 proved, 6 admitted.
 
-- [AAR/Legendre/Integrals.lean](AAR/Legendre/Integrals.lean): 0 definitions, 16 statements, 4 proved, 12 admitted.
+- [AAR/Legendre/Integrals.lean](AAR/Legendre/Integrals.lean): 9 definitions, 144 statements, 142 proved, 2 admitted.
 
-- [AAR/Legendre/LocalTheory.lean](AAR/Legendre/LocalTheory.lean): 2 definitions, 6 statements, 3 proved, 3 admitted.
+- [AAR/Legendre/LocalTheory.lean](AAR/Legendre/LocalTheory.lean): 2 definitions, 6 statements, 5 proved, 1 admitted.
   Additional assertions: [`AAR.Legendre.legendre_finite_singular_exponents_1`](AAR/Legendre/LocalTheory.lean#L34), [`AAR.Legendre.legendre_finite_singular_exponents_2`](AAR/Legendre/LocalTheory.lean#L39), [`AAR.Legendre.legendre_infinite_singular_exponents`](AAR/Legendre/LocalTheory.lean#L44), [`AAR.Legendre.ferrersP_reflected_dependence`](AAR/Legendre/LocalTheory.lean#L59), [`AAR.Legendre.associatedPQ_independent`](AAR/Legendre/LocalTheory.lean#L64), [`AAR.Legendre.ferrersP_positive_integer_order_zero_count`](AAR/Legendre/LocalTheory.lean#L69).
 
-- [AAR/Legendre/ParameterLimits.lean](AAR/Legendre/ParameterLimits.lean): 2 definitions, 13 statements, 11 proved, 2 admitted.
+- [AAR/Legendre/ParameterLimits.lean](AAR/Legendre/ParameterLimits.lean): 2 definitions, 13 statements, 13 proved, 0 admitted.
   Additional assertions: [`AAR.Legendre.legendreSinDigamma_limit`](AAR/Legendre/ParameterLimits.lean#L34), [`AAR.Legendre.legendreSinSqTrigamma_limit`](AAR/Legendre/ParameterLimits.lean#L39).
 
 - [AAR/Legendre/Primitives.lean](AAR/Legendre/Primitives.lean): 2 definitions, 11 statements, 11 proved, 0 admitted.
 
 - [AAR/Legendre/RelatedFunctions.lean](AAR/Legendre/RelatedFunctions.lean): 3 definitions, 4 statements, 3 proved, 1 admitted.
 
-- [AAR/Legendre/Series.lean](AAR/Legendre/Series.lean): 4 definitions, 22 statements, 5 proved, 17 admitted.
+- [AAR/Legendre/Series.lean](AAR/Legendre/Series.lean): 4 definitions, 22 statements, 11 proved, 11 admitted.
   Additional assertions: [`AAR.Legendre.ferrersP_fourier_absolute`](AAR/Legendre/Series.lean#L32), [`AAR.Legendre.ferrersQ_fourier_absolute`](AAR/Legendre/Series.lean#L49), [`AAR.Legendre.ferrersP_fourier_not_absolute`](AAR/Legendre/Series.lean#L167), [`AAR.Legendre.ferrersQ_fourier_not_absolute`](AAR/Legendre/Series.lean#L175), [`AAR.Legendre.ferrersPQ_fourier_hypergeometric`](AAR/Legendre/Series.lean#L183).
 
-- [AAR/Legendre/Singularities.lean](AAR/Legendre/Singularities.lean): 0 definitions, 24 statements, 14 proved, 10 admitted.
+- [AAR/Legendre/Singularities.lean](AAR/Legendre/Singularities.lean): 0 definitions, 24 statements, 24 proved, 0 admitted.
 
 - [AAR/Legendre/SourceChecks.lean](AAR/Legendre/SourceChecks.lean): 0 definitions, 2 statements, 2 proved, 0 admitted.
   Additional assertions: [`AAR.Legendre.associatedP_one_neg_half`](AAR/Legendre/SourceChecks.lean#L25), [`AAR.Legendre.dlmf_14_27_no_boundary_zero`](AAR/Legendre/SourceChecks.lean#L56).
@@ -268,20 +268,20 @@ and source checks. They are acquired statements unless listed as proved above.
 
 - [AAR/Legendre/Sums.lean](AAR/Legendre/Sums.lean): 1 definitions, 14 statements, 5 proved, 9 admitted.
 
-- [AAR/Legendre/Toroidal.lean](AAR/Legendre/Toroidal.lean): 3 definitions, 7 statements, 0 proved, 7 admitted.
+- [AAR/Legendre/Toroidal.lean](AAR/Legendre/Toroidal.lean): 3 definitions, 15 statements, 12 proved, 3 admitted.
 
 - [AAR/Legendre/Uniform.lean](AAR/Legendre/Uniform.lean): 1 definitions, 17 statements, 0 proved, 17 admitted.
 
 - [AAR/Legendre/UniformCoordinates.lean](AAR/Legendre/UniformCoordinates.lean): 20 definitions, 7 statements, 0 proved, 7 admitted.
   Additional assertions: [`AAR.Legendre.legendreOrderEta_bijective`](AAR/Legendre/UniformCoordinates.lean#L62), [`AAR.Legendre.legendreDegreeY_monotone`](AAR/Legendre/UniformCoordinates.lean#L92), [`AAR.Legendre.besselEnvelopeCross_spec`](AAR/Legendre/UniformCoordinates.lean#L152).
 
-- [AAR/Legendre/Zeros.lean](AAR/Legendre/Zeros.lean): 6 definitions, 9 statements, 0 proved, 9 admitted.
+- [AAR/Legendre/Zeros.lean](AAR/Legendre/Zeros.lean): 6 definitions, 15 statements, 8 proved, 7 admitted.
   Additional assertions: [`AAR.Legendre.ferrersP_zero_count`](AAR/Legendre/Zeros.lean#L46), [`AAR.Legendre.ferrersP_nonpositive_order_zero_count`](AAR/Legendre/Zeros.lean#L51), [`AAR.Legendre.ferrersP_nat_degree_zero_count`](AAR/Legendre/Zeros.lean#L56), [`AAR.Legendre.ferrersQ_nat_zero_count`](AAR/Legendre/Zeros.lean#L61), [`AAR.Legendre.ferrersPQ_interlace`](AAR/Legendre/Zeros.lean#L70), [`AAR.Legendre.ferrersQ_zero_count_range`](AAR/Legendre/Zeros.lean#L75), [`AAR.Legendre.associatedP_zero_count`](AAR/Legendre/Zeros.lean#L84), [`AAR.Legendre.olverQ_no_exterior_zero`](AAR/Legendre/Zeros.lean#L89), [`AAR.Legendre.olverQ_at_most_one_exterior_zero`](AAR/Legendre/Zeros.lean#L94).
 
 - [AAR/ParabolicCylinder/AsymptoticsZeros.lean](AAR/ParabolicCylinder/AsymptoticsZeros.lean): 5 definitions, 14 statements, 10 proved, 4 admitted.
   Additional assertions: [`AAR.Confluent.pcfU_no_real_zero`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L73), [`AAR.Confluent.pcfU_no_positive_zero`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L78), [`AAR.Confluent.pcfU_positive_zero_count`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L83), [`AAR.Confluent.pcfU_hermite_zero_count`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L88), [`AAR.Confluent.pcfV_no_positive_zero`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L93), [`AAR.Confluent.pcfV_integer_zero`](AAR/ParabolicCylinder/AsymptoticsZeros.lean#L98).
 
-- [AAR/ParabolicCylinder/BarnesContinuation.lean](AAR/ParabolicCylinder/BarnesContinuation.lean): 2 definitions, 2 statements, 0 proved, 2 admitted.
+- [AAR/ParabolicCylinder/BarnesContinuation.lean](AAR/ParabolicCylinder/BarnesContinuation.lean): 9 definitions, 39 statements, 39 proved, 0 admitted.
 
 - [AAR/ParabolicCylinder/Basic.lean](AAR/ParabolicCylinder/Basic.lean): 9 definitions, 42 statements, 42 proved, 0 admitted.
   Additional assertions: [`AAR.Confluent.pcfU_entire`](AAR/ParabolicCylinder/Basic.lean#L52), [`AAR.Confluent.pcfU_entire_order`](AAR/ParabolicCylinder/Basic.lean#L58), [`AAR.Confluent.pcfU_real`](AAR/ParabolicCylinder/Basic.lean#L63), [`AAR.Confluent.pcfV_entire`](AAR/ParabolicCylinder/Basic.lean#L68), [`AAR.Confluent.pcfV_entire_order`](AAR/ParabolicCylinder/Basic.lean#L74), [`AAR.Confluent.pcfV_real`](AAR/ParabolicCylinder/Basic.lean#L79), [`AAR.Confluent.pcfUBar_recurrences`](AAR/ParabolicCylinder/Basic.lean#L209).
@@ -291,7 +291,7 @@ and source checks. They are acquired statements unless listed as proved above.
 
 - [AAR/ParabolicCylinder/Hermite.lean](AAR/ParabolicCylinder/Hermite.lean): 0 definitions, 4 statements, 4 proved, 0 admitted.
 
-- [AAR/ParabolicCylinder/Integrals.lean](AAR/ParabolicCylinder/Integrals.lean): 1 definitions, 12 statements, 1 proved, 11 admitted.
+- [AAR/ParabolicCylinder/Integrals.lean](AAR/ParabolicCylinder/Integrals.lean): 1 definitions, 14 statements, 9 proved, 5 admitted.
 
 - [AAR/ParabolicCylinder/Relations.lean](AAR/ParabolicCylinder/Relations.lean): 1 definitions, 22 statements, 21 proved, 1 admitted.
 
@@ -301,7 +301,7 @@ and source checks. They are acquired statements unless listed as proved above.
 - [AAR/ParabolicCylinder/TurningPoint.lean](AAR/ParabolicCylinder/TurningPoint.lean): 5 definitions, 9 statements, 2 proved, 7 admitted.
   Additional assertions: [`AAR.Confluent.pcfDescendingZero_eventually`](AAR/ParabolicCylinder/TurningPoint.lean#L52).
 
-- [AAR/ParabolicCylinder/Uniform.lean](AAR/ParabolicCylinder/Uniform.lean): 36 definitions, 59 statements, 46 proved, 13 admitted.
+- [AAR/ParabolicCylinder/Uniform.lean](AAR/ParabolicCylinder/Uniform.lean): 36 definitions, 57 statements, 46 proved, 11 admitted.
   Additional assertions: [`AAR.Confluent.pcfZeta_analytic_at_one`](AAR/ParabolicCylinder/Uniform.lean#L231).
 
 - [AAR/ParabolicCylinder/Weber.lean](AAR/ParabolicCylinder/Weber.lean): 18 definitions, 76 statements, 76 proved, 0 admitted.
@@ -312,7 +312,7 @@ and source checks. They are acquired statements unless listed as proved above.
 - [AAR/Struve/AngerWeber.lean](AAR/Struve/AngerWeber.lean): 13 definitions, 124 statements, 124 proved, 0 admitted.
   Additional assertions: [`AAR.Struve.angerJ_entire`](AAR/Struve/AngerWeber.lean#L35), [`AAR.Struve.angerJ_entire_order`](AAR/Struve/AngerWeber.lean#L40), [`AAR.Struve.weberE_entire`](AAR/Struve/AngerWeber.lean#L50), [`AAR.Struve.weberE_entire_order`](AAR/Struve/AngerWeber.lean#L55), [`AAR.Struve.angerA_regular`](AAR/Struve/AngerWeber.lean#L69), [`AAR.Struve.angerA_order_limit`](AAR/Struve/AngerWeber.lean#L74), [`AAR.Struve.angerA_boundary_integral`](AAR/Struve/AngerWeber.lean#L85).
 
-- [AAR/Struve/Asymptotics.lean](AAR/Struve/Asymptotics.lean): 15 definitions, 98 statements, 77 proved, 21 admitted.
+- [AAR/Struve/Asymptotics.lean](AAR/Struve/Asymptotics.lean): 22 definitions, 230 statements, 222 proved, 8 admitted.
   Additional assertions: [`AAR.Struve.struveK_remainder_sign`](AAR/Struve/Asymptotics.lean#L99), [`AAR.Struve.angerScaledA_removable`](AAR/Struve/Asymptotics.lean#L256), [`AAR.Struve.struveH_large_order_expansion`](AAR/Struve/Asymptotics.lean#L262), [`AAR.Struve.struveL_large_order_expansion`](AAR/Struve/Asymptotics.lean#L270).
 
 - [AAR/Struve/Basic.lean](AAR/Struve/Basic.lean): 13 definitions, 49 statements, 49 proved, 0 admitted.
@@ -414,15 +414,15 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 ### [§11.6 Asymptotic Expansions](https://dlmf.nist.gov/11.6)
 
-- [11.6.E1](https://dlmf.nist.gov/11.6.E1): [`AAR.Struve.struveK_asymptotic`](AAR/Struve/Asymptotics.lean#L853) (proved).
-- [11.6.E2](https://dlmf.nist.gov/11.6.E2): [`AAR.Struve.struveM_asymptotic`](AAR/Struve/Asymptotics.lean#L863) (proved).
-- [11.6.E3](https://dlmf.nist.gov/11.6.E3): [`AAR.Struve.struveK_primitive_asymptotic`](AAR/Struve/Asymptotics.lean#L870) (admitted).
-- [11.6.E4](https://dlmf.nist.gov/11.6.E4): [`AAR.Struve.struveM_primitive_asymptotic`](AAR/Struve/Asymptotics.lean#L876) (admitted).
-- [11.6.E5](https://dlmf.nist.gov/11.6.E5): [`AAR.Struve.struveH_large_order`](AAR/Struve/Asymptotics.lean#L1295) (proved); [`AAR.Struve.struveL_large_order`](AAR/Struve/Asymptotics.lean#L1303) (proved).
-- [11.6.E6](https://dlmf.nist.gov/11.6.E6): [`AAR.Struve.struveK_scaled_asymptotic`](AAR/Struve/Asymptotics.lean#L1319) (admitted).
-- [11.6.E7](https://dlmf.nist.gov/11.6.E7): [`AAR.Struve.struveM_scaled_asymptotic`](AAR/Struve/Asymptotics.lean#L1325) (admitted).
-- [11.6.E8](https://dlmf.nist.gov/11.6.E8): [`AAR.Struve.struveScaledCoeff_initial`](AAR/Struve/Asymptotics.lean#L1331) (proved).
-- [11.6.E9](https://dlmf.nist.gov/11.6.E9): [`AAR.Struve.struveL_scaled_equiv`](AAR/Struve/Asymptotics.lean#L1342) (admitted).
+- [11.6.E1](https://dlmf.nist.gov/11.6.E1): [`AAR.Struve.struveK_asymptotic`](AAR/Struve/Asymptotics.lean#L856) (proved).
+- [11.6.E2](https://dlmf.nist.gov/11.6.E2): [`AAR.Struve.struveM_asymptotic`](AAR/Struve/Asymptotics.lean#L866) (proved).
+- [11.6.E3](https://dlmf.nist.gov/11.6.E3): [`AAR.Struve.struveK_primitive_asymptotic`](AAR/Struve/Asymptotics.lean#L1692) (proved).
+- [11.6.E4](https://dlmf.nist.gov/11.6.E4): [`AAR.Struve.struveM_primitive_asymptotic`](AAR/Struve/Asymptotics.lean#L2128) (proved).
+- [11.6.E5](https://dlmf.nist.gov/11.6.E5): [`AAR.Struve.struveH_large_order`](AAR/Struve/Asymptotics.lean#L2628) (proved); [`AAR.Struve.struveL_large_order`](AAR/Struve/Asymptotics.lean#L2636) (proved).
+- [11.6.E6](https://dlmf.nist.gov/11.6.E6): [`AAR.Struve.struveK_scaled_asymptotic`](AAR/Struve/Asymptotics.lean#L2652) (admitted).
+- [11.6.E7](https://dlmf.nist.gov/11.6.E7): [`AAR.Struve.struveM_scaled_asymptotic`](AAR/Struve/Asymptotics.lean#L2658) (admitted).
+- [11.6.E8](https://dlmf.nist.gov/11.6.E8): [`AAR.Struve.struveScaledCoeff_initial`](AAR/Struve/Asymptotics.lean#L2664) (proved).
+- [11.6.E9](https://dlmf.nist.gov/11.6.E9): [`AAR.Struve.struveL_scaled_equiv`](AAR/Struve/Asymptotics.lean#L2675) (admitted).
 
 ### [§11.7 Integrals and Sums](https://dlmf.nist.gov/11.7)
 
@@ -501,25 +501,25 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 ### [§11.11 Asymptotic Expansions of Anger–Weber Functions](https://dlmf.nist.gov/11.11)
 
-- [11.11.E1](https://dlmf.nist.gov/11.11.E1): [`AAR.Struve.angerF`](AAR/Struve/Asymptotics.lean#L1581) (defined); [`AAR.Struve.angerG`](AAR/Struve/Asymptotics.lean#L1586) (defined); [`AAR.Struve.angerFG_poch`](AAR/Struve/Asymptotics.lean#L1591) (proved).
-- [11.11.E2](https://dlmf.nist.gov/11.11.E2): [`AAR.Struve.angerJ_large_argument`](AAR/Struve/Asymptotics.lean#L1607) (admitted).
-- [11.11.E3](https://dlmf.nist.gov/11.11.E3): [`AAR.Struve.weberE_large_argument`](AAR/Struve/Asymptotics.lean#L1613) (admitted).
-- [11.11.E4](https://dlmf.nist.gov/11.11.E4): [`AAR.Struve.angerA_large_argument`](AAR/Struve/Asymptotics.lean#L1619) (admitted).
-- [11.11.E5](https://dlmf.nist.gov/11.11.E5): [`AAR.Struve.angerJ_large_order`](AAR/Struve/Asymptotics.lean#L1629) (admitted).
-- [11.11.E6](https://dlmf.nist.gov/11.11.E6): [`AAR.Struve.weberE_large_order`](AAR/Struve/Asymptotics.lean#L1635) (admitted).
-- [11.11.E7](https://dlmf.nist.gov/11.11.E7): [`AAR.Struve.weberE_large_integer_0`](AAR/Struve/Asymptotics.lean#L1922) (proved); [`AAR.Struve.weberE_large_integer_1`](AAR/Struve/Asymptotics.lean#L2004) (proved).
-- [11.11.E8](https://dlmf.nist.gov/11.11.E8): [`AAR.Struve.angerA_scaled_8`](AAR/Struve/Asymptotics.lean#L2142) (admitted).
-- [11.11.E9](https://dlmf.nist.gov/11.11.E9): [`AAR.Struve.angerScaledA_initial`](AAR/Struve/Asymptotics.lean#L2097) (proved).
-- [11.11.E10](https://dlmf.nist.gov/11.11.E10): [`AAR.Struve.angerA_scaled_10`](AAR/Struve/Asymptotics.lean#L2148) (admitted).
-- [11.11.E11](https://dlmf.nist.gov/11.11.E11): [`AAR.Struve.angerA_scaled_saddle`](AAR/Struve/Asymptotics.lean#L2163) (admitted).
-- [11.11.E12](https://dlmf.nist.gov/11.11.E12): [`AAR.Struve.angerMu`](AAR/Struve/Asymptotics.lean#L2154) (defined).
-- [11.11.E13](https://dlmf.nist.gov/11.11.E13): [`AAR.Struve.angerScaledB_initial`](AAR/Struve/Asymptotics.lean#L2169) (admitted).
-- [11.11.E14](https://dlmf.nist.gov/11.11.E14): [`AAR.Struve.angerA_scaled_outer_equiv`](AAR/Struve/Asymptotics.lean#L2175) (admitted).
-- [11.11.E15](https://dlmf.nist.gov/11.11.E15): [`AAR.Struve.angerA_scaled_inner_equiv`](AAR/Struve/Asymptotics.lean#L2181) (admitted).
-- [11.11.E16](https://dlmf.nist.gov/11.11.E16): [`AAR.Struve.angerA_turning_equiv`](AAR/Struve/Asymptotics.lean#L2187) (admitted).
-- [11.11.E17](https://dlmf.nist.gov/11.11.E17): [`AAR.Struve.angerA_turning_uniform`](AAR/Struve/Asymptotics.lean#L2205) (admitted).
-- [11.11.E18](https://dlmf.nist.gov/11.11.E18): [`AAR.Struve.angerJ_turning_equiv`](AAR/Struve/Asymptotics.lean#L2193) (admitted).
-- [11.11.E19](https://dlmf.nist.gov/11.11.E19): [`AAR.Struve.weberE_turning_equiv`](AAR/Struve/Asymptotics.lean#L2199) (admitted).
+- [11.11.E1](https://dlmf.nist.gov/11.11.E1): [`AAR.Struve.angerF`](AAR/Struve/Asymptotics.lean#L2914) (defined); [`AAR.Struve.angerG`](AAR/Struve/Asymptotics.lean#L2919) (defined); [`AAR.Struve.angerFG_poch`](AAR/Struve/Asymptotics.lean#L2924) (proved).
+- [11.11.E2](https://dlmf.nist.gov/11.11.E2): [`AAR.Struve.angerJ_large_argument`](AAR/Struve/Asymptotics.lean#L3007) (proved).
+- [11.11.E3](https://dlmf.nist.gov/11.11.E3): [`AAR.Struve.weberE_large_argument`](AAR/Struve/Asymptotics.lean#L3021) (proved).
+- [11.11.E4](https://dlmf.nist.gov/11.11.E4): [`AAR.Struve.angerA_large_argument`](AAR/Struve/Asymptotics.lean#L3047) (proved).
+- [11.11.E5](https://dlmf.nist.gov/11.11.E5): [`AAR.Struve.angerJ_large_order`](AAR/Struve/Asymptotics.lean#L3363) (proved).
+- [11.11.E6](https://dlmf.nist.gov/11.11.E6): [`AAR.Struve.weberE_large_order`](AAR/Struve/Asymptotics.lean#L3475) (proved). Error term corrected to e^{π|Im ν|}ν⁻² for complex ν (DLMF erratum; REVIEW.md, round 6).
+- [11.11.E7](https://dlmf.nist.gov/11.11.E7): [`AAR.Struve.weberE_large_integer_0`](AAR/Struve/Asymptotics.lean#L3830) (proved); [`AAR.Struve.weberE_large_integer_1`](AAR/Struve/Asymptotics.lean#L3912) (proved).
+- [11.11.E8](https://dlmf.nist.gov/11.11.E8): [`AAR.Struve.angerA_scaled_8`](AAR/Struve/Asymptotics.lean#L4050) (admitted).
+- [11.11.E9](https://dlmf.nist.gov/11.11.E9): [`AAR.Struve.angerScaledA_initial`](AAR/Struve/Asymptotics.lean#L4005) (proved).
+- [11.11.E10](https://dlmf.nist.gov/11.11.E10): [`AAR.Struve.angerA_scaled_10`](AAR/Struve/Asymptotics.lean#L4056) (admitted).
+- [11.11.E11](https://dlmf.nist.gov/11.11.E11): [`AAR.Struve.angerA_scaled_saddle`](AAR/Struve/Asymptotics.lean#L4071) (admitted).
+- [11.11.E12](https://dlmf.nist.gov/11.11.E12): [`AAR.Struve.angerMu`](AAR/Struve/Asymptotics.lean#L4062) (defined).
+- [11.11.E13](https://dlmf.nist.gov/11.11.E13): [`AAR.Struve.angerScaledB_initial`](AAR/Struve/Asymptotics.lean#L4077) (admitted).
+- [11.11.E14](https://dlmf.nist.gov/11.11.E14): [`AAR.Struve.angerA_scaled_outer_equiv`](AAR/Struve/Asymptotics.lean#L6067) (proved).
+- [11.11.E15](https://dlmf.nist.gov/11.11.E15): [`AAR.Struve.angerA_scaled_inner_equiv`](AAR/Struve/Asymptotics.lean#L6139) (proved).
+- [11.11.E16](https://dlmf.nist.gov/11.11.E16): [`AAR.Struve.angerA_turning_equiv`](AAR/Struve/Asymptotics.lean#L6236) (proved).
+- [11.11.E17](https://dlmf.nist.gov/11.11.E17): [`AAR.Struve.angerA_turning_uniform`](AAR/Struve/Asymptotics.lean#L6388) (proved).
+- [11.11.E18](https://dlmf.nist.gov/11.11.E18): [`AAR.Struve.angerJ_turning_equiv`](AAR/Struve/Asymptotics.lean#L6333) (proved). Stated for real ν → +∞; the complex sector of DLMF 1.1.2 fails (DLMF erratum; REVIEW.md, round 6).
+- [11.11.E19](https://dlmf.nist.gov/11.11.E19): [`AAR.Struve.weberE_turning_equiv`](AAR/Struve/Asymptotics.lean#L6361) (proved). Stated for real ν → +∞; the complex sector of DLMF 1.1.2 fails (DLMF erratum; REVIEW.md, round 6).
 
 ### [§11.13 Methods of Computation](https://dlmf.nist.gov/11.13)
 
@@ -579,14 +579,14 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 ### [§12.5 Integral Representations](https://dlmf.nist.gov/12.5)
 
 - [12.5.E1](https://dlmf.nist.gov/12.5.E1): [`AAR.Confluent.pcfU_eq_integral`](AAR/Confluent/ParabolicCylinder.lean#L691) (proved).
-- [12.5.E2](https://dlmf.nist.gov/12.5.E2): [`AAR.Confluent.pcfU_integral_2`](AAR/ParabolicCylinder/Integrals.lean#L24) (admitted).
-- [12.5.E3](https://dlmf.nist.gov/12.5.E3): [`AAR.Confluent.pcfU_integral_3`](AAR/ParabolicCylinder/Integrals.lean#L30) (admitted).
-- [12.5.E4](https://dlmf.nist.gov/12.5.E4): [`AAR.Confluent.pcfU_integral_4`](AAR/ParabolicCylinder/Integrals.lean#L36) (proved).
-- [12.5.E5](https://dlmf.nist.gov/12.5.E5): [`AAR.Confluent.pcfU_hankel_integral`](AAR/ParabolicCylinder/Integrals.lean#L108) (admitted).
-- [12.5.E6](https://dlmf.nist.gov/12.5.E6): [`AAR.Confluent.pcfU_vertical_integral`](AAR/ParabolicCylinder/Integrals.lean#L92) (admitted).
-- [12.5.E7](https://dlmf.nist.gov/12.5.E7): [`AAR.Confluent.pcfV_horizontal_integral`](AAR/ParabolicCylinder/Integrals.lean#L98) (admitted).
-- [12.5.E8](https://dlmf.nist.gov/12.5.E8): [`AAR.Confluent.pcfU_barnes_integral`](AAR/ParabolicCylinder/Integrals.lean#L114) (admitted); [`AAR.Confluent.pcfU_barnes_continued`](AAR/ParabolicCylinder/BarnesContinuation.lean#L31) (admitted).
-- [12.5.E9](https://dlmf.nist.gov/12.5.E9): [`AAR.Confluent.pcfV_barnes_integral`](AAR/ParabolicCylinder/Integrals.lean#L120) (admitted); [`AAR.Confluent.pcfV_barnes_continued`](AAR/ParabolicCylinder/BarnesContinuation.lean#L37) (admitted).
+- [12.5.E2](https://dlmf.nist.gov/12.5.E2): [`AAR.Confluent.pcfU_integral_2`](AAR/ParabolicCylinder/Integrals.lean#L25) (proved).
+- [12.5.E3](https://dlmf.nist.gov/12.5.E3): [`AAR.Confluent.pcfU_integral_3`](AAR/ParabolicCylinder/Integrals.lean#L46) (proved).
+- [12.5.E4](https://dlmf.nist.gov/12.5.E4): [`AAR.Confluent.pcfU_integral_4`](AAR/ParabolicCylinder/Integrals.lean#L67) (proved).
+- [12.5.E5](https://dlmf.nist.gov/12.5.E5): [`AAR.Confluent.pcfU_hankel_integral`](AAR/ParabolicCylinder/Integrals.lean#L139) (admitted).
+- [12.5.E6](https://dlmf.nist.gov/12.5.E6): [`AAR.Confluent.pcfU_vertical_integral`](AAR/ParabolicCylinder/Integrals.lean#L123) (admitted).
+- [12.5.E7](https://dlmf.nist.gov/12.5.E7): [`AAR.Confluent.pcfV_horizontal_integral`](AAR/ParabolicCylinder/Integrals.lean#L129) (admitted).
+- [12.5.E8](https://dlmf.nist.gov/12.5.E8): [`AAR.Confluent.pcfU_barnes_integral`](AAR/ParabolicCylinder/Integrals.lean#L145) (proved); [`AAR.Confluent.pcfU_barnes_continued`](AAR/ParabolicCylinder/BarnesContinuation.lean#L765) (proved).
+- [12.5.E9](https://dlmf.nist.gov/12.5.E9): [`AAR.Confluent.pcfV_barnes_integral`](AAR/ParabolicCylinder/Integrals.lean#L183) (proved); [`AAR.Confluent.pcfV_barnes_continued`](AAR/ParabolicCylinder/BarnesContinuation.lean#L777) (proved).
 
 ### [§12.6 Continued Fraction](https://dlmf.nist.gov/12.6)
 
@@ -635,8 +635,8 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 - [12.10.E1](https://dlmf.nist.gov/12.10.E1): [`AAR.Confluent.pcf_parameter_scaling`](AAR/ParabolicCylinder/TurningPoint.lean#L41) (proved).
 - [12.10.E2](https://dlmf.nist.gov/12.10.E2): [`AAR.Confluent.pcf_parameter_scaling`](AAR/ParabolicCylinder/TurningPoint.lean#L41) (proved).
-- [12.10.E3](https://dlmf.nist.gov/12.10.E3): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted); [`AAR.Confluent.pcf_negative_parameter_uniform_U`](AAR/ParabolicCylinder/UniformLG.lean#L1056) (proved).
-- [12.10.E4](https://dlmf.nist.gov/12.10.E4): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted).
+- [12.10.E3](https://dlmf.nist.gov/12.10.E3): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted); [`AAR.Confluent.pcf_negative_parameter_uniform_U`](AAR/ParabolicCylinder/UniformLG.lean#L1056) (proved); [`AAR.Confluent.pcf_negative_parameter_uniform_U_normalizer`](AAR/ParabolicCylinder/UniformLG2.lean#L2057) (proved); [`AAR.Confluent.pcf_negative_parameter_uniform_U_UDeriv`](AAR/ParabolicCylinder/UniformLG2.lean#L2984) (proved).
+- [12.10.E4](https://dlmf.nist.gov/12.10.E4): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted); [`AAR.Confluent.pcf_negative_parameter_uniform_U_UDeriv`](AAR/ParabolicCylinder/UniformLG2.lean#L2984) (proved).
 - [12.10.E5](https://dlmf.nist.gov/12.10.E5): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted).
 - [12.10.E6](https://dlmf.nist.gov/12.10.E6): [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted).
 - [12.10.E7](https://dlmf.nist.gov/12.10.E7): [`AAR.Confluent.pcfXi`](AAR/ParabolicCylinder/Uniform.lean#L27) (defined).
@@ -646,7 +646,7 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [12.10.E11](https://dlmf.nist.gov/12.10.E11): [`AAR.Confluent.pcfOlverU`](AAR/ParabolicCylinder/Uniform.lean#L229) (defined); [`AAR.Confluent.pcfOlverU_spec`](AAR/ParabolicCylinder/Uniform.lean#L621) (proved).
 - [12.10.E12](https://dlmf.nist.gov/12.10.E12): [`AAR.Confluent.pcfOlverR`](AAR/ParabolicCylinder/Uniform.lean#L234) (defined).
 - [12.10.E13](https://dlmf.nist.gov/12.10.E13): [`AAR.Confluent.pcfOlverV`](AAR/ParabolicCylinder/Uniform.lean#L239) (defined).
-- [12.10.E14](https://dlmf.nist.gov/12.10.E14): [`AAR.Confluent.IsCylinderGNormalizer`](AAR/ParabolicCylinder/Uniform.lean#L723) (defined); [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted).
+- [12.10.E14](https://dlmf.nist.gov/12.10.E14): [`AAR.Confluent.IsCylinderGNormalizer`](AAR/ParabolicCylinder/Uniform.lean#L723) (defined); [`AAR.Confluent.pcf_negative_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L728) (admitted); [`AAR.Confluent.pcf_negative_parameter_uniform_U_normalizer`](AAR/ParabolicCylinder/UniformLG2.lean#L2057) (proved); [`AAR.Confluent.pcf_negative_parameter_uniform_U_UDeriv`](AAR/ParabolicCylinder/UniformLG2.lean#L2984) (proved).
 - [12.10.E15](https://dlmf.nist.gov/12.10.E15): [`AAR.Confluent.pcfH`](AAR/ParabolicCylinder/Uniform.lean#L42) (defined).
 - [12.10.E16](https://dlmf.nist.gov/12.10.E16): [`AAR.Confluent.pcfGammaCoeff`](AAR/ParabolicCylinder/Uniform.lean#L47) (defined); [`AAR.Confluent.pcfGammaCoeff_expansion`](AAR/ParabolicCylinder/Uniform.lean#L204) (proved).
 - [12.10.E17](https://dlmf.nist.gov/12.10.E17): [`AAR.Confluent.pcfGammaCoeff_initial`](AAR/ParabolicCylinder/Uniform.lean#L210) (proved).
@@ -657,28 +657,28 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [12.10.E22](https://dlmf.nist.gov/12.10.E22): [`AAR.Confluent.pcfKappa`](AAR/ParabolicCylinder/Uniform.lean#L734) (defined); [`AAR.Confluent.pcfChi`](AAR/ParabolicCylinder/Uniform.lean#L739) (defined).
 - [12.10.E23](https://dlmf.nist.gov/12.10.E23): [`AAR.Confluent.pcfEta`](AAR/ParabolicCylinder/Uniform.lean#L32) (defined).
 - [12.10.E24](https://dlmf.nist.gov/12.10.E24): [`AAR.Confluent.pcfOlverATilde`](AAR/ParabolicCylinder/Uniform.lean#L690) (defined); [`AAR.Confluent.pcfOlverBTilde`](AAR/ParabolicCylinder/Uniform.lean#L705) (defined).
-- [12.10.E25](https://dlmf.nist.gov/12.10.E25): [`AAR.Confluent.pcf_positive_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L755) (admitted).
+- [12.10.E25](https://dlmf.nist.gov/12.10.E25): [`AAR.Confluent.pcf_positive_parameter_uniform`](AAR/ParabolicCylinder/UniformLG2.lean#L2295) (proved).
 - [12.10.E26](https://dlmf.nist.gov/12.10.E26): [`AAR.Confluent.pcfXiBar`](AAR/ParabolicCylinder/Uniform.lean#L37) (defined).
 - [12.10.E27](https://dlmf.nist.gov/12.10.E27): [`AAR.Confluent.pcfOlverUBar`](AAR/ParabolicCylinder/Uniform.lean#L695) (defined).
 - [12.10.E28](https://dlmf.nist.gov/12.10.E28): [`AAR.Confluent.IsCylinderGBarNormalizer`](AAR/ParabolicCylinder/Uniform.lean#L750) (defined).
-- [12.10.E29](https://dlmf.nist.gov/12.10.E29): [`AAR.Confluent.pcf_positive_parameter_uniform`](AAR/ParabolicCylinder/Uniform.lean#L755) (admitted).
+- [12.10.E29](https://dlmf.nist.gov/12.10.E29): [`AAR.Confluent.pcf_positive_parameter_uniform`](AAR/ParabolicCylinder/UniformLG2.lean#L2295) (proved).
 - [12.10.E30](https://dlmf.nist.gov/12.10.E30): [`AAR.Confluent.pcfOlverVBar`](AAR/ParabolicCylinder/Uniform.lean#L710) (defined).
-- [12.10.E31](https://dlmf.nist.gov/12.10.E31): [`AAR.Confluent.pcfU_temme_uniform`](AAR/ParabolicCylinder/Uniform.lean#L847) (admitted).
-- [12.10.E32](https://dlmf.nist.gov/12.10.E32): [`AAR.Confluent.pcfTau`](AAR/ParabolicCylinder/Uniform.lean#L761) (defined).
-- [12.10.E33](https://dlmf.nist.gov/12.10.E33): [`AAR.Confluent.pcfTemmePoly_recurrence`](AAR/ParabolicCylinder/Uniform.lean#L833) (proved).
-- [12.10.E34](https://dlmf.nist.gov/12.10.E34): [`AAR.Confluent.pcfTemmePoly_initial`](AAR/ParabolicCylinder/Uniform.lean#L817) (proved).
+- [12.10.E31](https://dlmf.nist.gov/12.10.E31): [`AAR.Confluent.pcfU_temme_uniform`](AAR/ParabolicCylinder/UniformLG2.lean#L533) (proved).
+- [12.10.E32](https://dlmf.nist.gov/12.10.E32): [`AAR.Confluent.pcfTau`](AAR/ParabolicCylinder/Uniform.lean#L758) (defined).
+- [12.10.E33](https://dlmf.nist.gov/12.10.E33): [`AAR.Confluent.pcfTemmePoly_recurrence`](AAR/ParabolicCylinder/Uniform.lean#L830) (proved).
+- [12.10.E34](https://dlmf.nist.gov/12.10.E34): [`AAR.Confluent.pcfTemmePoly_initial`](AAR/ParabolicCylinder/Uniform.lean#L814) (proved).
 - [12.10.E35](https://dlmf.nist.gov/12.10.E35): [`AAR.Confluent.pcf_airy_uniform`](AAR/ParabolicCylinder/TurningPoint.lean#L61) (admitted).
 - [12.10.E36](https://dlmf.nist.gov/12.10.E36): [`AAR.Confluent.pcf_airy_uniform`](AAR/ParabolicCylinder/TurningPoint.lean#L61) (admitted).
 - [12.10.E37](https://dlmf.nist.gov/12.10.E37): [`AAR.Confluent.pcf_airy_uniform`](AAR/ParabolicCylinder/TurningPoint.lean#L61) (admitted).
 - [12.10.E38](https://dlmf.nist.gov/12.10.E38): [`AAR.Confluent.pcf_airy_uniform`](AAR/ParabolicCylinder/TurningPoint.lean#L61) (admitted).
-- [12.10.E39](https://dlmf.nist.gov/12.10.E39): [`AAR.Confluent.pcfZeta`](AAR/ParabolicCylinder/Uniform.lean#L853) (defined); [`AAR.Confluent.pcfInverseZeta_spec`](AAR/ParabolicCylinder/Uniform.lean#L862) (admitted).
-- [12.10.E40](https://dlmf.nist.gov/12.10.E40): [`AAR.Confluent.pcfPhi`](AAR/ParabolicCylinder/Uniform.lean#L868) (defined).
-- [12.10.E41](https://dlmf.nist.gov/12.10.E41): [`AAR.Confluent.pcfInverseZeta_taylor`](AAR/ParabolicCylinder/Uniform.lean#L878) (admitted).
-- [12.10.E42](https://dlmf.nist.gov/12.10.E42): [`AAR.Confluent.pcfAiryA`](AAR/ParabolicCylinder/Uniform.lean#L894) (defined); [`AAR.Confluent.pcfAiryA_limit`](AAR/ParabolicCylinder/Uniform.lean#L899) (admitted); [`AAR.Confluent.pcfAiryB`](AAR/ParabolicCylinder/Uniform.lean#L905) (defined); [`AAR.Confluent.pcfAiryB_limit`](AAR/ParabolicCylinder/Uniform.lean#L910) (admitted).
-- [12.10.E43](https://dlmf.nist.gov/12.10.E43): [`AAR.Confluent.pcfAiryAlpha`](AAR/ParabolicCylinder/Uniform.lean#L884) (defined); [`AAR.Confluent.pcfAiryBeta`](AAR/ParabolicCylinder/Uniform.lean#L889) (defined).
-- [12.10.E44](https://dlmf.nist.gov/12.10.E44): [`AAR.Confluent.pcfAiryCD_derivative`](AAR/ParabolicCylinder/Uniform.lean#L949) (admitted).
-- [12.10.E45](https://dlmf.nist.gov/12.10.E45): [`AAR.Confluent.pcfAiryChi`](AAR/ParabolicCylinder/Uniform.lean#L938) (defined); [`AAR.Confluent.pcfAiryChi_formula`](AAR/ParabolicCylinder/Uniform.lean#L943) (admitted).
-- [12.10.E46](https://dlmf.nist.gov/12.10.E46): [`AAR.Confluent.pcfAiryC`](AAR/ParabolicCylinder/Uniform.lean#L916) (defined); [`AAR.Confluent.pcfAiryC_limit`](AAR/ParabolicCylinder/Uniform.lean#L921) (admitted); [`AAR.Confluent.pcfAiryD`](AAR/ParabolicCylinder/Uniform.lean#L927) (defined); [`AAR.Confluent.pcfAiryD_limit`](AAR/ParabolicCylinder/Uniform.lean#L932) (admitted).
+- [12.10.E39](https://dlmf.nist.gov/12.10.E39): [`AAR.Confluent.pcfZeta`](AAR/ParabolicCylinder/Uniform.lean#L847) (defined); [`AAR.Confluent.pcfInverseZeta_spec`](AAR/ParabolicCylinder/Uniform.lean#L856) (admitted).
+- [12.10.E40](https://dlmf.nist.gov/12.10.E40): [`AAR.Confluent.pcfPhi`](AAR/ParabolicCylinder/Uniform.lean#L862) (defined).
+- [12.10.E41](https://dlmf.nist.gov/12.10.E41): [`AAR.Confluent.pcfInverseZeta_taylor`](AAR/ParabolicCylinder/Uniform.lean#L872) (admitted).
+- [12.10.E42](https://dlmf.nist.gov/12.10.E42): [`AAR.Confluent.pcfAiryA`](AAR/ParabolicCylinder/Uniform.lean#L888) (defined); [`AAR.Confluent.pcfAiryA_limit`](AAR/ParabolicCylinder/Uniform.lean#L893) (admitted); [`AAR.Confluent.pcfAiryB`](AAR/ParabolicCylinder/Uniform.lean#L899) (defined); [`AAR.Confluent.pcfAiryB_limit`](AAR/ParabolicCylinder/Uniform.lean#L904) (admitted).
+- [12.10.E43](https://dlmf.nist.gov/12.10.E43): [`AAR.Confluent.pcfAiryAlpha`](AAR/ParabolicCylinder/Uniform.lean#L878) (defined); [`AAR.Confluent.pcfAiryBeta`](AAR/ParabolicCylinder/Uniform.lean#L883) (defined).
+- [12.10.E44](https://dlmf.nist.gov/12.10.E44): [`AAR.Confluent.pcfAiryCD_derivative`](AAR/ParabolicCylinder/Uniform.lean#L943) (admitted).
+- [12.10.E45](https://dlmf.nist.gov/12.10.E45): [`AAR.Confluent.pcfAiryChi`](AAR/ParabolicCylinder/Uniform.lean#L932) (defined); [`AAR.Confluent.pcfAiryChi_formula`](AAR/ParabolicCylinder/Uniform.lean#L937) (admitted).
+- [12.10.E46](https://dlmf.nist.gov/12.10.E46): [`AAR.Confluent.pcfAiryC`](AAR/ParabolicCylinder/Uniform.lean#L910) (defined); [`AAR.Confluent.pcfAiryC_limit`](AAR/ParabolicCylinder/Uniform.lean#L915) (admitted); [`AAR.Confluent.pcfAiryD`](AAR/ParabolicCylinder/Uniform.lean#L921) (defined); [`AAR.Confluent.pcfAiryD_limit`](AAR/ParabolicCylinder/Uniform.lean#L926) (admitted).
 
 ### [§12.11 Zeros](https://dlmf.nist.gov/12.11)
 
@@ -694,10 +694,10 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 ### [§12.12 Integrals](https://dlmf.nist.gov/12.12)
 
-- [12.12.E1](https://dlmf.nist.gov/12.12.E1): [`AAR.Confluent.pcf_integral_1`](AAR/ParabolicCylinder/Integrals.lean#L126) (admitted).
-- [12.12.E2](https://dlmf.nist.gov/12.12.E2): [`AAR.Confluent.pcf_integral_2`](AAR/ParabolicCylinder/Integrals.lean#L132) (admitted).
-- [12.12.E3](https://dlmf.nist.gov/12.12.E3): [`AAR.Confluent.pcf_integral_3`](AAR/ParabolicCylinder/Integrals.lean#L138) (admitted).
-- [12.12.E4](https://dlmf.nist.gov/12.12.E4): [`AAR.Confluent.pcf_integral_4`](AAR/ParabolicCylinder/Integrals.lean#L144) (admitted).
+- [12.12.E1](https://dlmf.nist.gov/12.12.E1): [`AAR.Confluent.pcf_integral_1`](AAR/ParabolicCylinder/Integrals.lean#L231) (proved).
+- [12.12.E2](https://dlmf.nist.gov/12.12.E2): [`AAR.Confluent.pcf_integral_2`](AAR/ParabolicCylinder/Integrals.lean#L261) (proved).
+- [12.12.E3](https://dlmf.nist.gov/12.12.E3): [`AAR.Confluent.pcf_integral_3`](AAR/ParabolicCylinder/Integrals.lean#L300) (admitted).
+- [12.12.E4](https://dlmf.nist.gov/12.12.E4): [`AAR.Confluent.pcf_integral_4`](AAR/ParabolicCylinder/Integrals.lean#L306) (admitted).
 
 ### [§12.13 Sums](https://dlmf.nist.gov/12.13)
 
@@ -791,24 +791,24 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 - [14.3.E1](https://dlmf.nist.gov/14.3.E1): [`ferrersP`](AAR/Legendre/Ferrers.lean#L52) (defined).
 - [14.3.E2](https://dlmf.nist.gov/14.3.E2): [`AAR.Legendre.ferrersQ_hypergeometric`](AAR/Legendre/Associated.lean#L532) (proved); [`AAR.Legendre.ferrersQ_order_limit`](AAR/Legendre/Associated.lean#L632) (proved).
-- [14.3.E3](https://dlmf.nist.gov/14.3.E3): [`AAR.Legendre.legendreGaussF`](AAR/Legendre/Hypergeometric.lean#L26) (defined); [`AAR.Legendre.legendreGaussF_normalization`](AAR/Legendre/Hypergeometric.lean#L32) (proved).
-- [14.3.E4](https://dlmf.nist.gov/14.3.E4): [`AAR.Legendre.ferrersP_integer_hypergeometric_4`](AAR/Legendre/Hypergeometric.lean#L40) (proved).
-- [14.3.E5](https://dlmf.nist.gov/14.3.E5): [`AAR.Legendre.ferrersP_integer_hypergeometric_5`](AAR/Legendre/Hypergeometric.lean#L56) (proved).
+- [14.3.E3](https://dlmf.nist.gov/14.3.E3): [`AAR.Legendre.legendreGaussF`](AAR/Legendre/Hypergeometric.lean#L27) (defined); [`AAR.Legendre.legendreGaussF_normalization`](AAR/Legendre/Hypergeometric.lean#L33) (proved).
+- [14.3.E4](https://dlmf.nist.gov/14.3.E4): [`AAR.Legendre.ferrersP_integer_hypergeometric_4`](AAR/Legendre/Hypergeometric.lean#L41) (proved).
+- [14.3.E5](https://dlmf.nist.gov/14.3.E5): [`AAR.Legendre.ferrersP_integer_hypergeometric_5`](AAR/Legendre/Hypergeometric.lean#L57) (proved).
 - [14.3.E6](https://dlmf.nist.gov/14.3.E6): [`legendreP`](AAR/Legendre/Basic.lean#L48) (defined); [`AAR.Legendre.associatedP`](AAR/Legendre/Associated.lean#L32) (defined).
 - [14.3.E7](https://dlmf.nist.gov/14.3.E7): [`AAR.Legendre.legendreQ`](AAR/Legendre/SecondKind.lean#L105) (defined); [`AAR.Legendre.associatedQ`](AAR/Legendre/Associated.lean#L42) (defined).
-- [14.3.E8](https://dlmf.nist.gov/14.3.E8): [`AAR.Legendre.associatedP_integer_hypergeometric_8`](AAR/Legendre/Hypergeometric.lean#L70) (proved).
-- [14.3.E9](https://dlmf.nist.gov/14.3.E9): [`AAR.Legendre.associated_hypergeometric_9`](AAR/Legendre/Hypergeometric.lean#L86) (proved).
+- [14.3.E8](https://dlmf.nist.gov/14.3.E8): [`AAR.Legendre.associatedP_integer_hypergeometric_8`](AAR/Legendre/Hypergeometric.lean#L71) (proved).
+- [14.3.E9](https://dlmf.nist.gov/14.3.E9): [`AAR.Legendre.associated_hypergeometric_9`](AAR/Legendre/Hypergeometric.lean#L87) (proved).
 - [14.3.E10](https://dlmf.nist.gov/14.3.E10): [`AAR.Legendre.olverQ`](AAR/Legendre/Associated.lean#L37) (defined); [`AAR.Legendre.olverQ_normalization`](AAR/Legendre/Associated.lean#L740) (proved).
 - [14.3.E11](https://dlmf.nist.gov/14.3.E11): [`AAR.Legendre.ferrersP_w1_w2`](AAR/Legendre/Associated.lean#L133) (proved).
 - [14.3.E12](https://dlmf.nist.gov/14.3.E12): [`AAR.Legendre.ferrersQ`](AAR/Legendre/Associated.lean#L61) (defined).
 - [14.3.E13](https://dlmf.nist.gov/14.3.E13): [`AAR.Legendre.ferrersW1`](AAR/Legendre/Associated.lean#L51) (defined).
 - [14.3.E14](https://dlmf.nist.gov/14.3.E14): [`AAR.Legendre.ferrersW2`](AAR/Legendre/Associated.lean#L56) (defined).
-- [14.3.E15](https://dlmf.nist.gov/14.3.E15): [`AAR.Legendre.associated_hypergeometric_15`](AAR/Legendre/Hypergeometric.lean#L94) (proved).
-- [14.3.E16](https://dlmf.nist.gov/14.3.E16): [`AAR.Legendre.associated_hypergeometric_16`](AAR/Legendre/Hypergeometric.lean#L118) (proved).
-- [14.3.E17](https://dlmf.nist.gov/14.3.E17): [`AAR.Legendre.associatedP_square_hypergeometric`](AAR/Legendre/Hypergeometric.lean#L246) (admitted).
-- [14.3.E18](https://dlmf.nist.gov/14.3.E18): [`AAR.Legendre.associated_hypergeometric_18`](AAR/Legendre/Hypergeometric.lean#L234) (proved).
-- [14.3.E19](https://dlmf.nist.gov/14.3.E19): [`AAR.Legendre.olverQ_linear_hypergeometric`](AAR/Legendre/Hypergeometric.lean#L252) (admitted).
-- [14.3.E20](https://dlmf.nist.gov/14.3.E20): [`AAR.Legendre.associated_hypergeometric_20`](AAR/Legendre/Hypergeometric.lean#L240) (proved).
+- [14.3.E15](https://dlmf.nist.gov/14.3.E15): [`AAR.Legendre.associated_hypergeometric_15`](AAR/Legendre/Hypergeometric.lean#L95) (proved).
+- [14.3.E16](https://dlmf.nist.gov/14.3.E16): [`AAR.Legendre.associated_hypergeometric_16`](AAR/Legendre/Hypergeometric.lean#L119) (proved).
+- [14.3.E17](https://dlmf.nist.gov/14.3.E17): [`AAR.Legendre.associatedP_square_hypergeometric`](AAR/Legendre/Hypergeometric.lean#L247) (admitted).
+- [14.3.E18](https://dlmf.nist.gov/14.3.E18): [`AAR.Legendre.associated_hypergeometric_18`](AAR/Legendre/Hypergeometric.lean#L235) (proved).
+- [14.3.E19](https://dlmf.nist.gov/14.3.E19): [`AAR.Legendre.olverQ_linear_hypergeometric`](AAR/Legendre/Hypergeometric.lean#L253) (admitted).
+- [14.3.E20](https://dlmf.nist.gov/14.3.E20): [`AAR.Legendre.associated_hypergeometric_20`](AAR/Legendre/Hypergeometric.lean#L241) (proved).
 - [14.3.E21](https://dlmf.nist.gov/14.3.E21): [`AAR.Legendre.ferrersP_gegenbauer`](AAR/Legendre/RelatedFunctions.lean#L33) (proved).
 - [14.3.E22](https://dlmf.nist.gov/14.3.E22): [`AAR.Legendre.associatedP_gegenbauer`](AAR/Legendre/RelatedFunctions.lean#L79) (proved).
 - [14.3.E23](https://dlmf.nist.gov/14.3.E23): [`AAR.Legendre.associatedP_jacobi`](AAR/Legendre/RelatedFunctions.lean#L127) (proved).
@@ -853,19 +853,19 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.6.E3](https://dlmf.nist.gov/14.6.E3): [`AAR.Legendre.associatedP_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L1046) (proved).
 - [14.6.E4](https://dlmf.nist.gov/14.6.E4): [`AAR.Legendre.associatedQ_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L1152) (proved).
 - [14.6.E5](https://dlmf.nist.gov/14.6.E5): [`AAR.Legendre.olverQ_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L1097) (proved).
-- [14.6.E6](https://dlmf.nist.gov/14.6.E6): [`AAR.Legendre.ferrersP_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L412) (proved).
-- [14.6.E7](https://dlmf.nist.gov/14.6.E7): [`AAR.Legendre.associatedP_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L431) (proved); [`AAR.Legendre.associatedP_negative_order_integral_complex`](AAR/Legendre/IntegralRepresentations.lean#L452) (proved).
-- [14.6.E8](https://dlmf.nist.gov/14.6.E8): [`AAR.Legendre.associatedQ_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L439) (proved); [`AAR.Legendre.associatedQ_negative_order_integral_complex`](AAR/Legendre/IntegralRepresentations.lean#L460) (proved).
+- [14.6.E6](https://dlmf.nist.gov/14.6.E6): [`AAR.Legendre.ferrersP_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L571) (proved).
+- [14.6.E7](https://dlmf.nist.gov/14.6.E7): [`AAR.Legendre.associatedP_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L590) (proved); [`AAR.Legendre.associatedP_negative_order_integral_complex`](AAR/Legendre/IntegralRepresentations.lean#L611) (proved).
+- [14.6.E8](https://dlmf.nist.gov/14.6.E8): [`AAR.Legendre.associatedQ_negative_order_integral`](AAR/Legendre/IntegralRepresentations.lean#L598) (proved); [`AAR.Legendre.associatedQ_negative_order_integral_complex`](AAR/Legendre/IntegralRepresentations.lean#L619) (proved).
 
 ### [§14.7 Integer Degree and Order](https://dlmf.nist.gov/14.7)
 
 - [14.7.E1](https://dlmf.nist.gov/14.7.E1): [`AAR.Legendre.ferrersP_nat_polynomial`](AAR/Legendre/IntegerTheory.lean#L32) (proved).
-- [14.7.E2](https://dlmf.nist.gov/14.7.E2): [`AAR.Legendre.ferrersQ_nat_logarithm`](AAR/Legendre/Series.lean#L90) (proved).
-- [14.7.E3](https://dlmf.nist.gov/14.7.E3): [`AAR.Legendre.legendreQPoly_explicit`](AAR/Legendre/Series.lean#L69) (admitted).
-- [14.7.E4](https://dlmf.nist.gov/14.7.E4): [`AAR.Legendre.legendreQPoly_convolution`](AAR/Legendre/Series.lean#L63) (admitted).
-- [14.7.E5](https://dlmf.nist.gov/14.7.E5): [`AAR.Legendre.legendreQPoly_initial`](AAR/Legendre/Series.lean#L75) (proved).
-- [14.7.E6](https://dlmf.nist.gov/14.7.E6): [`AAR.Legendre.olverQ_nat_normalization`](AAR/Legendre/Series.lean#L120) (proved).
-- [14.7.E7](https://dlmf.nist.gov/14.7.E7): [`AAR.Legendre.associatedQ_nat_logarithm`](AAR/Legendre/Series.lean#L126) (proved).
+- [14.7.E2](https://dlmf.nist.gov/14.7.E2): [`AAR.Legendre.ferrersQ_nat_logarithm`](AAR/Legendre/Series.lean#L101) (proved).
+- [14.7.E3](https://dlmf.nist.gov/14.7.E3): [`AAR.Legendre.legendreQPoly_explicit`](AAR/Legendre/Series.lean#L74) (proved).
+- [14.7.E4](https://dlmf.nist.gov/14.7.E4): [`AAR.Legendre.legendreQPoly_convolution`](AAR/Legendre/Series.lean#L64) (proved).
+- [14.7.E5](https://dlmf.nist.gov/14.7.E5): [`AAR.Legendre.legendreQPoly_initial`](AAR/Legendre/Series.lean#L86) (proved).
+- [14.7.E6](https://dlmf.nist.gov/14.7.E6): [`AAR.Legendre.olverQ_nat_normalization`](AAR/Legendre/Series.lean#L131) (proved).
+- [14.7.E7](https://dlmf.nist.gov/14.7.E7): [`AAR.Legendre.associatedQ_nat_logarithm`](AAR/Legendre/Series.lean#L137) (proved).
 - [14.7.E8](https://dlmf.nist.gov/14.7.E8): [`AAR.Legendre.ferrersP_nat_order_rodrigues`](AAR/Legendre/IntegerTheory.lean#L124) (proved); [`AAR.Legendre.ferrersPNat_eq`](AAR/Legendre/Harmonics.lean#L31) (proved).
 - [14.7.E9](https://dlmf.nist.gov/14.7.E9): [`AAR.Legendre.ferrersQ_nat_order_derivative`](AAR/Legendre/AssociatedRecurrences.lean#L993) (proved).
 - [14.7.E10](https://dlmf.nist.gov/14.7.E10): [`AAR.Legendre.ferrersP_nat_order_rodrigues`](AAR/Legendre/IntegerTheory.lean#L124) (proved).
@@ -877,35 +877,35 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.7.E16](https://dlmf.nist.gov/14.7.E16): [`AAR.Legendre.ferrersP_order_gt_degree`](AAR/Legendre/IntegerTheory.lean#L191) (proved); [`AAR.Legendre.associatedP_order_gt_degree`](AAR/Legendre/IntegerTheory.lean#L203) (proved).
 - [14.7.E17](https://dlmf.nist.gov/14.7.E17): [`AAR.Legendre.ferrersP_nat_reflection`](AAR/Legendre/IntegerTheory.lean#L254) (proved).
 - [14.7.E18](https://dlmf.nist.gov/14.7.E18): [`AAR.Legendre.ferrersQ_nat_reflection_1`](AAR/Legendre/IntegerTheory.lean#L260) (proved); [`AAR.Legendre.ferrersQ_nat_reflection_2`](AAR/Legendre/IntegerTheory.lean#L266) (proved).
-- [14.7.E19](https://dlmf.nist.gov/14.7.E19): [`AAR.Legendre.ferrersP_generating`](AAR/Legendre/Series.lean#L134) (proved); [`AAR.Legendre.associatedP_generating_complex`](AAR/Legendre/Series.lean#L156) (admitted).
-- [14.7.E20](https://dlmf.nist.gov/14.7.E20): [`AAR.Legendre.ferrersQ_generating`](AAR/Legendre/Series.lean#L144) (admitted).
-- [14.7.E21](https://dlmf.nist.gov/14.7.E21): [`AAR.Legendre.associatedP_exterior_generating`](AAR/Legendre/Series.lean#L162) (admitted).
-- [14.7.E22](https://dlmf.nist.gov/14.7.E22): [`AAR.Legendre.associatedQ_generating`](AAR/Legendre/Series.lean#L150) (admitted).
+- [14.7.E19](https://dlmf.nist.gov/14.7.E19): [`AAR.Legendre.ferrersP_generating`](AAR/Legendre/Series.lean#L145) (proved); [`AAR.Legendre.associatedP_generating_complex`](AAR/Legendre/Series.lean#L268) (proved).
+- [14.7.E20](https://dlmf.nist.gov/14.7.E20): [`AAR.Legendre.ferrersQ_generating`](AAR/Legendre/Series.lean#L155) (proved).
+- [14.7.E21](https://dlmf.nist.gov/14.7.E21): [`AAR.Legendre.associatedP_exterior_generating`](AAR/Legendre/Series.lean#L294) (proved).
+- [14.7.E22](https://dlmf.nist.gov/14.7.E22): [`AAR.Legendre.associatedQ_generating`](AAR/Legendre/Series.lean#L210) (proved).
 
 ### [§14.8 Behavior at Singularities](https://dlmf.nist.gov/14.8)
 
-- [14.8.E1](https://dlmf.nist.gov/14.8.E1): [`AAR.Legendre.legendre_singular_1`](AAR/Legendre/Singularities.lean#L95) (proved).
-- [14.8.E2](https://dlmf.nist.gov/14.8.E2): [`AAR.Legendre.legendre_singular_2`](AAR/Legendre/Singularities.lean#L113) (proved).
-- [14.8.E3](https://dlmf.nist.gov/14.8.E3): [`AAR.Legendre.ferrersQ_log_singular`](AAR/Legendre/Singularities.lean#L351) (admitted).
-- [14.8.E4](https://dlmf.nist.gov/14.8.E4): [`AAR.Legendre.legendre_singular_4`](AAR/Legendre/Singularities.lean#L131) (admitted).
-- [14.8.E5](https://dlmf.nist.gov/14.8.E5): [`AAR.Legendre.legendre_singular_5`](AAR/Legendre/Singularities.lean#L137) (admitted).
-- [14.8.E6](https://dlmf.nist.gov/14.8.E6): [`AAR.Legendre.legendre_singular_6`](AAR/Legendre/Singularities.lean#L143) (admitted).
-- [14.8.E7](https://dlmf.nist.gov/14.8.E7): [`AAR.Legendre.legendre_singular_7`](AAR/Legendre/Singularities.lean#L149) (proved).
-- [14.8.E8](https://dlmf.nist.gov/14.8.E8): [`AAR.Legendre.legendre_singular_8`](AAR/Legendre/Singularities.lean#L177) (proved).
-- [14.8.E9](https://dlmf.nist.gov/14.8.E9): [`AAR.Legendre.olverQ_log_singular`](AAR/Legendre/Singularities.lean#L364) (proved from admissions), derived from [`AAR.Legendre.olverQ_log_singular_invGamma`](AAR/Legendre/Singularities.lean#L357) (admitted), valid for all ν (stronger than DLMF).
-- [14.8.E10](https://dlmf.nist.gov/14.8.E10): [`AAR.Legendre.olverQ_negative_degree_singular`](AAR/Legendre/Singularities.lean#L373) (admitted).
-- [14.8.E11](https://dlmf.nist.gov/14.8.E11): [`AAR.Legendre.legendre_singular_11`](AAR/Legendre/Singularities.lean#L201) (admitted).
-- [14.8.E12](https://dlmf.nist.gov/14.8.E12): [`AAR.Legendre.legendre_singular_12`](AAR/Legendre/Singularities.lean#L207) (admitted).
-- [14.8.E13](https://dlmf.nist.gov/14.8.E13): [`AAR.Legendre.legendre_singular_13`](AAR/Legendre/Singularities.lean#L213) (admitted).
-- [14.8.E14](https://dlmf.nist.gov/14.8.E14): [`AAR.Legendre.legendre_singular_14`](AAR/Legendre/Singularities.lean#L219) (admitted).
-- [14.8.E15](https://dlmf.nist.gov/14.8.E15): [`AAR.Legendre.legendre_singular_15`](AAR/Legendre/Singularities.lean#L254) (proved).
-- [14.8.E16](https://dlmf.nist.gov/14.8.E16): [`AAR.Legendre.legendre_singular_16`](AAR/Legendre/Singularities.lean#L289) (proved).
+- [14.8.E1](https://dlmf.nist.gov/14.8.E1): [`AAR.Legendre.legendre_singular_1`](AAR/Legendre/Singularities.lean#L97) (proved).
+- [14.8.E2](https://dlmf.nist.gov/14.8.E2): [`AAR.Legendre.legendre_singular_2`](AAR/Legendre/Singularities.lean#L115) (proved).
+- [14.8.E3](https://dlmf.nist.gov/14.8.E3): [`AAR.Legendre.ferrersQ_log_singular`](AAR/Legendre/Singularities.lean#L471) (proved).
+- [14.8.E4](https://dlmf.nist.gov/14.8.E4): [`AAR.Legendre.legendre_singular_4`](AAR/Legendre/Singularities.lean#L133) (proved).
+- [14.8.E5](https://dlmf.nist.gov/14.8.E5): [`AAR.Legendre.legendre_singular_5`](AAR/Legendre/Singularities.lean#L149) (proved).
+- [14.8.E6](https://dlmf.nist.gov/14.8.E6): [`AAR.Legendre.legendre_singular_6`](AAR/Legendre/Singularities.lean#L193) (proved).
+- [14.8.E7](https://dlmf.nist.gov/14.8.E7): [`AAR.Legendre.legendre_singular_7`](AAR/Legendre/Singularities.lean#L211) (proved).
+- [14.8.E8](https://dlmf.nist.gov/14.8.E8): [`AAR.Legendre.legendre_singular_8`](AAR/Legendre/Singularities.lean#L239) (proved).
+- [14.8.E9](https://dlmf.nist.gov/14.8.E9): [`AAR.Legendre.olverQ_log_singular`](AAR/Legendre/Singularities.lean#L484) (proved), derived from [`AAR.Legendre.olverQ_log_singular_invGamma`](AAR/Legendre/Singularities.lean#L477) (proved), valid for all ν (stronger than DLMF).
+- [14.8.E10](https://dlmf.nist.gov/14.8.E10): [`AAR.Legendre.olverQ_negative_degree_singular`](AAR/Legendre/Singularities.lean#L493) (proved).
+- [14.8.E11](https://dlmf.nist.gov/14.8.E11): [`AAR.Legendre.legendre_singular_11`](AAR/Legendre/Singularities.lean#L263) (proved).
+- [14.8.E12](https://dlmf.nist.gov/14.8.E12): [`AAR.Legendre.legendre_singular_12`](AAR/Legendre/Singularities.lean#L280) (proved).
+- [14.8.E13](https://dlmf.nist.gov/14.8.E13): [`AAR.Legendre.legendre_singular_13`](AAR/Legendre/Singularities.lean#L303) (proved).
+- [14.8.E14](https://dlmf.nist.gov/14.8.E14): [`AAR.Legendre.legendre_singular_14`](AAR/Legendre/Singularities.lean#L316) (proved).
+- [14.8.E15](https://dlmf.nist.gov/14.8.E15): [`AAR.Legendre.legendre_singular_15`](AAR/Legendre/Singularities.lean#L374) (proved).
+- [14.8.E16](https://dlmf.nist.gov/14.8.E16): [`AAR.Legendre.legendre_singular_16`](AAR/Legendre/Singularities.lean#L409) (proved).
 
 ### [§14.9 Connection Formulas](https://dlmf.nist.gov/14.9)
 
 - [14.9.E1](https://dlmf.nist.gov/14.9.E1): [`AAR.Legendre.ferrers_connection_1`](AAR/Legendre/Connections.lean#L24) (proved).
 - [14.9.E2](https://dlmf.nist.gov/14.9.E2): [`AAR.Legendre.ferrers_connection_2`](AAR/Legendre/Connections.lean#L57) (proved).
-- [14.9.E3](https://dlmf.nist.gov/14.9.E3): [`AAR.Legendre.ferrersP_negative_order_parameter_limit`](AAR/Legendre/ParameterLimits.lean#L151) (proved); [`AAR.Legendre.ferrersP_negative_integer_order`](AAR/Legendre/Connections.lean#L255) (proved).
+- [14.9.E3](https://dlmf.nist.gov/14.9.E3): [`AAR.Legendre.ferrersP_negative_order_parameter_limit`](AAR/Legendre/ParameterLimits.lean#L177) (proved); [`AAR.Legendre.ferrersP_negative_integer_order`](AAR/Legendre/Connections.lean#L255) (proved).
 - [14.9.E4](https://dlmf.nist.gov/14.9.E4): [`AAR.Legendre.ferrersQ_negative_integer_order`](AAR/Legendre/Connections.lean#L276) (proved).
 - [14.9.E5](https://dlmf.nist.gov/14.9.E5): [`legendreP_neg_sub_one`](AAR/Legendre/Basic.lean#L68) (proved); [`AAR.Legendre.ferrers_connection_5`](AAR/Legendre/Connections.lean#L89) (proved).
 - [14.9.E6](https://dlmf.nist.gov/14.9.E6): [`AAR.Legendre.ferrers_connection_6`](AAR/Legendre/Connections.lean#L98) (proved).
@@ -915,7 +915,7 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.9.E10](https://dlmf.nist.gov/14.9.E10): [`AAR.Legendre.ferrers_connection_10`](AAR/Legendre/Connections.lean#L230) (proved).
 - [14.9.E11](https://dlmf.nist.gov/14.9.E11): [`AAR.Legendre.associated_connection_11`](AAR/Legendre/Connections.lean#L302) (proved).
 - [14.9.E12](https://dlmf.nist.gov/14.9.E12): [`AAR.Legendre.associated_connection_12`](AAR/Legendre/Connections.lean#L329) (proved).
-- [14.9.E13](https://dlmf.nist.gov/14.9.E13): [`AAR.Legendre.associatedP_negative_order_parameter_limit`](AAR/Legendre/ParameterLimits.lean#L166) (proved); [`AAR.Legendre.associatedP_negative_integer_order`](AAR/Legendre/Connections.lean#L842) (proved).
+- [14.9.E13](https://dlmf.nist.gov/14.9.E13): [`AAR.Legendre.associatedP_negative_order_parameter_limit`](AAR/Legendre/ParameterLimits.lean#L192) (proved); [`AAR.Legendre.associatedP_negative_integer_order`](AAR/Legendre/Connections.lean#L842) (proved).
 - [14.9.E14](https://dlmf.nist.gov/14.9.E14): [`AAR.Legendre.associated_connection_14`](AAR/Legendre/Connections.lean#L310) (proved).
 - [14.9.E15](https://dlmf.nist.gov/14.9.E15): [`AAR.Legendre.associated_connection_15`](AAR/Legendre/Connections.lean#L365) (proved).
 - [14.9.E16](https://dlmf.nist.gov/14.9.E16): [`AAR.Legendre.associated_connection_16`](AAR/Legendre/Connections.lean#L794) (proved).
@@ -933,42 +933,42 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 ### [§14.11 Derivatives with Respect to Degree or Order](https://dlmf.nist.gov/14.11)
 
-- [14.11.E1](https://dlmf.nist.gov/14.11.E1): [`AAR.Legendre.ferrersP_degree_deriv`](AAR/Legendre/Hypergeometric.lean#L269) (admitted); [`AAR.Legendre.associatedP_degree_deriv`](AAR/Legendre/RelatedFunctions.lean#L169) (admitted).
-- [14.11.E2](https://dlmf.nist.gov/14.11.E2): [`AAR.Legendre.ferrersQ_degree_deriv`](AAR/Legendre/Hypergeometric.lean#L275) (admitted).
-- [14.11.E3](https://dlmf.nist.gov/14.11.E3): [`AAR.Legendre.legendreDegreeA`](AAR/Legendre/Hypergeometric.lean#L258) (defined); [`AAR.Legendre.legendreDegreeA_hasSum`](AAR/Legendre/Hypergeometric.lean#L263) (admitted).
-- [14.11.E4](https://dlmf.nist.gov/14.11.E4): [`AAR.Legendre.ferrersP_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L281) (admitted); [`AAR.Legendre.associatedP_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L293) (admitted).
-- [14.11.E5](https://dlmf.nist.gov/14.11.E5): [`AAR.Legendre.ferrersQ_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L287) (admitted).
+- [14.11.E1](https://dlmf.nist.gov/14.11.E1): [`AAR.Legendre.ferrersP_degree_deriv`](AAR/Legendre/Hypergeometric.lean#L598) (proved); [`AAR.Legendre.associatedP_degree_deriv`](AAR/Legendre/RelatedFunctions.lean#L169) (admitted).
+- [14.11.E2](https://dlmf.nist.gov/14.11.E2): [`AAR.Legendre.ferrersQ_degree_deriv`](AAR/Legendre/Hypergeometric.lean#L626) (proved).
+- [14.11.E3](https://dlmf.nist.gov/14.11.E3): [`AAR.Legendre.legendreDegreeA`](AAR/Legendre/Hypergeometric.lean#L583) (defined); [`AAR.Legendre.legendreDegreeA_hasSum`](AAR/Legendre/Hypergeometric.lean#L588) (proved).
+- [14.11.E4](https://dlmf.nist.gov/14.11.E4): [`AAR.Legendre.ferrersP_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L670) (proved); [`AAR.Legendre.associatedP_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L733) (proved).
+- [14.11.E5](https://dlmf.nist.gov/14.11.E5): [`AAR.Legendre.ferrersQ_order_deriv_zero`](AAR/Legendre/Hypergeometric.lean#L699) (proved).
 
 ### [§14.12 Integral Representations](https://dlmf.nist.gov/14.12)
 
-- [14.12.E1](https://dlmf.nist.gov/14.12.E1): [`AAR.Legendre.ferrersP_mehler_dirichlet`](AAR/Legendre/IntegralRepresentations.lean#L27) (admitted).
-- [14.12.E2](https://dlmf.nist.gov/14.12.E2): [`AAR.Legendre.ferrersP_fractional_integral`](AAR/Legendre/IntegralRepresentations.lean#L33) (proved).
-- [14.12.E3](https://dlmf.nist.gov/14.12.E3): [`AAR.Legendre.ferrersQ_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L139) (admitted).
-- [14.12.E4](https://dlmf.nist.gov/14.12.E4): [`AAR.Legendre.associatedP_cosh_integral`](AAR/Legendre/IntegralRepresentations.lean#L145) (admitted).
-- [14.12.E5](https://dlmf.nist.gov/14.12.E5): [`AAR.Legendre.associatedP_fractional_integral`](AAR/Legendre/IntegralRepresentations.lean#L93) (proved).
-- [14.12.E6](https://dlmf.nist.gov/14.12.E6): [`AAR.Legendre.olverQ_real_integral`](AAR/Legendre/IntegralRepresentations.lean#L151) (admitted).
-- [14.12.E7](https://dlmf.nist.gov/14.12.E7): [`AAR.Legendre.associatedP_fourier_integral`](AAR/Legendre/IntegralRepresentations.lean#L157) (proved).
-- [14.12.E8](https://dlmf.nist.gov/14.12.E8): [`AAR.Legendre.associatedP_nat_integral`](AAR/Legendre/IntegralRepresentations.lean#L212) (proved).
-- [14.12.E9](https://dlmf.nist.gov/14.12.E9): [`AAR.Legendre.olverQ_nat_finite_integral`](AAR/Legendre/IntegralRepresentations.lean#L238) (proved).
-- [14.12.E10](https://dlmf.nist.gov/14.12.E10): [`AAR.Legendre.legendreUCoordinate`](AAR/Legendre/IntegralRepresentations.lean#L233) (defined).
-- [14.12.E11](https://dlmf.nist.gov/14.12.E11): [`AAR.Legendre.olverQ_nat_interval_integral`](AAR/Legendre/IntegralRepresentations.lean#L294) (proved).
-- [14.12.E12](https://dlmf.nist.gov/14.12.E12): [`AAR.Legendre.olverQ_nat_reduction_integral`](AAR/Legendre/IntegralRepresentations.lean#L363) (admitted).
-- [14.12.E13](https://dlmf.nist.gov/14.12.E13): [`AAR.Legendre.olverQ_nat_neumann`](AAR/Legendre/IntegralRepresentations.lean#L369) (proved).
-- [14.12.E14](https://dlmf.nist.gov/14.12.E14): [`AAR.Legendre.olverQ_nat_heine`](AAR/Legendre/IntegralRepresentations.lean#L389) (proved).
+- [14.12.E1](https://dlmf.nist.gov/14.12.E1): [`AAR.Legendre.ferrersP_mehler_dirichlet`](AAR/Legendre/IntegralRepresentations.lean#L28) (admitted).
+- [14.12.E2](https://dlmf.nist.gov/14.12.E2): [`AAR.Legendre.ferrersP_fractional_integral`](AAR/Legendre/IntegralRepresentations.lean#L34) (proved).
+- [14.12.E3](https://dlmf.nist.gov/14.12.E3): [`AAR.Legendre.ferrersQ_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L140) (admitted).
+- [14.12.E4](https://dlmf.nist.gov/14.12.E4): [`AAR.Legendre.associatedP_cosh_integral`](AAR/Legendre/IntegralRepresentations.lean#L146) (admitted).
+- [14.12.E5](https://dlmf.nist.gov/14.12.E5): [`AAR.Legendre.associatedP_fractional_integral`](AAR/Legendre/IntegralRepresentations.lean#L94) (proved).
+- [14.12.E6](https://dlmf.nist.gov/14.12.E6): [`AAR.Legendre.olverQ_real_integral`](AAR/Legendre/IntegralRepresentations.lean#L152) (admitted).
+- [14.12.E7](https://dlmf.nist.gov/14.12.E7): [`AAR.Legendre.associatedP_fourier_integral`](AAR/Legendre/IntegralRepresentations.lean#L158) (proved).
+- [14.12.E8](https://dlmf.nist.gov/14.12.E8): [`AAR.Legendre.associatedP_nat_integral`](AAR/Legendre/IntegralRepresentations.lean#L213) (proved).
+- [14.12.E9](https://dlmf.nist.gov/14.12.E9): [`AAR.Legendre.olverQ_nat_finite_integral`](AAR/Legendre/IntegralRepresentations.lean#L239) (proved).
+- [14.12.E10](https://dlmf.nist.gov/14.12.E10): [`AAR.Legendre.legendreUCoordinate`](AAR/Legendre/IntegralRepresentations.lean#L234) (defined).
+- [14.12.E11](https://dlmf.nist.gov/14.12.E11): [`AAR.Legendre.olverQ_nat_interval_integral`](AAR/Legendre/IntegralRepresentations.lean#L295) (proved).
+- [14.12.E12](https://dlmf.nist.gov/14.12.E12): [`AAR.Legendre.olverQ_nat_reduction_integral`](AAR/Legendre/IntegralRepresentations.lean#L460) (proved).
+- [14.12.E13](https://dlmf.nist.gov/14.12.E13): [`AAR.Legendre.olverQ_nat_neumann`](AAR/Legendre/IntegralRepresentations.lean#L528) (proved).
+- [14.12.E14](https://dlmf.nist.gov/14.12.E14): [`AAR.Legendre.olverQ_nat_heine`](AAR/Legendre/IntegralRepresentations.lean#L548) (proved).
 
 ### [§14.13 Trigonometric Expansions](https://dlmf.nist.gov/14.13)
 
-- [14.13.E1](https://dlmf.nist.gov/14.13.E1): [`AAR.Legendre.ferrersP_fourier_series`](AAR/Legendre/Series.lean#L29) (admitted).
-- [14.13.E2](https://dlmf.nist.gov/14.13.E2): [`AAR.Legendre.ferrersQ_fourier_series`](AAR/Legendre/Series.lean#L46) (admitted).
-- [14.13.E3](https://dlmf.nist.gov/14.13.E3): [`AAR.Legendre.ferrersP_nat_fourier`](AAR/Legendre/Series.lean#L40) (admitted).
-- [14.13.E4](https://dlmf.nist.gov/14.13.E4): [`AAR.Legendre.ferrersQ_nat_fourier`](AAR/Legendre/Series.lean#L57) (admitted).
+- [14.13.E1](https://dlmf.nist.gov/14.13.E1): [`AAR.Legendre.ferrersP_fourier_series`](AAR/Legendre/Series.lean#L30) (admitted).
+- [14.13.E2](https://dlmf.nist.gov/14.13.E2): [`AAR.Legendre.ferrersQ_fourier_series`](AAR/Legendre/Series.lean#L47) (admitted).
+- [14.13.E3](https://dlmf.nist.gov/14.13.E3): [`AAR.Legendre.ferrersP_nat_fourier`](AAR/Legendre/Series.lean#L41) (admitted).
+- [14.13.E4](https://dlmf.nist.gov/14.13.E4): [`AAR.Legendre.ferrersQ_nat_fourier`](AAR/Legendre/Series.lean#L58) (admitted).
 
 ### [§14.14 Continued Fractions](https://dlmf.nist.gov/14.14)
 
-- [14.14.E1](https://dlmf.nist.gov/14.14.E1): [`AAR.Legendre.associatedP_continued_fraction`](AAR/Legendre/Series.lean#L188) (admitted).
-- [14.14.E2](https://dlmf.nist.gov/14.14.E2): [`AAR.Legendre.legendrePCFNum`](AAR/Legendre/Series.lean#L168) (defined); [`AAR.Legendre.legendrePCFDen`](AAR/Legendre/Series.lean#L173) (defined).
-- [14.14.E3](https://dlmf.nist.gov/14.14.E3): [`AAR.Legendre.associatedQ_continued_fraction`](AAR/Legendre/Series.lean#L194) (admitted).
-- [14.14.E4](https://dlmf.nist.gov/14.14.E4): [`AAR.Legendre.legendreQCFNum`](AAR/Legendre/Series.lean#L178) (defined); [`AAR.Legendre.legendreQCFDen`](AAR/Legendre/Series.lean#L183) (defined).
+- [14.14.E1](https://dlmf.nist.gov/14.14.E1): [`AAR.Legendre.associatedP_continued_fraction`](AAR/Legendre/Series.lean#L345) (admitted). Corrected: the limit is ½(x²−1)^{1/2}(ν+μ)(ν−μ+1)P^{−μ}_ν/P^{1−μ}_ν, the minimal-solution ratio (DLMF erratum; REVIEW.md, round 7).
+- [14.14.E2](https://dlmf.nist.gov/14.14.E2): [`AAR.Legendre.legendrePCFNum`](AAR/Legendre/Series.lean#L325) (defined); [`AAR.Legendre.legendrePCFDen`](AAR/Legendre/Series.lean#L330) (defined).
+- [14.14.E3](https://dlmf.nist.gov/14.14.E3): [`AAR.Legendre.associatedQ_continued_fraction`](AAR/Legendre/Series.lean#L351) (admitted).
+- [14.14.E4](https://dlmf.nist.gov/14.14.E4): [`AAR.Legendre.legendreQCFNum`](AAR/Legendre/Series.lean#L335) (defined); [`AAR.Legendre.legendreQCFDen`](AAR/Legendre/Series.lean#L340) (defined).
 
 ### [§14.15 Uniform Asymptotic Approximations](https://dlmf.nist.gov/14.15)
 
@@ -1014,22 +1014,22 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.17.E2](https://dlmf.nist.gov/14.17.E2): [`AAR.Legendre.ferrers_primitive_2`](AAR/Legendre/Primitives.lean#L97) (proved).
 - [14.17.E3](https://dlmf.nist.gov/14.17.E3): [`AAR.Legendre.ferrersProductPrimitive`](AAR/Legendre/Primitives.lean#L127) (defined); [`AAR.Legendre.ferrers_product_primitive_3`](AAR/Legendre/Primitives.lean#L152) (proved).
 - [14.17.E4](https://dlmf.nist.gov/14.17.E4): [`AAR.Legendre.ferrersProductPrimitive`](AAR/Legendre/Primitives.lean#L127) (defined); [`AAR.Legendre.ferrers_product_primitive_4`](AAR/Legendre/Primitives.lean#L190) (proved).
-- [14.17.E5](https://dlmf.nist.gov/14.17.E5): [`AAR.Legendre.ferrers_barnes_integral`](AAR/Legendre/Integrals.lean#L24) (admitted).
-- [14.17.E6](https://dlmf.nist.gov/14.17.E6): [`AAR.Legendre.ferrers_orthogonality_6`](AAR/Legendre/Integrals.lean#L30) (proved).
-- [14.17.E7](https://dlmf.nist.gov/14.17.E7): [`AAR.Legendre.ferrers_orthogonality_7`](AAR/Legendre/Integrals.lean#L51) (proved).
-- [14.17.E8](https://dlmf.nist.gov/14.17.E8): [`AAR.Legendre.ferrers_orthogonality_8`](AAR/Legendre/Integrals.lean#L79) (proved).
-- [14.17.E9](https://dlmf.nist.gov/14.17.E9): [`AAR.Legendre.ferrers_orthogonality_9`](AAR/Legendre/Integrals.lean#L96) (proved).
-- [14.17.E10](https://dlmf.nist.gov/14.17.E10): [`AAR.Legendre.ferrers_product_integral_10`](AAR/Legendre/Integrals.lean#L126) (admitted); [`AAR.Legendre.ferrersPP_integral_all_degrees`](AAR/Legendre/ParameterLimits.lean#L139) (admitted).
-- [14.17.E11](https://dlmf.nist.gov/14.17.E11): [`AAR.Legendre.ferrers_product_integral_11`](AAR/Legendre/Integrals.lean#L132) (admitted); [`AAR.Legendre.ferrersP_sq_integral_all_degrees`](AAR/Legendre/ParameterLimits.lean#L145) (admitted).
-- [14.17.E12](https://dlmf.nist.gov/14.17.E12): [`AAR.Legendre.ferrers_product_integral_12`](AAR/Legendre/Integrals.lean#L138) (admitted).
-- [14.17.E13](https://dlmf.nist.gov/14.17.E13): [`AAR.Legendre.ferrers_product_integral_13`](AAR/Legendre/Integrals.lean#L144) (admitted).
-- [14.17.E14](https://dlmf.nist.gov/14.17.E14): [`AAR.Legendre.ferrers_product_integral_14`](AAR/Legendre/Integrals.lean#L150) (admitted).
-- [14.17.E15](https://dlmf.nist.gov/14.17.E15): [`AAR.Legendre.ferrers_product_integral_15`](AAR/Legendre/Integrals.lean#L156) (admitted).
-- [14.17.E16](https://dlmf.nist.gov/14.17.E16): [`AAR.Legendre.ferrersPQ_nat_integral`](AAR/Legendre/Integrals.lean#L162) (admitted).
-- [14.17.E17](https://dlmf.nist.gov/14.17.E17): [`AAR.Legendre.ferrers_triple_integral`](AAR/Legendre/Integrals.lean#L168) (admitted).
-- [14.17.E18](https://dlmf.nist.gov/14.17.E18): [`AAR.Legendre.legendre_product_integral_18`](AAR/Legendre/Integrals.lean#L174) (admitted).
-- [14.17.E19](https://dlmf.nist.gov/14.17.E19): [`AAR.Legendre.legendre_product_integral_19`](AAR/Legendre/Integrals.lean#L180) (admitted).
-- [14.17.E20](https://dlmf.nist.gov/14.17.E20): [`AAR.Legendre.legendre_product_integral_20`](AAR/Legendre/Integrals.lean#L186) (admitted).
+- [14.17.E5](https://dlmf.nist.gov/14.17.E5): [`AAR.Legendre.ferrers_barnes_integral`](AAR/Legendre/Integrals.lean#L28) (admitted).
+- [14.17.E6](https://dlmf.nist.gov/14.17.E6): [`AAR.Legendre.ferrers_orthogonality_6`](AAR/Legendre/Integrals.lean#L34) (proved).
+- [14.17.E7](https://dlmf.nist.gov/14.17.E7): [`AAR.Legendre.ferrers_orthogonality_7`](AAR/Legendre/Integrals.lean#L55) (proved).
+- [14.17.E8](https://dlmf.nist.gov/14.17.E8): [`AAR.Legendre.ferrers_orthogonality_8`](AAR/Legendre/Integrals.lean#L83) (proved).
+- [14.17.E9](https://dlmf.nist.gov/14.17.E9): [`AAR.Legendre.ferrers_orthogonality_9`](AAR/Legendre/Integrals.lean#L100) (proved).
+- [14.17.E10](https://dlmf.nist.gov/14.17.E10): [`AAR.Legendre.ferrers_product_integral_10`](AAR/Legendre/Integrals.lean#L1457) (proved); [`AAR.Legendre.ferrersPP_integral_all_degrees`](AAR/Legendre/ParameterLimits.lean#L139) (proved).
+- [14.17.E11](https://dlmf.nist.gov/14.17.E11): [`AAR.Legendre.ferrers_product_integral_11`](AAR/Legendre/Integrals.lean#L1474) (proved); [`AAR.Legendre.ferrersP_sq_integral_all_degrees`](AAR/Legendre/ParameterLimits.lean#L157) (proved).
+- [14.17.E12](https://dlmf.nist.gov/14.17.E12): [`AAR.Legendre.ferrers_product_integral_12`](AAR/Legendre/Integrals.lean#L1530) (proved).
+- [14.17.E13](https://dlmf.nist.gov/14.17.E13): [`AAR.Legendre.ferrers_product_integral_13`](AAR/Legendre/Integrals.lean#L1545) (proved).
+- [14.17.E14](https://dlmf.nist.gov/14.17.E14): [`AAR.Legendre.ferrers_product_integral_14`](AAR/Legendre/Integrals.lean#L1604) (proved).
+- [14.17.E15](https://dlmf.nist.gov/14.17.E15): [`AAR.Legendre.ferrers_product_integral_15`](AAR/Legendre/Integrals.lean#L1626) (proved).
+- [14.17.E16](https://dlmf.nist.gov/14.17.E16): [`AAR.Legendre.ferrersPQ_nat_integral`](AAR/Legendre/Integrals.lean#L1904) (proved).
+- [14.17.E17](https://dlmf.nist.gov/14.17.E17): [`AAR.Legendre.ferrers_triple_integral`](AAR/Legendre/Integrals.lean#L1937) (admitted).
+- [14.17.E18](https://dlmf.nist.gov/14.17.E18): [`AAR.Legendre.legendre_product_integral_18`](AAR/Legendre/Integrals.lean#L2581) (proved).
+- [14.17.E19](https://dlmf.nist.gov/14.17.E19): [`AAR.Legendre.legendre_product_integral_19`](AAR/Legendre/Integrals.lean#L2615) (proved).
+- [14.17.E20](https://dlmf.nist.gov/14.17.E20): [`AAR.Legendre.legendre_product_integral_20`](AAR/Legendre/Integrals.lean#L2646) (proved).
 
 ### [§14.18 Sums](https://dlmf.nist.gov/14.18)
 
@@ -1046,13 +1046,13 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 ### [§14.19 Toroidal (or Ring) Functions](https://dlmf.nist.gov/14.19)
 
 - [14.19.E1](https://dlmf.nist.gov/14.19.E1): [`AAR.Legendre.toroidalCoordinates`](AAR/Legendre/Toroidal.lean#L25) (defined).
-- [14.19.E2](https://dlmf.nist.gov/14.19.E2): [`AAR.Legendre.toroidalP_hypergeometric`](AAR/Legendre/Toroidal.lean#L38) (admitted).
-- [14.19.E3](https://dlmf.nist.gov/14.19.E3): [`AAR.Legendre.toroidalQ_hypergeometric`](AAR/Legendre/Toroidal.lean#L44) (admitted).
-- [14.19.E4](https://dlmf.nist.gov/14.19.E4): [`AAR.Legendre.toroidalP_integral`](AAR/Legendre/Toroidal.lean#L50) (admitted).
-- [14.19.E5](https://dlmf.nist.gov/14.19.E5): [`AAR.Legendre.toroidalQ_integral`](AAR/Legendre/Toroidal.lean#L56) (admitted).
-- [14.19.E6](https://dlmf.nist.gov/14.19.E6): [`AAR.Legendre.toroidalQ_fourier`](AAR/Legendre/Toroidal.lean#L62) (admitted).
-- [14.19.E7](https://dlmf.nist.gov/14.19.E7): [`AAR.Legendre.toroidal_whipple_P`](AAR/Legendre/Toroidal.lean#L68) (admitted).
-- [14.19.E8](https://dlmf.nist.gov/14.19.E8): [`AAR.Legendre.toroidal_whipple_Q`](AAR/Legendre/Toroidal.lean#L74) (admitted).
+- [14.19.E2](https://dlmf.nist.gov/14.19.E2): [`AAR.Legendre.toroidalP_hypergeometric`](AAR/Legendre/Toroidal.lean#L305) (proved).
+- [14.19.E3](https://dlmf.nist.gov/14.19.E3): [`AAR.Legendre.toroidalQ_hypergeometric`](AAR/Legendre/Toroidal.lean#L350) (proved).
+- [14.19.E4](https://dlmf.nist.gov/14.19.E4): [`AAR.Legendre.toroidalP_integral`](AAR/Legendre/Toroidal.lean#L373) (admitted).
+- [14.19.E5](https://dlmf.nist.gov/14.19.E5): [`AAR.Legendre.toroidalQ_integral`](AAR/Legendre/Toroidal.lean#L379) (admitted).
+- [14.19.E6](https://dlmf.nist.gov/14.19.E6): [`AAR.Legendre.toroidalQ_fourier`](AAR/Legendre/Toroidal.lean#L385) (admitted).
+- [14.19.E7](https://dlmf.nist.gov/14.19.E7): [`AAR.Legendre.toroidal_whipple_P`](AAR/Legendre/Toroidal.lean#L391) (proved).
+- [14.19.E8](https://dlmf.nist.gov/14.19.E8): [`AAR.Legendre.toroidal_whipple_Q`](AAR/Legendre/Toroidal.lean#L437) (proved).
 
 ### [§14.20 Conical (or Mehler) Functions](https://dlmf.nist.gov/14.20)
 
@@ -1062,14 +1062,14 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 - [14.20.E4](https://dlmf.nist.gov/14.20.E4): [`AAR.Legendre.conical_wronskian`](AAR/Legendre/Conical.lean#L157) (proved).
 - [14.20.E5](https://dlmf.nist.gov/14.20.E5): [`AAR.Legendre.conicalQHat_wronskian`](AAR/Legendre/Conical.lean#L170) (proved).
 - [14.20.E6](https://dlmf.nist.gov/14.20.E6): [`AAR.Legendre.conical_associated_connection`](AAR/Legendre/Conical.lean#L201) (proved).
-- [14.20.E7](https://dlmf.nist.gov/14.20.E7): [`AAR.Legendre.conical_singular_7`](AAR/Legendre/Conical.lean#L239) (admitted).
-- [14.20.E8](https://dlmf.nist.gov/14.20.E8): [`AAR.Legendre.conical_singular_8`](AAR/Legendre/Conical.lean#L245) (admitted).
-- [14.20.E9](https://dlmf.nist.gov/14.20.E9): [`AAR.Legendre.conical_mehler_integral`](AAR/Legendre/Conical.lean#L251) (admitted).
-- [14.20.E10](https://dlmf.nist.gov/14.20.E10): [`AAR.Legendre.conical_power_series`](AAR/Legendre/Conical.lean#L270) (proved).
-- [14.20.E11](https://dlmf.nist.gov/14.20.E11): [`AAR.Legendre.mehlerFockTransform`](AAR/Legendre/Conical.lean#L320) (defined).
-- [14.20.E12](https://dlmf.nist.gov/14.20.E12): [`AAR.Legendre.mehlerFockInverse`](AAR/Legendre/Conical.lean#L325) (defined).
-- [14.20.E13](https://dlmf.nist.gov/14.20.E13): [`AAR.Legendre.conical_stieltjes_integral`](AAR/Legendre/Conical.lean#L330) (admitted).
-- [14.20.E14](https://dlmf.nist.gov/14.20.E14): [`AAR.Legendre.conical_product_transform`](AAR/Legendre/Conical.lean#L336) (admitted).
+- [14.20.E7](https://dlmf.nist.gov/14.20.E7): [`AAR.Legendre.conical_singular_7`](AAR/Legendre/Conical.lean#L318) (proved).
+- [14.20.E8](https://dlmf.nist.gov/14.20.E8): [`AAR.Legendre.conical_singular_8`](AAR/Legendre/Conical.lean#L385) (proved).
+- [14.20.E9](https://dlmf.nist.gov/14.20.E9): [`AAR.Legendre.conical_mehler_integral`](AAR/Legendre/Conical.lean#L475) (admitted).
+- [14.20.E10](https://dlmf.nist.gov/14.20.E10): [`AAR.Legendre.conical_power_series`](AAR/Legendre/Conical.lean#L494) (proved).
+- [14.20.E11](https://dlmf.nist.gov/14.20.E11): [`AAR.Legendre.mehlerFockTransform`](AAR/Legendre/Conical.lean#L544) (defined).
+- [14.20.E12](https://dlmf.nist.gov/14.20.E12): [`AAR.Legendre.mehlerFockInverse`](AAR/Legendre/Conical.lean#L549) (defined).
+- [14.20.E13](https://dlmf.nist.gov/14.20.E13): [`AAR.Legendre.conical_stieltjes_integral`](AAR/Legendre/Conical.lean#L554) (admitted).
+- [14.20.E14](https://dlmf.nist.gov/14.20.E14): [`AAR.Legendre.conical_product_transform`](AAR/Legendre/Conical.lean#L560) (admitted).
 - [14.20.E15](https://dlmf.nist.gov/14.20.E15): [`AAR.Legendre.conicalP_large_tau_uniform`](AAR/Legendre/ConicalAsymptotics.lean#L26) (admitted).
 - [14.20.E16](https://dlmf.nist.gov/14.20.E16): [`AAR.Legendre.conicalQHat_large_tau_uniform`](AAR/Legendre/ConicalAsymptotics.lean#L32) (admitted).
 - [14.20.E17](https://dlmf.nist.gov/14.20.E17): [`AAR.Legendre.conicalP_two_large_tau_uniform`](AAR/Legendre/ConicalAsymptotics.lean#L70) (admitted).
@@ -1104,8 +1104,8 @@ No selected numbered equations. Mathematical prose is recorded in the module inv
 
 ### [§14.25 Integral Representations](https://dlmf.nist.gov/14.25)
 
-- [14.25.E1](https://dlmf.nist.gov/14.25.E1): [`AAR.Legendre.associatedP_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L400) (admitted).
-- [14.25.E2](https://dlmf.nist.gov/14.25.E2): [`AAR.Legendre.olverQ_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L406) (admitted).
+- [14.25.E1](https://dlmf.nist.gov/14.25.E1): [`AAR.Legendre.associatedP_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L559) (admitted).
+- [14.25.E2](https://dlmf.nist.gov/14.25.E2): [`AAR.Legendre.olverQ_complex_integral`](AAR/Legendre/IntegralRepresentations.lean#L565) (admitted).
 
 ### [§14.26 Uniform Asymptotic Expansions](https://dlmf.nist.gov/14.26)
 

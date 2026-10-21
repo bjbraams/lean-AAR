@@ -12,7 +12,9 @@ public import AAR.Legendre.AssociatedRecurrences
 public import AAR.Legendre.Hypergeometric
 public import AAR.Legendre.IntegralRepresentations
 public import AAR.Legendre.IntegralTools
+public import AAR.Legendre.BoundaryAsymptotics
 public import AAR.Legendre.Integrals
+public import AAR.Legendre.SeriesTools
 public import AAR.Legendre.Series
 public import AAR.Legendre.Singularities
 public import AAR.Legendre.IntegerTheory

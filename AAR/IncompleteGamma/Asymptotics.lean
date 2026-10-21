@@ -6,6 +6,8 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.IncompleteGamma.SpecialValues
+public import AAR.IncompleteGamma.ExpIntegralAsymptotics
+public import AAR.IncompleteGamma.RealIntegrals
 
 /-!
 # Large argument and large parameter expansions, DLMF §8.11
@@ -36,12 +38,72 @@ def incGammaAsymptoticRemainder (a : ℂ) (N : ℕ) (w : ℂ) : ℂ :=
 @[dlmf 8.11.E3]
 theorem upperIncGamma_log_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 3*π/2) :
     HasAsymptoticExpansion (logSector (3*π/2-δ)) (fun k w => exp ((a-1-k)*w-exp w)) (incGammaAsymptoticCoeff a) (fun w => upperIncGammaOnLog a w) := by
-  sorry
+  have h := (genExpIntE_log_sector_asymptotic (1-a) hδ hδ1).mul_left (fun w => exp (a*w))
+  have hφ : (fun (k : ℕ) (w : ℂ) => exp (a*w) * exp (-exp w-(k+1 : ℂ)*w)) =
+      fun (k : ℕ) w => exp ((a-1-k)*w-exp w) := by
+    funext k w; rw [← Complex.exp_add]; congr 1; ring
+  have hf : (fun w => exp (a*w) • genExpIntEOnLog (1-a) w) = fun w => upperIncGammaOnLog a w := by
+    funext w
+    rw [smul_eq_mul, genExpIntEOnLog, show (1:ℂ) - (1 - a) = a by ring, ← mul_assoc,
+      ← Complex.exp_add, show a*w + (1-a-1)*w = 0 by ring, Complex.exp_zero, one_mul]
+  rw [hφ, hf] at h
+  exact h
 
 /-- The signed next-term real bound in DLMF §8.11(i). -/
 theorem incGammaAsymptoticRemainder_real_bound {a x : ℝ} (hx : 0 < x) {N : ℕ} (hN : a-1 ≤ N) :
     ‖incGammaAsymptoticRemainder a N (Real.log x)‖ ≤ ‖incGammaAsymptoticCoeff a N/(x : ℂ)^N‖ ∧ 0 ≤ (incGammaAsymptoticRemainder a N (Real.log x)).re*(incGammaAsymptoticCoeff a N/(x : ℂ)^N).re := by
-  sorry
+  have hx0 : (x:ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  set θ : ℝ := x^((N:ℝ)+1-a)*Real.exp x*(upperIncGamma ((a-N:ℝ):ℂ) x).re
+  have hθ0 : 0 < θ := by
+    have := incG_upperIncGamma_re_pos (a := a-N) hx (incG_integrableOn_rpow_exp_of_le_one (by linarith) hx)
+    positivity
+  have hθ1 : θ ≤ 1 := by
+    have hle := incG_upperIncGamma_re_le (a := a-N) (by linarith) hx
+    calc θ ≤ x^((N:ℝ)+1-a)*Real.exp x*(x^(a-N-1)*Real.exp (-x)) := by
+          simp only [θ]; gcongr
+      _ = 1 := by
+        rw [show x^((N:ℝ)+1-a)*Real.exp x*(x^(a-N-1)*Real.exp (-x)) =
+          (x^((N:ℝ)+1-a)*x^(a-N-1))*(Real.exp x*Real.exp (-x)) by ring,
+          ← Real.rpow_add hx, ← Real.exp_add]; ring_nf; simp
+  have hlog : upperIncGammaOnLog a (Real.log x) = upperIncGamma a x := by
+    rw [AAR.Confluent.upperIncGammaOnLog_eq_upperIncGamma a (by simpa using Real.pi_pos) (by simpa using Real.pi_pos.le),
+      ← ofReal_exp, Real.exp_log hx]
+  have hR : incGammaAsymptoticRemainder a N (Real.log x) = incGammaAsymptoticCoeff a N/(x : ℂ)^N*θ := by
+    set X : ℂ := (x:ℂ)
+    have hE : exp ((1-(a:ℂ))*(Real.log x : ℂ)+exp (Real.log x : ℂ)) = X^(1-(a:ℂ))*exp X := by
+      rw [← ofReal_exp, Real.exp_log hx, ofReal_log hx.le, Complex.exp_add, cpow_def_of_ne_zero hx0,
+        mul_comm (log X)]
+    have hk : ∀ k : ℕ, exp (-(k:ℂ)*(Real.log x : ℂ)) = X^(-(k:ℂ)) := by
+      intro k; rw [ofReal_log hx.le, cpow_def_of_ne_zero hx0, mul_comm]
+    have hU := incG_upperIncGamma_expansion (a:ℂ) hx0 N
+    have hθc : ((θ:ℝ):ℂ) = X^((N:ℂ)+1-a)*exp X*upperIncGamma ((a-N:ℝ):ℂ) x := by
+      simp only [θ]
+      conv_rhs => rw [incG_upperIncGamma_ofReal_re (a-N) hx]
+      push_cast
+      rw [ofReal_cpow hx.le]; push_cast; simp only [X]
+    have hsum : ∀ k ∈ Finset.range N, X^(1-(a:ℂ))*exp X*((-1:ℂ)^k*poch (1-a) k*(X^((a:ℂ)-1-k)*exp (-X))) =
+        incGammaAsymptoticCoeff a k*X^(-(k:ℂ)) := by
+      intro k _
+      have he : exp X*exp (-X) = 1 := by rw [← Complex.exp_add]; simp
+      have hc : X^(1-(a:ℂ))*X^((a:ℂ)-1-k) = X^(-(k:ℂ)) := by
+        rw [← cpow_add _ _ hx0]; ring_nf
+      rw [incGammaAsymptoticCoeff]
+      linear_combination ((-1:ℂ)^k*poch (1-a) k)*(X^(1-(a:ℂ))*X^((a:ℂ)-1-k))*he +
+        ((-1:ℂ)^k*poch (1-a) k)*hc
+    have hpow : X^(1-(a:ℂ)) = X^((N:ℂ)+1-a)*(X^N)⁻¹ := by
+      rw [← cpow_natCast, ← cpow_neg, ← cpow_add _ _ hx0]; ring_nf
+    unfold incGammaAsymptoticRemainder
+    rw [hE, hlog, hU, mul_add, Finset.mul_sum, Finset.sum_congr rfl hsum]
+    simp_rw [hk]
+    rw [hθc, hpow, incGammaAsymptoticCoeff]
+    push_cast
+    simp only [X]
+    ring
+  rw [hR]
+  constructor
+  · rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hθ0]
+    exact mul_le_of_le_one_right (norm_nonneg _) hθ1
+  · rw [re_mul_ofReal]; nlinarith [sq_nonneg (incGammaAsymptoticCoeff a N/(x : ℂ)^N).re]
 
 /-- lowerIncGamma large parameter hasSum. -/
 @[dlmf 8.11.E4]

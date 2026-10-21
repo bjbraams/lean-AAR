@@ -236,17 +236,241 @@ theorem conical_associated_connection {τ μ : ℝ} (hτ : 0 < τ) (hμ : 0 ≤ 
   linear_combination (-I)*h12' + ((Real.sinh (τ*π):ℂ)*associatedP (-1/2+I*τ) (-μ) x*
     (Gamma (μ+1/2+I*τ)*Gamma (μ+1/2-I*τ)))*I_sq
 
+/-! ### Boundary behaviour at `x = 1⁻` (prefix `legCon_`) -/
+
+/-- `π sin(μπ)/Γ(1-μ) = Γ(μ) sin²(μπ)` for `μ > 0`, including integer `μ`. -/
+lemma legCon_reflect {μ : ℝ} (hμ : 0 < μ) :
+    π * Real.sin (μ*π) * (Real.Gamma (1-μ))⁻¹ = Real.Gamma μ * Real.sin (μ*π)^2 := by
+  by_cases h : Real.Gamma (1-μ) = 0
+  · obtain ⟨m, hm⟩ := (Real.Gamma_eq_zero_iff _).mp h
+    have hs : Real.sin (μ*π) = 0 := by
+      rw [show μ = ((m+1:ℕ):ℝ) by push_cast; linarith, Real.sin_nat_mul_pi]
+    rw [hs]; ring
+  · have hr := Real.Gamma_mul_Gamma_one_sub μ
+    have hG := Real.Gamma_pos_of_pos hμ
+    have hs : Real.sin (π*μ) ≠ 0 := by
+      intro hs; rw [hs, div_zero] at hr
+      exact h ((mul_eq_zero.mp hr).resolve_left hG.ne')
+    rw [mul_comm π μ] at hs hr
+    rw [eq_div_iff hs] at hr
+    set s := Real.sin (μ*π)
+    field_simp
+    linear_combination -hr
+
+/-- `(1-x²)^{μ/2} 𝖯^μ_ν(x) → 2^μ/Γ(1-μ)` as `x → 1⁻`, for every `μ`. -/
+lemma legCon_tendsto_P (ν μ : ℂ) :
+    Tendsto (fun x : ℝ => (1-(x:ℂ)^2)^(μ/2) * ferrersP ν μ x) (𝓝[<] 1)
+      (𝓝 ((2:ℂ)^μ * (Gamma (1-μ))⁻¹)) := by
+  have hc : ContinuousAt (fun x : ℝ => (1+(x:ℂ))^μ *
+      regularizedGaussHG (ν+1) (-ν) (1-μ) ((1-(x:ℂ))/2)) 1 :=
+    (ContinuousAt.cpow (by fun_prop) continuousAt_const (Or.inl (by norm_num))).mul
+      (continuousAt_regularizedGaussHG_half_one _ _ _)
+  have h1 : (1+((1:ℝ):ℂ))^μ * regularizedGaussHG (ν+1) (-ν) (1-μ) ((1-((1:ℝ):ℂ))/2) =
+      (2:ℂ)^μ * (Gamma (1-μ))⁻¹ := by
+    rw [show (1-((1:ℝ):ℂ))/2 = 0 by simp, regularizedGaussHG_at_zero]; norm_num
+  rw [← h1]
+  refine (hc.tendsto.mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [Ioo_mem_nhdsLT (show (-1:ℝ) < 1 by norm_num)] with x hx
+  have h0 : 0 < 1 + x := by linarith [hx.1]
+  have h2 : 0 < 1 - x := by linarith [hx.2]
+  simp only [ferrersP]
+  rw [← mul_assoc]
+  congr 1
+  rw [show (1-(x:ℂ)^2) = ((1-x^2:ℝ):ℂ) by push_cast; ring,
+    ← mul_cpow_ofReal_nonneg (by nlinarith) (by positivity), ← ofReal_mul,
+    show (1-x^2)*((1+x)/(1-x)) = (1+x)^2 by field_simp; ring,
+    legTor_cpow_real (by positivity), show (1:ℂ)+x = ((1+x:ℝ):ℂ) by push_cast; ring,
+    legTor_cpow_real h0, Real.log_pow]
+  push_cast; ring_nf
+
+/-- `(1-x²)^{μ/2} 𝖯^{-μ}_ν(-x) → 2^μ Γ(μ)/(Γ(μ-ν)Γ(μ+ν+1))` as `x → 1⁻`, for `Re μ > 0`. -/
+lemma legCon_tendsto_P_neg (ν : ℂ) {μ : ℝ} (hμ : 0 < μ) :
+    Tendsto (fun x : ℝ => (1-(x:ℂ)^2)^((μ:ℂ)/2) * ferrersP ν (-(μ:ℂ)) (-x)) (𝓝[<] 1)
+      (𝓝 ((2:ℂ)^(μ:ℂ) * (Gamma (μ:ℂ) * ((Gamma ((μ:ℂ)-ν))⁻¹ * (Gamma ((μ:ℂ)+ν+1))⁻¹)))) := by
+  have hF := legBd_tendsto_rGHG_one (a := ν+1) (b := -ν) (c := 1-(-(μ:ℂ)))
+    (by simp only [sub_re, neg_re, add_re, one_re, ofReal_re]; linarith)
+  rw [show 1-(-(μ:ℂ))-(ν+1)-(-ν) = (μ:ℂ) by ring, show 1-(-(μ:ℂ))-(ν+1) = (μ:ℂ)-ν by ring,
+    show 1-(-(μ:ℂ))-(-ν) = (μ:ℂ)+ν+1 by ring] at hF
+  have hτ : Tendsto (fun x : ℝ => (1+x)/2) (𝓝[<] 1) (𝓝[<] 1) := by
+    refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_ ?_
+    · have : Tendsto (fun x : ℝ => (1+x)/2) (𝓝 1) (𝓝 ((1+1)/2)) :=
+        ((continuous_const.add continuous_id).div_const 2).tendsto 1
+      rw [show ((1:ℝ)+1)/2 = 1 by norm_num] at this; exact this.mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with x (hx : x < 1); show (1+x)/2 < 1; linarith
+  have hc : Tendsto (fun x : ℝ => (1+(x:ℂ))^(μ:ℂ)) (𝓝[<] 1) (𝓝 ((2:ℂ)^(μ:ℂ))) := by
+    have : ContinuousAt (fun x : ℝ => (1+(x:ℂ))^(μ:ℂ)) 1 :=
+      ContinuousAt.cpow (by fun_prop) continuousAt_const (Or.inl (by norm_num))
+    have h := this.tendsto.mono_left (nhdsWithin_le_nhds (s := Iio 1))
+    rwa [show (1+((1:ℝ):ℂ)) = 2 by norm_num] at h
+  refine (hc.mul (hF.comp hτ)).congr' ?_
+  filter_upwards [Ioo_mem_nhdsLT (show (-1:ℝ) < 1 by norm_num)] with x hx
+  have h0 : 0 < 1 + x := by linarith [hx.1]
+  have h2 : 0 < 1 - x := by linarith [hx.2]
+  simp only [ferrersP, Function.comp]
+  rw [show (1-((-x:ℝ):ℂ))/2 = (((1+x)/2:ℝ):ℂ) by push_cast; ring,
+    show (1 + -x) / (1 - -x) = (1-x)/(1+x) by ring, ← mul_assoc]
+  congr 1
+  rw [show (1-(x:ℂ)^2) = ((1-x^2:ℝ):ℂ) by push_cast; ring, show (1:ℂ)+x = ((1+x:ℝ):ℂ) by push_cast; ring,
+    legTor_cpow_real h0, legTor_cpow_real (by nlinarith), legTor_cpow_real (by positivity), ← exp_add,
+    show 1-x^2 = (1-x)*(1+x) by ring, Real.log_mul h2.ne' h0.ne', Real.log_div h2.ne' h0.ne']
+  congr 1; push_cast; ring
+
 /-- conical singular 7. -/
 @[dlmf 14.20.E7]
 theorem conical_singular_7 {τ μ : ℝ} (hτ : 0 ≤ τ) (hμ : 0 < μ) (hex : τ ≠ 0 ∨ ∀ n : ℕ, μ ≠ n+1/2) :
     (fun x : ℝ => conicalQHat τ (-1*μ) x) ~[𝓝[<] (1:ℝ)] (fun x : ℝ => Gamma (μ:ℂ)/2*(2/(1-x):ℂ)^((μ:ℂ)/2)) := by
-  sorry
+  set ν : ℂ := -1/2+I*τ with hνdef
+  have hreg : LegendreQRegular ν (μ:ℂ) := fun n hn => by
+    have := congrArg Complex.re hn; simp [hνdef] at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
+  have hQ := legBd_ferrersQ_tendsto hreg (by simpa using hμ)
+  have hP := legCon_tendsto_P ν μ
+  set E : ℂ := exp ((((-1*μ)*π:ℝ):ℂ)*I)
+  set c : ℂ := ((π/2*Real.sin (μ*π):ℝ):ℂ)
+  have hF : Tendsto (fun x : ℝ => (((E * ((1-(x:ℂ)^2)^((μ:ℂ)/2) * ferrersQ ν μ x)).re:ℝ):ℂ) +
+      c * ((1-(x:ℂ)^2)^((μ:ℂ)/2) * ferrersP ν μ x)) (𝓝[<] 1)
+      (𝓝 ((((E * (2^((μ:ℂ)-1) * Gamma (μ:ℂ) * cos ((μ:ℂ)*π))).re:ℝ):ℂ) +
+        c * ((2:ℂ)^(μ:ℂ) * (Gamma (1-(μ:ℂ)))⁻¹))) :=
+    ((continuous_ofReal.comp continuous_re).continuousAt.tendsto.comp (hQ.const_mul E)).add
+      (hP.const_mul c)
+  have hval : (((E * (2^((μ:ℂ)-1) * Gamma (μ:ℂ) * cos ((μ:ℂ)*π))).re:ℝ):ℂ) +
+      c * ((2:ℂ)^(μ:ℂ) * (Gamma (1-(μ:ℂ)))⁻¹) = 2^((μ:ℂ)-1) * Gamma (μ:ℂ) := by
+    have e1 : (2:ℂ)^((μ:ℂ)-1) = (((2:ℝ)^(μ-1):ℝ):ℂ) := by
+      rw [ofReal_cpow (by norm_num)]; push_cast; ring_nf
+    have e2 : (2:ℂ)^(μ:ℂ) = (((2:ℝ)^μ:ℝ):ℂ) := by rw [ofReal_cpow (by norm_num)]; push_cast; ring_nf
+    have e3 : Gamma (1-(μ:ℂ)) = ((Real.Gamma (1-μ):ℝ):ℂ) := by
+      rw [← Complex.Gamma_ofReal]; push_cast; ring_nf
+    have e4 : cos ((μ:ℂ)*π) = ((Real.cos (μ*π):ℝ):ℂ) := by push_cast; ring_nf
+    rw [e1, e2, e3, e4, Complex.Gamma_ofReal, show (((2:ℝ)^(μ-1):ℝ):ℂ) * ((Real.Gamma μ:ℝ):ℂ) *
+      ((Real.cos (μ*π):ℝ):ℂ) = (((2:ℝ)^(μ-1) * Real.Gamma μ * Real.cos (μ*π):ℝ):ℂ) by push_cast; ring,
+      mul_comm E, re_ofReal_mul, exp_ofReal_mul_I_re]
+    have h2 : (2:ℝ)^μ = 2 * 2^(μ-1) := by
+      rw [show μ = (μ-1)+1 by ring, Real.rpow_add (by norm_num), Real.rpow_one]; ring_nf
+    have hr := legCon_reflect hμ
+    have hr' : (π:ℂ) * sin ((μ:ℂ)*π) * ((Real.Gamma (1-μ):ℝ):ℂ)⁻¹ =
+        ((Real.Gamma μ:ℝ):ℂ) * sin ((μ:ℂ)*π)^2 := by
+      have := congrArg (fun r : ℝ => (r:ℂ)) hr; push_cast at this; exact this
+    simp only [c]
+    push_cast
+    rw [h2]
+    push_cast
+    rw [show cos (-1*(μ:ℂ)*π) = cos ((μ:ℂ)*π) by
+      rw [show -1*(μ:ℂ)*π = -((μ:ℂ)*π) by ring, Complex.cos_neg]]
+    linear_combination (((2:ℝ)^(μ-1):ℝ):ℂ) * hr' +
+      (((2:ℝ)^(μ-1):ℝ):ℂ) * ((Real.Gamma μ:ℝ):ℂ) * Complex.sin_sq_add_cos_sq ((μ:ℂ)*π)
+  have hu : Tendsto (fun x : ℝ => (1-(x:ℂ)^2)^((μ:ℂ)/2) * conicalQHat τ (-1*μ) x) (𝓝[<] 1)
+      (𝓝 (2^((μ:ℂ)-1) * Gamma (μ:ℂ))) := by
+    rw [← hval]
+    refine hF.congr' ?_
+    filter_upwards [Ioo_mem_nhdsLT (show (-1:ℝ) < 1 by norm_num)] with x hx
+    have h0 : 0 ≤ 1 - x^2 := by nlinarith [hx.1, hx.2]
+    have hr : (1-(x:ℂ)^2)^((μ:ℂ)/2) = (((1-x^2)^(μ/2):ℝ):ℂ) := by
+      rw [ofReal_cpow h0]; push_cast; ring_nf
+    unfold conicalQHat conicalP
+    rw [show -(((-1*μ:ℝ)):ℂ) = (μ:ℂ) by push_cast; ring,
+      show (((-1*μ:ℝ)):ℂ)*π*I = (((-1*μ)*π:ℝ):ℂ)*I by push_cast; ring, hr]
+    rw [mul_left_comm E, re_ofReal_mul]
+    simp only [c, E, ← hνdef]
+    rw [show Real.sin ((-1*μ)*π) = -Real.sin (μ*π) by
+      rw [show (-1*μ)*π = -(μ*π) by ring, Real.sin_neg]]
+    push_cast; ring
+  have hK : (2:ℂ)^((μ:ℂ)-1) * Gamma (μ:ℂ) ≠ 0 :=
+    mul_ne_zero (by simp) (Gamma_ne_zero_of_re_pos (by simpa using hμ))
+  have := legBd_isEquivalent_of_tendsto hu (legBd_tendsto_weight_left (μ:ℂ)) hK (by simp)
+  refine this.congr_right (Eventually.of_forall fun x => ?_)
+  simp only
+  rw [show (2:ℂ)^((μ:ℂ)-1) * Gamma (μ:ℂ) / 2^(μ:ℂ) = (2:ℂ)^((μ:ℂ)-1) / 2^(μ:ℂ) * Gamma (μ:ℂ) by ring,
+    legBd_two_cpow_sub_one_div]
+  ring
 
 /-- conical singular 8. -/
 @[dlmf 14.20.E8]
 theorem conical_singular_8 {τ μ : ℝ} (hτ : 0 ≤ τ) (hμ : 0 < μ) (hex : τ ≠ 0 ∨ ∀ n : ℕ, μ ≠ n+1/2) :
     (fun x : ℝ => conicalQHat τ (1*μ) x) ~[𝓝[<] (1:ℝ)] (fun x : ℝ => π*Gamma (μ:ℂ)*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2)*(‖Gamma (μ+1/2+I*τ)‖^2:ℂ))*(2/(1-x):ℂ)^((μ:ℂ)/2)) := by
-  sorry
+  set ν : ℂ := -1/2+I*τ with hνdef
+  set A : ℂ := π*Real.exp (-τ*π)*Real.sin (μ*π)*Real.sinh (τ*π)/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))
+  set B : ℂ := π*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))
+  -- first term tends to zero
+  have h1 : Tendsto (fun x : ℝ => (1-(x:ℂ)^2)^((μ:ℂ)/2) * conicalP τ μ x) (𝓝[<] 1) (𝓝 0) := by
+    have hP := legCon_tendsto_P ν (-(μ:ℂ))
+    have hz : Tendsto (fun x : ℝ => (((1-x^2)^μ:ℝ):ℂ)) (𝓝[<] 1) (𝓝 0) := by
+      have : ContinuousAt (fun x : ℝ => (((1-x^2)^μ:ℝ):ℂ)) 1 :=
+        continuous_ofReal.continuousAt.comp ((Real.continuousAt_rpow_const _ _ (Or.inr hμ.le)).comp
+          (by fun_prop))
+      have h := this.tendsto.mono_left (nhdsWithin_le_nhds (s := Iio 1))
+      rwa [show (1:ℝ)-1^2 = 0 by norm_num, Real.zero_rpow hμ.ne', ofReal_zero] at h
+    have := hz.mul hP
+    rw [zero_mul] at this
+    refine this.congr' ?_
+    filter_upwards [Ioo_mem_nhdsLT (show (-1:ℝ) < 1 by norm_num)] with x hx
+    have h0 : 0 < 1 - x^2 := by nlinarith [hx.1, hx.2]
+    simp only [conicalP, ← hνdef]
+    rw [← mul_assoc]; congr 1
+    rw [show (1-(x:ℂ)^2) = ((1-x^2:ℝ):ℂ) by push_cast; ring, legTor_cpow_real h0,
+      legTor_cpow_real h0, ofReal_cpow h0.le, legTor_cpow_real h0, ← exp_add]
+    congr 1; ring
+  have h2 := legCon_tendsto_P_neg ν hμ
+  have hsum : Tendsto (fun x : ℝ => (1-(x:ℂ)^2)^((μ:ℂ)/2) * conicalQHat τ (1*μ) x) (𝓝[<] 1)
+      (𝓝 (A*0 + B*((2:ℂ)^(μ:ℂ) * (Gamma (μ:ℂ) * ((Gamma ((μ:ℂ)-ν))⁻¹ * (Gamma ((μ:ℂ)+ν+1))⁻¹))))) := by
+    refine ((h1.const_mul A).add (h2.const_mul B)).congr' ?_
+    filter_upwards [Ioo_mem_nhdsLT (show (-1:ℝ) < 1 by norm_num)] with x hx
+    rw [one_mul, conicalQHat_connection hτ hμ.le hex hx]
+    simp only [conicalP, ← hνdef, A, B]
+    ring
+  simp only [mul_zero, zero_add] at hsum
+  set N : ℝ := Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π) with hNdef
+  set D : ℝ := (Real.cosh (τ*π))^2-(Real.sin (μ*π))^2 with hDdef
+  have hcos : τ = 0 → Real.cos (μ*π) ≠ 0 := by
+    intro h0
+    have hh : ∀ n : ℕ, μ ≠ n+1/2 := hex.resolve_left (fun h => h h0)
+    have := legBd_cos_ne_zero (μ := (μ:ℂ)) (by simpa using hμ)
+      (fun n hn => hh n (by have := congrArg Complex.re hn; simpa using this))
+    intro hc; apply this; rw [show (μ:ℂ)*π = ((μ*π:ℝ):ℂ) by push_cast; ring, ← ofReal_cos, hc, ofReal_zero]
+  have hN : 0 < N := by
+    rcases eq_or_lt_of_le hτ with h0 | hpos
+    · rw [hNdef, ← h0]; simp only [zero_mul, neg_zero, Real.exp_zero, one_mul, Real.sinh_zero, add_zero]
+      have := hcos h0.symm
+      positivity
+    · have := Real.sinh_pos_iff.mpr (mul_pos hpos Real.pi_pos)
+      have : 0 ≤ Real.exp (-τ*π)*(Real.cos (μ*π))^2 := by positivity
+      linarith
+  have hD : 0 < D := by
+    rcases eq_or_lt_of_le hτ with h0 | hpos
+    · rw [hDdef, ← h0]; simp only [zero_mul, Real.cosh_zero, one_pow]
+      have := hcos h0.symm
+      have h1 := Real.sin_sq_add_cos_sq (μ*π)
+      have : 0 < Real.cos (μ*π)^2 := by positivity
+      linarith
+    · have h1 : 1 < Real.cosh (τ*π) := Real.one_lt_cosh.mpr (mul_pos hpos Real.pi_pos).ne'
+      have h2 := Real.sin_sq_le_one (μ*π)
+      nlinarith
+  have hB : B = ((π*N/(2*D):ℝ):ℂ) := by simp only [B, hNdef, hDdef]; push_cast; ring
+  have hB0 : B ≠ 0 := by rw [hB]; exact ofReal_ne_zero.mpr (by positivity)
+  have hre1 : 0 < ((μ:ℂ)-ν).re := by simp [hνdef]; linarith
+  have hre2 : 0 < ((μ:ℂ)+ν+1).re := by simp [hνdef]; linarith
+  have hG1 := Gamma_ne_zero_of_re_pos hre1
+  have hG2 := Gamma_ne_zero_of_re_pos hre2
+  have hGm : Gamma (μ:ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using hμ)
+  have hK : B*((2:ℂ)^(μ:ℂ) * (Gamma (μ:ℂ) * ((Gamma ((μ:ℂ)-ν))⁻¹ * (Gamma ((μ:ℂ)+ν+1))⁻¹))) ≠ 0 := by
+    refine mul_ne_zero hB0 (mul_ne_zero (by simp) (mul_ne_zero hGm (mul_ne_zero ?_ ?_))) <;>
+      exact inv_ne_zero (by assumption)
+  have := legBd_isEquivalent_of_tendsto hsum (legBd_tendsto_weight_left (μ:ℂ)) hK (by simp)
+  refine this.congr_right (Eventually.of_forall fun x => ?_)
+  have hg : Gamma ((μ:ℂ)-ν) * Gamma ((μ:ℂ)+ν+1) = (‖Gamma ((μ:ℂ)+1/2+I*τ)‖:ℂ)^2 := by
+    rw [show (μ:ℂ)+ν+1 = (μ:ℂ)+1/2+I*τ by rw [hνdef]; ring,
+      show (μ:ℂ)-ν = (starRingEnd ℂ) ((μ:ℂ)+1/2+I*τ) by
+        apply Complex.ext <;> (simp [hνdef]; try norm_num),
+      Complex.Gamma_conj, Complex.conj_mul']
+  have h2 : (2:ℂ)^(μ:ℂ) ≠ 0 := by simp
+  simp only
+  rw [show B*((2:ℂ)^(μ:ℂ) * (Gamma (μ:ℂ) * ((Gamma ((μ:ℂ)-ν))⁻¹ * (Gamma ((μ:ℂ)+ν+1))⁻¹))) / 2^(μ:ℂ)
+      = B * Gamma (μ:ℂ) / (Gamma ((μ:ℂ)-ν) * Gamma ((μ:ℂ)+ν+1)) by field_simp, hg, hB]
+  have eN : ((Real.exp (-τ*π):ℂ)*(Real.cos (μ*π):ℂ)^2+(Real.sinh (τ*π):ℂ)) = (N:ℂ) := by
+    simp only [hNdef]; push_cast; ring
+  have eD : ((Real.cosh (τ*π):ℂ)^2-(Real.sin (μ*π):ℂ)^2) = (D:ℂ) := by
+    simp only [hDdef]; push_cast; ring
+  rw [eN, eD]
+  push_cast
+  ring
 
 /-- conical mehler integral. -/
 @[dlmf 14.20.E9]

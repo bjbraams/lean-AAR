@@ -9,6 +9,7 @@ public import AAR.Legendre.Hypergeometric
 public import AAR.Legendre.AssociatedRecurrences
 public import AAR.Legendre.Neumann
 public import AAR.Legendre.IntegralTools
+public import AAR.Legendre.Singularities
 
 /-!
 # Integral representations and fractional integration
@@ -360,11 +361,169 @@ theorem olverQ_nat_interval_integral (n m : ℕ) {x : ℝ} (hx : 1 < x) :
         + C*(s:ℂ)^(k+1)*hord - ((n:ℂ)+k+2)*C*(s:ℂ)^(k+1)*(legInt_A x n (n+k+1+2):ℂ)*hss
   rw [(key m).1, hC]; ring
 
+/-! ### Helpers for DLMF 14.12.12 (prefix `legIR_`) -/
+
+/-- For real `t > 1`, `t - 1` lies in the slit plane. -/
+lemma legIR_sub_one_mem {t : ℝ} (ht : 1 < t) : (t:ℂ) - 1 ∈ slitPlane := by
+  rw [show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring]
+  exact ofReal_mem_slitPlane.2 (by linarith)
+
+/-- A terminating `₂F₁(-N,-n;c+1;w)` sum with `w ≥ 0` has real part at least `1`. -/
+lemma legIR_sum_re_ge (N n c : ℕ) {w : ℝ} (hw : 0 ≤ w) :
+    1 ≤ (∑ k ∈ Finset.range (N+1), gaussHGCoeff (-(N:ℂ)) (-(n:ℂ)) ((c:ℂ)+1) k * (w:ℂ)^k).re := by
+  have hterm : ∀ k, gaussHGCoeff (-(N:ℂ)) (-(n:ℂ)) ((c:ℂ)+1) k * (w:ℂ)^k =
+      ((((N.descFactorial k * n.descFactorial k : ℕ):ℝ) / (((c+1).ascFactorial k * k ! : ℕ):ℝ) * w^k : ℝ) : ℂ) := by
+    intro k
+    have h1 : ((-1:ℂ))^k * (-1)^k = 1 := by rw [← mul_pow]; norm_num
+    rw [gaussHGCoeff, poch_neg_coe_nat, poch_neg_coe_nat, show (c:ℂ)+1 = ((c+1:ℕ):ℂ) by push_cast; ring,
+      poch, ascPochhammer_nat_eq_natCast_ascFactorial]
+    push_cast
+    linear_combination ((N.descFactorial k:ℂ) * n.descFactorial k / (((c+1).ascFactorial k:ℂ) * k !) * (w:ℂ)^k) * h1
+  simp_rw [hterm]
+  rw [← ofReal_sum, ofReal_re]
+  have h0 : ∀ k ∈ Finset.range (N+1), 0 ≤ (((N.descFactorial k * n.descFactorial k : ℕ):ℝ) / (((c+1).ascFactorial k * k ! : ℕ):ℝ) * w^k) :=
+    fun k _ => by positivity
+  refine le_trans ?_ (Finset.single_le_sum h0 (Finset.mem_range.2 (Nat.succ_pos N)))
+  simp
+
+/-- Norm of the branch power `(t²-1)^{m/2}` for real `t > 1`. -/
+lemma legIR_norm_bp (m : ℕ) {t : ℝ} (ht : 1 < t) :
+    ‖legendreBranchPower m t‖ = Real.exp (m/2*(Real.log (t-1) + Real.log (t+1))) := by
+  rw [legendreBranchPower, norm_exp, show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring,
+    show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring, ← ofReal_log (by linarith), ← ofReal_log (by linarith)]
+  simp
+
+/-- For integers `0 ≤ m ≤ n`, `|P^m_n(t)| ≥ C (t²-1)^{m/2}` on `t > 1`, via Pfaff to a
+terminating series with nonnegative terms. -/
+lemma legIR_norm_associatedP_ge (n m : ℕ) (hmn : m ≤ n) : ∃ C > 0, ∀ t : ℝ, 1 < t →
+    C * ‖legendreBranchPower m t‖ ≤ ‖associatedP n m t‖ := by
+  obtain ⟨N, rfl⟩ := Nat.exists_eq_add_of_le hmn
+  set K := poch (((m+N:ℕ):ℂ) - m + 1) (2*m) / 2^m with hKdef
+  have hK : K ≠ 0 := by
+    rw [hKdef, show ((m+N:ℕ):ℂ) - m + 1 = ((N+1:ℕ):ℂ) by push_cast; ring, poch,
+      ascPochhammer_nat_eq_natCast_ascFactorial]
+    have : (N+1).ascFactorial (2*m) ≠ 0 := (Nat.ascFactorial_pos _ _).ne'
+    exact div_ne_zero (by exact_mod_cast this) (pow_ne_zero _ two_ne_zero)
+  have hc : ∀ k : ℕ, (m:ℂ)+1 ≠ -(k:ℂ) := fun k h => by
+    have := congrArg re h; simp at this; linarith
+  have hΓ : Gamma ((m:ℂ)+1) ≠ 0 := Gamma_ne_zero (fun k h => hc k h)
+  refine ⟨‖K‖ / ‖Gamma ((m:ℂ)+1)‖, by positivity, fun t ht => ?_⟩
+  have hs := legIR_sub_one_mem ht
+  rw [associatedP_integer_hypergeometric_8 _ m hs]
+  have h1z : 1 - (1-(t:ℂ))/2 = (((1+t)/2 : ℝ) : ℂ) := by push_cast; ring
+  have hz : (1-(t:ℂ))/2 ∈ cutPlane := by
+    rw [mem_cutPlane, h1z]; exact ofReal_mem_slitPlane.2 (by linarith)
+  have hw : (1-(t:ℂ))/2/((1-(t:ℂ))/2-1) = (((t-1)/(t+1) : ℝ) : ℂ) := by
+    have : (t:ℂ)+1 ≠ 0 := by
+      rw [show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring]; exact ofReal_ne_zero.2 (by linarith)
+    have hd : (1-(t:ℂ))/2-1 ≠ 0 := by
+      rw [show (1-(t:ℂ))/2-1 = -((t:ℂ)+1)/2 by ring]; exact div_ne_zero (neg_ne_zero.2 this) two_ne_zero
+    push_cast; rw [div_eq_div_iff hd this]; ring
+  have hwn : ‖(1-(t:ℂ))/2/((1-(t:ℂ))/2-1)‖ < 1 := by
+    rw [hw, norm_real, Real.norm_eq_abs, abs_lt]
+    constructor
+    · rw [lt_div_iff₀ (by linarith)]; linarith
+    · rw [div_lt_iff₀ (by linarith)]; linarith
+  rw [regularizedGaussHG_symm _ _ _ hz, regularizedGaussHG_pfaff _ _ _ hz,
+    regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hwn, regularizedGaussHGFun_eq_div_Gamma hc,
+    show (m:ℂ) - ((m+N:ℕ):ℂ) = -(N:ℂ) by push_cast; ring,
+    show (m:ℂ) + 1 - (((m+N:ℕ):ℂ) + m + 1) = -((m+N:ℕ):ℂ) by push_cast; ring,
+    ordinaryHypergeometric_eq_sum_neg_nat, hw, h1z]
+  have hsum := le_trans (legIR_sum_re_ge N (m+N) m (w := (t-1)/(t+1))
+    (div_nonneg (by linarith) (by linarith))) (re_le_norm _)
+  have hpow : 1 ≤ ‖((((1+t)/2 : ℝ)) : ℂ)^(-(-(N:ℂ)))‖ := by
+    rw [norm_cpow_eq_rpow_re_of_pos (by linarith)]
+    exact Real.one_le_rpow (by linarith) (by simp)
+  rw [norm_mul, norm_mul, norm_mul, norm_div _ (Gamma ((m:ℂ)+1))]
+  have hbp : 0 ≤ ‖legendreBranchPower (m:ℂ) (t:ℂ)‖ := norm_nonneg _
+  have hΓn : 0 < ‖Gamma ((m:ℂ)+1)‖ := norm_pos_iff.2 hΓ
+  calc ‖K‖ / ‖Gamma ((m:ℂ)+1)‖ * ‖legendreBranchPower (m:ℂ) (t:ℂ)‖
+      = ‖K‖ * ‖legendreBranchPower (m:ℂ) (t:ℂ)‖ * (1 * (1 / ‖Gamma ((m:ℂ)+1)‖)) := by ring
+    _ ≤ _ := by gcongr
+
+/-- `𝑸^m_n(x) → 0` as `x → ∞` (from DLMF 14.8.15). -/
+lemma legIR_olverQ_tendsto_zero (n m : ℕ) :
+    Tendsto (fun x : ℝ => olverQ n m x) atTop (𝓝 0) := by
+  have hν : ∀ k : ℕ, (n:ℂ) ≠ -k-3/2 := fun k h => by
+    have := congrArg re h; simp at this; linarith
+  refine (legendre_singular_15 (n:ℂ) (m:ℂ) hν).symm.tendsto_nhds ?_
+  have h : Tendsto (fun x : ℝ => (Real.sqrt π/Gamma ((n:ℂ)+3/2)) * ((((2*x)^(n+1))⁻¹ : ℝ) : ℂ)) atTop (𝓝 0) := by
+    have := (continuous_ofReal.tendsto 0).comp (tendsto_inv_atTop_zero.comp
+      ((tendsto_pow_atTop (Nat.succ_ne_zero n)).comp (tendsto_id.const_mul_atTop (two_pos (α := ℝ)))))
+    simpa using this.const_mul (Real.sqrt π/Gamma ((n:ℂ)+3/2))
+  refine h.congr' ?_
+  filter_upwards with x
+  rw [show (n:ℂ)+1 = ((n+1:ℕ):ℂ) by push_cast; ring, cpow_natCast]
+  push_cast; ring
+
+
 /-- olverQ nat reduction integral. -/
 @[dlmf 14.12.E12]
 theorem olverQ_nat_reduction_integral (n m : ℕ) (hmn : m ≤ n) {x : ℝ} (hx : 1 < x) :
     HasIntegralAtTop (fun t : ℝ => associatedP n m x/((n-m).factorial:ℂ)/((t^2-1:ℂ)*(associatedP n m t)^2)) x (olverQ n m x) := by
-  sorry
+  obtain ⟨C, hC, hPC⟩ := legIR_norm_associatedP_ge n m hmn
+  have hPne : ∀ t : ℝ, 1 < t → associatedP n m t ≠ 0 := fun t ht h => by
+    have h1 := hPC t ht
+    rw [h, norm_zero, legIR_norm_bp m ht] at h1
+    have : 0 < C * Real.exp (m/2*(Real.log (t-1) + Real.log (t+1))) := by positivity
+    linarith
+  have hfac : Gamma ((n:ℂ)-m+1) = ((n-m).factorial:ℂ) := by
+    rw [show (n:ℂ)-m+1 = ((n-m:ℕ):ℂ)+1 by push_cast [Nat.cast_sub hmn]; ring, Gamma_nat_eq_factorial]
+  have hfac0 : ((n-m).factorial:ℂ) ≠ 0 := by exact_mod_cast (Nat.factorial_pos _).ne'
+  set F : ℝ → ℂ := fun s => -associatedP n m x * (olverQ n m s / associatedP n m s) with hF
+  have hderiv : ∀ t : ℝ, 1 < t → HasDerivAt F
+      (associatedP n m x/((n-m).factorial:ℂ)/((t^2-1:ℂ)*(associatedP n m t)^2)) t := by
+    intro t ht
+    have hs := legIR_sub_one_mem ht
+    have hQd := ((olverQ_analytic n m) _ hs).differentiableAt.hasDerivAt
+    have hPd := ((associatedP_analytic n m) _ hs).differentiableAt.hasDerivAt
+    have h := ((hQd.div hPd (hPne t ht)).comp_ofReal).const_mul (-associatedP n m x)
+    have hw := olverQ_wronskian_pos (n:ℂ) (m:ℂ) hs
+    rw [LegendreWronskian, hfac] at hw
+    have ht2 : (t:ℂ)^2-1 ≠ 0 := by
+      rw [show (t:ℂ)^2-1 = ((t^2-1:ℝ):ℂ) by push_cast; ring]; exact ofReal_ne_zero.2 (by nlinarith)
+    convert h using 1
+    have hP := hPne t ht
+    rw [show deriv (olverQ n m) t * associatedP n m t - olverQ n m t * deriv (associatedP n m) t
+      = associatedP n m t * deriv (olverQ n m) t - olverQ n m t * deriv (associatedP n m) t by ring, hw]
+    field_simp
+  have hcont : ∀ t : ℝ, 1 < t → ContinuousAt (fun t : ℝ => associatedP n m x/((n-m).factorial:ℂ)/((t^2-1:ℂ)*(associatedP n m t)^2)) t := by
+    intro t ht
+    have hs := legIR_sub_one_mem ht
+    have hPc : ContinuousAt (fun s : ℝ => associatedP n m s) t :=
+      ((associatedP_analytic n m) _ hs).continuousAt.comp continuous_ofReal.continuousAt
+    have ht2 : (t:ℂ)^2-1 ≠ 0 := by
+      rw [show (t:ℂ)^2-1 = ((t^2-1:ℝ):ℂ) by push_cast; ring]; exact ofReal_ne_zero.2 (by nlinarith)
+    exact continuousAt_const.div (((continuous_ofReal.continuousAt.pow 2).sub continuousAt_const).mul
+      (hPc.pow 2)) (mul_ne_zero ht2 (pow_ne_zero _ (hPne t ht)))
+  have hint : ∀ R, x ≤ R → ∫ t in x..R, associatedP n m x/((n-m).factorial:ℂ)/((t^2-1:ℂ)*(associatedP n m t)^2) = F R - F x := by
+    intro R hR
+    have hmem : ∀ t ∈ uIcc x R, 1 < t := fun t ht => by
+      rw [uIcc_of_le hR] at ht; linarith [ht.1]
+    exact intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t ht => hderiv t (hmem t ht))
+      (ContinuousOn.intervalIntegrable fun t ht => (hcont t (hmem t ht)).continuousWithinAt)
+  have hFx : F x = -olverQ n m x := by
+    simp only [hF]; field_simp [hPne x hx]
+  have hQP : Tendsto (fun R : ℝ => olverQ n m R / associatedP n m R) atTop (𝓝 0) := by
+    refine squeeze_zero_norm' ?_ (by simpa using ((legIR_olverQ_tendsto_zero n m).norm.div_const C))
+    filter_upwards [eventually_ge_atTop (2:ℝ)] with R hR
+    have h1 := hPC R (by linarith)
+    rw [legIR_norm_bp m (by linarith)] at h1
+    have he : 1 ≤ Real.exp (m/2*(Real.log (R-1) + Real.log (R+1))) :=
+      Real.one_le_exp (by
+        have := Real.log_nonneg (show (1:ℝ) ≤ R-1 by linarith)
+        have := Real.log_nonneg (show (1:ℝ) ≤ R+1 by linarith)
+        positivity)
+    rw [norm_div, div_le_div_iff₀ (by nlinarith) hC]
+    exact mul_le_mul_of_nonneg_left (by nlinarith) (norm_nonneg _)
+  have hlim : Tendsto (fun R => F R - F x) atTop (𝓝 (olverQ n m x)) := by
+    have := ((hQP.const_mul (-associatedP n m x)).sub_const (F x))
+    rw [hFx, mul_zero, zero_sub, neg_neg] at this
+    rw [hFx]
+    exact this
+  refine hlim.congr' ?_
+  filter_upwards [eventually_ge_atTop x] with R hR
+  exact (hint R hR).symm
 
 /-- olverQ nat neumann. -/
 @[dlmf 14.12.E13]
