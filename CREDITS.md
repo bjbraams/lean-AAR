@@ -51,7 +51,7 @@ The ray rotation in `ToMathlib/Analysis/Complex/RotateRay.lean` applies the Math
 `Complex.integral_boundary_rect_eq_zero_of_differentiableOn` in logarithmic coordinates. The sector
 form of Watson's lemma follows Temme, *Special Functions*, §2.4. Its Gamma integral starts from
 Mathlib's `Complex.Gamma_eq_integral` and extends by `AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq`.
-The Gegenbauer Laplace integral uses the project's `AAR.Gamma.beta_sin_cos` for its
+The Gegenbauer Laplace integral uses the project's `DLMF.Gamma.beta_sin_cos` for its
 normalization. The Legendre exponential generating function exchanges sum and integral with
 Mathlib's `intervalIntegral.hasSum_integral_of_dominated_convergence` and identifies `J₀` through
 the project's `hasFPowerSeriesOnBall_regularized0F1`.
@@ -95,7 +95,7 @@ identities, and `HasDerivAt.arctan`.
 
 The coordinate systems and separated equations follow Temme, *Special Functions*, Chapter 10.
 The Cartesian computations use the project's regularized `₀F₁` contiguous relation and derivative
-lemmas from `AAR/Bessel/Basic.lean`. The Fourier–Bessel normalization uses Mathlib's
+lemmas from `DLMF/Bessel/Basic.lean`. The Fourier–Bessel normalization uses Mathlib's
 `intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le` and `squeeze_zero_norm'`. The hypergeometric
 form of the incomplete Beta function uses the project's Euler integral
 `ordinaryHypergeometric_eq_integral` and Mathlib's `intervalIntegral.integral_comp_mul_left`.
@@ -121,7 +121,7 @@ DLMF, Chapter 10. The project uses Weiyi Wang's `Complex.besselJ`
 (`Mathlib.Analysis.SpecialFunctions.Bessel`) as its `J_ν`, with its parity, analyticity,
 integer-order analyticity and value at `0`; entireness of the core series uses the Mathlib
 contributors' `analyticAt_regularizedHGFun_zero`. The integer-order limits use Mathlib's `dslope`
-and the project's parameter-continuity lemmas from `AAR/Confluent/BasicProperties.lean`. Bessel's
+and the project's parameter-continuity lemmas from `DLMF/Confluent/BasicProperties.lean`. Bessel's
 integral uses `intervalIntegral.hasSum_integral_of_dominated_convergence`,
 `integral_exp_mul_complex` and `intervalIntegral.integral_comp_sub_left`. The `K_ν` integral uses
 `MeasureTheory.integral_comp_mul_left_Ioi` and `integral_add_left_eq_self`. Hankel's expansions
@@ -155,12 +155,12 @@ The proof routes for the asymptotic expansions of the confluent functions and th
 cases follow N. M. Temme, *Special Functions* (Wiley, 1996), §§7.1–7.3. The binomial series
 uses Mathlib's `Complex.one_add_cpow_hasFPowerSeriesAt_zero` and
 `HasFPowerSeriesAt.isBigO_sub_partialSum_pow`. The regularized contiguous relations are the
-project's existing ones in `AAR.Confluent.Continuation`. The incomplete Gamma bridge reuses
+project's existing ones in `DLMF.Confluent.Continuation`. The incomplete Gamma bridge reuses
 TauCeti's `TauCeti.ofReal_lowerIncompleteGamma_eq_partialGamma`
 (`TauCeti.Analysis.SpecialFunctions.IncompleteGamma`), and `Si(x) → π/2` is TauCeti's
 `TauCeti.Contour.tendsto_integral_sinc_atTop`
 (`TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral`). Euler's constant enters
-`E₁` through the project's `AAR.Gamma.eulerMascheroni_eq_integral_inv_one_add`.
+`E₁` through the project's `DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add`.
 
 ## Further local proofs (2026-10-08)
 
@@ -278,14 +278,14 @@ identities and compact-support Parseval) have been replaced by checked proofs.
 The affected module headers also credit the imported work.
 
 - [Hermite orthogonality](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/SpecialFunctions/Hermite/Orthogonality.lean):
-  `integral_hermite_mul_hermite_mul_gaussian`, now used for AAR's
+  `integral_hermite_mul_hermite_mul_gaussian`, now used for the project's
   probabilists’ Hermite orthogonality proof.
 - [Polynomial Gaussian integrability](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Probability/Distributions/Gaussian/PolynomialMemLp.lean):
-  `integrable_eval_mul_exp_neg_sq`, now used for the matching AAR helper.
+  `integrable_eval_mul_exp_neg_sq`, now used for the matching project helper.
 - [Beta integrals](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/SpecialFunctions/Beta.lean):
-  `integral_rpow_mul_one_sub_rpow`, now used for AAR's real beta integral.
+  `integral_rpow_mul_one_sub_rpow`, now used for the project's real beta integral.
 - [Error function](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/SpecialFunctions/Erf.lean):
-  the real `erf` and `erfc` APIs, identified with AAR's complex functions on real inputs.
+  the real `erf` and `erfc` APIs, identified with the project's complex functions on real inputs.
 - [Hermite Fourier transform](https://github.com/TauCetiProject/TauCeti/blob/a780c7ad6beb23f60a17351a492d177878020ad5/TauCeti/Analysis/SpecialFunctions/Hermite/Function/Fourier/Basic.lean):
   `fourier_twoPiHermiteFunction` supplies the upstream eigenfunction theorem for
   the now-proved `hermitePolyH_fourier_eigenfunction` and `hermite_fourier_eigenfunction`.
@@ -300,24 +300,24 @@ The affected module headers also credit the imported work.
   `Polynomial.hermite_aeval_neg`, and the Gaussian integrability
   `integrable_aeval_mul_gaussian` from the Hermite orthogonality module above. Both are
   used for the now-proved `hermite_even_cosine_transform` and `hermite_odd_sine_transform`
-  in [Integrals.lean](AAR/OrthogonalPolynomials/Integrals.lean). The product cosine
+  in [Integrals.lean](DLMF/OrthogonalPolynomials/Integrals.lean). The product cosine
   and sine transforms reuse these single-polynomial transforms and Gaussian
   integrability. The Hermite convolution uses the polynomial Gaussian integrability
   adaptation listed above.
 
 Related real incomplete-gamma, Dirichlet and multivariate-Gamma developments are
-not replacements for AAR's general complex statements. Adoption should retain
+not replacements for the project's general complex statements. Adoption should retain
 attribution in the affected module headers and at the point of use.
 
 ## Dirichlet simplex integrals ported from lean-codes (2026-10-16)
 
-The modules `AAR/Gamma/Simplex/{PiSnoc,ProdSlices,Hyperplane,PochhammerIdentities,
+The modules `DLMF/Gamma/Simplex/{PiSnoc,ProdSlices,Hyperplane,PochhammerIdentities,
 GammaPochhammer,BetaIntegral,MvBeta,MvBetaIntegral}.lean` are ports of the companion project
 `lean-codes` modules `StdSimplexMeasure/{PiSnoc,ProdSlices,FiniteDimensionalHyperplane}`,
 `Pochhammer/{Identities,Gamma,BetaIntegral}` and `Dirichlet/Beta/Complex/{Basic,Integral}`
 (same author). The proofs are unchanged; the declarations were moved from the Mathlib namespaces
 `Complex`, `Real`, `MeasureTheory` and `MeasurableEquiv` (and the root namespace) into
-`AAR.Gamma.Simplex`, with explicit `_root_` opens. DLMF 5.14.1–5.14.2 (`dirichlet_simplex`,
+`DLMF.Gamma.Simplex`, with explicit `_root_` opens. DLMF 5.14.1–5.14.2 (`dirichlet_simplex`,
 `dirichlet_simplex_full`) are derived from `mvBetaIntegralOne_eq_mvBeta` and
 `mvBetaIntegral_eq_mvBeta`. The Glaisher–Kinkelin closed form 5.17.7 differentiates the Mathlib
 contributors' `riemannZeta_one_sub` and uses `Complex.hasDerivAt_Gamma_nat`
@@ -331,14 +331,14 @@ Jacobi zero estimates in §§5.3 and 5.5, discrete Rodrigues and addition formul
 in §§6.2–6.5, and Bessel transforms in §9.8. The supplied PDF's filename says
 2015; its copyright page gives 2016 as the publication year.
 
-[DiscreteAddition.lean](AAR/OrthogonalPolynomials/DiscreteAddition.lean) uses
+[DiscreteAddition.lean](DLMF/OrthogonalPolynomials/DiscreteAddition.lean) uses
 the Mathlib contributors' formal exponential series and the existing local
 Chu–Vandermonde and terminating-sum APIs.
-[DiscreteRodrigues.lean](AAR/OrthogonalPolynomials/DiscreteRodrigues.lean) uses
+[DiscreteRodrigues.lean](DLMF/OrthogonalPolynomials/DiscreteRodrigues.lean) uses
 Mathlib's `fwdDiff` and the local Charlier difference equation. The indexed
 zero proofs reuse the local Sturm comparison, Hermite–Laguerre identities,
 and classical root enumerations, with Mathlib's trigonometric calculus.
-[IntegralTransforms.lean](AAR/Bessel/IntegralTransforms.lean) reuses the
+[IntegralTransforms.lean](DLMF/Bessel/IntegralTransforms.lean) reuses the
 proved local regularized Kummer integral, full Kummer Laplace transform,
 and Bessel–Kummer identity; Mathlib's change-of-variables and complex-power
 APIs handle the Gaussian substitution and scaling. The module headers and
@@ -351,7 +351,7 @@ reuses the existing local Sturm comparison theorem. The discrete proofs use the
 Mathlib contributors' binomial expansion of iterated `fwdDiff`, factorial identities,
 and the local terminating-sum and Hahn difference APIs. The complex Gaussian
 transform adapts the regularized `₀F₁` summation argument using the existing complex
-Gamma integral. The new [LaplaceTransform.lean](AAR/Bessel/LaplaceTransform.lean)
+Gamma integral. The new [LaplaceTransform.lean](DLMF/Bessel/LaplaceTransform.lean)
 uses the proved Kummer Laplace theorem, the local quadratic Gauss transformation
 and regularized contiguous relations, and Mathlib's analytic identity principle.
 The parameter-lowering argument retains exceptional orders without cancellation
@@ -362,7 +362,7 @@ of singular Gamma factors.
 Beals and Wong, second edition, Chapter 15, supplies the Painlevé II
 normalization, pole analysis, rational and Airy constructions, Bäcklund
 transformations, compatible linear system, energy identity, and quotient
-equations formalized in [AAR/Painleve.lean](AAR/Painleve.lean). The Airy scale
+equations formalized in [DLMF/Painleve.lean](DLMF/Painleve.lean). The Airy scale
 corrects the substitution on page 407: it must satisfy `k³ = -1/2`.
 
 The local real existence and uniqueness proofs reuse the Mathlib contributors'
@@ -371,7 +371,7 @@ Lipschitz ODE uniqueness results in `Mathlib.Analysis.ODE.ExistUnique`.
 The pole analysis uses Mathlib's `Meromorphic.Order`, including derivative
 orders and analytic factorization. The rational construction uses Mathlib's
 polynomial evaluation, differentiation, and root APIs. The Airy construction
-reuses the proved local [Airy API](AAR/Airy/Basic.lean), with Mathlib's analytic
+reuses the proved local [Airy API](DLMF/Airy/Basic.lean), with Mathlib's analytic
 and meromorphic calculus. The Lax derivative uses Mathlib's matrix normed-space
 and product-derivative APIs. The new proofs do not adopt any TauCeti Painlevé
 removability theorem, which concerns a different subject.
@@ -387,7 +387,7 @@ transform and Laguerre connection coefficients, with the Tau Ceti contributors�
 Gaussian polynomial integrability theorem.
 
 The moment determinant identities in
-[GeneralIdentities.lean](AAR/OrthogonalPolynomials/GeneralIdentities.lean) use the
+[GeneralIdentities.lean](DLMF/OrthogonalPolynomials/GeneralIdentities.lean) use the
 Mathlib contributors’ `Matrix.det_updateCol_sum` and the Tau Ceti contributors’
 `Matrix.det_eq_mul_det_submatrix_castSucc_of_col` from
 `TauCeti.LinearAlgebra.Matrix.CornerMinor`, together with the local orthogonal
@@ -396,7 +396,7 @@ local finite Jacobi sum and reflection formula and Mathlib’s factorial and
 Pochhammer identities.
 
 The ball Poisson representation in
-[Theorems.lean](AAR/SphericalHarmonics/Theorems.lean) uses the Tau Ceti contributors’
+[Theorems.lean](DLMF/SphericalHarmonics/Theorems.lean) uses the Tau Ceti contributors’
 `Analysis.PDE.PoissonIntegral.Ball` and `Analysis.InnerProductSpace.Laplacian.Comparison`.
 The continuous extension argument is adapted from their unit-ball Dirichlet proof;
 the final identification uses their Dirichlet uniqueness theorem. The `SU(2)`
@@ -416,7 +416,7 @@ remain admitted.
 ## Finite identities and connection coefficients (2026-10-18)
 
 The finite Kummer–Bessel expansions in
-[Relations.lean](AAR/Confluent/Relations.lean) follow DLMF 13.6.11₁–13.6.11₂.
+[Relations.lean](DLMF/Confluent/Relations.lean) follow DLMF 13.6.11₁–13.6.11₂.
 The proofs use the existing local regularized Kummer contiguous relations and
 entire dependence on the parameters, together with the Mathlib contributors’
 reciprocal-Gamma recurrence, Pascal/binomial identities and complex identity
@@ -424,7 +424,7 @@ principle. Expressing the finite sum through regularized `₀F₁` permits the K
 transformation without changing a principal-power branch at a negated argument.
 
 The Kummer and Whittaker product identities in
-[ProductsAddition.lean](AAR/Confluent/ProductsAddition.lean), DLMF 13.12.1 and
+[ProductsAddition.lean](DLMF/Confluent/ProductsAddition.lean), DLMF 13.12.1 and
 13.25.1, use the existing local derivative and contiguous APIs. Mathlib’s theorem
 that an entire function with zero derivative is constant supplies the final
 Kummer identity; the Whittaker formula follows by the existing Kummer
@@ -432,8 +432,8 @@ transformation and principal-power calculus.
 
 The Jacobi connection formula is AAR Lemma 7.1.1. The Gegenbauer monomial,
 connection and linearization formulas follow DLMF 18.18.17, 18.18.16 and 18.18.22.
-Their implementations in [Topics.lean](AAR/OrthogonalPolynomials/Topics.lean) and
-[Series.lean](AAR/OrthogonalPolynomials/Series.lean) use the local finite Jacobi
+Their implementations in [Topics.lean](DLMF/OrthogonalPolynomials/Topics.lean) and
+[Series.lean](DLMF/OrthogonalPolynomials/Series.lean) use the local finite Jacobi
 and Gegenbauer series, Gegenbauer recurrence and Pochhammer convolution, with
 Mathlib’s finite-sum, binomial, factorial and polynomial APIs. The finite
 Pochhammer inversion is proved by telescoping, with a separate regular head
@@ -466,7 +466,7 @@ this batch.
 
 ## Jacobi endpoint limit and multivariate orthogonality (2026-10-19)
 
-Jacobi Mehler–Heine in [Limits.lean](AAR/OrthogonalPolynomials/Limits.lean)
+Jacobi Mehler–Heine in [Limits.lean](DLMF/OrthogonalPolynomials/Limits.lean)
 follows DLMF 18.11.5. The proof uses the Mathlib contributors' Tannery theorem
 (`tendsto_tsum_of_dominated_convergence`), descending-factorial bound
 (`Nat.descFactorial_le_pow`) and continuous sinc function. The project's proved
@@ -474,7 +474,7 @@ Gamma-ratio limit and regularized Bessel series give the normalization. A new
 terminating-series bound handles both numerator parameters varying with degree.
 
 Disk and triangle orthogonality in
-[Multivariate.lean](AAR/OrthogonalPolynomials/Multivariate.lean) follow DLMF
+[Multivariate.lean](DLMF/OrthogonalPolynomials/Multivariate.lean) follow DLMF
 18.37.2 and 18.37.8. Their proofs use Mathlib's polar-coordinate integral formula,
 Jacobian change-of-variables formulas, separated-product integral formula and
 complex exponential integral. These are applied to the project's proved disk
@@ -487,7 +487,7 @@ was copied or adapted in this batch.
 The continuous Hahn, Wilson and continuous dual Hahn generating functions follow
 DLMF 18.23.6, 18.26.18 and 18.26.19. Their coefficient proofs use the project's
 proved Chu–Vandermonde, Euler convolution and Pfaff–Saalschütz identities.
-[FiniteConvolution.lean](AAR/Hypergeometric/FiniteConvolution.lean) supplies the
+[FiniteConvolution.lean](DLMF/Hypergeometric/FiniteConvolution.lean) supplies the
 finite `3F2` and balanced `4F3` transformations. Mathlib's absolutely summable
 Cauchy-product API, `hasSum_sum_range_mul_of_summable_norm`, then identifies the
 convergent series. The previously exposed OP convolution helper is retained as
@@ -495,12 +495,12 @@ an adapter to the earlier shared helper.
 
 Legendre addition and its product and singular integrals are DLMF 18.18.9,
 18.17.6 and 18.17.44. The new
-[addition kernel](AAR/OrthogonalPolynomials/LegendreAddition.lean) uses the local
+[addition kernel](DLMF/OrthogonalPolynomials/LegendreAddition.lean) uses the local
 Jacobi derivative/ladder identities and the Mathlib contributors' analytic
 identity principle, derivative, finite-sum and trigonometric APIs. The product
 integral integrates the resulting finite cosine sum using Mathlib's
 `integral_cos_mul_complex`. The
-[singular-integral proof](AAR/OrthogonalPolynomials/LegendreSingular.lean) uses
+[singular-integral proof](DLMF/OrthogonalPolynomials/LegendreSingular.lean) uses
 Mathlib's `dslope` continuity and interval-integral congruence and fundamental
 theorem of calculus APIs to justify the split at the diagonal. No TauCeti
 source was copied or adapted in this batch.
@@ -509,30 +509,30 @@ source was copied or adapted in this batch.
 ## Confluent additions, boundary Mellin transforms and Mehler (2026-10-19)
 
 The eight first-parameter Kummer and Whittaker addition formulas in
-[ProductsAddition.lean](AAR/Confluent/ProductsAddition.lean) follow DLMF 13.13.3,
+[ProductsAddition.lean](DLMF/Confluent/ProductsAddition.lean) follow DLMF 13.13.3,
 13.13.5, 13.13.9, 13.13.11, 13.26.3, 13.26.6, 13.26.9 and 13.26.12.
-[MobiusTaylor.lean](AAR/Confluent/MobiusTaylor.lean) uses Mathlib's
+[MobiusTaylor.lean](DLMF/Confluent/MobiusTaylor.lean) uses Mathlib's
 `Complex.taylorSeries_eq_on_ball'`, local differentiation of equal functions,
 and principal complex-power calculus with the project's proved contiguous
 relations. The zero-preserving coefficient recurrence avoids dividing by
 numerator parameters.
 
-The Mellin transforms in [Integrals.lean](AAR/Confluent/Integrals.lean) follow
+The Mellin transforms in [Integrals.lean](DLMF/Confluent/Integrals.lean) follow
 DLMF 13.10.5 and 13.23.3. The new
-[regularized boundary summation](AAR/Hypergeometric/Boundary.lean) uses the
+[regularized boundary summation](DLMF/Hypergeometric/Boundary.lean) uses the
 project's proved Gauss summation and inverse Gamma recurrence. The Gamma-moment
 majorant reuses the local proved Gamma-ratio asymptotics and Mathlib's summable
 integral-norm theorem, real Gamma integral and finite-prefix series API.
 
-[Mehler.lean](AAR/OrthogonalPolynomials/Mehler.lean), DLMF 18.18.28, uses the
+[Mehler.lean](DLMF/OrthogonalPolynomials/Mehler.lean), DLMF 18.18.28, uses the
 Mathlib contributors' complex Taylor theorem, analyticity of derivatives and
 uniqueness of formal multilinear series. The Hermite polynomial recurrence
 identifies the coefficients. Existing scalar-series helpers were extracted from
-`Series` into [ScalarSeries.lean](AAR/OrthogonalPolynomials/ScalarSeries.lean)
+`Series` into [ScalarSeries.lean](DLMF/OrthogonalPolynomials/ScalarSeries.lean)
 without changing their statements or proofs.
 
 The natural-shift Gamma-ratio estimate in
-[RatioBounds.lean](AAR/Gamma/RatioBounds.lean) uses Mathlib's Gamma recurrence,
+[RatioBounds.lean](DLMF/Gamma/RatioBounds.lean) uses Mathlib's Gamma recurrence,
 complex norm-square and real-power APIs and the project's finite Pochhammer
 recurrence. It does not use the admitted general ratio inequality. No TauCeti
 source was copied or adapted in this batch.
@@ -541,19 +541,19 @@ source was copied or adapted in this batch.
 ## Tricomi Laplace transforms and continuous Hahn orthogonality (2026-10-19)
 
 The Tricomi and Whittaker transforms in
-[Integrals.lean](AAR/Confluent/Integrals.lean) follow DLMF 13.10.7 and 13.23.4.
-[EulerHalfLine.lean](AAR/Hypergeometric/EulerHalfLine.lean) uses the Mathlib
+[Integrals.lean](DLMF/Confluent/Integrals.lean) follow DLMF 13.10.7 and 13.23.4.
+[EulerHalfLine.lean](DLMF/Hypergeometric/EulerHalfLine.lean) uses the Mathlib
 contributors' `integral_image_eq_integral_abs_deriv_smul` and
 `integrableOn_image_iff_integrableOn_abs_deriv_smul` to transfer the project's
 continued Euler Gauss integral to the positive half-line. The double integral in
-[TricomiLaplace.lean](AAR/Confluent/TricomiLaplace.lean) uses Mathlib's Fubini and
+[TricomiLaplace.lean](DLMF/Confluent/TricomiLaplace.lean) uses Mathlib's Fubini and
 integrability-of-iterated-integrals APIs, the Gamma integral and principal-power
 calculus. The local proved Tricomi and regularized Gauss contiguous relations
 extend both the transform and its integrability to unrestricted first parameter.
 The existing continued Pfaff transformation supplies the stated argument.
 
-Continuous Hahn orthogonality in [Hahn.lean](AAR/OrthogonalPolynomials/Hahn.lean)
-follows DLMF 18.19.4. [HahnMoments.lean](AAR/OrthogonalPolynomials/HahnMoments.lean)
+Continuous Hahn orthogonality in [Hahn.lean](DLMF/OrthogonalPolynomials/Hahn.lean)
+follows DLMF 18.19.4. [HahnMoments.lean](DLMF/OrthogonalPolynomials/HahnMoments.lean)
 uses the project's proved Barnes four-Gamma lemma, vertical Gamma bound,
 Pfaff–Saalschutz theorem and finite Pochhammer reflection/Vandermonde formulas.
 Mathlib's finite-sum integral and absolute-integrability APIs justify every
@@ -564,17 +564,17 @@ exchange. No TauCeti source was copied or adapted in this batch.
 
 The integer-denominator expansion and the small-argument estimates at second
 parameters one, two and zero in
-[BasicProperties.lean](AAR/Confluent/BasicProperties.lean) follow DLMF 13.2.9,
+[BasicProperties.lean](DLMF/Confluent/BasicProperties.lean) follow DLMF 13.2.9,
 13.2.19, 13.2.17 and 13.2.21. The existing parameter-limit definition and
 Kummer transformation retain the principal complex branches.
 
-[ParameterDerivatives.lean](AAR/Confluent/ParameterDerivatives.lean) adapts the
+[ParameterDerivatives.lean](DLMF/Confluent/ParameterDerivatives.lean) adapts the
 project's proved Gauss parameter-differentiation argument in
-[ConnectionFormulas.lean](AAR/Hypergeometric/ConnectionFormulas.lean), using the
-confluent majorant from [Regularized.lean](AAR/Confluent/Regularized.lean).
+[ConnectionFormulas.lean](DLMF/Hypergeometric/ConnectionFormulas.lean), using the
+confluent majorant from [Regularized.lean](DLMF/Confluent/Regularized.lean).
 It reuses Mathlib's `hasSum_deriv_of_summable_norm` and the local proved
 inverse-Gamma and Pochhammer derivative formulas, including inverse-Gamma
-zeros. [LogSeries.lean](AAR/Confluent/LogSeries.lean) uses Mathlib's scalar
+zeros. [LogSeries.lean](DLMF/Confluent/LogSeries.lean) uses Mathlib's scalar
 formal power series, convergence radius and analyticity APIs. The remainder
 proofs use Mathlib's derivative-to-Big-O and complex logarithm norm estimates;
 exceptional first parameters use the project's exact polynomial formulas.
@@ -583,7 +583,7 @@ No TauCeti source was copied or adapted in this batch.
 
 ## Airy theory acquisition and first proofs (2026-10-19)
 
-The new [Airy modules](AAR/Airy.lean) acquire NIST DLMF
+The new [Airy modules](DLMF/Airy.lean) acquire NIST DLMF
 [§9.2](https://dlmf.nist.gov/9.2) and
 [§§9.4–9.14](https://dlmf.nist.gov/9.4), including the Scorer, Swanson–Headley,
 Olver, Smirnov, Reid and incomplete-function conventions cited there.
@@ -602,16 +602,16 @@ was copied or adapted in this batch.
 
 ## DLMF Chapters 6–8 acquisition (2026-10-19)
 
-The source of the expanded [exponential integrals](AAR/ExpIntegrals.lean),
-[error/Dawson/Fresnel functions](AAR/ErrorFunctions.lean) and
-[incomplete Gamma and related functions](AAR/IncompleteGamma.lean) is NIST DLMF
+The source of the expanded [exponential integrals](DLMF/ExpIntegrals.lean),
+[error/Dawson/Fresnel functions](DLMF/ErrorFunctions.lean) and
+[incomplete Gamma and related functions](DLMF/IncompleteGamma.lean) is NIST DLMF
 [Chapter 6](https://dlmf.nist.gov/6), [Chapter 7](https://dlmf.nist.gov/7) and
 [Chapter 8](https://dlmf.nist.gov/8), version 1.2.8. Graphs and application notes
 are excluded. [DLMF678Acquisition.md](DLMF678Acquisition.md) records individual
 equations, named normalizations, source qualifications and the proved
 continued-fraction counterexample. Most acquired theorems remain admitted.
 
-[MathlibCoverage.lean](AAR/DLMF/MathlibCoverage.lean) points to the Mathlib
+[MathlibCoverage.lean](DLMF/Core/MathlibCoverage.lean) points to the Mathlib
 contributors' complete Beta/Gamma identity, partial Gamma integral and
 recurrence, and Gaussian integrals. No local duplicate of the complete Beta
 identity is added. The continued-fraction helper calls Mathlib's
@@ -627,8 +627,8 @@ TauCeti's source, not Mathlib. No TauCeti proof source was copied or adapted.
 
 ## DLMF Chapters 11, 12 and 14 acquisition (2026-10-19)
 
-The expanded [Struve](AAR/Struve.lean), [parabolic-cylinder](AAR/ParabolicCylinder.lean)
-and [Legendre](AAR/Legendre.lean) theory follows NIST DLMF version 1.2.8:
+The expanded [Struve](DLMF/Struve.lean), [parabolic-cylinder](DLMF/ParabolicCylinder.lean)
+and [Legendre](DLMF/Legendre.lean) theory follows NIST DLMF version 1.2.8:
 [Chapter 11](https://dlmf.nist.gov/11), R. B. Paris;
 [Chapter 12](https://dlmf.nist.gov/12), N. M. Temme;
 and [Chapter 14](https://dlmf.nist.gov/14), T. M. Dunster.
@@ -690,7 +690,7 @@ The two general entire-function adapters added to SegmentPrimitive import Mathli
 only. Their uses preserve the original totalized integral values at the origin.
 
 TauCeti's `continuous_regularizedIncompleteBeta`, through the existing project
-normalization bridge in `AAR.Statistical.IncompleteBeta`, supplies the incomplete-
+normalization bridge in `DLMF.Statistical.IncompleteBeta`, supplies the incomplete-
 Beta endpoint limit. The existing cylinder/Hermite and Tricomi integral cores
 retain their previously documented TauCeti dependencies. No TauCeti source was
 copied or adapted, and no exact DLMF result already in Mathlib was reproved here.
@@ -707,7 +707,7 @@ exact inhomogeneous second-order equation, without cancelling Gamma factors at
 exceptional orders.
 
 The ordinary solution formulas reuse
-`AAR.Bessel.eq_besselJ_besselY_of_ode`, whose accepted proof includes integer orders.
+`DLMF.Bessel.eq_besselJ_besselY_of_ode`, whose accepted proof includes integer orders.
 Mathlib's analytic and iterated-derivative calculus supplies linearity and local
 congruence of the Bessel operator; the existing principal-power derivative fixes
 the branch in the quadratic substitution. The Fresnel norm proofs use the
@@ -757,7 +757,7 @@ The P order recurrences reuse proved regularized Gauss contiguous identities.
 
 The regularized quadratic connection reuses the project's proved ordinary
 quadratic formula and
-`AAR.Hypergeometric.analyticOnNhd_regularizedGaussHGFun_comp`, with the proved
+`DLMF.Hypergeometric.analyticOnNhd_regularizedGaussHGFun_comp`, with the proved
 `Complex.eq_of_differentiable_of_eqOn_pos_reals` adapter. Mathlib's
 `Complex.differentiable_one_div_Gamma`, `Complex.Gamma_mul_Gamma_one_sub` and
 positive-real logarithm identities supply the normalization and exceptional
@@ -809,7 +809,7 @@ listed for the tier-A batch.
 
 ## Blocker round (2026-10-20)
 
-The new files `AAR/Bessel/KIntegralRep.lean`, `YIntegralRep.lean`, `YSchlafli.lean`,
+The new files `DLMF/Bessel/KIntegralRep.lean`, `YIntegralRep.lean`, `YSchlafli.lean`,
 `Schlafli.lean`, `ProductIntegral.lean`, `NeumannSeries.lean`,
 `ToMathlib/Analysis/ODE/PowerSeriesUniqueness.lean` and
 `ToMathlib/Analysis/Asymptotics/WatsonRotated.lean` are new project work built on Mathlib
@@ -822,7 +822,7 @@ and the project's existing cores. No code was copied from other projects. From T
 ## DLMF 13.11.3 (2026-10-21)
 
 The branch-free form `regularizedHGFun_eq_besselExpansion` and the corrected Bessel form
-`regularizedHGFun_besselJ_series` in `AAR/Confluent/Series.lean` are original work. They use
+`regularizedHGFun_besselJ_series` in `DLMF/Confluent/Series.lean` are original work. They use
 Mathlib's formal power series derivative (`PowerSeries.derivative`) and
 `PowerSeries.exp_mul_exp_eq_exp_add`, and the project's Neumann-series coefficient bounds
 (`exists_norm_regularized0F1Coeff_le`, `exists_norm_inv_Gamma_add_nat_le`,
@@ -831,7 +831,7 @@ ansatz.
 
 ## Reciprocal-Gamma strengthening (2026-10-21)
 
-`AAR/Gamma/InvGammaDeriv.lean`, `AAR/Hypergeometric/LogConnectionsInvGamma.lean` and the
+`DLMF/Gamma/InvGammaDeriv.lean`, `DLMF/Hypergeometric/LogConnectionsInvGamma.lean` and the
 `_invGamma` theorems in the Confluent and Legendre files are original project work. They use
 Mathlib's `differentiable_one_div_Gamma`, `one_div_Gamma_eq_self_mul_one_div_Gamma_add_one`,
 `Complex.digamma` and `iteratedDeriv`. No code was copied from other projects.
@@ -840,8 +840,8 @@ Mathlib's `differentiable_one_div_Gamma`, `one_div_Gamma_eq_self_mul_one_div_Gam
 
 The new files `ToMathlib/Analysis/Asymptotics/AsymptoticInversion.lean`,
 `ToMathlib/Analysis/Integral/Improper.lean`, the five `ToMathlib/Analysis/ODE/LiouvilleGreen*.lean`
-files, `AAR/ParabolicCylinder/SectorAsymptotics.lean`, `AAR/ParabolicCylinder/UniformLG.lean`,
-`AAR/Legendre/IntegralTools.lean` and the scripts `scripts/DumpDLMF.lean` and
+files, `DLMF/ParabolicCylinder/SectorAsymptotics.lean`, `DLMF/ParabolicCylinder/UniformLG.lean`,
+`DLMF/Legendre/IntegralTools.lean` and the scripts `scripts/DumpDLMF.lean` and
 `scripts/dlmf_ledgers.py` are original project work. No code was copied from other projects.
 The mathematical sources are F. W. J. Olver, *Asymptotics and Special Functions*, Chapters 6,
 10 and 11 (Liouville–Green error bounds), and DLMF §§11.5, 11.7, 12.9, 12.10, 14.6, 14.12 and
@@ -863,9 +863,9 @@ hypergeometric-series, AGM and Jacobi theta developments) and of TauCeti (6 poin
 ## Round 6 (2026-10-21)
 
 The new files `ToMathlib/Analysis/ODE/LiouvilleGreenFinite.lean`,
-`ToMathlib/Analysis/Complex/StarPrimitive.lean`, `AAR/Confluent/KummerDecay.lean`,
-`AAR/IncompleteGamma/RealIntegrals.lean`, `AAR/Legendre/BoundaryAsymptotics.lean`,
-`AAR/ParabolicCylinder/UniformLG2.lean` and `AAR/Struve/AsymptoticTools.lean`, and the proofs
+`ToMathlib/Analysis/Complex/StarPrimitive.lean`, `DLMF/Confluent/KummerDecay.lean`,
+`DLMF/IncompleteGamma/RealIntegrals.lean`, `DLMF/Legendre/BoundaryAsymptotics.lean`,
+`DLMF/ParabolicCylinder/UniformLG2.lean` and `DLMF/Struve/AsymptoticTools.lean`, and the proofs
 added in this round, are original project work. No code was copied from other projects. The
 mathematical sources are DLMF Chapters 6, 8, 9, 11–15, F. W. J. Olver, *Asymptotics and Special
 Functions* (Liouville–Green theory from a finite endpoint), and N. M. Temme, *Asymptotic
@@ -877,13 +877,13 @@ rotated rays, parametric holomorphy, asymptotic power series).
 
 The new ToMathlib files `Analysis/Complex/ZeroLocalization.lean`,
 `Topology/Order/ZeroEnumeration.lean`, `Analysis/ContinuedFraction/Convergence.lean`,
-`Analysis/Asymptotics/StationaryPhase.lean` and `Analysis/Complex/BarnesResidue.lean`, the new AAR
+`Analysis/Asymptotics/StationaryPhase.lean` and `Analysis/Complex/BarnesResidue.lean`, the new DLMF
 tool files and the proofs of this round are original project work, with these uses of other
 work:
 
 - The Rouché theorem, argument principle and zero-count tools of TauCeti
   (`TauCeti.Analysis.Complex.Conformal`, `TauCeti.Analysis.Complex.ZeroCount`) are used in
-  `AAR/ErrorFunctions/ZeroTools.lean`; the helper `erfZ_count_eq_single` there is adapted from a
+  `DLMF/ErrorFunctions/ZeroTools.lean`; the helper `erfZ_count_eq_single` there is adapted from a
   private TauCeti lemma (`count_eq_single`), as credited in the module header.
 - The primitive argument in `ToMathlib/Analysis/Complex/BarnesResidue.lean` follows the approach
   of TauCeti's Perron formula development (`TauCeti/.../Perron/Basic`), as noted in its docstring.

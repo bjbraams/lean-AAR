@@ -19,7 +19,7 @@ Linked declarations without a DLMF tag fall back to a source scan (location, and
   declarations tagged `ID` as upstream pointers;
 * inserts a line for each tagged ID of the ledger's chapters that has no line yet, after the
   last line of the same section;
-* rewrites the module admission counts (`- [Mod](AAR/...lean): N admissions.` and the
+* rewrites the module admission counts (`- [Mod](DLMF/...lean): N admissions.` and the
   `N definitions, M statements, P proved, A admitted.` inventory lines);
 * reports links whose declaration is missing, and links whose declaration carries DLMF tags
   none of which is the line's ID.
@@ -94,7 +94,7 @@ def main():
         for s in suffixes(e['decl']):
             by_suffix[s].append(e)
         by_id[e['dlmf']].append(e)
-    src, admitted, stats = scan_source(['AAR', 'ToMathlib'])
+    src, admitted, stats = scan_source(['DLMF', 'ToMathlib'])
 
     def resolve(name, path):
         """Dump entry or source record for a linked name, preferring the linked file."""
@@ -115,7 +115,7 @@ def main():
         base = os.path.dirname(ledger)
         rel = lambda p: os.path.relpath(p, base or '.')
         text = open(ledger).read()
-        full_names = '`AAR.' in text
+        full_names = '`DLMF.' in text
         chapters = {m.split('.')[0] for m in re.findall(r'^- \[(\d+\.\d+\.[^\]]+)\]', text, re.M)}
         stat = collections.Counter()
         report = []
@@ -124,7 +124,7 @@ def main():
             if full_names:
                 return f'`{name}`'
             parts = name.split('.')
-            return '.'.join(parts[2:]) if parts[0] == 'AAR' and len(parts) > 2 else name
+            return '.'.join(parts[2:]) if parts[0] == 'DLMF' and len(parts) > 2 else name
 
         def deflabel():
             return 'defined' if '(defined)' in text else 'definition'
@@ -181,7 +181,7 @@ def main():
             for e in by_id.get(lid, []):
                 if e['decl'] in linked or e['decl'] in linked_suffix or label(e['decl']).strip('`') in line:
                     continue
-                if e['project'] == 'AAR':
+                if e['project'] == 'lean-DLMF':
                     extra.append(fmt(e))
                     stat['appended'] += 1
                 elif e['docUrl'] or e['sourceUrl']:
@@ -196,7 +196,7 @@ def main():
 
         # Tagged IDs of this ledger's chapters that have no line yet.
         missing_ids = sorted({i for i in by_id if i.split('.')[0] in chapters and i not in seen_ids
-                              and any(e['project'] == 'AAR' for e in by_id[i])},
+                              and any(e['project'] == 'lean-DLMF' for e in by_id[i])},
                              key=lambda i: [int(x) if x.isdigit() else x
                                             for x in re.split(r'[.ETF]', i) if x])
         for lid in missing_ids:
@@ -205,7 +205,7 @@ def main():
             if pos is None:
                 report.append(f'no section for new ID {lid}')
                 continue
-            items = '; '.join(fmt(e) for e in by_id[lid] if e['project'] == 'AAR')
+            items = '; '.join(fmt(e) for e in by_id[lid] if e['project'] == 'lean-DLMF')
             out.insert(pos + 1, f'- [{lid}](https://dlmf.nist.gov/{lid}): {items}.')
             stat['new lines'] += 1
         text = '\n'.join(out)

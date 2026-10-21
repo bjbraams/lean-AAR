@@ -8,12 +8,12 @@ equations. Graphs, bibliographic pointers and results only referenced in externa
 papers are not additional formal theorem claims. This is a statement acquisition;
 it is not a claim that the entire theory is proved.
 
-The library now exports 17 Airy modules through [AAR/Airy.lean](AAR/Airy.lean).
+The library now exports 17 Airy modules through [DLMF/Airy.lean](DLMF/Airy.lean).
 The previous `Basic` and `Bessel` modules are preserved byte-for-byte. The
 acquisition introduced **399 admitted theorem statements** in 15 new modules;
 the first proof batch removes **36**, leaving **363 Airy source admissions**.
 At completion of this Airy batch there were **480 project-wide source admissions
-in 48 files**, across 251 Lean files under `AAR/` and `ToMathlib/`. The following
+in 48 files**, across 251 Lean files under `DLMF/` and `ToMathlib/`. The following
 [Chapters 6–8 acquisition](DLMF678Acquisition.md) raises the current project count
 to 1,008; the 363 Airy admissions and the 117 earlier obligations are unchanged. Definitions are concrete formulas or predicates, not axioms.
 
@@ -21,7 +21,7 @@ to 1,008; the 363 Airy admissions and the 117 earlier obligations are unchanged.
 
 The Airy modules now carry **111 admissions** (project total 590). The tier-A, shared-helper
 and blocker rounds of 2026-10-20 proved most of the Maclaurin, Scorer, Relations and
-modulus–phase statements; `AAR/Airy/Numerics.lean` (47 admissions) was removed on 2026-10-21
+modulus–phase statements; `DLMF/Airy/Numerics.lean` (47 admissions) was removed on 2026-10-21
 because numerical results are out of scope, and its exact χ identities moved to
 `Asymptotics.lean`. Remaining clusters: all-order and uniform asymptotics (`Asymptotics`,
 `ScorerAsymptotics`), improper and Laplace/Mellin integrals (`Integrals`,
@@ -92,34 +92,34 @@ those of their date. Module counts in the lists below are current.
   does not itself state those convergence restrictions.
 - Excluded: numerical (2026-10-21). Tables 9.7.1 and 9.9.1–4, the initial-value
   decimals of §9.2(ii) and §9.12(iii), and the decimal location of the nonnegative
-  zero of Gi′ in §9.12(ix) were removed with the module `AAR/Airy/Numerics.lean`
+  zero of Gi′ in §9.12(ix) were removed with the module `DLMF/Airy/Numerics.lean`
   (47 admissions and 20 proved χ-table bounds). The exact values of χ at integers
   (`airyChi_zero`, `airyChi_one`, `airyChi_two_mul`, `airyChi_two_mul_add_one`) moved
-  to `AAR/Airy/Asymptotics.lean`. The uniqueness of the nonnegative Gi′ zero remains in
-  `AAR/Airy/Scorer.lean`.
+  to `DLMF/Airy/Asymptotics.lean`. The uniqueness of the nonnegative Gi′ zero remains in
+  `DLMF/Airy/Scorer.lean`.
 - Section 9.14 acquires both finite endpoints, endpoint derivatives, the splitting
   identity and recovery of Ai at the infinite endpoints. The external papers'
   additional asymptotics and algorithms are outside the section's stated content.
 
 ## Module status
 
-- [Asymptotics](AAR/Airy/Asymptotics.lean): 9 admissions.
-- [Basic](AAR/Airy/Basic.lean): 0 admissions.
-- [Bessel](AAR/Airy/Bessel.lean): 0 admissions.
-- [Equation](AAR/Airy/Equation.lean): 4 admissions.
-- [Framework](AAR/Airy/Framework.lean): 0 admissions.
-- [Generalized](AAR/Airy/Generalized.lean): 7 admissions.
-- [GeneralizedContours](AAR/Airy/GeneralizedContours.lean): 1 admissions.
-- [Incomplete](AAR/Airy/Incomplete.lean): 0 admissions.
-- [IntegralRepresentations](AAR/Airy/IntegralRepresentations.lean): 6 admissions.
-- [Integrals](AAR/Airy/Integrals.lean): 5 admissions.
-- [ModulusPhase](AAR/Airy/ModulusPhase.lean): 2 admissions.
+- [Asymptotics](DLMF/Airy/Asymptotics.lean): 9 admissions.
+- [Basic](DLMF/Airy/Basic.lean): 0 admissions.
+- [Bessel](DLMF/Airy/Bessel.lean): 0 admissions.
+- [Equation](DLMF/Airy/Equation.lean): 4 admissions.
+- [Framework](DLMF/Airy/Framework.lean): 0 admissions.
+- [Generalized](DLMF/Airy/Generalized.lean): 7 admissions.
+- [GeneralizedContours](DLMF/Airy/GeneralizedContours.lean): 1 admissions.
+- [Incomplete](DLMF/Airy/Incomplete.lean): 0 admissions.
+- [IntegralRepresentations](DLMF/Airy/IntegralRepresentations.lean): 6 admissions.
+- [Integrals](DLMF/Airy/Integrals.lean): 5 admissions.
+- [ModulusPhase](DLMF/Airy/ModulusPhase.lean): 2 admissions.
 - Numerics: removed 2026-10-21 (numerical results are out of scope).
-- [Products](AAR/Airy/Products.lean): 5 admissions.
-- [Relations](AAR/Airy/Relations.lean): 0 admissions.
-- [Scorer](AAR/Airy/Scorer.lean): 13 admissions.
-- [ScorerAsymptotics](AAR/Airy/ScorerAsymptotics.lean): 0 admissions.
-- [Zeros](AAR/Airy/Zeros.lean): 7 admissions.
+- [Products](DLMF/Airy/Products.lean): 5 admissions.
+- [Relations](DLMF/Airy/Relations.lean): 0 admissions.
+- [Scorer](DLMF/Airy/Scorer.lean): 13 admissions.
+- [ScorerAsymptotics](DLMF/Airy/ScorerAsymptotics.lean): 0 admissions.
+- [Zeros](DLMF/Airy/Zeros.lean): 7 admissions.
 
 ## Completed first proof batch
 
@@ -127,15 +127,15 @@ All the following statements were initially acquired with `sorry`; their current
 proofs have no transitive `sorryAx` dependency. The batch also adds three proved
 supporting product/initial-value lemmas.
 
-- [Asymptotics.lean](AAR/Airy/Asymptotics.lean): `airyU_recurrence`, `airy_R_hyper_reexpansion`, `airy_S_hyper_reexpansion`, `airy_aiDeriv_exact_remainder`, `airy_ai_exact_remainder`.
-- [Equation.lean](AAR/Airy/Equation.lean): `airyAi_neg_connection`, `airyBi_neg_connection`, `airy_general_solution`, `airy_log_derivative_riccati`, `isAirySol_rotated`, `wronskian_airyAi_rotated`, `wronskian_airyAi_rotations`.
-- [Generalized.lean](AAR/Airy/Generalized.lean): `generalizedAiryA_entire`, `generalizedAiryB_entire`.
-- [GeneralizedContours.lean](AAR/Airy/GeneralizedContours.lean): `reidAiryB_ordinary_ray`.
-- [Integrals.lean](AAR/Airy/Integrals.lean): `airy_linear_antiderivative`, `airy_moment_antiderivative_recurrence`, `airy_quadratic_antiderivative`.
-- [ModulusPhase.lean](AAR/Airy/ModulusPhase.lean): `airyDerivPhase_zero`, `airyPhase_zero`, `airy_phase_printed_coefficients`.
-- [Products.lean](AAR/Airy/Products.lean): `airyAiBi_inv_antiderivative`, `airyAi_inv_sq_antiderivative`, `airy_modulus_rational_antiderivative`, `airy_product_antiderivative_10`, `airy_product_antiderivative_5`, `airy_product_antiderivative_6`, `airy_product_antiderivative_7`, `airy_product_antiderivative_8`, `airy_product_antiderivative_9`, `airy_product_ode`, `airy_product_wronskian`, `airy_quotient_antiderivative`.
-- [Scorer.lean](AAR/Airy/Scorer.lean): `scorerGi_add_scorerHi`.
-- [Zeros.lean](AAR/Airy/Zeros.lean): `airyAi_real_zeros_negative`, `airyBi_real_zeros_negative`.
+- [Asymptotics.lean](DLMF/Airy/Asymptotics.lean): `airyU_recurrence`, `airy_R_hyper_reexpansion`, `airy_S_hyper_reexpansion`, `airy_aiDeriv_exact_remainder`, `airy_ai_exact_remainder`.
+- [Equation.lean](DLMF/Airy/Equation.lean): `airyAi_neg_connection`, `airyBi_neg_connection`, `airy_general_solution`, `airy_log_derivative_riccati`, `isAirySol_rotated`, `wronskian_airyAi_rotated`, `wronskian_airyAi_rotations`.
+- [Generalized.lean](DLMF/Airy/Generalized.lean): `generalizedAiryA_entire`, `generalizedAiryB_entire`.
+- [GeneralizedContours.lean](DLMF/Airy/GeneralizedContours.lean): `reidAiryB_ordinary_ray`.
+- [Integrals.lean](DLMF/Airy/Integrals.lean): `airy_linear_antiderivative`, `airy_moment_antiderivative_recurrence`, `airy_quadratic_antiderivative`.
+- [ModulusPhase.lean](DLMF/Airy/ModulusPhase.lean): `airyDerivPhase_zero`, `airyPhase_zero`, `airy_phase_printed_coefficients`.
+- [Products.lean](DLMF/Airy/Products.lean): `airyAiBi_inv_antiderivative`, `airyAi_inv_sq_antiderivative`, `airy_modulus_rational_antiderivative`, `airy_product_antiderivative_10`, `airy_product_antiderivative_5`, `airy_product_antiderivative_6`, `airy_product_antiderivative_7`, `airy_product_antiderivative_8`, `airy_product_antiderivative_9`, `airy_product_ode`, `airy_product_wronskian`, `airy_quotient_antiderivative`.
+- [Scorer.lean](DLMF/Airy/Scorer.lean): `scorerGi_add_scorerHi`.
+- [Zeros.lean](DLMF/Airy/Zeros.lean): `airyAi_real_zeros_negative`, `airyBi_real_zeros_negative`.
 
 ## Equation-by-equation source mapping
 
@@ -145,270 +145,270 @@ Definitions record source notation and do not replace the accompanying theorem.
 
 ### §9.2: Differential equation and connection formulas (16 equations)
 
-- [9.2.E1](https://dlmf.nist.gov/9.2.E1): [airyAi_ode](AAR/Airy/Basic.lean#L182) (proved); [airyBi_ode](AAR/Airy/Basic.lean#L187) (proved).
-- [9.2.E2](https://dlmf.nist.gov/9.2.E2): [isAirySol_rotated](AAR/Airy/Equation.lean#L22) (proved).
-- [9.2.E3](https://dlmf.nist.gov/9.2.E3): [airyAi_zero](AAR/Airy/Basic.lean#L202) (proved).
-- [9.2.E4](https://dlmf.nist.gov/9.2.E4): [airyAiDeriv_zero](AAR/Airy/Basic.lean#L208) (proved).
-- [9.2.E5](https://dlmf.nist.gov/9.2.E5): [airyBi_zero](AAR/Airy/Basic.lean#L222) (proved).
-- [9.2.E6](https://dlmf.nist.gov/9.2.E6): [airyBiDeriv_zero](AAR/Airy/Basic.lean#L234) (proved).
-- [9.2.E7](https://dlmf.nist.gov/9.2.E7): [wronskian_airyAi_airyBi](AAR/Airy/Basic.lean#L280) (proved).
-- [9.2.E8](https://dlmf.nist.gov/9.2.E8): [wronskian_airyAi_rotated](AAR/Airy/Equation.lean#L73) (proved).
-- [9.2.E9](https://dlmf.nist.gov/9.2.E9): [wronskian_airyAi_rotations](AAR/Airy/Equation.lean#L106) (proved).
-- [9.2.E10](https://dlmf.nist.gov/9.2.E10): [airyBi_eq_airyAi_omega](AAR/Airy/Basic.lean#L421) (proved).
-- [9.2.E11](https://dlmf.nist.gov/9.2.E11): [airyAi_mul_omega_inv](AAR/Airy/Basic.lean#L434) (proved); [airyAi_mul_omega](AAR/Airy/Basic.lean#L447) (proved).
-- [9.2.E12](https://dlmf.nist.gov/9.2.E12): [airyAi_add_omega](AAR/Airy/Basic.lean#L459) (proved).
-- [9.2.E13](https://dlmf.nist.gov/9.2.E13): [airyBi_add_omega](AAR/Airy/Basic.lean#L473) (proved).
-- [9.2.E14](https://dlmf.nist.gov/9.2.E14): [airyAi_neg_connection](AAR/Airy/Equation.lean#L131) (proved).
-- [9.2.E15](https://dlmf.nist.gov/9.2.E15): [airyBi_neg_connection](AAR/Airy/Equation.lean#L148) (proved).
-- [9.2.E16](https://dlmf.nist.gov/9.2.E16): [airy_log_derivative_riccati](AAR/Airy/Equation.lean#L163) (proved).
+- [9.2.E1](https://dlmf.nist.gov/9.2.E1): [airyAi_ode](DLMF/Airy/Basic.lean#L182) (proved); [airyBi_ode](DLMF/Airy/Basic.lean#L187) (proved).
+- [9.2.E2](https://dlmf.nist.gov/9.2.E2): [isAirySol_rotated](DLMF/Airy/Equation.lean#L22) (proved).
+- [9.2.E3](https://dlmf.nist.gov/9.2.E3): [airyAi_zero](DLMF/Airy/Basic.lean#L202) (proved).
+- [9.2.E4](https://dlmf.nist.gov/9.2.E4): [airyAiDeriv_zero](DLMF/Airy/Basic.lean#L208) (proved).
+- [9.2.E5](https://dlmf.nist.gov/9.2.E5): [airyBi_zero](DLMF/Airy/Basic.lean#L222) (proved).
+- [9.2.E6](https://dlmf.nist.gov/9.2.E6): [airyBiDeriv_zero](DLMF/Airy/Basic.lean#L234) (proved).
+- [9.2.E7](https://dlmf.nist.gov/9.2.E7): [wronskian_airyAi_airyBi](DLMF/Airy/Basic.lean#L280) (proved).
+- [9.2.E8](https://dlmf.nist.gov/9.2.E8): [wronskian_airyAi_rotated](DLMF/Airy/Equation.lean#L73) (proved).
+- [9.2.E9](https://dlmf.nist.gov/9.2.E9): [wronskian_airyAi_rotations](DLMF/Airy/Equation.lean#L106) (proved).
+- [9.2.E10](https://dlmf.nist.gov/9.2.E10): [airyBi_eq_airyAi_omega](DLMF/Airy/Basic.lean#L421) (proved).
+- [9.2.E11](https://dlmf.nist.gov/9.2.E11): [airyAi_mul_omega_inv](DLMF/Airy/Basic.lean#L434) (proved); [airyAi_mul_omega](DLMF/Airy/Basic.lean#L447) (proved).
+- [9.2.E12](https://dlmf.nist.gov/9.2.E12): [airyAi_add_omega](DLMF/Airy/Basic.lean#L459) (proved).
+- [9.2.E13](https://dlmf.nist.gov/9.2.E13): [airyBi_add_omega](DLMF/Airy/Basic.lean#L473) (proved).
+- [9.2.E14](https://dlmf.nist.gov/9.2.E14): [airyAi_neg_connection](DLMF/Airy/Equation.lean#L131) (proved).
+- [9.2.E15](https://dlmf.nist.gov/9.2.E15): [airyBi_neg_connection](DLMF/Airy/Equation.lean#L148) (proved).
+- [9.2.E16](https://dlmf.nist.gov/9.2.E16): [airy_log_derivative_riccati](DLMF/Airy/Equation.lean#L163) (proved).
 
 ### §9.4: Maclaurin series (4 equations)
 
-- [9.4.E1](https://dlmf.nist.gov/9.4.E1): [airyAi](AAR/Airy/Basic.lean#L130) (definition); [hasSum_airyAi_maclaurin](AAR/Airy/Equation.lean#L306) (proved).
-- [9.4.E2](https://dlmf.nist.gov/9.4.E2): [airyAiDeriv](AAR/Airy/Basic.lean#L135) (definition); [hasSum_airyAiDeriv_maclaurin](AAR/Airy/Equation.lean#L319) (proved).
-- [9.4.E3](https://dlmf.nist.gov/9.4.E3): [airyBi](AAR/Airy/Basic.lean#L141) (definition); [hasSum_airyBi_maclaurin](AAR/Airy/Equation.lean#L332) (proved).
-- [9.4.E4](https://dlmf.nist.gov/9.4.E4): [airyBiDeriv](AAR/Airy/Basic.lean#L148) (definition); [hasSum_airyBiDeriv_maclaurin](AAR/Airy/Equation.lean#L347) (proved).
+- [9.4.E1](https://dlmf.nist.gov/9.4.E1): [airyAi](DLMF/Airy/Basic.lean#L130) (definition); [hasSum_airyAi_maclaurin](DLMF/Airy/Equation.lean#L306) (proved).
+- [9.4.E2](https://dlmf.nist.gov/9.4.E2): [airyAiDeriv](DLMF/Airy/Basic.lean#L135) (definition); [hasSum_airyAiDeriv_maclaurin](DLMF/Airy/Equation.lean#L319) (proved).
+- [9.4.E3](https://dlmf.nist.gov/9.4.E3): [airyBi](DLMF/Airy/Basic.lean#L141) (definition); [hasSum_airyBi_maclaurin](DLMF/Airy/Equation.lean#L332) (proved).
+- [9.4.E4](https://dlmf.nist.gov/9.4.E4): [airyBiDeriv](DLMF/Airy/Basic.lean#L148) (definition); [hasSum_airyBiDeriv_maclaurin](DLMF/Airy/Equation.lean#L347) (proved).
 
 ### §9.5: Integral representations (8 equations)
 
-- [9.5.E1](https://dlmf.nist.gov/9.5.E1): [airyAi_cos_integral](AAR/Airy/IntegralRepresentations.lean#L23) (admitted).
-- [9.5.E2](https://dlmf.nist.gov/9.5.E2): [airyAi_neg_cos_integral](AAR/Airy/IntegralRepresentations.lean#L29) (admitted).
-- [9.5.E3](https://dlmf.nist.gov/9.5.E3): [airyBi_real_integral](AAR/Airy/IntegralRepresentations.lean#L36) (admitted).
-- [9.5.E4](https://dlmf.nist.gov/9.5.E4): [airyAi_contour_integral](AAR/Airy/IntegralRepresentations.lean#L93) (proved).
-- [9.5.E5](https://dlmf.nist.gov/9.5.E5): [airyBi_contour_integral](AAR/Airy/IntegralRepresentations.lean#L102) (proved).
-- [9.5.E6](https://dlmf.nist.gov/9.5.E6): [airyAi_cubic_integral](AAR/Airy/IntegralRepresentations.lean#L127) (admitted).
-- [9.5.E7](https://dlmf.nist.gov/9.5.E7): [airyAi_gaussian_cos_integral](AAR/Airy/IntegralRepresentations.lean#L134) (admitted).
-- [9.5.E8](https://dlmf.nist.gov/9.5.E8): [airyAi_laplace_integral](AAR/Airy/IntegralRepresentations.lean#L141) (admitted).
+- [9.5.E1](https://dlmf.nist.gov/9.5.E1): [airyAi_cos_integral](DLMF/Airy/IntegralRepresentations.lean#L23) (admitted).
+- [9.5.E2](https://dlmf.nist.gov/9.5.E2): [airyAi_neg_cos_integral](DLMF/Airy/IntegralRepresentations.lean#L29) (admitted).
+- [9.5.E3](https://dlmf.nist.gov/9.5.E3): [airyBi_real_integral](DLMF/Airy/IntegralRepresentations.lean#L36) (admitted).
+- [9.5.E4](https://dlmf.nist.gov/9.5.E4): [airyAi_contour_integral](DLMF/Airy/IntegralRepresentations.lean#L93) (proved).
+- [9.5.E5](https://dlmf.nist.gov/9.5.E5): [airyBi_contour_integral](DLMF/Airy/IntegralRepresentations.lean#L102) (proved).
+- [9.5.E6](https://dlmf.nist.gov/9.5.E6): [airyAi_cubic_integral](DLMF/Airy/IntegralRepresentations.lean#L127) (admitted).
+- [9.5.E7](https://dlmf.nist.gov/9.5.E7): [airyAi_gaussian_cos_integral](DLMF/Airy/IntegralRepresentations.lean#L134) (admitted).
+- [9.5.E8](https://dlmf.nist.gov/9.5.E8): [airyAi_laplace_integral](DLMF/Airy/IntegralRepresentations.lean#L141) (admitted).
 
 ### §9.6: Relations to other functions (26 equations)
 
-- [9.6.E1](https://dlmf.nist.gov/9.6.E1): [airyZetaComplex](AAR/Airy/Framework.lean#L78) (definition); [airyZeta](AAR/Airy/Bessel.lean#L44) (definition).
-- [9.6.E2](https://dlmf.nist.gov/9.6.E2): [airyAi_eq_besselK_complex](AAR/Airy/Relations.lean#L498) (proved); [airyAi_eq_besselI_complex](AAR/Airy/Relations.lean#L504) (proved); [airyAi_eq_hankel1_pos_complex](AAR/Airy/Relations.lean#L510) (proved); [airyAi_eq_hankel1_neg_complex](AAR/Airy/Relations.lean#L536) (proved); [airyAi_eq_hankel2_pos_complex](AAR/Airy/Relations.lean#L562) (proved); [airyAi_eq_hankel2_neg_complex](AAR/Airy/Relations.lean#L588) (proved); [airyAi_eq_besselI](AAR/Airy/Bessel.lean#L175) (proved); [airyAi_eq_besselK](AAR/Airy/Bessel.lean#L236) (proved).
-- [9.6.E3](https://dlmf.nist.gov/9.6.E3): [airyAiDeriv_eq_besselK_complex](AAR/Airy/Relations.lean#L614) (proved); [airyAiDeriv_eq_besselI_complex](AAR/Airy/Relations.lean#L620) (proved); [airyAiDeriv_eq_hankel1_pos_complex](AAR/Airy/Relations.lean#L626) (proved); [airyAiDeriv_eq_hankel1_neg_complex](AAR/Airy/Relations.lean#L651) (proved); [airyAiDeriv_eq_hankel2_pos_complex](AAR/Airy/Relations.lean#L676) (proved); [airyAiDeriv_eq_hankel2_neg_complex](AAR/Airy/Relations.lean#L701) (proved).
-- [9.6.E4](https://dlmf.nist.gov/9.6.E4): [airyBi_eq_besselI_complex](AAR/Airy/Relations.lean#L726) (proved); [airyBi_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L732) (proved); [airyBi_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L759) (proved); [airyBi_eq_besselI](AAR/Airy/Bessel.lean#L188) (proved).
-- [9.6.E5](https://dlmf.nist.gov/9.6.E5): [airyBiDeriv_eq_besselI_complex](AAR/Airy/Relations.lean#L786) (proved); [airyBiDeriv_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L792) (proved); [airyBiDeriv_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L819) (proved).
-- [9.6.E6](https://dlmf.nist.gov/9.6.E6): [airyAi_neg_eq_besselJ_complex](AAR/Airy/Relations.lean#L846) (proved); [airyAi_neg_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L852) (proved); [airyAi_neg_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L876) (proved); [airyAi_neg_eq_besselJ](AAR/Airy/Bessel.lean#L201) (proved).
-- [9.6.E7](https://dlmf.nist.gov/9.6.E7): [airyAiDeriv_neg_eq_besselJ_complex](AAR/Airy/Relations.lean#L900) (proved); [airyAiDeriv_neg_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L906) (proved); [airyAiDeriv_neg_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L929) (proved).
-- [9.6.E8](https://dlmf.nist.gov/9.6.E8): [airyBi_neg_eq_besselJ_complex](AAR/Airy/Relations.lean#L952) (proved); [airyBi_neg_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L958) (proved); [airyBi_neg_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L981) (proved); [airyBi_neg_eq_besselJ](AAR/Airy/Bessel.lean#L214) (proved).
-- [9.6.E9](https://dlmf.nist.gov/9.6.E9): [airyBiDeriv_neg_eq_besselJ_complex](AAR/Airy/Relations.lean#L1004) (proved); [airyBiDeriv_neg_eq_hankel_pos_complex](AAR/Airy/Relations.lean#L1010) (proved); [airyBiDeriv_neg_eq_hankel_neg_complex](AAR/Airy/Relations.lean#L1033) (proved).
-- [9.6.E10](https://dlmf.nist.gov/9.6.E10): [airyInverseZetaOnLog](AAR/Airy/Relations.lean#L22) (definition); [airyInverseZeta_logZeta](AAR/Airy/Relations.lean#L26) (proved).
-- [9.6.E11](https://dlmf.nist.gov/9.6.E11): [besselJ_third_eq_airy_complex](AAR/Airy/Relations.lean#L1056) (proved).
-- [9.6.E12](https://dlmf.nist.gov/9.6.E12): [besselJ_two_thirds_eq_airy_complex](AAR/Airy/Relations.lean#L1089) (proved).
-- [9.6.E13](https://dlmf.nist.gov/9.6.E13): [besselI_third_eq_airy_complex](AAR/Airy/Relations.lean#L1109) (proved).
-- [9.6.E14](https://dlmf.nist.gov/9.6.E14): [besselI_two_thirds_eq_airy_complex](AAR/Airy/Relations.lean#L1140) (proved).
-- [9.6.E15](https://dlmf.nist.gov/9.6.E15): [besselK_third_eq_airy_complex](AAR/Airy/Relations.lean#L1159) (proved).
-- [9.6.E16](https://dlmf.nist.gov/9.6.E16): [besselK_two_thirds_eq_airy_complex](AAR/Airy/Relations.lean#L1175) (proved).
-- [9.6.E17](https://dlmf.nist.gov/9.6.E17): [hankel1_third_eq_airy_complex](AAR/Airy/Relations.lean#L1185) (proved); [hankel1_third_neg_order](AAR/Airy/Relations.lean#L1243) (proved).
-- [9.6.E18](https://dlmf.nist.gov/9.6.E18): [hankel1_two_thirds_eq_airy_complex](AAR/Airy/Relations.lean#L1249) (proved); [hankel1_two_thirds_neg_order](AAR/Airy/Relations.lean#L1270) (proved).
-- [9.6.E19](https://dlmf.nist.gov/9.6.E19): [hankel2_third_eq_airy_complex](AAR/Airy/Relations.lean#L1276) (proved); [hankel2_third_neg_order](AAR/Airy/Relations.lean#L1300) (proved).
-- [9.6.E20](https://dlmf.nist.gov/9.6.E20): [hankel2_two_thirds_eq_airy_complex](AAR/Airy/Relations.lean#L1306) (proved); [hankel2_two_thirds_neg_order](AAR/Airy/Relations.lean#L1327) (proved).
-- [9.6.E21](https://dlmf.nist.gov/9.6.E21): [airyAi_eq_whittakerW](AAR/Airy/Relations.lean#L1881) (proved); [airyAi_eq_kummerU](AAR/Airy/Relations.lean#L1890) (proved); [airyAi_eq_whittakerW_onLog](AAR/Airy/Relations.lean#L1765) (proved); [airyAi_eq_kummerU_onLog](AAR/Airy/Relations.lean#L1782) (proved).
-- [9.6.E22](https://dlmf.nist.gov/9.6.E22): [airyAiDeriv_eq_whittakerW](AAR/Airy/Relations.lean#L1901) (proved); [airyAiDeriv_eq_kummerU](AAR/Airy/Relations.lean#L1910) (proved); [airyAiDeriv_eq_whittakerW_onLog](AAR/Airy/Relations.lean#L1790) (proved); [airyAiDeriv_eq_kummerU_onLog](AAR/Airy/Relations.lean#L1807) (proved).
-- [9.6.E23](https://dlmf.nist.gov/9.6.E23): [airyBi_eq_whittakerM](AAR/Airy/Relations.lean#L1921) (proved); [airyBi_eq_whittakerM_onLog](AAR/Airy/Relations.lean#L1815) (proved).
-- [9.6.E24](https://dlmf.nist.gov/9.6.E24): [airyBiDeriv_eq_whittakerM](AAR/Airy/Relations.lean#L1932) (proved); [airyBiDeriv_eq_whittakerM_onLog](AAR/Airy/Relations.lean#L1848) (proved).
-- [9.6.E25](https://dlmf.nist.gov/9.6.E25): [airyBi_eq_kummerM](AAR/Airy/Relations.lean#L1396) (proved).
-- [9.6.E26](https://dlmf.nist.gov/9.6.E26): [airyBiDeriv_eq_kummerM](AAR/Airy/Relations.lean#L1435) (proved).
+- [9.6.E1](https://dlmf.nist.gov/9.6.E1): [airyZetaComplex](DLMF/Airy/Framework.lean#L78) (definition); [airyZeta](DLMF/Airy/Bessel.lean#L44) (definition).
+- [9.6.E2](https://dlmf.nist.gov/9.6.E2): [airyAi_eq_besselK_complex](DLMF/Airy/Relations.lean#L498) (proved); [airyAi_eq_besselI_complex](DLMF/Airy/Relations.lean#L504) (proved); [airyAi_eq_hankel1_pos_complex](DLMF/Airy/Relations.lean#L510) (proved); [airyAi_eq_hankel1_neg_complex](DLMF/Airy/Relations.lean#L536) (proved); [airyAi_eq_hankel2_pos_complex](DLMF/Airy/Relations.lean#L562) (proved); [airyAi_eq_hankel2_neg_complex](DLMF/Airy/Relations.lean#L588) (proved); [airyAi_eq_besselI](DLMF/Airy/Bessel.lean#L175) (proved); [airyAi_eq_besselK](DLMF/Airy/Bessel.lean#L236) (proved).
+- [9.6.E3](https://dlmf.nist.gov/9.6.E3): [airyAiDeriv_eq_besselK_complex](DLMF/Airy/Relations.lean#L614) (proved); [airyAiDeriv_eq_besselI_complex](DLMF/Airy/Relations.lean#L620) (proved); [airyAiDeriv_eq_hankel1_pos_complex](DLMF/Airy/Relations.lean#L626) (proved); [airyAiDeriv_eq_hankel1_neg_complex](DLMF/Airy/Relations.lean#L651) (proved); [airyAiDeriv_eq_hankel2_pos_complex](DLMF/Airy/Relations.lean#L676) (proved); [airyAiDeriv_eq_hankel2_neg_complex](DLMF/Airy/Relations.lean#L701) (proved).
+- [9.6.E4](https://dlmf.nist.gov/9.6.E4): [airyBi_eq_besselI_complex](DLMF/Airy/Relations.lean#L726) (proved); [airyBi_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L732) (proved); [airyBi_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L759) (proved); [airyBi_eq_besselI](DLMF/Airy/Bessel.lean#L188) (proved).
+- [9.6.E5](https://dlmf.nist.gov/9.6.E5): [airyBiDeriv_eq_besselI_complex](DLMF/Airy/Relations.lean#L786) (proved); [airyBiDeriv_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L792) (proved); [airyBiDeriv_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L819) (proved).
+- [9.6.E6](https://dlmf.nist.gov/9.6.E6): [airyAi_neg_eq_besselJ_complex](DLMF/Airy/Relations.lean#L846) (proved); [airyAi_neg_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L852) (proved); [airyAi_neg_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L876) (proved); [airyAi_neg_eq_besselJ](DLMF/Airy/Bessel.lean#L201) (proved).
+- [9.6.E7](https://dlmf.nist.gov/9.6.E7): [airyAiDeriv_neg_eq_besselJ_complex](DLMF/Airy/Relations.lean#L900) (proved); [airyAiDeriv_neg_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L906) (proved); [airyAiDeriv_neg_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L929) (proved).
+- [9.6.E8](https://dlmf.nist.gov/9.6.E8): [airyBi_neg_eq_besselJ_complex](DLMF/Airy/Relations.lean#L952) (proved); [airyBi_neg_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L958) (proved); [airyBi_neg_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L981) (proved); [airyBi_neg_eq_besselJ](DLMF/Airy/Bessel.lean#L214) (proved).
+- [9.6.E9](https://dlmf.nist.gov/9.6.E9): [airyBiDeriv_neg_eq_besselJ_complex](DLMF/Airy/Relations.lean#L1004) (proved); [airyBiDeriv_neg_eq_hankel_pos_complex](DLMF/Airy/Relations.lean#L1010) (proved); [airyBiDeriv_neg_eq_hankel_neg_complex](DLMF/Airy/Relations.lean#L1033) (proved).
+- [9.6.E10](https://dlmf.nist.gov/9.6.E10): [airyInverseZetaOnLog](DLMF/Airy/Relations.lean#L22) (definition); [airyInverseZeta_logZeta](DLMF/Airy/Relations.lean#L26) (proved).
+- [9.6.E11](https://dlmf.nist.gov/9.6.E11): [besselJ_third_eq_airy_complex](DLMF/Airy/Relations.lean#L1056) (proved).
+- [9.6.E12](https://dlmf.nist.gov/9.6.E12): [besselJ_two_thirds_eq_airy_complex](DLMF/Airy/Relations.lean#L1089) (proved).
+- [9.6.E13](https://dlmf.nist.gov/9.6.E13): [besselI_third_eq_airy_complex](DLMF/Airy/Relations.lean#L1109) (proved).
+- [9.6.E14](https://dlmf.nist.gov/9.6.E14): [besselI_two_thirds_eq_airy_complex](DLMF/Airy/Relations.lean#L1140) (proved).
+- [9.6.E15](https://dlmf.nist.gov/9.6.E15): [besselK_third_eq_airy_complex](DLMF/Airy/Relations.lean#L1159) (proved).
+- [9.6.E16](https://dlmf.nist.gov/9.6.E16): [besselK_two_thirds_eq_airy_complex](DLMF/Airy/Relations.lean#L1175) (proved).
+- [9.6.E17](https://dlmf.nist.gov/9.6.E17): [hankel1_third_eq_airy_complex](DLMF/Airy/Relations.lean#L1185) (proved); [hankel1_third_neg_order](DLMF/Airy/Relations.lean#L1243) (proved).
+- [9.6.E18](https://dlmf.nist.gov/9.6.E18): [hankel1_two_thirds_eq_airy_complex](DLMF/Airy/Relations.lean#L1249) (proved); [hankel1_two_thirds_neg_order](DLMF/Airy/Relations.lean#L1270) (proved).
+- [9.6.E19](https://dlmf.nist.gov/9.6.E19): [hankel2_third_eq_airy_complex](DLMF/Airy/Relations.lean#L1276) (proved); [hankel2_third_neg_order](DLMF/Airy/Relations.lean#L1300) (proved).
+- [9.6.E20](https://dlmf.nist.gov/9.6.E20): [hankel2_two_thirds_eq_airy_complex](DLMF/Airy/Relations.lean#L1306) (proved); [hankel2_two_thirds_neg_order](DLMF/Airy/Relations.lean#L1327) (proved).
+- [9.6.E21](https://dlmf.nist.gov/9.6.E21): [airyAi_eq_whittakerW](DLMF/Airy/Relations.lean#L1881) (proved); [airyAi_eq_kummerU](DLMF/Airy/Relations.lean#L1890) (proved); [airyAi_eq_whittakerW_onLog](DLMF/Airy/Relations.lean#L1765) (proved); [airyAi_eq_kummerU_onLog](DLMF/Airy/Relations.lean#L1782) (proved).
+- [9.6.E22](https://dlmf.nist.gov/9.6.E22): [airyAiDeriv_eq_whittakerW](DLMF/Airy/Relations.lean#L1901) (proved); [airyAiDeriv_eq_kummerU](DLMF/Airy/Relations.lean#L1910) (proved); [airyAiDeriv_eq_whittakerW_onLog](DLMF/Airy/Relations.lean#L1790) (proved); [airyAiDeriv_eq_kummerU_onLog](DLMF/Airy/Relations.lean#L1807) (proved).
+- [9.6.E23](https://dlmf.nist.gov/9.6.E23): [airyBi_eq_whittakerM](DLMF/Airy/Relations.lean#L1921) (proved); [airyBi_eq_whittakerM_onLog](DLMF/Airy/Relations.lean#L1815) (proved).
+- [9.6.E24](https://dlmf.nist.gov/9.6.E24): [airyBiDeriv_eq_whittakerM](DLMF/Airy/Relations.lean#L1932) (proved); [airyBiDeriv_eq_whittakerM_onLog](DLMF/Airy/Relations.lean#L1848) (proved).
+- [9.6.E25](https://dlmf.nist.gov/9.6.E25): [airyBi_eq_kummerM](DLMF/Airy/Relations.lean#L1396) (proved).
+- [9.6.E26](https://dlmf.nist.gov/9.6.E26): [airyBiDeriv_eq_kummerM](DLMF/Airy/Relations.lean#L1435) (proved).
 
 ### §9.7: Asymptotic expansions and error bounds (23 equations)
 
-- [9.7.E1](https://dlmf.nist.gov/9.7.E1): [airyZetaComplex](AAR/Airy/Framework.lean#L78) (definition).
-- [9.7.E2](https://dlmf.nist.gov/9.7.E2): [airyU_product](AAR/Airy/Asymptotics.lean#L140) (proved); [airyU_recurrence](AAR/Airy/Asymptotics.lean#L159) (proved).
-- [9.7.E3](https://dlmf.nist.gov/9.7.E3): [airyChi](AAR/Airy/Asymptotics.lean#L32) (definition).
-- [9.7.E4](https://dlmf.nist.gov/9.7.E4): [airyChi_isEquivalent](AAR/Airy/Asymptotics.lean#L173) (proved).
-- [9.7.E5](https://dlmf.nist.gov/9.7.E5): [airy_ai_poincare](AAR/Airy/Asymptotics.lean#L2146) (proved); [airyAi_isEquivalent](AAR/Airy/Bessel.lean#L334) (proved).
-- [9.7.E6](https://dlmf.nist.gov/9.7.E6): [airy_aiDeriv_poincare](AAR/Airy/Asymptotics.lean#L2155) (proved).
-- [9.7.E7](https://dlmf.nist.gov/9.7.E7): [airy_bi_poincare](AAR/Airy/Asymptotics.lean#L2164) (proved); [airyBi_isEquivalent](AAR/Airy/Bessel.lean#L395) (proved).
-- [9.7.E8](https://dlmf.nist.gov/9.7.E8): [airy_biDeriv_poincare](AAR/Airy/Asymptotics.lean#L2173) (proved).
-- [9.7.E9](https://dlmf.nist.gov/9.7.E9): [airy_ai_oscillatory_expansion](AAR/Airy/Asymptotics.lean#L1376) (proved).
-- [9.7.E10](https://dlmf.nist.gov/9.7.E10): [airy_aiDeriv_oscillatory_expansion](AAR/Airy/Asymptotics.lean#L1496) (proved).
-- [9.7.E11](https://dlmf.nist.gov/9.7.E11): [airy_bi_oscillatory_expansion](AAR/Airy/Asymptotics.lean#L1575) (proved).
-- [9.7.E12](https://dlmf.nist.gov/9.7.E12): [airy_biDeriv_oscillatory_expansion](AAR/Airy/Asymptotics.lean#L1654) (proved).
-- [9.7.E13](https://dlmf.nist.gov/9.7.E13): [airyBi_rotated_expansion](AAR/Airy/Asymptotics.lean#L1829) (proved).
-- [9.7.E14](https://dlmf.nist.gov/9.7.E14): [airyBiDeriv_rotated_expansion](AAR/Airy/Asymptotics.lean#L2008) (proved).
-- [9.7.E15](https://dlmf.nist.gov/9.7.E15): [airy_ai_bound](AAR/Airy/Asymptotics.lean#L2661) (proved); [airy_aiDeriv_bound](AAR/Airy/Asymptotics.lean#L2677) (proved).
-- [9.7.E16](https://dlmf.nist.gov/9.7.E16): [airy_bi_bound](AAR/Airy/Asymptotics.lean#L2707) (admitted); [airy_biDeriv_bound](AAR/Airy/Asymptotics.lean#L2713) (admitted).
-- [9.7.E17](https://dlmf.nist.gov/9.7.E17): [airyErrorMultiplier](AAR/Airy/Asymptotics.lean#L93) (definition); [airy_ai_complex_error](AAR/Airy/Asymptotics.lean#L2719) (admitted); [airy_aiDeriv_complex_error](AAR/Airy/Asymptotics.lean#L2726) (admitted).
-- [9.7.E18](https://dlmf.nist.gov/9.7.E18): [airy_ai_exact_remainder](AAR/Airy/Asymptotics.lean#L2733) (proved).
-- [9.7.E19](https://dlmf.nist.gov/9.7.E19): [airy_aiDeriv_exact_remainder](AAR/Airy/Asymptotics.lean#L2748) (proved).
-- [9.7.E20](https://dlmf.nist.gov/9.7.E20): [airy_R_hyper_reexpansion](AAR/Airy/Asymptotics.lean#L2763) (proved).
-- [9.7.E21](https://dlmf.nist.gov/9.7.E21): [airy_S_hyper_reexpansion](AAR/Airy/Asymptotics.lean#L2773) (proved).
-- [9.7.E22](https://dlmf.nist.gov/9.7.E22): [airyTerminator](AAR/Airy/Asymptotics.lean#L99) (definition).
-- [9.7.E23](https://dlmf.nist.gov/9.7.E23): [airy_R_hyper_error](AAR/Airy/Asymptotics.lean#L2783) (admitted); [airy_S_hyper_error](AAR/Airy/Asymptotics.lean#L2790) (admitted).
+- [9.7.E1](https://dlmf.nist.gov/9.7.E1): [airyZetaComplex](DLMF/Airy/Framework.lean#L78) (definition).
+- [9.7.E2](https://dlmf.nist.gov/9.7.E2): [airyU_product](DLMF/Airy/Asymptotics.lean#L140) (proved); [airyU_recurrence](DLMF/Airy/Asymptotics.lean#L159) (proved).
+- [9.7.E3](https://dlmf.nist.gov/9.7.E3): [airyChi](DLMF/Airy/Asymptotics.lean#L32) (definition).
+- [9.7.E4](https://dlmf.nist.gov/9.7.E4): [airyChi_isEquivalent](DLMF/Airy/Asymptotics.lean#L173) (proved).
+- [9.7.E5](https://dlmf.nist.gov/9.7.E5): [airy_ai_poincare](DLMF/Airy/Asymptotics.lean#L2146) (proved); [airyAi_isEquivalent](DLMF/Airy/Bessel.lean#L334) (proved).
+- [9.7.E6](https://dlmf.nist.gov/9.7.E6): [airy_aiDeriv_poincare](DLMF/Airy/Asymptotics.lean#L2155) (proved).
+- [9.7.E7](https://dlmf.nist.gov/9.7.E7): [airy_bi_poincare](DLMF/Airy/Asymptotics.lean#L2164) (proved); [airyBi_isEquivalent](DLMF/Airy/Bessel.lean#L395) (proved).
+- [9.7.E8](https://dlmf.nist.gov/9.7.E8): [airy_biDeriv_poincare](DLMF/Airy/Asymptotics.lean#L2173) (proved).
+- [9.7.E9](https://dlmf.nist.gov/9.7.E9): [airy_ai_oscillatory_expansion](DLMF/Airy/Asymptotics.lean#L1376) (proved).
+- [9.7.E10](https://dlmf.nist.gov/9.7.E10): [airy_aiDeriv_oscillatory_expansion](DLMF/Airy/Asymptotics.lean#L1496) (proved).
+- [9.7.E11](https://dlmf.nist.gov/9.7.E11): [airy_bi_oscillatory_expansion](DLMF/Airy/Asymptotics.lean#L1575) (proved).
+- [9.7.E12](https://dlmf.nist.gov/9.7.E12): [airy_biDeriv_oscillatory_expansion](DLMF/Airy/Asymptotics.lean#L1654) (proved).
+- [9.7.E13](https://dlmf.nist.gov/9.7.E13): [airyBi_rotated_expansion](DLMF/Airy/Asymptotics.lean#L1829) (proved).
+- [9.7.E14](https://dlmf.nist.gov/9.7.E14): [airyBiDeriv_rotated_expansion](DLMF/Airy/Asymptotics.lean#L2008) (proved).
+- [9.7.E15](https://dlmf.nist.gov/9.7.E15): [airy_ai_bound](DLMF/Airy/Asymptotics.lean#L2661) (proved); [airy_aiDeriv_bound](DLMF/Airy/Asymptotics.lean#L2677) (proved).
+- [9.7.E16](https://dlmf.nist.gov/9.7.E16): [airy_bi_bound](DLMF/Airy/Asymptotics.lean#L2707) (admitted); [airy_biDeriv_bound](DLMF/Airy/Asymptotics.lean#L2713) (admitted).
+- [9.7.E17](https://dlmf.nist.gov/9.7.E17): [airyErrorMultiplier](DLMF/Airy/Asymptotics.lean#L93) (definition); [airy_ai_complex_error](DLMF/Airy/Asymptotics.lean#L2719) (admitted); [airy_aiDeriv_complex_error](DLMF/Airy/Asymptotics.lean#L2726) (admitted).
+- [9.7.E18](https://dlmf.nist.gov/9.7.E18): [airy_ai_exact_remainder](DLMF/Airy/Asymptotics.lean#L2733) (proved).
+- [9.7.E19](https://dlmf.nist.gov/9.7.E19): [airy_aiDeriv_exact_remainder](DLMF/Airy/Asymptotics.lean#L2748) (proved).
+- [9.7.E20](https://dlmf.nist.gov/9.7.E20): [airy_R_hyper_reexpansion](DLMF/Airy/Asymptotics.lean#L2763) (proved).
+- [9.7.E21](https://dlmf.nist.gov/9.7.E21): [airy_S_hyper_reexpansion](DLMF/Airy/Asymptotics.lean#L2773) (proved).
+- [9.7.E22](https://dlmf.nist.gov/9.7.E22): [airyTerminator](DLMF/Airy/Asymptotics.lean#L99) (definition).
+- [9.7.E23](https://dlmf.nist.gov/9.7.E23): [airy_R_hyper_error](DLMF/Airy/Asymptotics.lean#L2783) (admitted); [airy_S_hyper_error](DLMF/Airy/Asymptotics.lean#L2790) (admitted).
 
 ### §9.8: Modulus and phase (23 equations)
 
-- [9.8.E1](https://dlmf.nist.gov/9.8.E1): [airyAiReal_modulus_phase](AAR/Airy/ModulusPhase.lean#L632) (proved).
-- [9.8.E2](https://dlmf.nist.gov/9.8.E2): [airyBiReal_modulus_phase](AAR/Airy/ModulusPhase.lean#L638) (proved).
-- [9.8.E3](https://dlmf.nist.gov/9.8.E3): [airyModulus](AAR/Airy/ModulusPhase.lean#L26) (definition).
-- [9.8.E4](https://dlmf.nist.gov/9.8.E4): [airyPhase_atan_branch](AAR/Airy/ModulusPhase.lean#L656) (proved).
-- [9.8.E5](https://dlmf.nist.gov/9.8.E5): [airyAiDerivReal_modulus_phase](AAR/Airy/ModulusPhase.lean#L644) (proved).
-- [9.8.E6](https://dlmf.nist.gov/9.8.E6): [airyBiDerivReal_modulus_phase](AAR/Airy/ModulusPhase.lean#L650) (proved).
-- [9.8.E7](https://dlmf.nist.gov/9.8.E7): [airyDerivModulus](AAR/Airy/ModulusPhase.lean#L29) (definition).
-- [9.8.E8](https://dlmf.nist.gov/9.8.E8): [airyDerivPhase_atan_branch](AAR/Airy/ModulusPhase.lean#L676) (proved).
-- [9.8.E9](https://dlmf.nist.gov/9.8.E9): [airyModulus_bessel](AAR/Airy/ModulusPhase.lean#L697) (proved).
-- [9.8.E10](https://dlmf.nist.gov/9.8.E10): [airyDerivModulus_bessel](AAR/Airy/ModulusPhase.lean#L870) (proved).
-- [9.8.E11](https://dlmf.nist.gov/9.8.E11): [airyPhase_bessel_atan](AAR/Airy/ModulusPhase.lean#L744) (proved).
-- [9.8.E12](https://dlmf.nist.gov/9.8.E12): [airyDerivPhase_bessel_atan](AAR/Airy/ModulusPhase.lean#L907) (proved).
-- [9.8.E13](https://dlmf.nist.gov/9.8.E13): [airy_modulus_phase_wronskian](AAR/Airy/ModulusPhase.lean#L962) (proved).
-- [9.8.E14](https://dlmf.nist.gov/9.8.E14): [airy_modulus_phase_derivatives](AAR/Airy/ModulusPhase.lean#L968) (proved).
-- [9.8.E15](https://dlmf.nist.gov/9.8.E15): [airy_derivModulus_identity](AAR/Airy/ModulusPhase.lean#L980) (proved).
-- [9.8.E16](https://dlmf.nist.gov/9.8.E16): [airy_modulus_identity](AAR/Airy/ModulusPhase.lean#L997) (proved).
-- [9.8.E17](https://dlmf.nist.gov/9.8.E17): [airy_phase_difference_tan](AAR/Airy/ModulusPhase.lean#L1014) (proved).
-- [9.8.E18](https://dlmf.nist.gov/9.8.E18): [airy_modulus_ode](AAR/Airy/ModulusPhase.lean#L1040) (proved).
-- [9.8.E19](https://dlmf.nist.gov/9.8.E19): [airy_phase_ode](AAR/Airy/ModulusPhase.lean#L1082) (proved).
-- [9.8.E20](https://dlmf.nist.gov/9.8.E20): [airyModulus_asymptotic](AAR/Airy/ModulusPhase.lean#L2816) (proved).
-- [9.8.E21](https://dlmf.nist.gov/9.8.E21): [airyDerivModulus_asymptotic](AAR/Airy/ModulusPhase.lean#L2834) (proved).
-- [9.8.E22](https://dlmf.nist.gov/9.8.E22): [airyPhase_asymptotic](AAR/Airy/ModulusPhase.lean#L3433) (proved); [airy_phase_printed_coefficients](AAR/Airy/ModulusPhase.lean#L3460) (proved).
-- [9.8.E23](https://dlmf.nist.gov/9.8.E23): [airyDerivPhase_asymptotic](AAR/Airy/ModulusPhase.lean#L3447) (proved); [airy_phase_printed_coefficients](AAR/Airy/ModulusPhase.lean#L3460) (proved).
+- [9.8.E1](https://dlmf.nist.gov/9.8.E1): [airyAiReal_modulus_phase](DLMF/Airy/ModulusPhase.lean#L632) (proved).
+- [9.8.E2](https://dlmf.nist.gov/9.8.E2): [airyBiReal_modulus_phase](DLMF/Airy/ModulusPhase.lean#L638) (proved).
+- [9.8.E3](https://dlmf.nist.gov/9.8.E3): [airyModulus](DLMF/Airy/ModulusPhase.lean#L26) (definition).
+- [9.8.E4](https://dlmf.nist.gov/9.8.E4): [airyPhase_atan_branch](DLMF/Airy/ModulusPhase.lean#L656) (proved).
+- [9.8.E5](https://dlmf.nist.gov/9.8.E5): [airyAiDerivReal_modulus_phase](DLMF/Airy/ModulusPhase.lean#L644) (proved).
+- [9.8.E6](https://dlmf.nist.gov/9.8.E6): [airyBiDerivReal_modulus_phase](DLMF/Airy/ModulusPhase.lean#L650) (proved).
+- [9.8.E7](https://dlmf.nist.gov/9.8.E7): [airyDerivModulus](DLMF/Airy/ModulusPhase.lean#L29) (definition).
+- [9.8.E8](https://dlmf.nist.gov/9.8.E8): [airyDerivPhase_atan_branch](DLMF/Airy/ModulusPhase.lean#L676) (proved).
+- [9.8.E9](https://dlmf.nist.gov/9.8.E9): [airyModulus_bessel](DLMF/Airy/ModulusPhase.lean#L697) (proved).
+- [9.8.E10](https://dlmf.nist.gov/9.8.E10): [airyDerivModulus_bessel](DLMF/Airy/ModulusPhase.lean#L870) (proved).
+- [9.8.E11](https://dlmf.nist.gov/9.8.E11): [airyPhase_bessel_atan](DLMF/Airy/ModulusPhase.lean#L744) (proved).
+- [9.8.E12](https://dlmf.nist.gov/9.8.E12): [airyDerivPhase_bessel_atan](DLMF/Airy/ModulusPhase.lean#L907) (proved).
+- [9.8.E13](https://dlmf.nist.gov/9.8.E13): [airy_modulus_phase_wronskian](DLMF/Airy/ModulusPhase.lean#L962) (proved).
+- [9.8.E14](https://dlmf.nist.gov/9.8.E14): [airy_modulus_phase_derivatives](DLMF/Airy/ModulusPhase.lean#L968) (proved).
+- [9.8.E15](https://dlmf.nist.gov/9.8.E15): [airy_derivModulus_identity](DLMF/Airy/ModulusPhase.lean#L980) (proved).
+- [9.8.E16](https://dlmf.nist.gov/9.8.E16): [airy_modulus_identity](DLMF/Airy/ModulusPhase.lean#L997) (proved).
+- [9.8.E17](https://dlmf.nist.gov/9.8.E17): [airy_phase_difference_tan](DLMF/Airy/ModulusPhase.lean#L1014) (proved).
+- [9.8.E18](https://dlmf.nist.gov/9.8.E18): [airy_modulus_ode](DLMF/Airy/ModulusPhase.lean#L1040) (proved).
+- [9.8.E19](https://dlmf.nist.gov/9.8.E19): [airy_phase_ode](DLMF/Airy/ModulusPhase.lean#L1082) (proved).
+- [9.8.E20](https://dlmf.nist.gov/9.8.E20): [airyModulus_asymptotic](DLMF/Airy/ModulusPhase.lean#L2816) (proved).
+- [9.8.E21](https://dlmf.nist.gov/9.8.E21): [airyDerivModulus_asymptotic](DLMF/Airy/ModulusPhase.lean#L2834) (proved).
+- [9.8.E22](https://dlmf.nist.gov/9.8.E22): [airyPhase_asymptotic](DLMF/Airy/ModulusPhase.lean#L3433) (proved); [airy_phase_printed_coefficients](DLMF/Airy/ModulusPhase.lean#L3460) (proved).
+- [9.8.E23](https://dlmf.nist.gov/9.8.E23): [airyDerivPhase_asymptotic](DLMF/Airy/ModulusPhase.lean#L3447) (proved); [airy_phase_printed_coefficients](DLMF/Airy/ModulusPhase.lean#L3460) (proved).
 
 ### §9.9: Zeros (21 equations)
 
-- [9.9.E1](https://dlmf.nist.gov/9.9.E1): [airyAiZero_phase](AAR/Airy/Zeros.lean#L1141) (proved).
-- [9.9.E2](https://dlmf.nist.gov/9.9.E2): [airyBiZero_phase](AAR/Airy/Zeros.lean#L1150) (proved).
-- [9.9.E3](https://dlmf.nist.gov/9.9.E3): [airyAiZero_value](AAR/Airy/Zeros.lean#L1159) (proved); [airyBiZero_value](AAR/Airy/Zeros.lean#L1181) (proved).
-- [9.9.E4](https://dlmf.nist.gov/9.9.E4): [airyAiDerivZero_value](AAR/Airy/Zeros.lean#L1204) (proved); [airyBiDerivZero_value](AAR/Airy/Zeros.lean#L1226) (proved).
-- [9.9.E5](https://dlmf.nist.gov/9.9.E5): [airyAiZeroContinuous_derivative_value](AAR/Airy/Zeros.lean#L1327) (proved); [airyAiDerivZeroContinuous_derivative_value](AAR/Airy/Zeros.lean#L1363) (proved).
-- [9.9.E6](https://dlmf.nist.gov/9.9.E6): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E7](https://dlmf.nist.gov/9.9.E7): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E8](https://dlmf.nist.gov/9.9.E8): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E9](https://dlmf.nist.gov/9.9.E9): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E10](https://dlmf.nist.gov/9.9.E10): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E11](https://dlmf.nist.gov/9.9.E11): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E12](https://dlmf.nist.gov/9.9.E12): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E13](https://dlmf.nist.gov/9.9.E13): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E14](https://dlmf.nist.gov/9.9.E14): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E15](https://dlmf.nist.gov/9.9.E15): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E16](https://dlmf.nist.gov/9.9.E16): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E17](https://dlmf.nist.gov/9.9.E17): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](AAR/Airy/Zeros.lean#L1506) (proved).
-- [9.9.E18](https://dlmf.nist.gov/9.9.E18): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted).
-- [9.9.E19](https://dlmf.nist.gov/9.9.E19): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted).
-- [9.9.E20](https://dlmf.nist.gov/9.9.E20): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted).
-- [9.9.E21](https://dlmf.nist.gov/9.9.E21): [airy_zero_common_asymptotic_coefficients](AAR/Airy/Zeros.lean#L1394) (admitted).
+- [9.9.E1](https://dlmf.nist.gov/9.9.E1): [airyAiZero_phase](DLMF/Airy/Zeros.lean#L1141) (proved).
+- [9.9.E2](https://dlmf.nist.gov/9.9.E2): [airyBiZero_phase](DLMF/Airy/Zeros.lean#L1150) (proved).
+- [9.9.E3](https://dlmf.nist.gov/9.9.E3): [airyAiZero_value](DLMF/Airy/Zeros.lean#L1159) (proved); [airyBiZero_value](DLMF/Airy/Zeros.lean#L1181) (proved).
+- [9.9.E4](https://dlmf.nist.gov/9.9.E4): [airyAiDerivZero_value](DLMF/Airy/Zeros.lean#L1204) (proved); [airyBiDerivZero_value](DLMF/Airy/Zeros.lean#L1226) (proved).
+- [9.9.E5](https://dlmf.nist.gov/9.9.E5): [airyAiZeroContinuous_derivative_value](DLMF/Airy/Zeros.lean#L1327) (proved); [airyAiDerivZeroContinuous_derivative_value](DLMF/Airy/Zeros.lean#L1363) (proved).
+- [9.9.E6](https://dlmf.nist.gov/9.9.E6): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E7](https://dlmf.nist.gov/9.9.E7): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E8](https://dlmf.nist.gov/9.9.E8): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E9](https://dlmf.nist.gov/9.9.E9): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E10](https://dlmf.nist.gov/9.9.E10): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E11](https://dlmf.nist.gov/9.9.E11): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E12](https://dlmf.nist.gov/9.9.E12): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E13](https://dlmf.nist.gov/9.9.E13): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E14](https://dlmf.nist.gov/9.9.E14): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E15](https://dlmf.nist.gov/9.9.E15): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E16](https://dlmf.nist.gov/9.9.E16): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E17](https://dlmf.nist.gov/9.9.E17): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted); [exists_airy_zero_parametrizations](DLMF/Airy/Zeros.lean#L1506) (proved).
+- [9.9.E18](https://dlmf.nist.gov/9.9.E18): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted).
+- [9.9.E19](https://dlmf.nist.gov/9.9.E19): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted).
+- [9.9.E20](https://dlmf.nist.gov/9.9.E20): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted).
+- [9.9.E21](https://dlmf.nist.gov/9.9.E21): [airy_zero_common_asymptotic_coefficients](DLMF/Airy/Zeros.lean#L1394) (admitted).
 
 ### §9.10: Integrals (22 equations)
 
-- [9.10.E1](https://dlmf.nist.gov/9.10.E1): [airyAi_integral_scorerGi](AAR/Airy/Integrals.lean#L46) (proved).
-- [9.10.E2](https://dlmf.nist.gov/9.10.E2): [airyAi_integral_scorerHi](AAR/Airy/Integrals.lean#L59) (proved); [airyAi_lower_integral_scorerHi](AAR/Airy/Integrals.lean#L91) (proved).
-- [9.10.E3](https://dlmf.nist.gov/9.10.E3): [airyBi_integral_scorer](AAR/Airy/Integrals.lean#L72) (proved); [airyBi_lower_integral_scorer](AAR/Airy/Integrals.lean#L100) (proved).
-- [9.10.E4](https://dlmf.nist.gov/9.10.E4): [airyAi_tail_integral_asymptotic](AAR/Airy/Integrals.lean#L120) (proved).
-- [9.10.E5](https://dlmf.nist.gov/9.10.E5): [airyBi_integral_asymptotic](AAR/Airy/Integrals.lean#L186) (proved).
-- [9.10.E6](https://dlmf.nist.gov/9.10.E6): [airyAi_negative_integral_asymptotic](AAR/Airy/Integrals.lean#L244) (proved).
-- [9.10.E7](https://dlmf.nist.gov/9.10.E7): [airyBi_negative_integral_asymptotic](AAR/Airy/Integrals.lean#L274) (proved). Leading term corrected to a minus sign (DLMF erratum; REVIEW.md, round 7 statement corrections).
-- [9.10.E8](https://dlmf.nist.gov/9.10.E8): [airy_linear_antiderivative](AAR/Airy/Integrals.lean#L308) (proved).
-- [9.10.E9](https://dlmf.nist.gov/9.10.E9): [airy_quadratic_antiderivative](AAR/Airy/Integrals.lean#L314) (proved).
-- [9.10.E10](https://dlmf.nist.gov/9.10.E10): [airy_moment_antiderivative_recurrence](AAR/Airy/Integrals.lean#L321) (proved).
-- [9.10.E11](https://dlmf.nist.gov/9.10.E11): [airyAi_positive_integral](AAR/Airy/Integrals.lean#L110) (proved); [airyAi_negative_integral](AAR/Airy/Integrals.lean#L337) (proved).
-- [9.10.E12](https://dlmf.nist.gov/9.10.E12): [airyBi_negative_integral](AAR/Airy/Integrals.lean#L343) (proved).
-- [9.10.E13](https://dlmf.nist.gov/9.10.E13): [airyAi_bilateral_laplace](AAR/Airy/Integrals.lean#L950) (proved).
-- [9.10.E14](https://dlmf.nist.gov/9.10.E14): [airyAi_laplace](AAR/Airy/Integrals.lean#L1278) (proved).
-- [9.10.E15](https://dlmf.nist.gov/9.10.E15): [airyAi_negative_laplace](AAR/Airy/Integrals.lean#L1386) (proved).
-- [9.10.E16](https://dlmf.nist.gov/9.10.E16): [airyBi_negative_laplace](AAR/Airy/Integrals.lean#L1774) (proved).
-- [9.10.E17](https://dlmf.nist.gov/9.10.E17): [airyAi_mellin](AAR/Airy/Integrals.lean#L1782) (admitted).
-- [9.10.E18](https://dlmf.nist.gov/9.10.E18): [airyAi_stieltjes](AAR/Airy/Integrals.lean#L1790) (admitted).
-- [9.10.E19](https://dlmf.nist.gov/9.10.E19): [airyBi_stieltjes_principalValue](AAR/Airy/Integrals.lean#L1798) (admitted); [airyBi_stieltjes_principalValue_converges](AAR/Airy/Integrals.lean#L1856) (admitted).
-- [9.10.E20](https://dlmf.nist.gov/9.10.E20): [airyAi_double_integral](AAR/Airy/Integrals.lean#L1829) (proved).
-- [9.10.E21](https://dlmf.nist.gov/9.10.E21): [airyBi_double_integral](AAR/Airy/Integrals.lean#L1836) (proved).
-- [9.10.E22](https://dlmf.nist.gov/9.10.E22): [airyAi_repeated_integrals](AAR/Airy/Integrals.lean#L1848) (admitted).
+- [9.10.E1](https://dlmf.nist.gov/9.10.E1): [airyAi_integral_scorerGi](DLMF/Airy/Integrals.lean#L46) (proved).
+- [9.10.E2](https://dlmf.nist.gov/9.10.E2): [airyAi_integral_scorerHi](DLMF/Airy/Integrals.lean#L59) (proved); [airyAi_lower_integral_scorerHi](DLMF/Airy/Integrals.lean#L91) (proved).
+- [9.10.E3](https://dlmf.nist.gov/9.10.E3): [airyBi_integral_scorer](DLMF/Airy/Integrals.lean#L72) (proved); [airyBi_lower_integral_scorer](DLMF/Airy/Integrals.lean#L100) (proved).
+- [9.10.E4](https://dlmf.nist.gov/9.10.E4): [airyAi_tail_integral_asymptotic](DLMF/Airy/Integrals.lean#L120) (proved).
+- [9.10.E5](https://dlmf.nist.gov/9.10.E5): [airyBi_integral_asymptotic](DLMF/Airy/Integrals.lean#L186) (proved).
+- [9.10.E6](https://dlmf.nist.gov/9.10.E6): [airyAi_negative_integral_asymptotic](DLMF/Airy/Integrals.lean#L244) (proved).
+- [9.10.E7](https://dlmf.nist.gov/9.10.E7): [airyBi_negative_integral_asymptotic](DLMF/Airy/Integrals.lean#L274) (proved). Leading term corrected to a minus sign (DLMF erratum; REVIEW.md, round 7 statement corrections).
+- [9.10.E8](https://dlmf.nist.gov/9.10.E8): [airy_linear_antiderivative](DLMF/Airy/Integrals.lean#L308) (proved).
+- [9.10.E9](https://dlmf.nist.gov/9.10.E9): [airy_quadratic_antiderivative](DLMF/Airy/Integrals.lean#L314) (proved).
+- [9.10.E10](https://dlmf.nist.gov/9.10.E10): [airy_moment_antiderivative_recurrence](DLMF/Airy/Integrals.lean#L321) (proved).
+- [9.10.E11](https://dlmf.nist.gov/9.10.E11): [airyAi_positive_integral](DLMF/Airy/Integrals.lean#L110) (proved); [airyAi_negative_integral](DLMF/Airy/Integrals.lean#L337) (proved).
+- [9.10.E12](https://dlmf.nist.gov/9.10.E12): [airyBi_negative_integral](DLMF/Airy/Integrals.lean#L343) (proved).
+- [9.10.E13](https://dlmf.nist.gov/9.10.E13): [airyAi_bilateral_laplace](DLMF/Airy/Integrals.lean#L950) (proved).
+- [9.10.E14](https://dlmf.nist.gov/9.10.E14): [airyAi_laplace](DLMF/Airy/Integrals.lean#L1278) (proved).
+- [9.10.E15](https://dlmf.nist.gov/9.10.E15): [airyAi_negative_laplace](DLMF/Airy/Integrals.lean#L1386) (proved).
+- [9.10.E16](https://dlmf.nist.gov/9.10.E16): [airyBi_negative_laplace](DLMF/Airy/Integrals.lean#L1774) (proved).
+- [9.10.E17](https://dlmf.nist.gov/9.10.E17): [airyAi_mellin](DLMF/Airy/Integrals.lean#L1782) (admitted).
+- [9.10.E18](https://dlmf.nist.gov/9.10.E18): [airyAi_stieltjes](DLMF/Airy/Integrals.lean#L1790) (admitted).
+- [9.10.E19](https://dlmf.nist.gov/9.10.E19): [airyBi_stieltjes_principalValue](DLMF/Airy/Integrals.lean#L1798) (admitted); [airyBi_stieltjes_principalValue_converges](DLMF/Airy/Integrals.lean#L1856) (admitted).
+- [9.10.E20](https://dlmf.nist.gov/9.10.E20): [airyAi_double_integral](DLMF/Airy/Integrals.lean#L1829) (proved).
+- [9.10.E21](https://dlmf.nist.gov/9.10.E21): [airyBi_double_integral](DLMF/Airy/Integrals.lean#L1836) (proved).
+- [9.10.E22](https://dlmf.nist.gov/9.10.E22): [airyAi_repeated_integrals](DLMF/Airy/Integrals.lean#L1848) (admitted).
 
 ### §9.11: Products (19 equations)
 
-- [9.11.E1](https://dlmf.nist.gov/9.11.E1): [airy_product_ode](AAR/Airy/Products.lean#L37) (proved).
-- [9.11.E2](https://dlmf.nist.gov/9.11.E2): [airy_product_wronskian](AAR/Airy/Products.lean#L56) (proved).
-- [9.11.E3](https://dlmf.nist.gov/9.11.E3): [airyAi_sq_bessel_integral](AAR/Airy/Products.lean#L74) (admitted).
-- [9.11.E4](https://dlmf.nist.gov/9.11.E4): [airy_modulus_sq_exp_integral](AAR/Airy/Products.lean#L81) (proved).
-- [9.11.E5](https://dlmf.nist.gov/9.11.E5): [airy_product_antiderivative_5](AAR/Airy/Products.lean#L90) (proved).
-- [9.11.E6](https://dlmf.nist.gov/9.11.E6): [airy_product_antiderivative_6](AAR/Airy/Products.lean#L98) (proved).
-- [9.11.E7](https://dlmf.nist.gov/9.11.E7): [airy_product_antiderivative_7](AAR/Airy/Products.lean#L107) (proved).
-- [9.11.E8](https://dlmf.nist.gov/9.11.E8): [airy_product_antiderivative_8](AAR/Airy/Products.lean#L116) (proved).
-- [9.11.E9](https://dlmf.nist.gov/9.11.E9): [airy_product_antiderivative_9](AAR/Airy/Products.lean#L125) (proved).
-- [9.11.E10](https://dlmf.nist.gov/9.11.E10): [airy_product_antiderivative_10](AAR/Airy/Products.lean#L134) (proved).
-- [9.11.E11](https://dlmf.nist.gov/9.11.E11): [airy_quotient_antiderivative](AAR/Airy/Products.lean#L150) (proved).
-- [9.11.E12](https://dlmf.nist.gov/9.11.E12): [airyAi_inv_sq_antiderivative](AAR/Airy/Products.lean#L161) (proved).
-- [9.11.E13](https://dlmf.nist.gov/9.11.E13): [airyAiBi_inv_antiderivative](AAR/Airy/Products.lean#L174) (proved).
-- [9.11.E14](https://dlmf.nist.gov/9.11.E14): [airy_modulus_rational_antiderivative](AAR/Airy/Products.lean#L190) (proved).
-- [9.11.E15](https://dlmf.nist.gov/9.11.E15): [airyAi_sq_mellin](AAR/Airy/Products.lean#L206) (admitted).
-- [9.11.E16](https://dlmf.nist.gov/9.11.E16): [airyAi_cube_integral](AAR/Airy/Products.lean#L214) (admitted).
-- [9.11.E17](https://dlmf.nist.gov/9.11.E17): [airyAi_sq_airyBi_integral](AAR/Airy/Products.lean#L220) (admitted).
-- [9.11.E18](https://dlmf.nist.gov/9.11.E18): [airyAi_fourth_integral](AAR/Airy/Products.lean#L226) (admitted).
-- [9.11.E19](https://dlmf.nist.gov/9.11.E19): [airy_modulus_reciprocal_integrals](AAR/Airy/Products.lean#L364) (proved).
+- [9.11.E1](https://dlmf.nist.gov/9.11.E1): [airy_product_ode](DLMF/Airy/Products.lean#L37) (proved).
+- [9.11.E2](https://dlmf.nist.gov/9.11.E2): [airy_product_wronskian](DLMF/Airy/Products.lean#L56) (proved).
+- [9.11.E3](https://dlmf.nist.gov/9.11.E3): [airyAi_sq_bessel_integral](DLMF/Airy/Products.lean#L74) (admitted).
+- [9.11.E4](https://dlmf.nist.gov/9.11.E4): [airy_modulus_sq_exp_integral](DLMF/Airy/Products.lean#L81) (proved).
+- [9.11.E5](https://dlmf.nist.gov/9.11.E5): [airy_product_antiderivative_5](DLMF/Airy/Products.lean#L90) (proved).
+- [9.11.E6](https://dlmf.nist.gov/9.11.E6): [airy_product_antiderivative_6](DLMF/Airy/Products.lean#L98) (proved).
+- [9.11.E7](https://dlmf.nist.gov/9.11.E7): [airy_product_antiderivative_7](DLMF/Airy/Products.lean#L107) (proved).
+- [9.11.E8](https://dlmf.nist.gov/9.11.E8): [airy_product_antiderivative_8](DLMF/Airy/Products.lean#L116) (proved).
+- [9.11.E9](https://dlmf.nist.gov/9.11.E9): [airy_product_antiderivative_9](DLMF/Airy/Products.lean#L125) (proved).
+- [9.11.E10](https://dlmf.nist.gov/9.11.E10): [airy_product_antiderivative_10](DLMF/Airy/Products.lean#L134) (proved).
+- [9.11.E11](https://dlmf.nist.gov/9.11.E11): [airy_quotient_antiderivative](DLMF/Airy/Products.lean#L150) (proved).
+- [9.11.E12](https://dlmf.nist.gov/9.11.E12): [airyAi_inv_sq_antiderivative](DLMF/Airy/Products.lean#L161) (proved).
+- [9.11.E13](https://dlmf.nist.gov/9.11.E13): [airyAiBi_inv_antiderivative](DLMF/Airy/Products.lean#L174) (proved).
+- [9.11.E14](https://dlmf.nist.gov/9.11.E14): [airy_modulus_rational_antiderivative](DLMF/Airy/Products.lean#L190) (proved).
+- [9.11.E15](https://dlmf.nist.gov/9.11.E15): [airyAi_sq_mellin](DLMF/Airy/Products.lean#L206) (admitted).
+- [9.11.E16](https://dlmf.nist.gov/9.11.E16): [airyAi_cube_integral](DLMF/Airy/Products.lean#L214) (admitted).
+- [9.11.E17](https://dlmf.nist.gov/9.11.E17): [airyAi_sq_airyBi_integral](DLMF/Airy/Products.lean#L220) (admitted).
+- [9.11.E18](https://dlmf.nist.gov/9.11.E18): [airyAi_fourth_integral](DLMF/Airy/Products.lean#L226) (admitted).
+- [9.11.E19](https://dlmf.nist.gov/9.11.E19): [airy_modulus_reciprocal_integrals](DLMF/Airy/Products.lean#L364) (proved).
 
 ### §9.12: Scorer functions (31 equations)
 
-- [9.12.E1](https://dlmf.nist.gov/9.12.E1): [scorerHi_ode](AAR/Airy/Scorer.lean#L192) (proved).
-- [9.12.E2](https://dlmf.nist.gov/9.12.E2): [scorer_general_solution](AAR/Airy/Scorer.lean#L231) (proved).
-- [9.12.E3](https://dlmf.nist.gov/9.12.E3): [scorerGi_ode](AAR/Airy/Scorer.lean#L199) (proved); [scorerHi_rotated_ode](AAR/Airy/Scorer.lean#L211) (proved).
-- [9.12.E4](https://dlmf.nist.gov/9.12.E4): [scorerGi_variation](AAR/Airy/Scorer.lean#L483) (proved).
-- [9.12.E5](https://dlmf.nist.gov/9.12.E5): [scorerHi_variation](AAR/Airy/Scorer.lean#L506) (proved).
-- [9.12.E6](https://dlmf.nist.gov/9.12.E6): [scorer_zero](AAR/Airy/Scorer.lean#L250) (proved).
-- [9.12.E7](https://dlmf.nist.gov/9.12.E7): [scorerDeriv_zero](AAR/Airy/Scorer.lean#L306) (proved).
-- [9.12.E8](https://dlmf.nist.gov/9.12.E8): [scorerGi_standard_system](AAR/Airy/Scorer.lean#L514) (proved).
-- [9.12.E9](https://dlmf.nist.gov/9.12.E9): [scorerHi_standard_system](AAR/Airy/Scorer.lean#L526) (proved).
-- [9.12.E10](https://dlmf.nist.gov/9.12.E10): [scorerHi_rotated_standard_system](AAR/Airy/Scorer.lean#L543) (proved).
-- [9.12.E11](https://dlmf.nist.gov/9.12.E11): [scorerGi_add_scorerHi](AAR/Airy/Scorer.lean#L562) (proved).
-- [9.12.E12](https://dlmf.nist.gov/9.12.E12): [scorerGi_rotations](AAR/Airy/Scorer.lean#L568) (proved).
-- [9.12.E13](https://dlmf.nist.gov/9.12.E13): [scorerGi_eq_rotated_scorerHi](AAR/Airy/Scorer.lean#L596) (proved).
-- [9.12.E14](https://dlmf.nist.gov/9.12.E14): [scorerHi_connection](AAR/Airy/Scorer.lean#L619) (proved).
-- [9.12.E15](https://dlmf.nist.gov/9.12.E15): [hasSum_scorerGi](AAR/Airy/Scorer.lean#L771) (proved).
-- [9.12.E16](https://dlmf.nist.gov/9.12.E16): [hasSum_scorerGiDeriv](AAR/Airy/Scorer.lean#L783) (proved).
-- [9.12.E17](https://dlmf.nist.gov/9.12.E17): [scorerHi](AAR/Airy/Scorer.lean#L29) (definition); [hasSum_scorerHi](AAR/Airy/Scorer.lean#L803) (proved).
-- [9.12.E18](https://dlmf.nist.gov/9.12.E18): [hasSum_scorerHiDeriv](AAR/Airy/Scorer.lean#L809) (proved).
-- [9.12.E19](https://dlmf.nist.gov/9.12.E19): [scorerGi_sin_integral](AAR/Airy/Scorer.lean#L830) (admitted).
-- [9.12.E20](https://dlmf.nist.gov/9.12.E20): [scorerHi_exp_integral](AAR/Airy/Scorer.lean#L942) (proved).
-- [9.12.E21](https://dlmf.nist.gov/9.12.E21): [scorerGi_exp_cos_integral](AAR/Airy/Scorer.lean#L965) (proved).
-- [9.12.E22](https://dlmf.nist.gov/9.12.E22): [scorerHi_stieltjes_integral](AAR/Airy/Scorer.lean#L999) (admitted).
-- [9.12.E23](https://dlmf.nist.gov/9.12.E23): [scorerGi_principalValue](AAR/Airy/Scorer.lean#L1006) (admitted); [scorerGi_principalValue_converges](AAR/Airy/Scorer.lean#L1740) (admitted).
-- [9.12.E24](https://dlmf.nist.gov/9.12.E24): [scorerHi_mellinBarnes](AAR/Airy/Scorer.lean#L1014) (admitted).
-- [9.12.E25](https://dlmf.nist.gov/9.12.E25): [scorerGi_asymptotic](AAR/Airy/Scorer.lean#L1531) (proved).
-- [9.12.E26](https://dlmf.nist.gov/9.12.E26): [scorerGiDeriv_asymptotic](AAR/Airy/Scorer.lean#L1574) (proved).
-- [9.12.E27](https://dlmf.nist.gov/9.12.E27): [scorerHi_asymptotic](AAR/Airy/Scorer.lean#L1617) (proved).
-- [9.12.E28](https://dlmf.nist.gov/9.12.E28): [scorerHiDeriv_asymptotic](AAR/Airy/Scorer.lean#L1630) (proved).
-- [9.12.E29](https://dlmf.nist.gov/9.12.E29): [scorerHi_two_scale_expansion](AAR/Airy/ScorerAsymptotics.lean#L197) (proved).
-- [9.12.E30](https://dlmf.nist.gov/9.12.E30): [scorerGi_primitive_asymptotic](AAR/Airy/ScorerAsymptotics.lean#L1019) (proved).
-- [9.12.E31](https://dlmf.nist.gov/9.12.E31): [scorerHi_primitive_asymptotic](AAR/Airy/ScorerAsymptotics.lean#L1031) (proved).
+- [9.12.E1](https://dlmf.nist.gov/9.12.E1): [scorerHi_ode](DLMF/Airy/Scorer.lean#L192) (proved).
+- [9.12.E2](https://dlmf.nist.gov/9.12.E2): [scorer_general_solution](DLMF/Airy/Scorer.lean#L231) (proved).
+- [9.12.E3](https://dlmf.nist.gov/9.12.E3): [scorerGi_ode](DLMF/Airy/Scorer.lean#L199) (proved); [scorerHi_rotated_ode](DLMF/Airy/Scorer.lean#L211) (proved).
+- [9.12.E4](https://dlmf.nist.gov/9.12.E4): [scorerGi_variation](DLMF/Airy/Scorer.lean#L483) (proved).
+- [9.12.E5](https://dlmf.nist.gov/9.12.E5): [scorerHi_variation](DLMF/Airy/Scorer.lean#L506) (proved).
+- [9.12.E6](https://dlmf.nist.gov/9.12.E6): [scorer_zero](DLMF/Airy/Scorer.lean#L250) (proved).
+- [9.12.E7](https://dlmf.nist.gov/9.12.E7): [scorerDeriv_zero](DLMF/Airy/Scorer.lean#L306) (proved).
+- [9.12.E8](https://dlmf.nist.gov/9.12.E8): [scorerGi_standard_system](DLMF/Airy/Scorer.lean#L514) (proved).
+- [9.12.E9](https://dlmf.nist.gov/9.12.E9): [scorerHi_standard_system](DLMF/Airy/Scorer.lean#L526) (proved).
+- [9.12.E10](https://dlmf.nist.gov/9.12.E10): [scorerHi_rotated_standard_system](DLMF/Airy/Scorer.lean#L543) (proved).
+- [9.12.E11](https://dlmf.nist.gov/9.12.E11): [scorerGi_add_scorerHi](DLMF/Airy/Scorer.lean#L562) (proved).
+- [9.12.E12](https://dlmf.nist.gov/9.12.E12): [scorerGi_rotations](DLMF/Airy/Scorer.lean#L568) (proved).
+- [9.12.E13](https://dlmf.nist.gov/9.12.E13): [scorerGi_eq_rotated_scorerHi](DLMF/Airy/Scorer.lean#L596) (proved).
+- [9.12.E14](https://dlmf.nist.gov/9.12.E14): [scorerHi_connection](DLMF/Airy/Scorer.lean#L619) (proved).
+- [9.12.E15](https://dlmf.nist.gov/9.12.E15): [hasSum_scorerGi](DLMF/Airy/Scorer.lean#L771) (proved).
+- [9.12.E16](https://dlmf.nist.gov/9.12.E16): [hasSum_scorerGiDeriv](DLMF/Airy/Scorer.lean#L783) (proved).
+- [9.12.E17](https://dlmf.nist.gov/9.12.E17): [scorerHi](DLMF/Airy/Scorer.lean#L29) (definition); [hasSum_scorerHi](DLMF/Airy/Scorer.lean#L803) (proved).
+- [9.12.E18](https://dlmf.nist.gov/9.12.E18): [hasSum_scorerHiDeriv](DLMF/Airy/Scorer.lean#L809) (proved).
+- [9.12.E19](https://dlmf.nist.gov/9.12.E19): [scorerGi_sin_integral](DLMF/Airy/Scorer.lean#L830) (admitted).
+- [9.12.E20](https://dlmf.nist.gov/9.12.E20): [scorerHi_exp_integral](DLMF/Airy/Scorer.lean#L942) (proved).
+- [9.12.E21](https://dlmf.nist.gov/9.12.E21): [scorerGi_exp_cos_integral](DLMF/Airy/Scorer.lean#L965) (proved).
+- [9.12.E22](https://dlmf.nist.gov/9.12.E22): [scorerHi_stieltjes_integral](DLMF/Airy/Scorer.lean#L999) (admitted).
+- [9.12.E23](https://dlmf.nist.gov/9.12.E23): [scorerGi_principalValue](DLMF/Airy/Scorer.lean#L1006) (admitted); [scorerGi_principalValue_converges](DLMF/Airy/Scorer.lean#L1740) (admitted).
+- [9.12.E24](https://dlmf.nist.gov/9.12.E24): [scorerHi_mellinBarnes](DLMF/Airy/Scorer.lean#L1014) (admitted).
+- [9.12.E25](https://dlmf.nist.gov/9.12.E25): [scorerGi_asymptotic](DLMF/Airy/Scorer.lean#L1531) (proved).
+- [9.12.E26](https://dlmf.nist.gov/9.12.E26): [scorerGiDeriv_asymptotic](DLMF/Airy/Scorer.lean#L1574) (proved).
+- [9.12.E27](https://dlmf.nist.gov/9.12.E27): [scorerHi_asymptotic](DLMF/Airy/Scorer.lean#L1617) (proved).
+- [9.12.E28](https://dlmf.nist.gov/9.12.E28): [scorerHiDeriv_asymptotic](DLMF/Airy/Scorer.lean#L1630) (proved).
+- [9.12.E29](https://dlmf.nist.gov/9.12.E29): [scorerHi_two_scale_expansion](DLMF/Airy/ScorerAsymptotics.lean#L197) (proved).
+- [9.12.E30](https://dlmf.nist.gov/9.12.E30): [scorerGi_primitive_asymptotic](DLMF/Airy/ScorerAsymptotics.lean#L1019) (proved).
+- [9.12.E31](https://dlmf.nist.gov/9.12.E31): [scorerHi_primitive_asymptotic](DLMF/Airy/ScorerAsymptotics.lean#L1031) (proved).
 
 ### §9.13: Generalized Airy functions (37 equations)
 
-- [9.13.E1](https://dlmf.nist.gov/9.13.E1): [generalizedAiryA_ode](AAR/Airy/Generalized.lean#L237) (proved); [generalizedAiryB_ode](AAR/Airy/Generalized.lean#L257) (proved).
-- [9.13.E2](https://dlmf.nist.gov/9.13.E2): [generalizedAiry_bessel_basis](AAR/Airy/Generalized.lean#L459) (proved); [generalizedAiry_general_solution](AAR/Airy/Generalized.lean#L1305) (proved).
-- [9.13.E3](https://dlmf.nist.gov/9.13.E3): [generalizedAiryOrder](AAR/Airy/Generalized.lean#L22) (definition); [generalizedAiryZeta](AAR/Airy/Generalized.lean#L25) (definition).
-- [9.13.E4](https://dlmf.nist.gov/9.13.E4): [generalizedAiryA_bessel](AAR/Airy/Generalized.lean#L521) (proved); [generalizedAiryB_bessel](AAR/Airy/Generalized.lean#L556) (proved).
-- [9.13.E5](https://dlmf.nist.gov/9.13.E5): [generalizedAiry_initial_values](AAR/Airy/Generalized.lean#L623) (proved).
-- [9.13.E6](https://dlmf.nist.gov/9.13.E6): [generalizedAiryA_negative](AAR/Airy/Generalized.lean#L649) (proved).
-- [9.13.E7](https://dlmf.nist.gov/9.13.E7): [generalizedAiryB_negative](AAR/Airy/Generalized.lean#L678) (proved).
-- [9.13.E8](https://dlmf.nist.gov/9.13.E8): [generalizedAiry_wronskian](AAR/Airy/Generalized.lean#L709) (proved).
-- [9.13.E9](https://dlmf.nist.gov/9.13.E9): [generalizedAiryA_asymptotic](AAR/Airy/Generalized.lean#L776) (admitted).
-- [9.13.E10](https://dlmf.nist.gov/9.13.E10): [generalizedAiryA_negative_odd_asymptotic](AAR/Airy/Generalized.lean#L783) (admitted); [generalizedAiryA_negative_even_asymptotic](AAR/Airy/Generalized.lean#L790) (admitted).
-- [9.13.E11](https://dlmf.nist.gov/9.13.E11): [generalizedAiryB_asymptotic](AAR/Airy/Generalized.lean#L797) (admitted).
-- [9.13.E12](https://dlmf.nist.gov/9.13.E12): [generalizedAiryB_negative_odd_asymptotic](AAR/Airy/Generalized.lean#L804) (admitted); [generalizedAiryB_negative_even_asymptotic](AAR/Airy/Generalized.lean#L811) (admitted).
-- [9.13.E13](https://dlmf.nist.gov/9.13.E13): [olverAiryU_ode](AAR/Airy/Generalized.lean#L867) (proved); [olverAiryVBar_ode](AAR/Airy/Generalized.lean#L874) (proved).
-- [9.13.E14](https://dlmf.nist.gov/9.13.E14): [olverAiryVariable](AAR/Airy/Generalized.lean#L42) (definition).
-- [9.13.E15](https://dlmf.nist.gov/9.13.E15): [olverAiry_normalization_first](AAR/Airy/Generalized.lean#L891) (proved).
-- [9.13.E16](https://dlmf.nist.gov/9.13.E16): [olverAiry_normalization_second](AAR/Airy/Generalized.lean#L902) (proved); [olverAiry_even_second](AAR/Airy/Generalized.lean#L913) (proved).
-- [9.13.E17](https://dlmf.nist.gov/9.13.E17): [olverAiryW_ode](AAR/Airy/Generalized.lean#L949) (proved).
-- [9.13.E18](https://dlmf.nist.gov/9.13.E18): [olverAiry_rotated_solution](AAR/Airy/Generalized.lean#L972) (proved); [olverAiry_rotated_recessive](AAR/Airy/Generalized.lean#L1320) (admitted).
-- [9.13.E19](https://dlmf.nist.gov/9.13.E19): [smirnovAiryU1_ode](AAR/Airy/Generalized.lean#L1116) (proved); [smirnovAiryU2_ode](AAR/Airy/Generalized.lean#L1140) (proved).
-- [9.13.E20](https://dlmf.nist.gov/9.13.E20): [smirnovAiryU1](AAR/Airy/Generalized.lean#L53) (definition).
-- [9.13.E21](https://dlmf.nist.gov/9.13.E21): [smirnovAiryU2](AAR/Airy/Generalized.lean#L59) (definition).
-- [9.13.E22](https://dlmf.nist.gov/9.13.E22): [smirnovAiryVariable](AAR/Airy/Generalized.lean#L1301) (definition).
-- [9.13.E23](https://dlmf.nist.gov/9.13.E23): [smirnovAiryU1_olver](AAR/Airy/Generalized.lean#L1244) (proved).
-- [9.13.E24](https://dlmf.nist.gov/9.13.E24): [smirnovAiryU2_olver](AAR/Airy/Generalized.lean#L1269) (proved).
-- [9.13.E25](https://dlmf.nist.gov/9.13.E25): [reidAiryA](AAR/Airy/GeneralizedContours.lean#L32) (definition).
-- [9.13.E26](https://dlmf.nist.gov/9.13.E26): [reidAiryB0](AAR/Airy/GeneralizedContours.lean#L39) (definition).
-- [9.13.E27](https://dlmf.nist.gov/9.13.E27): [reidAiryB_ordinary_ray](AAR/Airy/GeneralizedContours.lean#L59) (proved).
-- [9.13.E28](https://dlmf.nist.gov/9.13.E28): [reidAiryA_zero_parameter](AAR/Airy/GeneralizedContours.lean#L692) (proved).
-- [9.13.E29](https://dlmf.nist.gov/9.13.E29): [reidAiryA_zero_rotations](AAR/Airy/GeneralizedContours.lean#L874) (proved).
-- [9.13.E30](https://dlmf.nist.gov/9.13.E30): [reidAiryB_zero_parameter](AAR/Airy/GeneralizedContours.lean#L716) (proved).
-- [9.13.E31](https://dlmf.nist.gov/9.13.E31): [reidAiryA_ode](AAR/Airy/GeneralizedContours.lean#L742) (proved); [reidAiryB_ode](AAR/Airy/GeneralizedContours.lean#L756) (proved); [reidAiryB0_ode](AAR/Airy/GeneralizedContours.lean#L837) (proved).
-- [9.13.E32](https://dlmf.nist.gov/9.13.E32): [reidAiryA_difference](AAR/Airy/GeneralizedContours.lean#L771) (proved); [reidAiryB_difference](AAR/Airy/GeneralizedContours.lean#L779) (proved); [reidAiryB0_difference](AAR/Airy/GeneralizedContours.lean#L788) (proved).
-- [9.13.E33](https://dlmf.nist.gov/9.13.E33): [reidAiryA_rotations](AAR/Airy/GeneralizedContours.lean#L849) (proved).
-- [9.13.E34](https://dlmf.nist.gov/9.13.E34): [reidAiry_connection_sum](AAR/Airy/GeneralizedContours.lean#L884) (proved).
-- [9.13.E35](https://dlmf.nist.gov/9.13.E35): [reidAiry_connection_35](AAR/Airy/GeneralizedContours.lean#L1189) (proved).
-- [9.13.E36](https://dlmf.nist.gov/9.13.E36): [reidAiry_connection_36](AAR/Airy/GeneralizedContours.lean) (proved; corrected to B₃ − B₁ = 2πi(A₂ + B₀), since DLMF's form fails for p ≥ 1); DLMF's printed form for p ≤ 0 is `reidAiry_connection_36_of_nonpos` (proved).
-- [9.13.E37](https://dlmf.nist.gov/9.13.E37): [reidAiry_connection_37](AAR/Airy/GeneralizedContours.lean#L1200) (proved).
+- [9.13.E1](https://dlmf.nist.gov/9.13.E1): [generalizedAiryA_ode](DLMF/Airy/Generalized.lean#L237) (proved); [generalizedAiryB_ode](DLMF/Airy/Generalized.lean#L257) (proved).
+- [9.13.E2](https://dlmf.nist.gov/9.13.E2): [generalizedAiry_bessel_basis](DLMF/Airy/Generalized.lean#L459) (proved); [generalizedAiry_general_solution](DLMF/Airy/Generalized.lean#L1305) (proved).
+- [9.13.E3](https://dlmf.nist.gov/9.13.E3): [generalizedAiryOrder](DLMF/Airy/Generalized.lean#L22) (definition); [generalizedAiryZeta](DLMF/Airy/Generalized.lean#L25) (definition).
+- [9.13.E4](https://dlmf.nist.gov/9.13.E4): [generalizedAiryA_bessel](DLMF/Airy/Generalized.lean#L521) (proved); [generalizedAiryB_bessel](DLMF/Airy/Generalized.lean#L556) (proved).
+- [9.13.E5](https://dlmf.nist.gov/9.13.E5): [generalizedAiry_initial_values](DLMF/Airy/Generalized.lean#L623) (proved).
+- [9.13.E6](https://dlmf.nist.gov/9.13.E6): [generalizedAiryA_negative](DLMF/Airy/Generalized.lean#L649) (proved).
+- [9.13.E7](https://dlmf.nist.gov/9.13.E7): [generalizedAiryB_negative](DLMF/Airy/Generalized.lean#L678) (proved).
+- [9.13.E8](https://dlmf.nist.gov/9.13.E8): [generalizedAiry_wronskian](DLMF/Airy/Generalized.lean#L709) (proved).
+- [9.13.E9](https://dlmf.nist.gov/9.13.E9): [generalizedAiryA_asymptotic](DLMF/Airy/Generalized.lean#L776) (admitted).
+- [9.13.E10](https://dlmf.nist.gov/9.13.E10): [generalizedAiryA_negative_odd_asymptotic](DLMF/Airy/Generalized.lean#L783) (admitted); [generalizedAiryA_negative_even_asymptotic](DLMF/Airy/Generalized.lean#L790) (admitted).
+- [9.13.E11](https://dlmf.nist.gov/9.13.E11): [generalizedAiryB_asymptotic](DLMF/Airy/Generalized.lean#L797) (admitted).
+- [9.13.E12](https://dlmf.nist.gov/9.13.E12): [generalizedAiryB_negative_odd_asymptotic](DLMF/Airy/Generalized.lean#L804) (admitted); [generalizedAiryB_negative_even_asymptotic](DLMF/Airy/Generalized.lean#L811) (admitted).
+- [9.13.E13](https://dlmf.nist.gov/9.13.E13): [olverAiryU_ode](DLMF/Airy/Generalized.lean#L867) (proved); [olverAiryVBar_ode](DLMF/Airy/Generalized.lean#L874) (proved).
+- [9.13.E14](https://dlmf.nist.gov/9.13.E14): [olverAiryVariable](DLMF/Airy/Generalized.lean#L42) (definition).
+- [9.13.E15](https://dlmf.nist.gov/9.13.E15): [olverAiry_normalization_first](DLMF/Airy/Generalized.lean#L891) (proved).
+- [9.13.E16](https://dlmf.nist.gov/9.13.E16): [olverAiry_normalization_second](DLMF/Airy/Generalized.lean#L902) (proved); [olverAiry_even_second](DLMF/Airy/Generalized.lean#L913) (proved).
+- [9.13.E17](https://dlmf.nist.gov/9.13.E17): [olverAiryW_ode](DLMF/Airy/Generalized.lean#L949) (proved).
+- [9.13.E18](https://dlmf.nist.gov/9.13.E18): [olverAiry_rotated_solution](DLMF/Airy/Generalized.lean#L972) (proved); [olverAiry_rotated_recessive](DLMF/Airy/Generalized.lean#L1320) (admitted).
+- [9.13.E19](https://dlmf.nist.gov/9.13.E19): [smirnovAiryU1_ode](DLMF/Airy/Generalized.lean#L1116) (proved); [smirnovAiryU2_ode](DLMF/Airy/Generalized.lean#L1140) (proved).
+- [9.13.E20](https://dlmf.nist.gov/9.13.E20): [smirnovAiryU1](DLMF/Airy/Generalized.lean#L53) (definition).
+- [9.13.E21](https://dlmf.nist.gov/9.13.E21): [smirnovAiryU2](DLMF/Airy/Generalized.lean#L59) (definition).
+- [9.13.E22](https://dlmf.nist.gov/9.13.E22): [smirnovAiryVariable](DLMF/Airy/Generalized.lean#L1301) (definition).
+- [9.13.E23](https://dlmf.nist.gov/9.13.E23): [smirnovAiryU1_olver](DLMF/Airy/Generalized.lean#L1244) (proved).
+- [9.13.E24](https://dlmf.nist.gov/9.13.E24): [smirnovAiryU2_olver](DLMF/Airy/Generalized.lean#L1269) (proved).
+- [9.13.E25](https://dlmf.nist.gov/9.13.E25): [reidAiryA](DLMF/Airy/GeneralizedContours.lean#L32) (definition).
+- [9.13.E26](https://dlmf.nist.gov/9.13.E26): [reidAiryB0](DLMF/Airy/GeneralizedContours.lean#L39) (definition).
+- [9.13.E27](https://dlmf.nist.gov/9.13.E27): [reidAiryB_ordinary_ray](DLMF/Airy/GeneralizedContours.lean#L59) (proved).
+- [9.13.E28](https://dlmf.nist.gov/9.13.E28): [reidAiryA_zero_parameter](DLMF/Airy/GeneralizedContours.lean#L692) (proved).
+- [9.13.E29](https://dlmf.nist.gov/9.13.E29): [reidAiryA_zero_rotations](DLMF/Airy/GeneralizedContours.lean#L874) (proved).
+- [9.13.E30](https://dlmf.nist.gov/9.13.E30): [reidAiryB_zero_parameter](DLMF/Airy/GeneralizedContours.lean#L716) (proved).
+- [9.13.E31](https://dlmf.nist.gov/9.13.E31): [reidAiryA_ode](DLMF/Airy/GeneralizedContours.lean#L742) (proved); [reidAiryB_ode](DLMF/Airy/GeneralizedContours.lean#L756) (proved); [reidAiryB0_ode](DLMF/Airy/GeneralizedContours.lean#L837) (proved).
+- [9.13.E32](https://dlmf.nist.gov/9.13.E32): [reidAiryA_difference](DLMF/Airy/GeneralizedContours.lean#L771) (proved); [reidAiryB_difference](DLMF/Airy/GeneralizedContours.lean#L779) (proved); [reidAiryB0_difference](DLMF/Airy/GeneralizedContours.lean#L788) (proved).
+- [9.13.E33](https://dlmf.nist.gov/9.13.E33): [reidAiryA_rotations](DLMF/Airy/GeneralizedContours.lean#L849) (proved).
+- [9.13.E34](https://dlmf.nist.gov/9.13.E34): [reidAiry_connection_sum](DLMF/Airy/GeneralizedContours.lean#L884) (proved).
+- [9.13.E35](https://dlmf.nist.gov/9.13.E35): [reidAiry_connection_35](DLMF/Airy/GeneralizedContours.lean#L1189) (proved).
+- [9.13.E36](https://dlmf.nist.gov/9.13.E36): [reidAiry_connection_36](DLMF/Airy/GeneralizedContours.lean) (proved; corrected to B₃ − B₁ = 2πi(A₂ + B₀), since DLMF's form fails for p ≥ 1); DLMF's printed form for p ≤ 0 is `reidAiry_connection_36_of_nonpos` (proved).
+- [9.13.E37](https://dlmf.nist.gov/9.13.E37): [reidAiry_connection_37](DLMF/Airy/GeneralizedContours.lean#L1200) (proved).
 
 ### §9.14: Incomplete Airy functions (no numbered equations)
 
-[Incomplete.lean](AAR/Airy/Incomplete.lean) contains both definitions and five
+[Incomplete.lean](DLMF/Airy/Incomplete.lean) contains both definitions and five
 admitted endpoint, splitting and complete-limit theorems.
 
 ## Next proof priorities

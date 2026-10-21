@@ -39,7 +39,7 @@ For `w'' = (u² f + g) w` with a simple zero of `f` at `x₀` (`f (x) / (x - x�
    `Φ = ζ'^{-1/2} M / E` and `ρ = λ |ψ| / (u ζ'|ζ|^{1/2})` gives Olver's Ch. 11, Thm. 3.1:
    `|ε| ≤ (M/E)(u^{2/3} ζ) (exp (λ V(H) / u) - 1)` with `H = ∫ |ψ| |ζ|^{-1/2} dζ`.
 4. The Airy facts in step 3 are real-variable properties of `Ai`, `Bi` and must be proved
-   alongside the Airy functions themselves (the `AAR.Airy` area); this file deliberately depends
+   alongside the Airy functions themselves (the `DLMF.Airy` area); this file deliberately depends
    on Mathlib only.
 -/
 

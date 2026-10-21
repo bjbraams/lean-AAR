@@ -5,8 +5,8 @@ Authors: Bastiaan J Braams
 -/
 import Mathlib
 import ToMathlib
-import AAR
-import AAR.DLMF.Upstream
+import DLMF
+import DLMF.Core.Upstream
 
 /-!
 # Dump of all `@[dlmf]` cross-references
@@ -15,7 +15,7 @@ Writes every declaration carrying Mathlib's `@[dlmf REF "comment"]` attribute
 (`Mathlib/Tactic/CrossRefAttribute.lean`) in the imported environment to a JSON file, one
 entry per (DLMF reference, declaration) pair, with its project, module, source location and
 proof status. It also writes the checked pointers recorded with `dlmf_upstream`
-(`AAR/DLMF/Upstream.lean`) from DLMF items to untagged declarations of Mathlib or TauCeti:
+(`DLMF/Core/Upstream.lean`) from DLMF items to untagged declarations of Mathlib or TauCeti:
 these entries have `"source": "pointer"` and name the module that recorded them in
 `recordedIn`; tagged entries have `"source": "tag"`. A pointer that duplicates a tag of the
 same declaration is omitted. The status comes from the axiom audit (`Lean.collectAxioms`), not from the
@@ -46,8 +46,8 @@ def projectOf (mod : Name) : String × String :=
   match mod.getRoot.toString with
   | "Mathlib" => ("Mathlib", ".lake/packages/mathlib/")
   | "TauCeti" => ("TauCeti", ".lake/packages/TauCeti/")
-  | "AAR" => ("AAR", "")
-  | "ToMathlib" => ("AAR", "")
+  | "DLMF" => ("lean-DLMF", "")
+  | "ToMathlib" => ("lean-DLMF", "")
   | r => (r, "")
 
 /-- Source path of a module relative to its package root. -/
@@ -71,7 +71,7 @@ def projectInfo : IO Json := do
   let dirty := !(← git #["status", "--porcelain", "--untracked-files=no"]).isEmpty
   let url ← git #["remote", "get-url", "origin"]
   return Json.mkObj [("Mathlib", pick "mathlib"), ("TauCeti", pick "TauCeti"),
-    ("AAR", Json.mkObj [("url", url), ("rev", rev), ("dirty", dirty)])]
+    ("lean-DLMF", Json.mkObj [("url", url), ("rev", rev), ("dirty", dirty)])]
 
 /-- Strip a trailing `.git` from a repository URL. -/
 def repoBase (url : String) : String :=
@@ -141,8 +141,8 @@ def dlmfTags (env : Environment) : Array Tag :=
       (a.declName == b.declName && a.tag < b.tag)
 
 /-- All `dlmf_upstream` pointers with the module that recorded them. -/
-def upstreamPointers (env : Environment) : Array (AAR.DLMF.UpstreamPointer × Name) :=
-  let st := PersistentEnvExtension.getState AAR.DLMF.upstreamExt env
+def upstreamPointers (env : Environment) : Array (DLMF.UpstreamPointer × Name) :=
+  let st := PersistentEnvExtension.getState DLMF.upstreamExt env
   let imported := st.2.mapIdx fun i ps =>
     ps.map fun p => (p, env.header.moduleNames[i]!)
   imported.flatten ++ (st.1.toArray.map fun p => (p, env.mainModule))

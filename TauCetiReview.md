@@ -7,17 +7,17 @@ Reviewed and implemented 2026-10-04 against the pinned source and compiled decla
 TauCeti is an explicit Lake dependency at
 `a780c7ad6beb23f60a17351a492d177878020ad5`. Lean remains `v4.35.0-rc3` and Mathlib
 remains `5e0c4e5239cb0a2d86d68a884bf52cfd963fce22`. The shared `.lake` symlink and
-`.lake/build-AAR` are unchanged. The policy in [AGENTS.md](AGENTS.md) is
+`.lake/build-DLMF` are unchanged. The policy in [AGENTS.md](AGENTS.md) is
 **Mathlib → pinned TauCeti → local code**.
 
-The review covered the 97 Lean files under `AAR/`. All six selected recommendations
+The review covered the 97 Lean files under `DLMF/`. All six selected recommendations
 have now been implemented. Existing theorem statements and hypotheses are preserved.
 Three admitted proofs are complete, reducing the source admissions from 385 to 382.
 The remaining admissions have not received a new comprehensive correctness audit.
 
 ## 1. Probabilists’ Hermite orthogonality — implemented
 
-[AAR/OrthogonalPolynomials/Integrals.lean](AAR/OrthogonalPolynomials/Integrals.lean)
+[DLMF/OrthogonalPolynomials/Integrals.lean](DLMF/OrthogonalPolynomials/Integrals.lean)
 now proves `hermite_orthogonality` using
 `TauCeti.integral_hermite_mul_hermite_mul_gaussian`, imported from
 `TauCeti.Analysis.SpecialFunctions.Hermite.Orthogonality`.
@@ -35,15 +35,15 @@ continues to use Mathlib directly.
 
 ## 3. Real Euler beta integral — implemented
 
-[AAR/Gamma/BetaFunction.lean](AAR/Gamma/BetaFunction.lean) now proves
-`AAR.Gamma.real_betaIntegral` using `TauCeti.integral_rpow_mul_one_sub_rpow`
+[DLMF/Gamma/BetaFunction.lean](DLMF/Gamma/BetaFunction.lean) now proves
+`DLMF.Gamma.real_betaIntegral` using `TauCeti.integral_rpow_mul_one_sub_rpow`
 and unfolds Mathlib's `ProbabilityTheory.beta` to obtain the gamma quotient.
 The import is `TauCeti.Analysis.SpecialFunctions.Beta`. Complex beta integrals
 and the local changes of variables retain their existing generality.
 
 ## 4. Real error-function interfaces — implemented
 
-[AAR/Confluent/Basic.lean](AAR/Confluent/Basic.lean) imports
+[DLMF/Confluent/Basic.lean](DLMF/Confluent/Basic.lean) imports
 `TauCeti.Analysis.SpecialFunctions.Erf` and adds:
 
 ```lean
@@ -59,14 +59,14 @@ callers can use the identities where needed.
 The related real incomplete-gamma development remains a separate opportunity.
 `TauCeti.Analysis.SpecialFunctions.IncompleteGamma` provides
 `ofReal_lowerIncGamma_eq_partialGamma` for positive shape and nonnegative
-argument. AAR's `lowerIncGamma` has complex parameters and is defined using
+argument. The project's `lowerIncGamma` has complex parameters and is defined using
 `kummerM`; TauCeti's real definition is zero for nonpositive shape or argument.
 A bridge on the appropriate domain still needs a proof. There is no claim of
 unrestricted equality of those definitions.
 
 ## 5. Hermite Fourier eigenfunctions — both admissions resolved
 
-[Integrals.lean](AAR/OrthogonalPolynomials/Integrals.lean) now proves
+[Integrals.lean](DLMF/OrthogonalPolynomials/Integrals.lean) now proves
 `hermitePolyH_fourier_eigenfunction` and `hermite_fourier_eigenfunction` using
 `TauCeti.fourier_twoPiHermiteFunction` from
 `TauCeti.Analysis.SpecialFunctions.Hermite.Function.Fourier.Basic`.
@@ -81,7 +81,7 @@ normalizing constants and DLMF tags are preserved.
 
 ## 6. Compact-support Parseval — admission resolved
 
-[AAR/OrthogonalPolynomials/General.lean](AAR/OrthogonalPolynomials/General.lean)
+[DLMF/OrthogonalPolynomials/General.lean](DLMF/OrthogonalPolynomials/General.lean)
 now proves `orthogonal_polynomials_parseval` using
 `TauCeti.Analysis.InnerProductSpace.PolynomialCompleteness` and its imported
 weighted-basis API, followed by Mathlib's `HilbertBasis.tsum_inner_mul_inner`.
@@ -100,7 +100,7 @@ existing orthogonality and support hypotheses.
 “No direct replacement found” below is the result of this source review, not a
 claim that no useful supporting lemma exists anywhere in TauCeti.
 
-| AAR area | Finding at the pinned revision |
+| Area | Finding at the pinned revision |
 | --- | --- |
 | Gamma (23 submodules) | Real beta replacement above. Real incomplete gamma and Dirichlet integrals are useful adjacent theory. Complex Gamma, Barnes G, q-Gamma, digamma and asymptotic developments have no identified direct replacements. |
 | Hypergeometric (20) | Keep the current Mathlib-backed series and local complex cut-plane continuation, transformations and exceptional-parameter theory. No matching TauCeti replacement identified. |

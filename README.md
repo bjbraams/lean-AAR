@@ -1,13 +1,17 @@
-# Special Functions following Andrews, Askey, and Roy (1999)
+# lean-DLMF: Special Functions following the DLMF
 
-A Lean 4 formalization of AAR.
+A Lean 4 formalization of special functions following the NIST Digital Library of
+Mathematical Functions (DLMF). The project began as a formalization of Andrews, Askey and
+Roy, *Special Functions* (1999), henceforth AAR, and was renamed from lean-AAR to lean-DLMF
+on 2026-10-21, when the DLMF chapters became its organizing principle. AAR, Temme,
+Beals–Wong and Duverney remain supporting sources.
 
 ## Organization
 
-The library follows the chapter arrangement of AAR, supplemented by related material from
-the NIST Digital Library of Mathematical Functions (DLMF). Its aim is to fill gaps in
+The older areas follow the chapter arrangement of AAR; the newer ones are organized by DLMF
+chapter, with the supporting source shown in parentheses below. Its aim is to fill gaps in
 Mathlib's coverage of special functions, not to reproduce either source sequentially. Each
-umbrella module `AAR/<Area>.lean` describes what Mathlib already provides and what the
+umbrella module `DLMF/<Area>.lean` describes what Mathlib already provides and what the
 area adds. Statements taken from the DLMF record their equation numbers with Mathlib's
 `@[dlmf]` cross-reference attribute.
 
@@ -31,7 +35,7 @@ area adds. Statements taken from the DLMF record their equation numbers with Mat
 | `Partitions` | 11 | | single file |
 | `Bailey` | 12 | | single file |
 
-`AAR.lean` imports all areas.
+`DLMF.lean` imports all areas.
 
 The additional DLMF chapter entry points include `Struve` (eight submodules) and
 `ParabolicCylinder` (twelve submodules), extending the original cylinder API in
@@ -44,7 +48,7 @@ families, strict indexed Hermite/Jacobi zero bounds, and Gaussian/Laplace Bessel
 transforms with complex scale and regularized exceptional-order coverage. See
 [the review](REVIEW.md) for parameter restrictions and validation.
 
-[Painlevé II](AAR/Painleve.lean), following Beals–Wong Chapter 15, adds local
+[Painlevé II](DLMF/Painleve.lean), following Beals–Wong Chapter 15, adds local
 real existence and uniqueness, Bäcklund transformations, rational solutions
 at every integer parameter, and meromorphic Airy-based solutions at every
 half-integer parameter. It also proves conditional pole/residue restrictions,
@@ -66,8 +70,8 @@ theory, and the real connection formulas remain open; see the
   (on the closed disc), `compEllIntKkSeries` (`₂F₁` in the modulus). The plain name is reserved
   for the continuation even when that is not defined yet, as for `polylog`.
 - **Real-variable forms live in a `Real` sub-namespace** of the area namespace, mirroring Mathlib's
-  `Real.Gamma`/`Complex.Gamma`: `AAR.Polylog.Real.dilog`, `AAR.Confluent.Real.sinInt`,
-  `AAR.Statistical.Real.incBeta`. Their lemmas are `Real.hasDerivAt_dilog`, `Real.dilog_one`, ….
+  `Real.Gamma`/`Complex.Gamma`: `DLMF.Polylog.Real.dilog`, `DLMF.Confluent.Real.sinInt`,
+  `DLMF.Statistical.Real.incBeta`. Their lemmas are `Real.hasDerivAt_dilog`, `Real.dilog_one`, ….
 - **Elliptic functions carry their argument convention as the last letter**, following Miller:
   `k` for the modulus, `m = k²` for the parameter, `Tau` or `Q` for theta functions in `τ` or in
   the nome `q`, and `Null` for theta constants (`z = 0`). Argument order is DLMF's.
@@ -101,7 +105,7 @@ theory, and the real connection formulas remain open; see the
 | Carlson `R_F`, `R_D`, `R_C`, `R_J`, `R_G` (19.16) | `carlsonRF`, … (planned) | `CarsonsymellintRF`, … (sic) |
 
 The real digamma function is still `Real.digamma`, defined in Mathlib's `Real` namespace beside
-Mathlib's `Complex.digamma`; moving it into `AAR.Gamma.Real` is left for a later pass.
+Mathlib's `Complex.digamma`; moving it into `DLMF.Gamma.Real` is left for a later pass.
 
 ## Status
 
@@ -166,7 +170,7 @@ integrals of `Γ` in its argument, Stirling's series for `log Γ`, `ψ` and `ψ�
 modulus and balanced Gamma products, and four Gamma inequalities. It also corrected
 the bracketing of `Gamma_incomplete_sum`. A confluent pass, following Temme's Chapter 7,
 derived Tricomi's and Kummer's asymptotic expansions from Watson's lemma (proving six
-admissions in `AAR.Confluent.Asymptotics`) and added admission-free modules for the
+admissions in `DLMF.Confluent.Asymptotics`) and added admission-free modules for the
 incomplete Gamma functions, the exponential, sine and cosine integrals, parabolic cylinder
 functions, the Fresnel and Dawson integrals, and Coulomb wave functions. A further pass on
 Temme's §§6.8–6.9 proved Laplace's integral for Legendre polynomials and added modules on
@@ -235,8 +239,8 @@ Mathlib results have comments and precise pointers. Of 547 initially admitted
 statements, 187 are now proved and 360 remain. The inventory records branch and
 convergence conventions and a proved counterexample to the unqualified Beta
 continued-fraction bound following 8.17.23. The entry modules are
-[ExpIntegrals](AAR/ExpIntegrals.lean), [ErrorFunctions](AAR/ErrorFunctions.lean)
-and [IncompleteGamma](AAR/IncompleteGamma.lean).
+[ExpIntegrals](DLMF/ExpIntegrals.lean), [ErrorFunctions](DLMF/ErrorFunctions.lean)
+and [IncompleteGamma](DLMF/IncompleteGamma.lean).
 
 The [Chapters 11, 12 and 14 acquisition](DLMF111214Acquisition.md) adds Struve,
 Lommel and Anger–Weber theory, expanded parabolic-cylinder theory and associated
@@ -246,8 +250,8 @@ proved and 516 remain. The ledger accounts for all 601 selected numbered equatio
 excluding graphs and application notes, with Mathlib pointers instead of duplicate
 proofs. It records proved counterexamples to 12.13.6 and the left-cut zero rule in
 §14.27, and explicitly lists domain extensions still to acquire. The entry modules
-are [Struve](AAR/Struve.lean), [ParabolicCylinder](AAR/ParabolicCylinder.lean) and
-[Legendre](AAR/Legendre.lean). The project now has 1,356 explicit admissions;
+are [Struve](DLMF/Struve.lean), [ParabolicCylinder](DLMF/ParabolicCylinder.lean) and
+[Legendre](DLMF/Legendre.lean). The project now has 1,356 explicit admissions;
 the completed public proofs have no dependencies on them.
 
 The [admission reuse review](REVIEW.md#reuse-of-the-proved-special-function-core-2026-10-19)
@@ -297,9 +301,9 @@ Functions* (Wiley, 1996), Chapters 1–2, and written for eventual contribution 
 * `ToMathlib.Analysis.EulerMaclaurin`: the Euler–Maclaurin formula with remainder.
 * `ToMathlib.Analysis.BooleSummation`: Boole's alternating summation formula.
 * `ToMathlib.Analysis.Asymptotics.AsymptoticExpansion` and `.Watson`: Poincaré asymptotic
-  expansions and Watson's lemma, also with a complex exponent. In `AAR.Gamma.Asymptotics`
+  expansions and Watson's lemma, also with a complex exponent. In `DLMF.Gamma.Asymptotics`
   they give Stirling's series for `log Γ` as an asymptotic expansion
-  (`hasAsymptoticExpansion_log_Gamma`); in `AAR.Confluent` they give the expansions of
+  (`hasAsymptoticExpansion_log_Gamma`); in `DLMF.Confluent` they give the expansions of
   Tricomi's and Kummer's functions and of the functions derived from them.
 * `ToMathlib.Analysis.Asymptotics.WatsonSector`: Watson's lemma for complex `z → ∞` in a
   sector `δ|z| ≤ re z`, and the Gamma integral `∫₀^∞ u^{s-1} e^{-zu} du = Γ(s) z^{-s}`.
@@ -315,7 +319,7 @@ Functions* (Wiley, 1996), Chapters 1–2, and written for eventual contribution 
 Run `lake build` from the repository root. The existing `.lake` symlink to the
 local-disk cache is intentional and must not be replaced or retargeted.
 
-Build outputs remain in `.lake/build-AAR`, separate from companion projects.
+Build outputs remain in `.lake/build-DLMF`, separate from companion projects.
 
 
 The [four-track identity batch](REVIEW.md#four-track-identity-proofs-2026-10-20)

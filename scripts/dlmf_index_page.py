@@ -37,7 +37,7 @@ CHAPTERS = {
     36: 'Integrals with Coalescing Saddles',
 }
 LEDGERS = ['AiryAcquisition.md', 'DLMF678Acquisition.md', 'DLMF111214Acquisition.md']
-TABLES = ['AAR/Confluent/DLMFCoverage.md', 'AAR/OrthogonalPolynomials/DLMFCoverage.md']
+TABLES = ['DLMF/Confluent/DLMFCoverage.md', 'DLMF/OrthogonalPolynomials/DLMFCoverage.md']
 STATUS = {'proved': 0, 'admitted': 1, 'proved from admissions': 2, 'nonstandard': 3}
 
 
@@ -57,7 +57,7 @@ def main():
 
     # Display order: upstream libraries first; open pull requests and other GitHub projects
     # are reserved for later layers; this project last.
-    projects = ['Mathlib', 'TauCeti', 'AAR']
+    projects = ['Mathlib', 'TauCeti', 'lean-DLMF']
     files, file_idx = [], {}
     ids = collections.defaultdict(list)
     for e in dump['entries']:
@@ -71,7 +71,7 @@ def main():
             file_idx[path] = len(files)
             files.append(path)
         ids[e['dlmf']].append([e['decl'], projects.index(e['project']) if e['project'] in projects
-                               else projects.index('AAR'), STATUS[st], 0 if e['kind'] == 'theorem' else 1,
+                               else projects.index('lean-DLMF'), STATUS[st], 0 if e['kind'] == 'theorem' else 1,
                                file_idx[path], e['line'] or 0,
                                1 if e.get('source') == 'pointer' else 0,
                                e['comment'], e.get('recordedIn') or ''])

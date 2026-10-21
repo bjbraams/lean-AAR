@@ -3,7 +3,7 @@
 Review and implementation date: 18 October 2026.
 
 Beals and Wong still offers substantial material beyond the current union of
-Mathlib, pinned TauCeti, and lean-AAR. The largest missing developments are
+Mathlib, pinned TauCeti, and lean-DLMF. The largest missing developments are
 orthogonal-polynomial approximation and moment theory, distributions of zeros,
 Riemann–Hilbert asymptotics, Meijer G-functions, complex elliptic-function
 theory beyond the existing foundations, and global Painlevé II theory.
@@ -21,7 +21,7 @@ The comparison uses:
 
 - Mathlib `5e0c4e5239cb0a2d86d68a884bf52cfd963fce22`.
 - TauCeti `a780c7ad6beb23f60a17351a492d177878020ad5`.
-- The current lean-AAR working tree, including its modified and untracked Lean
+- The current lean-DLMF working tree, including its modified and untracked Lean
   files. The underlying AAR commit is `53aca5cf2947648287e2a45e0d1740dd1db5572c`.
 
 These are the initial inventory revisions. The later shared upgrade to Lean
@@ -55,8 +55,8 @@ the current Lean sources take precedence here.
 
 Most of the concrete function theory here is already represented. Mathlib has
 Gamma, beta, reflection, duplication, Bohr–Mollerup, and zeta foundations;
-[AAR/Gamma](AAR/Gamma.lean),
-[AAR/Selberg](AAR/Selberg.lean), and the incomplete-gamma modules provide much
+[DLMF/Gamma](DLMF/Gamma.lean),
+[DLMF/Selberg](DLMF/Selberg.lean), and the incomplete-gamma modules provide much
 more. These chapters are not large new acquisition areas.
 
 - **Absent — Wielandt's characterization of Gamma**, Theorem 2.4.1, pp. 24–25.
@@ -101,14 +101,14 @@ The missing pieces concern the structure and classification of equations.
   ODEs, and their orthogonality does not prove this classification.
 
 The applications in §3.6 are partly covered by
-[WaveEquation/Helmholtz.lean](AAR/WaveEquation/Helmholtz.lean). Consequently,
+[WaveEquation/Helmholtz.lean](DLMF/WaveEquation/Helmholtz.lean). Consequently,
 separation of variables and the occurrence of Bessel/Legendre equations
 should not be inventoried as wholly absent.
 
 ## Chapter 4 Orthogonal polynomials on an interval
 
-[General.lean](AAR/OrthogonalPolynomials/General.lean) and
-[GeneralIdentities.lean](AAR/OrthogonalPolynomials/GeneralIdentities.lean)
+[General.lean](DLMF/OrthogonalPolynomials/General.lean) and
+[GeneralIdentities.lean](DLMF/OrthogonalPolynomials/GeneralIdentities.lean)
 already provide the three-term recurrence, Gauss quadrature, real roots in
 the support, interlacing, Christoffel–Darboux, positive Hankel determinants,
 and compact-support expansion results. TauCeti supplies important
@@ -126,7 +126,7 @@ completeness and moment-determinacy ingredients.
   §4.3, pp. 81–84. The missing theorem connects the recurrence of an arbitrary
   orthogonal system to convergents of its Stieltjes transform. The five
   concrete finite identities in
-  [ContinuedFractions.lean](AAR/OrthogonalPolynomials/ContinuedFractions.lean)
+  [ContinuedFractions.lean](DLMF/OrthogonalPolynomials/ContinuedFractions.lean)
   do not supply this analytic correspondence or convergence.
 - **Admitted — Favard's existence theorem**, §4.5, Theorem 4.5.1,
   pp. 86–88. `favard` in `General.lean` already states existence of an
@@ -158,19 +158,19 @@ criterion.
 Definitions, classical ODEs, Rodrigues formulas, many generating functions,
 orthogonality, completeness, and basic zero theorems have extensive coverage.
 In particular,
-[ClassicalInstances.lean](AAR/OrthogonalPolynomials/ClassicalInstances.lean)
+[ClassicalInstances.lean](DLMF/OrthogonalPolynomials/ClassicalInstances.lean)
 now proves completeness for Hermite, Laguerre, Jacobi, and Gegenbauer, so
 the book's basic completeness theorem should not be counted as missing.
 
 - **Present — indexed Hermite and Jacobi zero estimates**,
   Theorems 5.3.2 and 5.5.1, pp. 107 and 114.
-  [HermiteZeroBounds.lean](AAR/OrthogonalPolynomials/HermiteZeroBounds.lean)
+  [HermiteZeroBounds.lean](DLMF/OrthogonalPolynomials/HermiteZeroBounds.lean)
   now proves both strict indexed bounds for the positive zeros of even
   and odd Hermite polynomials, including their complete enumeration.
-  [JacobiZeroBounds.lean](AAR/OrthogonalPolynomials/JacobiZeroBounds.lean)
+  [JacobiZeroBounds.lean](DLMF/OrthogonalPolynomials/JacobiZeroBounds.lean)
   proves the indexed angle bounds when `α², β² ≤ 1/4`, and both strict
   inequalities when at least one squared parameter is less than `1/4`. Laguerre extremal zero bounds are proved in
-  [BoundsZeros.lean](AAR/OrthogonalPolynomials/BoundsZeros.lean).
+  [BoundsZeros.lean](DLMF/OrthogonalPolynomials/BoundsZeros.lean).
 - **Absent — the classical limiting zero distributions**, §5.7,
   Theorems 5.7.1–5.7.3, pp. 120–123. These are the Jacobi arcsine law,
   the rescaled Laguerre law with density
@@ -182,7 +182,7 @@ the book's basic completeness theorem should not be counted as missing.
   of the maximizing weighted Vandermonde configuration for Jacobi,
   Laguerre, and Hermite weights, and identification with the polynomial
   zeros. The proved discriminant formulas in `BoundsZeros.lean` and
-  [JacobiDiscriminant.lean](AAR/OrthogonalPolynomials/JacobiDiscriminant.lean)
+  [JacobiDiscriminant.lean](DLMF/OrthogonalPolynomials/JacobiDiscriminant.lean)
   are related but do not assert this optimization theorem. A header mention
   of electrostatics in `Selberg/Applications.lean` is not an implementation.
 - **Absent — pointwise expansion theorems**, §5.8,
@@ -196,10 +196,10 @@ the book's basic completeness theorem should not be counted as missing.
   Cauchy transforms of the classical weighted polynomials and identifies
   the transformed differential equation and solutions uniformly across
   the three families. The degree-integer Legendre Q Neumann integral is
-  already proved in [Legendre/Neumann.lean](AAR/Legendre/Neumann.lean).
+  already proved in [Legendre/Neumann.lean](DLMF/Legendre/Neumann.lean).
 - **Admitted — Mehler's formula**, (5.3.17), p. 106:
   `mehler_formula` in
-  [Series.lean](AAR/OrthogonalPolynomials/Series.lean).
+  [Series.lean](DLMF/OrthogonalPolynomials/Series.lean).
 - **Admitted — the Jacobi Darboux formula**, (5.5.12), p. 114, also
   derived in §13.3: `jacobi_darboux_asymptotic` in `BoundsZeros.lean`.
   This existing statement is at fixed real angle; the book also discusses
@@ -207,14 +207,14 @@ the book's basic completeness theorem should not be counted as missing.
 
 Hermite fixed-argument asymptotics, (5.3.20), and Fejér's Laguerre formula,
 (5.4.12), are already covered by
-[HermiteFixedX.lean](AAR/OrthogonalPolynomials/HermiteFixedX.lean) and
-[LargeASharp.lean](AAR/Confluent/LargeASharp.lean).
+[HermiteFixedX.lean](DLMF/OrthogonalPolynomials/HermiteFixedX.lean) and
+[LargeASharp.lean](DLMF/Confluent/LargeASharp.lean).
 
 ## Chapter 6 Semi classical orthogonal polynomials
 
-[Hahn.lean](AAR/OrthogonalPolynomials/Hahn.lean),
-[Wilson.lean](AAR/OrthogonalPolynomials/Wilson.lean), and
-[Limits.lean](AAR/OrthogonalPolynomials/Limits.lean) already represent the
+[Hahn.lean](DLMF/OrthogonalPolynomials/Hahn.lean),
+[Wilson.lean](DLMF/OrthogonalPolynomials/Wilson.lean), and
+[Limits.lean](DLMF/OrthogonalPolynomials/Limits.lean) already represent the
 families and much of the algebra in this chapter. The recently proved
 Charlier, Krawtchouk, Meixner, and Hahn orthogonality must be retained in
 the coverage assessment.
@@ -224,13 +224,13 @@ the coverage assessment.
   the converse theorem identifying the four discrete classical families
   from symmetry and the second-order difference-operator hypotheses.
 - **Present / partial — discrete Rodrigues theory**, §6.2, pp. 146–149.
-  [DiscreteRodrigues.lean](AAR/OrthogonalPolynomials/DiscreteRodrigues.lean)
+  [DiscreteRodrigues.lean](DLMF/OrthogonalPolynomials/DiscreteRodrigues.lean)
   proves Charlier, Meixner, and Krawtchouk formulas, with their shifted
   weights identified by Pochhammer factors. Meixner allows `Re β > 0`
   and nonzero complex `c`; the more general finite nonvanishing form also
   yields Krawtchouk for `n ≤ N` and `p ≠ 0, 1`. The order-zero Krawtchouk
   weight is identified with the binomial weight.
-  [HahnRodrigues.lean](AAR/OrthogonalPolynomials/HahnRodrigues.lean) proves
+  [HahnRodrigues.lean](DLMF/OrthogonalPolynomials/HahnRodrigues.lean) proves
   Hahn's formula and shifted-weight identity for `n ≤ N` and
   `Re α, Re β > -1`. All formulas hold for every integer argument with
   zero extension outside the support, retaining the endpoint terms.
@@ -245,7 +245,7 @@ the coverage assessment.
   identities requires the appropriate convergence domains and branches.
 - **Present — discrete addition formulas**, (6.3.10)–(6.3.11), (6.4.12),
   and (6.5.11), for Charlier, Krawtchouk, and Meixner, now proved in
-  [DiscreteAddition.lean](AAR/OrthogonalPolynomials/DiscreteAddition.lean).
+  [DiscreteAddition.lean](DLMF/OrthogonalPolynomials/DiscreteAddition.lean).
   The four identities use the existing normalizations and complex
   polynomial arguments. The Krawtchouk formula assumes `n ≤ N`; Meixner
   assumes `0 < Re β`. Formal power series supply the coefficient algebra
@@ -285,7 +285,7 @@ Laguerre estimates do not cover the rescaled arguments used here.
 ## Chapter 8 Confluent hypergeometric functions
 
 This chapter has broad existing coverage in
-[AAR/Confluent](AAR/Confluent.lean): Kummer and Tricomi functions,
+[DLMF/Confluent](DLMF/Confluent.lean): Kummer and Tricomi functions,
 integer-parameter continuation, contiguous relations, special cases,
 Whittaker functions, and parabolic cylinder functions. Integer denominator
 parameters should not be listed as entirely unsupported: the continuation
@@ -301,7 +301,7 @@ and logarithmic-series machinery already exists.
   pp. 212–216, and §13.1. The U/V definitions, initial values, Wronskians,
   recurrences, Hermite specialization, and the large-positive-argument U
   expansion are present in
-  [ParabolicCylinder.lean](AAR/Confluent/ParabolicCylinder.lean).
+  [ParabolicCylinder.lean](DLMF/Confluent/ParabolicCylinder.lean).
   The complementary V large-argument asymptotic and the general
   noninteger-degree parameter-asymptotic treatment go beyond the current
   explicit results. The fixed-integer-degree Hermite estimates are present.
@@ -313,35 +313,35 @@ functions, recurrences, Wronskians, many integrals, fixed-order asymptotics,
 some large-order limits, and extensive zero theory. In particular,
 infinitely many cylinder zeros, spacing relative to π, J/J-successor
 interlacing, and reality of J zeros are already represented in
-[SturmZeros.lean](AAR/Bessel/SturmZeros.lean).
+[SturmZeros.lean](DLMF/Bessel/SturmZeros.lean).
 
 - **Partial — the derivative-zero part of Theorem 9.2.5**, p. 231.
   Reality of J zeros for real order `ν > -1` is present; the corresponding
   book theorem about zeros of J prime needs its own result: reality for
   `ν ≥ 0`, and the pair of imaginary zeros when `-1 < ν < 0`.
   First-positive-zero monotonicity is
-  already in [Zeros.lean](AAR/Bessel/Zeros.lean).
+  already in [Zeros.lean](DLMF/Bessel/Zeros.lean).
 - **Absent — Graf's general addition theorem**, (9.6.3), p. 241.
   The proved `hasSum_besselJ_add` is Neumann's addition theorem for an
   additive argument; it does not supply Graf's arbitrary-order geometric
   addition formula with its phases and convergence domain.
 - **Admitted — Gegenbauer's Bessel addition theorem**, (9.6.4), p. 241:
-  `besselJ_addition` in [Theorems.lean](AAR/Bessel/Theorems.lean).
+  `besselJ_addition` in [Theorems.lean](DLMF/Bessel/Theorems.lean).
 - **Absent — the Hankel transform and its inversion**, §9.7,
   pp. 241–243. Missing are the Bessel-kernel transform, its identification
   with a Fourier angular mode in polar coordinates, and its involution
   theorem under precise integrability/continuity assumptions. Fourier
   inversion itself is upstream. Finite Fourier–Bessel coefficient
-  identities in [Lommel.lean](AAR/Bessel/Lommel.lean) are already covered,
+  identities in [Lommel.lean](DLMF/Bessel/Lommel.lean) are already covered,
   but are not Hankel inversion.
 - **Present — direct Bessel integral-transform interfaces**, §9.8,
   pp. 243–245.
-  [IntegralTransforms.lean](AAR/Bessel/IntegralTransforms.lean) proves
+  [IntegralTransforms.lean](DLMF/Bessel/IntegralTransforms.lean) proves
   the general Gaussian-weight integral (9.8.3) with complex scale `s`
   satisfying `Re s > 0`, positive real frequency, complex powers/orders,
   and `Re(μ + ν) > 0`. Both regularized and ordinary Kummer forms are
   supplied; the regularized form retains exceptional orders.
-  [LaplaceTransform.lean](AAR/Bessel/LaplaceTransform.lean) proves the
+  [LaplaceTransform.lean](DLMF/Bessel/LaplaceTransform.lean) proves the
   conventional quadratic Gauss form of the Laplace–Bessel integral,
   with argument `-w²/s²`, throughout `Re s > 0`. Its regularized version
   retains every complex order under the stated sufficient condition
@@ -353,7 +353,7 @@ interlacing, and reality of J zeros are already represented in
   Sonine's single-Bessel Gaussian integral, Poisson integrals, and Lommel
   orthogonality also have local proofs.
 - **Partial — Airy integral and asymptotic theory**, §9.9,
-  pp. 245–248. [AAR/Airy](AAR/Airy.lean) already defines Ai and Bi,
+  pp. 245–248. [DLMF/Airy](DLMF/Airy.lean) already defines Ai and Bi,
   proves their ODE and initial values, Wronskian, rotation identities,
   Bessel relations on the real axis, positivity, and leading positive-axis
   asymptotics. Missing book targets are the improper oscillatory and
@@ -368,9 +368,9 @@ Most of the named topics already have extensive local statements and proofs:
 fundamental solutions, linear relations, integer-parameter logarithmic
 solutions, contiguous identities, quadratic transformations, integrals,
 and special values. In particular,
-[Solutions.lean](AAR/Hypergeometric/Solutions.lean),
-[ConnectionFormulas.lean](AAR/Hypergeometric/ConnectionFormulas.lean), and
-[ArgumentContinuation.lean](AAR/Hypergeometric/ArgumentContinuation.lean)
+[Solutions.lean](DLMF/Hypergeometric/Solutions.lean),
+[ConnectionFormulas.lean](DLMF/Hypergeometric/ConnectionFormulas.lean), and
+[ArgumentContinuation.lean](DLMF/Hypergeometric/ArgumentContinuation.lean)
 cover much more than just the defining series.
 
 - **Partial — full branch and contour scope of the book's solution theory**,
@@ -389,8 +389,8 @@ the current project lacks cut-plane continuation.
 
 ## Chapter 11 Spherical functions
 
-[SphericalHarmonics](AAR/SphericalHarmonics.lean) and
-[Legendre](AAR/Legendre.lean) provide a starting point, but do not yet give
+[SphericalHarmonics](DLMF/SphericalHarmonics.lean) and
+[Legendre](DLMF/Legendre.lean) provide a starting point, but do not yet give
 the full chapter.
 
 - **Partial — harmonic-polynomial decomposition and spherical harmonic
@@ -402,8 +402,8 @@ the full chapter.
   Generic upstream harmonic-function tools do not supply this basis.
 - **Admitted — orthogonality and addition results already stated**:
   `harmonicHomogeneous_orthogonal` in
-  [Basic.lean](AAR/SphericalHarmonics/Basic.lean), and `spherical_addition`
-  in [Theorems.lean](AAR/SphericalHarmonics/Theorems.lean), have admissions.
+  [Basic.lean](DLMF/SphericalHarmonics/Basic.lean), and `spherical_addition`
+  in [Theorems.lean](DLMF/SphericalHarmonics/Theorems.lean), have admissions.
   The existing `legendre_addition` in `OrthogonalPolynomials/Series.lean`
   is admitted as well. These are proof tasks rather than absent statements.
 - **Partial — associated Legendre functions and their relations**,
@@ -421,9 +421,9 @@ the full chapter.
 ## Chapter 12 Generalized hypergeometric and Meijer G functions
 
 Mathlib already defines generalized regularized hypergeometric series, and
-[Generalized.lean](AAR/Hypergeometric/Generalized.lean),
-[GeneralizedCalculus.lean](AAR/Hypergeometric/GeneralizedCalculus.lean), and
-[GeneralizedIntegral.lean](AAR/Hypergeometric/GeneralizedIntegral.lean)
+[Generalized.lean](DLMF/Hypergeometric/Generalized.lean),
+[GeneralizedCalculus.lean](DLMF/Hypergeometric/GeneralizedCalculus.lean), and
+[GeneralizedIntegral.lean](DLMF/Hypergeometric/GeneralizedIntegral.lean)
 provide local ODE, differentiation, coefficient-uniqueness, and integral
 results. Thus generalized hypergeometric functions themselves are present.
 
@@ -488,11 +488,11 @@ an additional independent collection of missing theorems in every case.
 ## Chapter 14 Elliptic functions
 
 The real theory is substantial:
-[Complete.lean](AAR/Elliptic/Complete.lean),
-[AGM.lean](AAR/Elliptic/AGM.lean),
-[Jacobi.lean](AAR/Elliptic/Jacobi.lean),
-[JacobiIdentities.lean](AAR/Elliptic/JacobiIdentities.lean), and
-[ThirdKind.lean](AAR/Elliptic/ThirdKind.lean) include real elliptic
+[Complete.lean](DLMF/Elliptic/Complete.lean),
+[AGM.lean](DLMF/Elliptic/AGM.lean),
+[Jacobi.lean](DLMF/Elliptic/Jacobi.lean),
+[JacobiIdentities.lean](DLMF/Elliptic/JacobiIdentities.lean), and
+[ThirdKind.lean](DLMF/Elliptic/ThirdKind.lean) include real elliptic
 integrals, the AGM relation, Landen transformations, real Jacobi functions,
 derivatives, addition, and real periods. The missing part is primarily
 complex function theory and its connections.
@@ -511,7 +511,7 @@ complex function theory and its connections.
   §§14.4–14.5, pp. 371–380. Theta series and some transformations are
   upstream, the local four-theta wrappers are present, and the Jacobi
   triple product is proved in
-  [QSeries/Identities.lean](AAR/QSeries/Identities.lean). Missing targets
+  [QSeries/Identities.lean](DLMF/QSeries/Identities.lean). Missing targets
   include the full zero/divisor characterization on a fundamental
   parallelogram, general representation by theta quotients, and the
   sn/cn/dn theta-quotient identities with the corresponding complex
@@ -532,7 +532,7 @@ complex function theory and its connections.
 ## Chapter 15 Painlevé transcendents
 
 **Partial, with a proved local and explicit-solution development.**
-[AAR/Painleve.lean](AAR/Painleve.lean) now imports eight modules in the
+[DLMF/Painleve.lean](DLMF/Painleve.lean) now imports eight modules in the
 book's convention `u'' = 2u³ + xu - c`. No matching nonlinear-equation
 development was located in Mathlib or pinned TauCeti. TauCeti's theorems
 named “Painlevé removability” concern complex-analysis gluing.

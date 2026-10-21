@@ -5,6 +5,6 @@ Authors: Bastiaan J Braams
 -/
 module
 
-public import AAR
+public import DLMF
 
-/-! # Special Functions following Andrews, Askey, and Roy (1999) -/
+/-! # Special functions following the NIST Digital Library of Mathematical Functions (DLMF) -/

@@ -93,7 +93,7 @@ project can record a checked pointer instead. In this repository the command
 
     dlmf_upstream 8.17.E3 Complex.betaIntegral_eq_Gamma_mul_div "special case: 0 < re a, 0 < re b"
 
-(`AAR/DLMF/Upstream.lean`) parses the DLMF key with the `@[dlmf]` parser, requires the
+(`DLMF/Core/Upstream.lean`) parses the DLMF key with the `@[dlmf]` parser, requires the
 declaration to exist, so that an upstream rename breaks the build instead of leaving a dead
 link, and stores the pointer in an environment extension. The harvester reports these records
 under the upstream project, with their location and status taken from the upstream declaration,

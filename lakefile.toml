@@ -1,7 +1,7 @@
 name = "Main"
 version = "0.1.0"
 defaultTargets = ["Main"]
-buildDir = ".lake/build-AAR"
+buildDir = ".lake/build-DLMF"
 
 [leanOptions]
 # Mathlib convention: undeclared names in statements are errors, not auto-bound implicits.
@@ -10,9 +10,9 @@ relaxedAutoImplicit = false
 
 [[lean_lib]]
 name = "Main"
-roots = ["AAR", "ToMathlib"]
+roots = ["DLMF", "ToMathlib"]
 globs = [
-  "AAR", "AAR.+", "ToMathlib", "ToMathlib.+"
+  "DLMF", "DLMF.+", "ToMathlib", "ToMathlib.+"
 ]
 
 [[lean_exe]]
