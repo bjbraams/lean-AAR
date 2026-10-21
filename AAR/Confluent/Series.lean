@@ -9,7 +9,12 @@ public import AAR.Confluent.Basic
 public import AAR.Confluent.Whittaker
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
+public import AAR.Bessel.NeumannSeries
 public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Complex.TaylorSeries
+public import Mathlib.Analysis.Complex.RemovableSingularity
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 
 /-!
 # Series expansions (DLMF §§13.11, 13.24)
@@ -20,14 +25,214 @@ for the coefficients `A_s` and 13.24.3 for `p_s^{(μ)}` are included.
 
 @[expose] public section
 
-open Complex
-open scoped Real Topology
+open Complex Filter
+open scoped Real Topology Nat
 open AAR.Hypergeometric
 open AAR.Bessel
 
 noncomputable section
 
 namespace AAR.Confluent
+
+/-- Coefficients of the Bessel-function expansion DLMF 13.11.1. -/
+noncomputable def kummerBesselISeriesCoeff (a b : ℂ) (k : ℕ) : ℂ :=
+  poch (2 * a - 1) k * poch (2 * a - b) k / (poch b k * k !) * (a - 1 / 2 + k)
+
+/-- The coefficient identity behind DLMF 13.11.1: the Cauchy coefficients of the Bessel
+expansion reproduce `(a)_N 4^N / ((b)_N N!)`. -/
+theorem kummerBesselISeriesCoeff_sum {a b : ℂ} (hν : ∀ j : ℕ, a - 1 / 2 + j ≠ 0) (hb : ∀ k : ℕ, b ≠ -k)
+    (N : ℕ) :
+    Gamma (a - 1 / 2) * ∑ k ∈ Finset.range (N + 1), (if k ≤ N then kummerBesselISeriesCoeff a b k *
+      (poch (2 * (a - 1 / 2 + k + 1) + ((N - k : ℕ) : ℂ) - 1) (N - k) /
+        ((N - k)! * Gamma (a - 1 / 2 + k + 1 + ((N - k : ℕ) : ℂ)))) else 0) =
+      kummerMCoeff a b N * 4 ^ N := by
+  set ν := a - 1 / 2 with hνdef
+  have hpb : ∀ n, poch b n ≠ 0 := poch_ne_zero_of_not_neg_nat hb
+  have hGN : ∀ n : ℕ, Gamma (ν + n + 1) = Gamma ν * poch ν (n + 1) := by
+    intro n
+    rw [add_assoc, show ((n : ℂ) + 1) = ((n + 1 : ℕ) : ℂ) by push_cast; ring]
+    exact Gamma_add_nat_eq_mul_poch hν _
+  have hpν : ∀ n, poch ν n ≠ 0 := poch_ne_zero_of_not_neg_nat
+    (fun k h => hν k (by rw [h]; ring))
+  have hΓν : Gamma ν ≠ 0 := by
+    have := Gamma_add_nat_ne_zero_of_ne (l := ν) (fun n h => hν n (by rw [h]; ring)) 0
+    simpa using this
+  have hterm : ∀ k ∈ Finset.range (N + 1), (if k ≤ N then kummerBesselISeriesCoeff a b k *
+      (poch (2 * (ν + k + 1) + ((N - k : ℕ) : ℂ) - 1) (N - k) /
+        ((N - k)! * Gamma (ν + k + 1 + ((N - k : ℕ) : ℂ)))) else 0) =
+      vwpTerm (2 * ν) (2 * a - b) N k / (2 * N ! * poch b N * Gamma (ν + N + 1)) := by
+    intro k hk
+    rw [Finset.mem_range] at hk
+    simp only [show k ≤ N by omega, ↓reduceIte]
+    obtain ⟨K, rfl⟩ := Nat.exists_eq_add_of_le (show k ≤ N by omega)
+    simp only [kummerBesselISeriesCoeff, vwpTerm, Nat.add_sub_cancel_left]
+    rw [← hνdef, show 2 * (ν + k + 1) + (K : ℂ) - 1 = 2 * ν + ((k + K : ℕ) : ℂ) + k + 1 by push_cast; ring,
+      show ν + k + 1 + (K : ℂ) = ν + ((k + K : ℕ) : ℂ) + 1 by push_cast; ring,
+      show 2 * ν + 1 - (2 * a - b) + k = b + k by rw [hνdef]; ring,
+      show 2 * a - 1 = 2 * ν by rw [hνdef]; ring, poch_add b k K]
+    have hfac := Nat.choose_mul_factorial_mul_factorial (show k ≤ k + K by omega)
+    rw [Nat.add_sub_cancel_left] at hfac
+    have hfac' : ((k + K).choose k : ℂ) * k ! * K ! = (k + K)! := by exact_mod_cast hfac
+    have hk0 : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hK0 : (K ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    have hpbk := hpb k
+    have hpbK : poch (b + k) K ≠ 0 := by
+      intro h; apply hpb (k + K); rw [poch_add, h, mul_zero]
+    have hG : Gamma (ν + ((k + K : ℕ) : ℂ) + 1) ≠ 0 := by
+      rw [hGN]; exact mul_ne_zero hΓν (hpν _)
+    have hch : ((k + K).choose k : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.choose_pos (by omega)).ne'
+    rw [← hfac']
+    field_simp
+  rw [Finset.sum_congr rfl hterm, ← Finset.sum_div, sum_range_vwpTerm, poch_two_mul_two_mul_add_one, hGN,
+    show ν + 1 / 2 = a by rw [hνdef]; ring]
+  have hN0 : (N ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have := hpb N
+  have := hpν (N + 1)
+  simp only [kummerMCoeff]
+  field_simp
+
+
+/-- Geometric growth of `kummerBesselISeriesCoeff`. -/
+theorem exists_norm_kummerBesselISeriesCoeff_le (a : ℂ) {b : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
+    ∃ C X : ℝ, 0 ≤ C ∧ 1 ≤ X ∧ ∀ k, ‖kummerBesselISeriesCoeff a b k‖ ≤ C * X ^ k := by
+  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le b
+  have hbi : ∀ i : ℕ, b + i ≠ 0 := fun i h => hb i (by rw [← sub_eq_zero, sub_neg_eq_add, h])
+  refine ⟨‖Gamma b‖ * C * Real.exp (‖2 * a - 1‖ + ‖2 * a - b‖ + ‖a - 1 / 2‖),
+    2 * Real.exp 1 ^ 3, by positivity, ?_, fun k => ?_⟩
+  · have := Real.add_one_le_exp 1
+    nlinarith [pow_le_pow_left₀ (by norm_num : (0 : ℝ) ≤ 2) (by linarith : (2 : ℝ) ≤ Real.exp 1) 3]
+  have hk : (0 : ℝ) < k ! := by exact_mod_cast Nat.factorial_pos k
+  have h1 := norm_poch_le_factorial_mul_exp (2 * a - 1) k
+  have h2 := norm_poch_le_factorial_mul_exp (2 * a - b) k
+  have hG := Gamma_add_nat_eq_mul_poch hbi k
+  have hpb : poch b k ≠ 0 := poch_ne_zero_of_not_neg_nat hb k
+  have h3 : ‖(poch b k)⁻¹‖ ≤ ‖Gamma b‖ * (C * (2 ^ k / k !)) := by
+    have hΓb : Gamma b ≠ 0 := by simpa using Gamma_add_nat_ne_zero_of_ne (l := b) hb 0
+    rw [show (poch b k)⁻¹ = Gamma b * (Gamma (b + k))⁻¹ by rw [hG]; field_simp, norm_mul]
+    exact mul_le_mul_of_nonneg_left (hC k) (norm_nonneg _)
+  have h4 : ‖a - 1 / 2 + k‖ ≤ Real.exp (‖a - 1 / 2‖ + k) := by
+    calc ‖a - 1 / 2 + k‖ ≤ ‖a - 1 / 2‖ + k := by
+            refine (norm_add_le _ _).trans ?_; simp
+      _ ≤ _ := by linarith [Real.add_one_le_exp (‖a - 1 / 2‖ + k)]
+  simp only [kummerBesselISeriesCoeff]
+  rw [div_eq_mul_inv, mul_inv, norm_mul, norm_mul, norm_mul, norm_mul, norm_inv (k ! : ℂ),
+    Complex.norm_natCast]
+  calc ‖poch (2 * a - 1) k‖ * ‖poch (2 * a - b) k‖ * (‖(poch b k)⁻¹‖ * (k ! : ℝ)⁻¹) *
+        ‖a - 1 / 2 + k‖
+      ≤ (k ! * Real.exp (‖2 * a - 1‖ + k)) * (k ! * Real.exp (‖2 * a - b‖ + k)) *
+          ((‖Gamma b‖ * (C * (2 ^ k / k !))) * (k ! : ℝ)⁻¹) * Real.exp (‖a - 1 / 2‖ + k) := by
+        gcongr
+    _ = ‖Gamma b‖ * C * 2 ^ k * (Real.exp (‖2 * a - 1‖ + k) * Real.exp (‖2 * a - b‖ + k) *
+          Real.exp (‖a - 1 / 2‖ + k)) := by
+        field_simp
+    _ = _ := by
+        have e1 : Real.exp (‖2 * a - 1‖ + k) * Real.exp (‖2 * a - b‖ + k) *
+            Real.exp (‖a - 1 / 2‖ + k) =
+            Real.exp (‖2 * a - 1‖ + ‖2 * a - b‖ + ‖a - 1 / 2‖) * (Real.exp 1 ^ 3) ^ k := by
+          rw [← pow_mul, ← Real.exp_nat_mul, ← Real.exp_add, ← Real.exp_add, ← Real.exp_add]
+          congr 1; push_cast; ring
+        rw [e1, mul_pow]; ring
+
+
+/-- Entire form of DLMF 13.11.1: `M(a,b,4w) = Γ(a-½) e^{2w} ∑ₖ cₖ wᵏ ₀F̃₁(;a+½+k;w²)`. -/
+theorem kummerM_four_mul_eq_tsum {a b : ℂ} (hν : ∀ j : ℕ, a - 1 / 2 + j ≠ 0)
+    (hb : ∀ k : ℕ, b ≠ -k) (w : ℂ) :
+    kummerM a b (4 * w) = Gamma (a - 1 / 2) * exp (2 * w) *
+      ∑' k : ℕ, kummerBesselISeriesCoeff a b k *
+        (w ^ k * regularizedHGFun (∅ : Multiset ℂ) {a - 1 / 2 + k + 1} (w ^ 2)) := by
+  set ν := a - 1 / 2 with hνdef
+  have hc : ∀ k j : ℕ, ν + k + 1 + j ≠ 0 := fun k j => by
+    have := hν (k + 1 + j)
+    push_cast at this
+    rwa [show ν + k + 1 + j = ν + (k + 1 + j) by ring]
+  set d : ℕ → ℕ → ℂ := fun k K =>
+    poch (2 * (ν + k + 1) + K - 1) K / (K ! * Gamma (ν + k + 1 + K)) with hd
+  set f : ℕ × ℕ → ℂ := fun p => kummerBesselISeriesCoeff a b p.1 * w ^ p.1 * (d p.1 p.2 * w ^ p.2)
+    with hf
+  have hinner : ∀ k, HasSum (fun K => f (k, K)) (kummerBesselISeriesCoeff a b k * w ^ k *
+      (regularizedHGFun (∅ : Multiset ℂ) {ν + k + 1} (w ^ 2) * exp (2 * w))) := fun k =>
+    (hasSum_regularized0F1_mul_exp (hc k) w).mul_left _
+  obtain ⟨C1, X1, hC1, hX1, h1⟩ := exists_norm_kummerBesselISeriesCoeff_le a hb
+  obtain ⟨C2, X2, hC2, hX2, h2⟩ := exists_norm_regularized0F1_mul_exp_coeff_le ν
+  set Y := X1 * X2 * (‖w‖ + 1) with hY
+  have hsum : Summable fun p => ‖f p‖ := by
+    have hg := Real.summable_pow_div_factorial Y
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun p => ?_)
+      ((hg.mul_of_nonneg hg (fun _ => by positivity) (fun _ => by positivity)).mul_left (C1 * C2))
+    obtain ⟨k, K⟩ := p
+    simp only [hf, norm_mul, norm_pow]
+    have hfac : ((k ! : ℝ) * K !) ≤ (k + K)! := by
+      exact_mod_cast Nat.le_of_dvd (Nat.factorial_pos _)
+        (Nat.factorial_mul_factorial_dvd_factorial_add k K)
+    have hk0 : (0 : ℝ) < k ! := by exact_mod_cast Nat.factorial_pos k
+    have hK0 : (0 : ℝ) < K ! := by exact_mod_cast Nat.factorial_pos K
+    have hY1 : X1 * X2 * ‖w‖ ≤ Y := by
+      rw [hY]; gcongr; linarith
+    have hY2 : X2 * ‖w‖ ≤ Y := by
+      rw [hY]
+      calc X2 * ‖w‖ ≤ X1 * X2 * ‖w‖ := by
+            have : 0 ≤ X2 * ‖w‖ := by positivity
+            nlinarith
+        _ ≤ _ := hY1
+    calc ‖kummerBesselISeriesCoeff a b k‖ * ‖w‖ ^ k * (‖d k K‖ * ‖w‖ ^ K)
+        ≤ C1 * X1 ^ k * ‖w‖ ^ k * (C2 * (X2 ^ (k + K) / (k + K)!) * ‖w‖ ^ K) := by
+          gcongr
+          · exact h1 k
+          · exact h2 k K
+      _ = C1 * C2 * ((X1 * X2 * ‖w‖) ^ k * (X2 * ‖w‖) ^ K / (k + K)!) := by
+          rw [pow_add, mul_pow, mul_pow, mul_pow]; ring
+      _ ≤ C1 * C2 * (Y ^ k * Y ^ K / ((k ! : ℝ) * K !)) := by
+          gcongr
+      _ = C1 * C2 * (Y ^ k / k ! * (Y ^ K / K !)) := by
+          field_simp
+  have hT := hsum.of_norm.hasSum
+  have hk := hT.prod_fiberwise hinner
+  have hN := hasSum_sum_range_fiber (d := 1) one_pos hT
+  have hM : HasSum (fun N => kummerMCoeff a b N * (4 * w) ^ N) (kummerM a b (4 * w)) :=
+    (hasFPowerSeriesOnBall_kummerM hb).hasSum_mul_pow (by simp)
+  have hM' : HasSum (fun N => kummerMCoeff a b N * (4 * w) ^ N) (Gamma ν * ∑' p, f p) := by
+    refine (hN.mul_left (Gamma ν)).congr_fun fun N => ?_
+    rw [mul_pow, ← mul_assoc, ← kummerBesselISeriesCoeff_sum hν hb N, mul_assoc, Finset.sum_mul]
+    congr 1
+    refine Finset.sum_congr rfl fun k _ => ?_
+    simp only [one_mul]
+    split_ifs with hkN
+    · simp only [hf, hd]
+      rw [show w ^ N = w ^ k * w ^ (N - k) by rw [← pow_add, Nat.add_sub_cancel' hkN]]
+      ring
+    · simp
+  have heq := hM.unique hM'
+  have hE : exp (2 * w) ≠ 0 := exp_ne_zero _
+  have hg : HasSum (fun k => kummerBesselISeriesCoeff a b k *
+      (w ^ k * regularizedHGFun (∅ : Multiset ℂ) {ν + k + 1} (w ^ 2)))
+      ((∑' p, f p) / exp (2 * w)) := by
+    refine (hk.div_const (exp (2 * w))).congr_fun fun k => ?_
+    field_simp
+  rw [heq, hg.tsum_eq]
+  field_simp
+
+
+/-- Conversion of the entire form at `w = z/4` into modified Bessel functions. -/
+theorem tsum_kummerBesselISeriesCoeff_besselI {a b z : ℂ} (hz : z ≠ 0) (σ : ℂ) (hσ : σ ^ 2 = 1) :
+    ∑' s : ℕ, kummerBesselISeriesCoeff a b s * ((σ * (z / 4)) ^ s *
+      regularizedHGFun (∅ : Multiset ℂ) {a - 1 / 2 + s + 1} ((σ * (z / 4)) ^ 2)) =
+      (z / 4) ^ (-(a - 1 / 2)) * ∑' s : ℕ, σ ^ s * kummerBesselISeriesCoeff a b s *
+        besselI (a - 1 / 2 + s) (z / 2) := by
+  have hw : z / 4 ≠ 0 := div_ne_zero hz (by norm_num)
+  have hI : ∀ s : ℕ, besselI (a - 1 / 2 + s) (z / 2) = (z / 4) ^ (a - 1 / 2) *
+      ((z / 4) ^ s * regularizedHGFun (∅ : Multiset ℂ) {a - 1 / 2 + s + 1} ((z / 4) ^ 2)) := by
+    intro s
+    rw [besselI_add_nat (div_ne_zero hz two_ne_zero), show z / 2 / 2 = z / 4 by ring, one_mul]
+  simp_rw [hI]
+  have h : ∀ s : ℕ, σ ^ s * kummerBesselISeriesCoeff a b s * ((z / 4) ^ (a - 1 / 2) * ((z / 4) ^ s *
+      regularizedHGFun (∅ : Multiset ℂ) {a - 1 / 2 + s + 1} ((z / 4) ^ 2))) =
+      (z / 4) ^ (a - 1 / 2) * (kummerBesselISeriesCoeff a b s * ((σ * (z / 4)) ^ s *
+        regularizedHGFun (∅ : Multiset ℂ) {a - 1 / 2 + s + 1} ((σ * (z / 4)) ^ 2))) := by
+    intro s
+    rw [mul_pow σ (z / 4) 2, hσ, one_mul, mul_pow]
+    ring
+  simp_rw [h, tsum_mul_left, ← mul_assoc, cpow_neg]
+  rw [inv_mul_cancel₀ (by rw [cpow_def_of_ne_zero hw]; exact exp_ne_zero _), one_mul]
 
 @[dlmf 13.11.E1]
 theorem kummerM_besselI_series {a b z : ℂ}
@@ -36,7 +241,19 @@ theorem kummerM_besselI_series {a b z : ℂ}
       Gamma (a - 1 / 2) * exp (z / 2) * (z / 4) ^ (1 / 2 - a) *
         ∑' s : ℕ, poch (2 * a - 1) s * poch (2 * a - b) s / (poch b s * s.factorial) *
           (a - 1 / 2 + s) * besselI (a - 1 / 2 + s) (z / 2) := by
-  sorry
+  have hν : ∀ j : ℕ, a - 1 / 2 + j ≠ 0 := by
+    intro j
+    rcases j with _ | i
+    · intro h; apply ha0; push_cast at h; linear_combination h
+    · intro h; apply ha i; push_cast at h; linear_combination h
+  have hz0 := slitPlane_ne_zero hz
+  have core := kummerM_four_mul_eq_tsum hν hb (z / 4)
+  rw [show 4 * (z / 4) = z by ring, show 2 * (z / 4) = z / 2 by ring] at core
+  have hc := tsum_kummerBesselISeriesCoeff_besselI (a := a) (b := b) hz0 1 (by norm_num)
+  simp only [one_mul, one_pow] at hc
+  rw [core, hc, show (1 : ℂ) / 2 - a = -(a - 1 / 2) by ring]
+  simp only [kummerBesselISeriesCoeff]
+  ring
 
 @[dlmf 13.11.E2]
 theorem kummerM_besselI_series_complement {a b z : ℂ}
@@ -47,7 +264,30 @@ theorem kummerM_besselI_series_complement {a b z : ℂ}
         ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * b - 2 * a - 1) s * poch (b - 2 * a) s *
           (b - a - 1 / 2 + s) / (poch b s * s.factorial) *
           besselI (b - a - 1 / 2 + s) (z / 2) := by
-  sorry
+  have hν : ∀ j : ℕ, b - a - 1 / 2 + j ≠ 0 := by
+    intro j
+    rcases j with _ | i
+    · intro h; apply hab0; push_cast at h; linear_combination h
+    · intro h; apply hab i; push_cast at h; linear_combination h
+  have hz0 := slitPlane_ne_zero hz
+  have core := kummerM_four_mul_eq_tsum hν hb ((-1) * (z / 4))
+  rw [show 4 * ((-1) * (z / 4)) = -z by ring, show 2 * ((-1) * (z / 4)) = -(z / 2) by ring] at core
+  have hc := tsum_kummerBesselISeriesCoeff_besselI (a := b - a) (b := b) hz0 (-1) (by norm_num)
+  rw [kummerM_kummer_transform hb, core, hc, show a - b + 1 / 2 = -(b - a - 1 / 2) by ring]
+  have hT : ∑' s : ℕ, (-1 : ℂ) ^ s * kummerBesselISeriesCoeff (b - a) b s *
+      besselI (b - a - 1 / 2 + s) (z / 2) =
+      ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * b - 2 * a - 1) s * poch (b - 2 * a) s *
+        (b - a - 1 / 2 + s) / (poch b s * s.factorial) * besselI (b - a - 1 / 2 + s) (z / 2) := by
+    refine tsum_congr fun s => ?_
+    simp only [kummerBesselISeriesCoeff]
+    rw [show 2 * (b - a) - 1 = 2 * b - 2 * a - 1 by ring, show 2 * (b - a) - b = b - 2 * a by ring]
+    ring
+  rw [hT]
+  have hexp : exp z * exp (-(z / 2)) = exp (z / 2) := by
+    rw [← Complex.exp_add]; ring_nf
+  linear_combination (Gamma (b - a - 1 / 2) * (z / 4) ^ (-(b - a - 1 / 2)) *
+    ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * b - 2 * a - 1) s * poch (b - 2 * a) s *
+        (b - a - 1 / 2 + s) / (poch b s * s.factorial) * besselI (b - a - 1 / 2 + s) (z / 2)) * hexp
 
 /-- Coefficients `A_s` in DLMF 13.11.3–13.11.4. -/
 @[dlmf 13.11.E4]
@@ -77,7 +317,40 @@ theorem whittakerM_besselI_series {κ μ z : ℂ}
         ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * κ + 2 * μ) s * poch (2 * κ) s /
           (poch (1 + 2 * μ) s * s.factorial) * (κ + μ + s) *
           besselI (κ + μ + s) (z / 2) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have h := kummerM_besselI_series_complement (a := μ - κ + 1 / 2) (b := 1 + 2 * μ)
+    (fun k h => hκ k (by linear_combination h)) (fun h => hκμ (by linear_combination h))
+    (fun k h => hμ k (by linear_combination h)) hz
+  rw [show 1 + 2 * μ - (μ - κ + 1 / 2) - 1 / 2 = κ + μ by ring,
+    show μ - κ + 1 / 2 - (1 + 2 * μ) + 1 / 2 = -(κ + μ) by ring,
+    show 2 * (1 + 2 * μ) - 2 * (μ - κ + 1 / 2) - 1 = 2 * κ + 2 * μ by ring,
+    show 1 + 2 * μ - 2 * (μ - κ + 1 / 2) = 2 * κ by ring] at h
+  rw [whittakerM, h]
+  have hT : ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * κ + 2 * μ) s * poch (2 * κ) s *
+      (κ + μ + s) / (poch (1 + 2 * μ) s * s.factorial) * besselI (κ + μ + s) (z / 2) =
+      ∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * κ + 2 * μ) s * poch (2 * κ) s /
+        (poch (1 + 2 * μ) s * s.factorial) * (κ + μ + s) * besselI (κ + μ + s) (z / 2) :=
+    tsum_congr fun s => by ring
+  rw [hT]
+  have e4 : (4 : ℂ) ^ (κ + μ) = (2 : ℂ) ^ (2 * κ + 2 * μ) := by
+    rw [show (2 : ℂ) ^ (2 * κ + 2 * μ) = 2 ^ (κ + μ) * 2 ^ (κ + μ) by
+      rw [← cpow_add _ _ two_ne_zero]; congr 1; ring]
+    rw [show (4 : ℂ) = ((2 : ℝ) : ℂ) * ((2 : ℝ) : ℂ) by push_cast; norm_num,
+      mul_cpow_ofReal_nonneg (by norm_num) (by norm_num)]
+    push_cast; ring
+  have h4 : (z / 4) ^ (-(κ + μ)) = z ^ (-(κ + μ)) * (2 : ℂ) ^ (2 * κ + 2 * μ) := by
+    have := div_ofReal_cpow (r := 4) (by norm_num) hz0 (-(κ + μ))
+    push_cast at this
+    rw [this, cpow_neg (4 : ℂ), div_inv_eq_mul, e4]
+  have hzz : z ^ (μ + 1 / 2) * z ^ (-(κ + μ)) = z ^ (1 / 2 - κ) := by
+    rw [← cpow_add _ _ hz0]; congr 1; ring
+  have hexp : exp (-z / 2) * exp (z / 2) = 1 := by
+    rw [← Complex.exp_add]; ring_nf; exact Complex.exp_zero
+  rw [h4]
+  linear_combination (Gamma (κ + μ) * (2 : ℂ) ^ (2 * κ + 2 * μ) *
+      (∑' s : ℕ, (-1 : ℂ) ^ s * poch (2 * κ + 2 * μ) s * poch (2 * κ) s /
+        (poch (1 + 2 * μ) s * s.factorial) * (κ + μ + s) * besselI (κ + μ + s) (z / 2))) *
+      (z ^ (μ + 1 / 2) * z ^ (-(κ + μ)) * hexp + hzz)
 
 /-- Generating function for `p_s^{(μ)}(z)` in DLMF 13.24.3. -/
 @[dlmf 13.24.E3]
@@ -89,12 +362,131 @@ def whittakerBesselGenerating (μ z t : ℂ) : ℂ :=
 def whittakerBesselCoeff (μ z : ℂ) (s : ℕ) : ℂ :=
   iteratedDeriv s (whittakerBesselGenerating μ z) 0 / s.factorial * (-z) ^ s
 
+/-- `sinh t / t`, extended by `1` at the origin, stays within distance `sinh 1 - 1 < 1` of `1`
+on the unit disc. -/
+theorem norm_dslope_sinh_sub_one_le {t : ℂ} (ht : ‖t‖ ≤ 1) :
+    ‖dslope sinh 0 t - 1‖ ≤ Real.sinh 1 - 1 := by
+  have hreal : HasSum (fun n : ℕ => (1 : ℝ) / ((2 * (n + 1) + 1)! : ℝ)) (Real.sinh 1 - 1) := by
+    have h := Real.hasSum_sinh 1
+    simp only [one_pow] at h
+    have := (hasSum_nat_add_iff' 1).mpr h
+    simpa using this
+  rcases eq_or_ne t 0 with rfl | ht0
+  · rw [dslope_same, (Complex.hasDerivAt_sinh 0).deriv, Complex.cosh_zero, sub_self, norm_zero]
+    exact hreal.nonneg fun n => by positivity
+  · have hs := (Complex.hasSum_sinh t).div_const t
+    have hs' : HasSum (fun n : ℕ => t ^ (2 * n) / ((2 * n + 1)! : ℂ)) (dslope sinh 0 t) := by
+      rw [dslope_of_ne _ ht0, slope_def_field, Complex.sinh_zero, sub_zero, sub_zero]
+      refine hs.congr_fun fun n => ?_
+      rw [pow_succ]; field_simp
+    have h1 := (hasSum_nat_add_iff' 1).mpr hs'
+    simp only [Finset.range_one, Finset.sum_singleton, mul_zero, pow_zero, zero_add,
+      Nat.factorial_one, Nat.cast_one, div_one] at h1
+    refine h1.norm_le_of_bounded hreal fun n => ?_
+    rw [norm_div, norm_pow, Complex.norm_natCast]
+    gcongr
+    exact pow_le_one₀ (norm_nonneg _) ht
+
+/-- `sinh 1 < 2`. -/
+theorem real_sinh_one_lt_two : Real.sinh 1 < 2 := by
+  rw [Real.sinh_eq]
+  have h1 := Real.exp_one_lt_d9
+  have h2 := Real.exp_pos (-1)
+  linarith
+
 @[dlmf 13.24.E3]
 theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
     (hsmall : ‖t‖ < 1) :
     HasSum (fun s : ℕ => whittakerBesselCoeff μ z s * (-t / z) ^ s)
       (exp (-z / 2 * (cosh t / sinh t - 1 / t)) * (t / sinh t) ^ (1 - 2 * μ)) := by
-  sorry
+  set S : ℂ → ℂ := dslope sinh 0 with hS
+  set h : ℂ → ℂ := fun t => t * cosh t - sinh t with hh
+  set E : ℂ → ℂ := dslope (dslope h 0) 0 with hE
+  have hhd : Differentiable ℂ h := by
+    simp only [hh]; fun_prop
+  have hSd : Differentiable ℂ S := fun x =>
+    ((Complex.differentiableOn_dslope Filter.univ_mem).mpr
+      Complex.differentiable_sinh.differentiableOn x (Set.mem_univ x)).differentiableAt
+      Filter.univ_mem
+  have hE1 : Differentiable ℂ (dslope h 0) := fun x =>
+    ((Complex.differentiableOn_dslope Filter.univ_mem).mpr hhd.differentiableOn x
+      (Set.mem_univ x)).differentiableAt Filter.univ_mem
+  have hEd : Differentiable ℂ E := fun x =>
+    ((Complex.differentiableOn_dslope Filter.univ_mem).mpr hE1.differentiableOn x
+      (Set.mem_univ x)).differentiableAt Filter.univ_mem
+  have hS_ne : ∀ x : ℂ, x ≠ 0 → S x = sinh x / x := fun x hx => by
+    rw [hS, dslope_of_ne _ hx, slope_def_field, Complex.sinh_zero, sub_zero, sub_zero]
+  have hS0 : S 0 = 1 := by
+    rw [hS, dslope_same, (Complex.hasDerivAt_sinh 0).deriv, Complex.cosh_zero]
+  have hh0 : h 0 = 0 := by simp [hh]
+  have hh'0 : deriv h 0 = 0 := by
+    have hd : HasDerivAt h (1 * cosh 0 + 0 * sinh 0 - cosh 0) 0 :=
+      ((hasDerivAt_id 0).mul (Complex.hasDerivAt_cosh 0)).sub (Complex.hasDerivAt_sinh 0)
+    rw [hd.deriv]; ring
+  have hE_ne : ∀ x : ℂ, x ≠ 0 → E x = h x / x ^ 2 := fun x hx => by
+    rw [hE, dslope_of_ne _ hx, slope_def_field, dslope_same, hh'0, dslope_of_ne _ hx,
+      slope_def_field, hh0]
+    field_simp
+    ring
+  have hE0 : E 0 = 0 := by
+    have hodd : ∀ x : ℂ, x ≠ 0 → E (-x) = -E x := fun x hx => by
+      rw [hE_ne x hx, hE_ne (-x) (neg_ne_zero.mpr hx)]
+      simp only [hh, Complex.cosh_neg, Complex.sinh_neg]
+      ring
+    have h1 : Tendsto E (𝓝[≠] 0) (𝓝 (E 0)) := (hEd 0).continuousAt.tendsto.mono_left
+      nhdsWithin_le_nhds
+    have h2 : Tendsto (fun x => E (-x)) (𝓝[≠] 0) (𝓝 (E 0)) := by
+      have hn : Tendsto (fun x : ℂ => -x) (𝓝 0) (𝓝 0) := by
+        simpa using (continuous_neg.tendsto (0 : ℂ))
+      exact ((hEd 0).continuousAt.tendsto.comp hn).mono_left nhdsWithin_le_nhds
+    have h3 : Tendsto (fun x => E (-x)) (𝓝[≠] 0) (𝓝 (-E 0)) := by
+      refine h1.neg.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      exact (hodd x hx).symm
+    have := tendsto_nhds_unique h2 h3
+    linear_combination this / 2
+  -- the extension of the generating function
+  set H : ℂ → ℂ := fun x => exp (-z / 2 * (E x / S x)) * (1 / S x) ^ (1 - 2 * μ) with hH
+  have hSb : ∀ x : ℂ, ‖x‖ < 1 → ‖S x - 1‖ < 1 := fun x hx =>
+    (norm_dslope_sinh_sub_one_le hx.le).trans_lt (by linarith [real_sinh_one_lt_two])
+  have hSre : ∀ x : ℂ, ‖x‖ < 1 → 0 < (S x).re := fun x hx => by
+    have h1 := hSb x hx
+    have h2 := Complex.abs_re_le_norm (S x - 1)
+    rw [Complex.sub_re, Complex.one_re] at h2
+    linarith [abs_le.mp (h2.trans h1.le), neg_abs_le ((S x).re - 1)]
+  have hSne : ∀ x : ℂ, ‖x‖ < 1 → S x ≠ 0 := fun x hx h0 => by
+    have := hSre x hx; rw [h0, Complex.zero_re] at this; exact lt_irrefl _ this
+  have hslit : ∀ x : ℂ, ‖x‖ < 1 → 1 / S x ∈ slitPlane := fun x hx => by
+    rw [mem_slitPlane_iff, one_div, Complex.inv_re]
+    exact Or.inl (div_pos (hSre x hx) (Complex.normSq_pos.mpr (hSne x hx)))
+  have hball : ∀ x ∈ Metric.ball (0 : ℂ) 1, ‖x‖ < 1 := fun x hx => by simpa using hx
+  have hHd : DifferentiableOn ℂ H (Metric.ball 0 1) := fun x hx => by
+    have hx' := hball x hx
+    refine DifferentiableAt.differentiableWithinAt ?_
+    simp only [hH]
+    refine (((hEd x).div (hSd x) (hSne x hx')).const_mul _).cexp.mul ?_
+    exact ((differentiableAt_const _).div (hSd x) (hSne x hx')).cpow (differentiableAt_const _)
+      (hslit x hx')
+  have hGH : Set.EqOn (whittakerBesselGenerating μ z) H (Metric.ball 0 1) := fun x hx => by
+    have hx' := hball x hx
+    simp only [hH, whittakerBesselGenerating]
+    rcases eq_or_ne x 0 with rfl | hx0
+    · simp [hS0, hE0]
+    · simp only [hx0, ↓reduceIte]
+      rw [hS_ne x hx0, hE_ne x hx0]
+      have hsh : sinh x ≠ 0 := fun h0 => hSne x hx' (by rw [hS_ne x hx0, h0, zero_div])
+      congr 2
+      · simp only [hh]; field_simp
+      · field_simp
+  have hGd := hHd.congr hGH
+  have hT := Complex.hasSum_taylorSeries_on_ball hGd (z := t) (by simpa using hsmall)
+  convert hT using 1
+  · funext s
+    simp only [whittakerBesselCoeff, sub_zero, smul_eq_mul]
+    rw [div_pow, mul_div_assoc', mul_assoc, ← mul_pow, show -z * -t = z * t by ring, mul_pow]
+    have hf : (s ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    field_simp
+  · simp only [whittakerBesselGenerating, ht, ↓reduceIte, one_div]
 
 @[dlmf 13.24.E2]
 theorem whittakerM_besselJ_series {κ μ z : ℂ} (hz : z ∈ slitPlane)

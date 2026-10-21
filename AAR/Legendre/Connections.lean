@@ -368,17 +368,476 @@ theorem associated_connection_15 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane
     2*sin (μ*π)/π*olverQ ν μ z=associatedP ν μ z/Gamma (ν+μ+1)-associatedP ν (-μ) z/Gamma (ν-μ+1) := by
   exact olverQ_connection ν μ hz
 
+/-- Euler-transformed hypergeometric form of `P^{-μ}_ν` (DLMF 14.3.15), available before
+the hypergeometric-representation module for the Whipple formulas. -/
+theorem associatedP_neg_euler (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
+    associatedP ν (-μ) z=2^(-μ)*legendreBranchPower μ z*regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) := by
+  have hw := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hz)
+  have h1 : z+1 ≠ 0 := by
+    simpa [add_comm] using slitPlane_ne_zero (one_add_mem_slitPlane_of_sub_one hz)
+  have hl2 : log (2:ℂ) = (Real.log 2:ℂ) := by
+    rw [show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
+  have hp : (1-(1-z)/2)^μ = exp ((log (z+1) - Real.log 2)*μ) := by
+    rw [show 1-(1-z)/2 = (z+1)*((1/2:ℝ):ℂ) by push_cast; ring,
+      cpow_def_of_ne_zero (mul_ne_zero h1 (by norm_num)), log_mul_ofReal _ (by norm_num) _ h1,
+      one_div, Real.log_inv]
+    push_cast; ring_nf
+  have h2 : (2:ℂ)^(-μ) = exp (Real.log 2 * (-μ)) := by
+    rw [cpow_def_of_ne_zero (by norm_num), hl2]
+  unfold associatedP legendreBranchPower
+  rw [show 1-(-μ) = μ+1 by ring, regularizedGaussHG_euler _ _ _ hw, show μ+1-(ν+1)-(-ν) = μ by ring,
+    show μ+1-(ν+1) = μ-ν by ring, show μ+1-(-ν) = ν+μ+1 by ring, hp, h2]
+  have he : exp (-μ/2*(log (z+1)-log (z-1))) * exp ((log (z+1) - Real.log 2)*μ) =
+      exp (Real.log 2 * (-μ)) * exp (μ/2*(log (z-1)+log (z+1))) := by
+    rw [← exp_add, ← exp_add]; congr 1; ring
+  linear_combination regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) * he
+
+/-- The regularized quadratic transformation 15.8.17 near the origin, for all parameters. -/
+lemma regularizedGaussHG_quadratic_half_sum (a b : ℂ) {x : ℂ} (hx : ‖x‖ < 1) (hr : x.re < 1/2)
+    (hw : ‖4*x*(x-1)/(1-2*x)^2‖ < 1) :
+    regularizedGaussHG a b ((a+b+1)/2) x =
+      (1-2*x)^(-a) * regularizedGaussHG (a/2) ((a+1)/2) ((a+b+1)/2) (4*x*(x-1)/(1-2*x)^2) := by
+  have key : ∀ b : ℂ, (∀ k : ℕ, (a+b+1)/2 ≠ -(k:ℂ)) →
+      regularizedGaussHG a b ((a+b+1)/2) x =
+        (1-2*x)^(-a) * regularizedGaussHG (a/2) ((a+1)/2) ((a+b+1)/2) (4*x*(x-1)/(1-2*x)^2) := by
+    intro b hc
+    have hG : Gamma ((a+b+1)/2) ≠ 0 := Gamma_ne_zero hc
+    have h := quadratic_half_sum hc hx hr hw
+    rw [ordinaryHypergeometric_eq_Gamma_mul_regularizedGaussHG hc hx,
+      ordinaryHypergeometric_eq_Gamma_mul_regularizedGaussHG hc hw] at h
+    apply mul_left_cancel₀ hG
+    linear_combination h
+  have hxc : x ∈ cutPlane := mem_cutPlane_of_norm_lt_one hx
+  have hwc : 4*x*(x-1)/(1-2*x)^2 ∈ cutPlane := mem_cutPlane_of_norm_lt_one hw
+  have hF : AnalyticOnNhd ℂ (fun b => regularizedGaussHG a b ((a+b+1)/2) x) univ :=
+    analyticOnNhd_regularizedGaussHG_comp (A := fun _ => a) (B := fun b => b)
+      (C := fun b => (a+b+1)/2) (by fun_prop) (by fun_prop) (by fun_prop) hxc
+  have hG : AnalyticOnNhd ℂ (fun b => (1-2*x)^(-a) *
+      regularizedGaussHG (a/2) ((a+1)/2) ((a+b+1)/2) (4*x*(x-1)/(1-2*x)^2)) univ := by
+    intro b hb
+    exact analyticAt_const.mul (analyticOnNhd_regularizedGaussHG_comp (A := fun _ => a/2)
+      (B := fun _ => (a+1)/2) (C := fun b => (a+b+1)/2) (by fun_prop) (by fun_prop)
+      (by fun_prop) hwc b hb)
+  have hev : (fun b => regularizedGaussHG a b ((a+b+1)/2) x) =ᶠ[𝓝 (3-a)] (fun b => (1-2*x)^(-a) *
+      regularizedGaussHG (a/2) ((a+1)/2) ((a+b+1)/2) (4*x*(x-1)/(1-2*x)^2)) := by
+    have ho : IsOpen {b : ℂ | 0 < ((a+b+1)/2).re} :=
+      isOpen_lt continuous_const (by fun_prop)
+    filter_upwards [ho.mem_nhds (by simp; norm_num)] with b hb
+    refine key b fun k hk => ?_
+    rw [hk] at hb
+    simp at hb
+    linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+  exact hF.eqOn_of_preconnected_of_eventuallyEq hG isPreconnected_univ (mem_univ _) hev (mem_univ b)
+
+/-- The right half of the cut domain of `P^μ_ν` is star-shaped about `2`. -/
+lemma starConvex_re_pos_sub_one_slitPlane :
+    StarConvex ℝ (2:ℂ) {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane} := by
+  intro y ⟨hy1, hy2⟩ a b ha hb hab
+  rw [mem_slitPlane_iff] at hy2
+  have hre : (a • (2:ℂ) + b • y).re = 2*a + b*y.re := by simp; ring
+  have him : (a • (2:ℂ) + b • y - 1).im = b*y.im := by simp
+  refine ⟨?_, ?_⟩
+  · rw [hre]
+    rcases eq_or_lt_of_le ha with h | h
+    · subst h; simp at hab; subst hab; linarith
+    · nlinarith
+  · rw [mem_slitPlane_iff]
+    rcases eq_or_lt_of_le hb with h | h
+    · subst h; left; simp at hab; subst hab; simp
+    · rcases hy2 with h2 | h2
+      · left
+        have : (a • (2:ℂ) + b • y - 1).re = a + b*(y.re-1) := by
+          simp; linear_combination hab
+        simp at h2
+        rw [this]; nlinarith
+      · right; rw [him]; exact mul_ne_zero h.ne' (by simpa using h2)
+
+/-- DLMF 14.3.18 for `Re z > 0`, proved before 14.3.16 because the latter is derived from it:
+the quadratic transformation 15.8.17 on the real segment `(1,2)`, then analytic continuation. -/
+theorem associatedP_neg_eq_quadratic (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
+    associatedP ν (-μ) z=2^(-μ)*z^(ν-μ)*legendreBranchPower μ z*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/z^2) := by
+  set D : Set ℂ := {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane} with hD
+  have hDo : IsOpen D := (isOpen_lt continuous_const continuous_re).inter
+    (isOpen_slitPlane.preimage (continuous_sub_right 1))
+  have hmem : ∀ w ∈ D, w + 1 ∈ slitPlane ∧ w - 1 ∈ slitPlane ∧ w ∈ slitPlane ∧
+      (1-w)/2 ∈ cutPlane ∧ 1-1/w^2 ∈ cutPlane := by
+    intro w ⟨h1, h2⟩
+    refine ⟨Or.inl (by simp; linarith), h2, Or.inl h1,
+      mem_cutPlane_of_one_add (Or.inl (by simp; linarith)), ?_⟩
+    show 1 - (1 - 1/w^2) ∈ slitPlane
+    rw [sub_sub_cancel, one_div]
+    exact inv_mem_slitPlane' (sq_mem_slitPlane h1)
+  have hf : AnalyticOnNhd ℂ (associatedP ν (-μ)) D := by
+    refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
+    obtain ⟨h1, h2, -, h4, -⟩ := hmem w hw
+    unfold associatedP
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := assumption)
+  have hg : AnalyticOnNhd ℂ (fun z => 2^(-μ)*z^(ν-μ)*legendreBranchPower μ z*
+      regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/z^2)) D := by
+    refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
+    obtain ⟨h1, h2, h3, -, h5⟩ := hmem w hw
+    have h0 : w ^ 2 ≠ 0 := pow_ne_zero 2 (slitPlane_ne_zero h3)
+    unfold legendreBranchPower
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := assumption)
+  have hreal : ∀ t : ℝ, t ∈ Ioo (1:ℝ) 2 → associatedP ν (-μ) t = 2^(-μ)*(t:ℂ)^(ν-μ)*
+      legendreBranchPower μ t*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/(t:ℂ)^2) := by
+    intro t ht
+    have ht0 : (t:ℂ) ≠ 0 := by exact_mod_cast (by linarith [ht.1] : t ≠ 0)
+    have hz1 : (t:ℂ) - 1 ∈ slitPlane := Or.inl (by simp; linarith [ht.1])
+    rw [associatedP_neg_euler ν μ hz1]
+    set x : ℂ := (1-(t:ℂ))/2 with hx
+    have hxn : ‖x‖ < 1 := by
+      rw [show x = (((1-t)/2:ℝ):ℂ) by push_cast; ring, norm_real, Real.norm_eq_abs, abs_lt]
+      constructor <;> linarith [ht.1, ht.2]
+    have hxr : x.re < 1/2 := by simp [hx]; linarith [ht.1]
+    have hv : 4*x*(x-1)/(1-2*x)^2 = 1-1/(t:ℂ)^2 := by
+      rw [hx, show 1-2*((1-(t:ℂ))/2) = t by ring]; field_simp; ring
+    have hvn : ‖4*x*(x-1)/(1-2*x)^2‖ < 1 := by
+      rw [hv, show (1-1/(t:ℂ)^2) = ((1-1/t^2:ℝ):ℂ) by push_cast; ring, norm_real,
+        Real.norm_eq_abs, abs_lt]
+      have h1 : 1 < t^2 := by nlinarith [ht.1]
+      have h2 : 0 < 1/t^2 := by positivity
+      have h3 : 1/t^2 < 1 := by rw [div_lt_one (by positivity)]; exact h1
+      constructor <;> linarith
+    have hq := regularizedGaussHG_quadratic_half_sum (μ-ν) (ν+μ+1) hxn hxr hvn
+    rw [show (μ-ν+(ν+μ+1)+1)/2 = μ+1 by ring, hv, show 1-2*x = (t:ℂ) by rw [hx]; ring,
+      show -(μ-ν) = ν-μ by ring] at hq
+    rw [hq]; ring
+  have hfreq : ∃ᶠ w in 𝓝[≠] ((3/2:ℝ):ℂ), associatedP ν (-μ) w = 2^(-μ)*w^(ν-μ)*
+      legendreBranchPower μ w*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/w^2) := by
+    have hT : Tendsto (fun t : ℝ => (t:ℂ)) (𝓝[≠] (3/2:ℝ)) (𝓝[≠] ((3/2:ℝ):ℂ)) :=
+      (continuous_ofReal.tendsto _).inf (tendsto_principal_principal.mpr fun t ht =>
+        fun h => ht (ofReal_injective h))
+    apply hT.frequently
+    have hev : ∀ᶠ t : ℝ in 𝓝[≠] (3/2:ℝ), associatedP ν (-μ) t = 2^(-μ)*(t:ℂ)^(ν-μ)*
+        legendreBranchPower μ t*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/(t:ℂ)^2) := by
+      apply eventually_nhdsWithin_of_eventually_nhds
+      filter_upwards [Ioo_mem_nhds (by norm_num : (1:ℝ) < 3/2) (by norm_num : (3/2:ℝ) < 2)]
+        with t ht using hreal t ht
+    exact hev.frequently
+  have h32 : ((3/2:ℝ):ℂ) ∈ D := ⟨by simp, Or.inl (by simp; norm_num)⟩
+  exact hf.eqOn_of_preconnected_of_frequently_eq hg
+    (StarConvex.isPathConnected starConvex_re_pos_sub_one_slitPlane
+      ⟨by simp, Or.inl (by simp)⟩).isConnected.isPreconnected h32 hfreq ⟨hre, hz⟩
+
+/-- Off `(-∞,1]`, `1 - 1/z²` lies in the slit plane. -/
+lemma one_sub_inv_sq_mem_slitPlane_of_sub_one {z : ℂ} (hz : z-1 ∈ slitPlane) : 1-1/z^2 ∈ slitPlane := by
+  have hz0 : z ≠ 0 := by
+    rintro rfl; rw [mem_slitPlane_iff] at hz; norm_num at hz
+  rw [mem_slitPlane_iff_not_le_zero]
+  intro hle
+  rw [Complex.le_def] at hle
+  obtain ⟨hre, him⟩ := hle
+  simp only [zero_re, zero_im] at hre him
+  set r := (1-1/z^2).re
+  have hr : 1-1/z^2 = (r:ℂ) := Complex.ext rfl (by simpa using him.symm)
+  have h1r : (0:ℝ) < 1 - r := by linarith
+  have hzsq : z^2 = ((1/(1-r):ℝ):ℂ) := by
+    have h2 : 1/z^2 = ((1-r:ℝ):ℂ) := by push_cast; linear_combination -hr
+    have h2' : ((1-r:ℝ):ℂ) ≠ 0 := ofReal_ne_zero.mpr h1r.ne'
+    rw [ofReal_div, ofReal_one, ← h2]; field_simp
+  have him2 := congrArg Complex.im hzsq
+  have hre2 := congrArg Complex.re hzsq
+  simp only [pow_two, mul_im, mul_re, ofReal_im, ofReal_re] at him2 hre2
+  have hpos : 0 < 1/(1-r) := by positivity
+  have hle1 : 1/(1-r) ≤ 1 := by rw [div_le_one h1r]; linarith
+  have hb : z.im = 0 := by
+    rcases mul_eq_zero.mp (show z.re * z.im * 2 = 0 by linarith) with h | h
+    · rcases mul_eq_zero.mp h with h' | h'
+      · rw [h'] at hre2; nlinarith [sq_nonneg z.im]
+      · exact h'
+    · norm_num at h
+  rw [hb] at hre2
+  have : z.re ≤ 1 := by nlinarith
+  rw [mem_slitPlane_iff] at hz
+  rcases hz with h | h
+  · simp at h; linarith
+  · simp [hb] at h
+
+/-- The square of the inherited square root `exp((log(z-1)+log(z+1))/2)` is `(z-1)(z+1)`. -/
+lemma whipple_sqrt_sq {z : ℂ} (h1 : z - 1 ≠ 0) (h2 : z + 1 ≠ 0) :
+    exp ((log (z-1)+log (z+1))/2)^2 = (z-1)*(z+1) := by
+  rw [← exp_nat_mul, show ((2:ℕ):ℂ)*((log (z-1)+log (z+1))/2) = log (z-1)+log (z+1) by push_cast; ring,
+    exp_add, exp_log h1, exp_log h2]
+
+/-- On the right half of the cut domain, the Whipple point `z/√(z²-1)` avoids `(-∞,1]`. -/
+lemma whipple_point_sub_one_mem {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
+    z/exp ((log (z-1)+log (z+1))/2) - 1 ∈ slitPlane := by
+  have h1 : z - 1 ≠ 0 := slitPlane_ne_zero hz
+  have h2 : z + 1 ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp at this; linarith
+  set w := exp ((log (z-1)+log (z+1))/2) with hw
+  have hw0 : w ≠ 0 := exp_ne_zero _
+  have hw2 := whipple_sqrt_sq h1 h2
+  rw [← hw] at hw2
+  rw [mem_slitPlane_iff_not_le_zero]
+  intro hle
+  rw [Complex.le_def] at hle
+  obtain ⟨hr, hi⟩ := hle
+  simp only [zero_re, zero_im] at hr hi
+  set r := (z/w).re with hrdef
+  have hζ : z/w = (r:ℂ) := Complex.ext rfl (by simpa using hi)
+  have hzr : z = r*w := by rw [← hζ]; field_simp
+  -- w² (r²-1) = 1
+  have hr2 : w^2*((r:ℂ)^2-1) = 1 := by
+    have : z^2 = (r:ℂ)^2*w^2 := by rw [hzr]; ring
+    linear_combination -this - hw2
+  have hr1 : (r:ℂ)^2 - 1 ≠ 0 := by
+    intro h; rw [h, mul_zero] at hr2; exact zero_ne_one hr2
+  have hzsq : z^2 = (((r^2/(r^2-1)):ℝ):ℂ) := by
+    have hw2' : w^2 = 1/((r:ℂ)^2-1) := by field_simp; linear_combination hr2
+    rw [hzr, mul_pow, hw2']; push_cast; field_simp
+  have him := congrArg Complex.im hzsq
+  simp only [pow_two, mul_im, ofReal_im] at him
+  have hzi : z.im = 0 := by
+    have : z.re * z.im = 0 := by linarith
+    rcases mul_eq_zero.mp this with h | h
+    · linarith
+    · exact h
+  -- z is a real number a > 1
+  have ha : 1 < z.re := by
+    rw [mem_slitPlane_iff] at hz
+    rcases hz with h | h
+    · simp at h; linarith
+    · simp [hzi] at h
+  have hzc : z = (z.re:ℂ) := Complex.ext rfl (by simp [hzi])
+  set a := z.re
+  have hl1 : log (z-1) = (Real.log (a-1):ℂ) := by
+    rw [hzc, ← ofReal_one, ← ofReal_sub, ofReal_log (by linarith)]
+  have hl2 : log (z+1) = (Real.log (a+1):ℂ) := by
+    rw [hzc, ← ofReal_one, ← ofReal_add, ofReal_log (by linarith)]
+  set W := Real.exp ((Real.log (a-1)+Real.log (a+1))/2)
+  have hwW : w = (W:ℂ) := by rw [hw, hl1, hl2]; simp only [W, ofReal_exp]; push_cast; ring_nf
+  have hW0 : 0 < W := Real.exp_pos _
+  have hW2 : W^2 = (a-1)*(a+1) := by
+    have := hw2; rw [hwW, hzc] at this; exact_mod_cast this
+  have hrW : r = a/W := by
+    have := hζ; rw [hzc, hwW, ← ofReal_div] at this; exact (ofReal_injective this).symm
+  have : W < a := by nlinarith
+  have : 1 < r := by rw [hrW, lt_div_iff₀ hW0]; linarith
+  have : r ≤ 1 := by simp only [sub_re, one_re] at hr; linarith
+  linarith
+
+/-- The Whipple point of a real `t > 1` is the real number `t/√(t²-1) > 1`, with its logarithms. -/
+lemma whipple_point_real {t : ℝ} (ht : 1 < t) :
+    ∃ ζ : ℝ, 1 < ζ ∧ (t:ℂ)/exp ((log ((t:ℂ)-1)+log ((t:ℂ)+1))/2) = ζ ∧
+      Real.log (ζ-1) + Real.log (ζ+1) = -(Real.log (t-1) + Real.log (t+1)) ∧
+      Real.log ζ = Real.log t - (Real.log (t-1) + Real.log (t+1))/2 ∧
+      1/(ζ:ℂ)^2 = 1 - 1/(t:ℂ)^2 := by
+  set l := Real.log (t-1) + Real.log (t+1) with hl
+  set W := Real.exp (l/2) with hW
+  have hW0 : 0 < W := Real.exp_pos _
+  have hW2 : W^2 = (t-1)*(t+1) := by
+    rw [hW, ← Real.exp_nat_mul, show ((2:ℕ):ℝ)*(l/2) = l by push_cast; ring, hl, Real.exp_add,
+      Real.exp_log (by linarith), Real.exp_log (by linarith)]
+  have ht0 : 0 < t := by linarith
+  have hWt : W < t := by nlinarith
+  refine ⟨t/W, by rw [lt_div_iff₀ hW0]; linarith, ?_, ?_, ?_, ?_⟩
+  · rw [show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring, show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring,
+      ← ofReal_log (by linarith), ← ofReal_log (by linarith), ← ofReal_add,
+      show ((Real.log (t-1) + Real.log (t+1) : ℝ):ℂ)/2 = ((l/2:ℝ):ℂ) by rw [hl]; push_cast; ring,
+      ← ofReal_exp, ← ofReal_div]
+  · have hz1 : 0 < t/W - 1 := by rw [sub_pos, lt_div_iff₀ hW0]; linarith
+    have hz2 : 0 < t/W + 1 := by positivity
+    rw [← Real.log_mul hz1.ne' hz2.ne', show (t/W-1)*(t/W+1) = (W^2)⁻¹ by
+      field_simp; nlinarith [hW2], Real.log_inv, Real.log_pow, hW, Real.log_exp]
+    push_cast; ring
+  · rw [Real.log_div ht0.ne' hW0.ne', hW, Real.log_exp]
+  · have hW2c : (W:ℂ)^2 = ((t:ℂ)-1)*((t:ℂ)+1) := by exact_mod_cast hW2
+    have ht0c : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr ht0.ne'
+    have hW0c : (W:ℂ) ≠ 0 := ofReal_ne_zero.mpr hW0.ne'
+    push_cast
+    field_simp
+    linear_combination hW2c
+
+/-- Whipple's formula 14.9.16 on the real ray `t > 1`. -/
+theorem olverQ_whipple_real (ν μ : ℂ) (t : ℝ) (ht : 1 < t) :
+    olverQ ν μ t=(π/2:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) t*associatedP (-μ-1/2) (-ν-1/2) (t/exp ((log ((t:ℂ)-1)+log ((t:ℂ)+1))/2)) := by
+  obtain ⟨ζ, hζ1, hζe, hlog, hlogζ, hinv⟩ := whipple_point_real ht
+  have ht0 : 0 < t := by linarith
+  rw [hζe, show -ν-1/2 = -(ν+1/2) by ring,
+    associatedP_neg_eq_quadratic (-μ-1/2) (ν+1/2) (Or.inl (by simp; linarith)) (by simp; linarith),
+    show (ν+1/2-(-μ-1/2))/2 = (ν+μ+1)/2 by ring, show (ν+1/2-(-μ-1/2)+1)/2 = (ν+μ+2)/2 by ring,
+    show ν+1/2+1 = ν+3/2 by ring, show 1-1/(ζ:ℂ)^2 = 1/(t:ℂ)^2 by rw [hinv]; ring]
+  have hcut : 1/(t:ℂ)^2 ∈ cutPlane := by
+    apply mem_cutPlane_of_norm_lt_one
+    rw [show 1/(t:ℂ)^2 = ((1/t^2:ℝ):ℂ) by push_cast; ring, norm_real, Real.norm_eq_abs,
+      abs_of_pos (by positivity), div_lt_one (by positivity)]
+    nlinarith
+  rw [regularizedGaussHG_symm _ _ _ hcut]
+  unfold olverQ legendreBranchPower
+  have hl1 : log ((t:ℂ)-1) = (Real.log (t-1):ℂ) := by
+    rw [show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hl2 : log ((t:ℂ)+1) = (Real.log (t+1):ℂ) := by
+    rw [show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hk1 : log ((ζ:ℂ)-1) = (Real.log (ζ-1):ℂ) := by
+    rw [show (ζ:ℂ)-1 = ((ζ-1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hk2 : log ((ζ:ℂ)+1) = (Real.log (ζ+1):ℂ) := by
+    rw [show (ζ:ℂ)+1 = ((ζ+1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hc2 : ∀ s : ℂ, (2:ℂ)^s = exp ((Real.log 2:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero two_ne_zero, show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
+  have hct : ∀ s : ℂ, (t:ℂ)^s = exp ((Real.log t:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr ht0.ne'), ofReal_log ht0.le]
+  have hcz : ∀ s : ℂ, (ζ:ℂ)^s = exp ((Real.log ζ:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr (by linarith)), ofReal_log (by linarith)]
+  have hpi2 : (π/2:ℂ)^(1/2:ℂ) = exp (((Real.log π - Real.log 2:ℝ):ℂ)*(1/2)) := by
+    rw [cpow_def_of_ne_zero (div_ne_zero (ofReal_ne_zero.mpr Real.pi_ne_zero) two_ne_zero),
+      show (π/2:ℂ) = ((π/2:ℝ):ℂ) by push_cast; ring, ← ofReal_log (by positivity),
+      Real.log_div Real.pi_ne_zero two_ne_zero]
+  have hsq : ((Real.sqrt π:ℝ):ℂ) = exp ((Real.log π:ℂ)/2) := by
+    rw [Real.sqrt_eq_rpow, Real.rpow_def_of_pos Real.pi_pos, ofReal_exp]; push_cast; ring_nf
+  rw [hl1, hl2, hk1, hk2, ← ofReal_add (Real.log (ζ-1)), hlog, hc2, hc2, hct, hcz, hpi2, hsq, hlogζ]
+  simp only [div_eq_mul_inv, ← exp_neg, ← mul_assoc, ← exp_add]
+  congr 2
+  push_cast
+  ring
+
+/-- Whipple's formula 14.9.17 on the real ray `t > 1`. -/
+theorem associatedP_whipple_real (ν μ : ℂ) (t : ℝ) (ht : 1 < t) :
+    associatedP ν μ t=(2/π:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) t*olverQ (-μ-1/2) (ν+1/2) (t/exp ((log ((t:ℂ)-1)+log ((t:ℂ)+1))/2)) := by
+  obtain ⟨ζ, hζ1, hζe, hlog, hlogζ, hinv⟩ := whipple_point_real ht
+  have ht0 : 0 < t := by linarith
+  have hz1 : (t:ℂ) - 1 ∈ slitPlane := Or.inl (by simp; linarith)
+  have hw : 1-1/(t:ℂ)^2 ∈ cutPlane := by
+    apply mem_cutPlane_of_norm_lt_one
+    rw [show 1-1/(t:ℂ)^2 = ((1-1/t^2:ℝ):ℂ) by push_cast; ring, norm_real, Real.norm_eq_abs, abs_lt]
+    have h1 : 0 < 1/t^2 := by positivity
+    have h2 : 1/t^2 < 1 := by rw [div_lt_one (by positivity)]; nlinarith
+    constructor <;> linarith
+  have hL := associatedP_neg_eq_quadratic ν (-μ) hz1 (by simp; linarith)
+  rw [neg_neg, show -μ-ν = -ν-μ by ring] at hL
+  rw [hL, hζe]
+  unfold olverQ
+  rw [hinv, show -μ-1/2+(ν+1/2)+2 = ν-μ+2 by ring, show -μ-1/2+(ν+1/2)+1 = ν-μ+1 by ring,
+    show -μ-1/2+3/2 = -μ+1 by ring, regularizedGaussHG_euler _ _ _ hw, sub_sub_cancel,
+    show -μ+1-(-ν-μ)/2-(-ν-μ+1)/2 = ν+1/2 by ring,
+    show -μ+1-(-ν-μ)/2 = (ν-μ+2)/2 by ring, show -μ+1-(-ν-μ+1)/2 = (ν-μ+1)/2 by ring]
+  unfold legendreBranchPower
+  have hl1 : log ((t:ℂ)-1) = (Real.log (t-1):ℂ) := by
+    rw [show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hl2 : log ((t:ℂ)+1) = (Real.log (t+1):ℂ) := by
+    rw [show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hk1 : log ((ζ:ℂ)-1) = (Real.log (ζ-1):ℂ) := by
+    rw [show (ζ:ℂ)-1 = ((ζ-1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hk2 : log ((ζ:ℂ)+1) = (Real.log (ζ+1):ℂ) := by
+    rw [show (ζ:ℂ)+1 = ((ζ+1:ℝ):ℂ) by push_cast; ring, ofReal_log (by linarith)]
+  have hc2 : ∀ s : ℂ, (2:ℂ)^s = exp ((Real.log 2:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero two_ne_zero, show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
+  have hct : ∀ s : ℂ, (t:ℂ)^s = exp ((Real.log t:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr ht0.ne'), ofReal_log ht0.le]
+  have hcz : ∀ s : ℂ, (ζ:ℂ)^s = exp ((Real.log ζ:ℂ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr (by linarith)), ofReal_log (by linarith)]
+  have hct2 : ∀ s : ℂ, (1/(t:ℂ)^2)^s = exp ((-2*Real.log t:ℝ)*s) := fun s => by
+    rw [cpow_def_of_ne_zero (by simp; exact ht0.ne'), show 1/(t:ℂ)^2 = ((1/t^2:ℝ):ℂ) by push_cast; ring,
+      ← ofReal_log (by positivity), Real.log_div one_ne_zero (by positivity), Real.log_one,
+      Real.log_pow]
+    push_cast; ring_nf
+  have hpi2 : (2/π:ℂ)^(1/2:ℂ) = exp (((Real.log 2 - Real.log π:ℝ):ℂ)*(1/2)) := by
+    rw [cpow_def_of_ne_zero (div_ne_zero two_ne_zero (ofReal_ne_zero.mpr Real.pi_ne_zero)),
+      show (2/π:ℂ) = ((2/π:ℝ):ℂ) by push_cast; ring, ← ofReal_log (by positivity),
+      Real.log_div two_ne_zero Real.pi_ne_zero]
+  have hsq : ((Real.sqrt π:ℝ):ℂ) = exp ((Real.log π:ℂ)/2) := by
+    rw [Real.sqrt_eq_rpow, Real.rpow_def_of_pos Real.pi_pos, ofReal_exp]; push_cast; ring_nf
+  rw [hl1, hl2, hk1, hk2, ← ofReal_add (Real.log (ζ-1)), hlog, hc2, hc2, hct, hcz, hct2, hpi2, hsq,
+    hlogζ]
+  simp only [div_eq_mul_inv, ← exp_neg, ← mul_assoc, ← exp_add]
+  congr 2
+  push_cast
+  ring
+
+/-- Identity principle on the right half of the cut domain: functions analytic there that agree
+on the real segment `(1,2)` agree everywhere on it. -/
+lemma eq_of_eqOn_Ioo_re_pos {f g : ℂ → ℂ}
+    (hf : AnalyticOnNhd ℂ f {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane})
+    (hg : AnalyticOnNhd ℂ g {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane})
+    (h : ∀ t : ℝ, t ∈ Ioo (1:ℝ) 2 → f t = g t) {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
+    f z = g z := by
+  have hfreq : ∃ᶠ w in 𝓝[≠] ((3/2:ℝ):ℂ), f w = g w := by
+    have hT : Tendsto (fun t : ℝ => (t:ℂ)) (𝓝[≠] (3/2:ℝ)) (𝓝[≠] ((3/2:ℝ):ℂ)) :=
+      (continuous_ofReal.tendsto _).inf (tendsto_principal_principal.mpr fun t ht =>
+        fun h => ht (ofReal_injective h))
+    apply hT.frequently
+    have hev : ∀ᶠ t : ℝ in 𝓝[≠] (3/2:ℝ), f t = g t := by
+      apply eventually_nhdsWithin_of_eventually_nhds
+      filter_upwards [Ioo_mem_nhds (by norm_num : (1:ℝ) < 3/2) (by norm_num : (3/2:ℝ) < 2)]
+        with t ht using h t ht
+    exact hev.frequently
+  have h32 : ((3/2:ℝ):ℂ) ∈ {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane} :=
+    ⟨by simp, Or.inl (by simp; norm_num)⟩
+  exact hf.eqOn_of_preconnected_of_frequently_eq hg
+    (StarConvex.isPathConnected starConvex_re_pos_sub_one_slitPlane
+      ⟨by simp, Or.inl (by simp)⟩).isConnected.isPreconnected h32 hfreq ⟨hre, hz⟩
+
+/-- Domain facts for the Whipple formulas on the right half of the cut domain. -/
+lemma whipple_domain {w : ℂ} (hw : w ∈ {z : ℂ | 0 < z.re ∧ z-1 ∈ slitPlane}) :
+    w + 1 ∈ slitPlane ∧ w - 1 ∈ slitPlane ∧ w ∈ slitPlane ∧ 1/w^2 ∈ cutPlane ∧
+    w/exp ((log (w-1)+log (w+1))/2) - 1 ∈ slitPlane ∧
+    w/exp ((log (w-1)+log (w+1))/2) + 1 ∈ slitPlane ∧
+    w/exp ((log (w-1)+log (w+1))/2) ∈ slitPlane ∧
+    (1 - w/exp ((log (w-1)+log (w+1))/2))/2 ∈ cutPlane ∧
+    1/(w/exp ((log (w-1)+log (w+1))/2))^2 ∈ cutPlane := by
+  obtain ⟨hre, h2⟩ := hw
+  have hm := whipple_point_sub_one_mem h2 hre
+  have hsl : ∀ u : ℂ, u - 1 ∈ slitPlane → u ∈ slitPlane := fun u hu => by
+    rw [mem_slitPlane_iff] at hu ⊢
+    rcases hu with h | h
+    · left; simp at h; linarith
+    · right; simpa using h
+  have hp : ∀ u : ℂ, u - 1 ∈ slitPlane → u + 1 ∈ slitPlane := fun u hu => by
+    have := one_add_mem_slitPlane_of_sub_one hu; rwa [add_comm] at this
+  exact ⟨hp w h2, h2, hsl w h2, one_sub_inv_sq_mem_slitPlane_of_sub_one h2, hm, hp _ hm, hsl _ hm,
+    mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hm),
+    one_sub_inv_sq_mem_slitPlane_of_sub_one hm⟩
+
 /-- Principal-sheet formula; Whipple transformation is stated in the right half-plane to fix its inherited branch. -/
 @[dlmf 14.9.E16]
 theorem associated_connection_16 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
     olverQ ν μ z=(π/2:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) z*associatedP (-μ-1/2) (-ν-1/2) (z/exp ((log (z-1)+log (z+1))/2)) := by
-  sorry
+  refine eq_of_eqOn_Ioo_re_pos (f := olverQ ν μ)
+    (g := fun z => (π/2:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) z*associatedP (-μ-1/2) (-ν-1/2) (z/exp ((log (z-1)+log (z+1))/2))) ?_ ?_ (fun t ht => olverQ_whipple_real ν μ t ht.1) hz hre
+  · refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) ((isOpen_lt continuous_const continuous_re).inter
+      (isOpen_slitPlane.preimage (continuous_sub_right 1)))
+    obtain ⟨h1, h2, h3, h4, -⟩ := whipple_domain hw
+    have h0 : w ^ 2 ≠ 0 := pow_ne_zero 2 (slitPlane_ne_zero h3)
+    have h6 : w ^ (ν+μ+1) ≠ 0 := by rw [cpow_def_of_ne_zero (slitPlane_ne_zero h3)]; exact exp_ne_zero _
+    unfold olverQ legendreBranchPower
+    simp only [div_eq_mul_inv, mul_inv]
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := first | assumption | simpa [div_eq_mul_inv] using h4)
+  · refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) ((isOpen_lt continuous_const continuous_re).inter
+      (isOpen_slitPlane.preimage (continuous_sub_right 1)))
+    obtain ⟨h1, h2, h3, -, h5, h6, h7, h8, -⟩ := whipple_domain hw
+    have hE : exp ((log (w-1)+log (w+1))/2) ≠ 0 := exp_ne_zero _
+    unfold associatedP legendreBranchPower
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := assumption)
 
 /-- Principal-sheet formula; Whipple transformation is stated in the right half-plane to fix its inherited branch. -/
 @[dlmf 14.9.E17]
 theorem associated_connection_17 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
     associatedP ν μ z=(2/π:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) z*olverQ (-μ-1/2) (ν+1/2) (z/exp ((log (z-1)+log (z+1))/2)) := by
-  sorry
+  refine eq_of_eqOn_Ioo_re_pos (f := associatedP ν μ)
+    (g := fun z => (2/π:ℂ)^(1/2:ℂ)*legendreBranchPower (-1/2) z*olverQ (-μ-1/2) (ν+1/2) (z/exp ((log (z-1)+log (z+1))/2))) ?_ ?_ (fun t ht => associatedP_whipple_real ν μ t ht.1) hz hre
+  · refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) ((isOpen_lt continuous_const continuous_re).inter
+      (isOpen_slitPlane.preimage (continuous_sub_right 1)))
+    obtain ⟨h1, h2, -, -, -⟩ := whipple_domain hw
+    have h4 : (1-w)/2 ∈ cutPlane := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one h2)
+    unfold associatedP
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := assumption)
+  · refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) ((isOpen_lt continuous_const continuous_re).inter
+      (isOpen_slitPlane.preimage (continuous_sub_right 1)))
+    obtain ⟨h1, h2, h3, -, h5, h6, h7, -, h9⟩ := whipple_domain hw
+    have hE : exp ((log (w-1)+log (w+1))/2) ≠ 0 := exp_ne_zero _
+    have h0 : (w/exp ((log (w-1)+log (w+1))/2)) ^ 2 ≠ 0 := pow_ne_zero 2 (slitPlane_ne_zero h7)
+    have h10 : (w/exp ((log (w-1)+log (w+1))/2)) ^ (-μ-1/2+(ν+1/2)+1) ≠ 0 := by
+      rw [cpow_def_of_ne_zero (slitPlane_ne_zero h7)]; exact exp_ne_zero _
+    unfold olverQ legendreBranchPower
+    simp only [div_eq_mul_inv, mul_inv]
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := first | assumption | simpa [div_eq_mul_inv] using h9)
 
 /-- associatedP negative integer order. -/
 @[dlmf 14.9.E13]

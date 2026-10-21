@@ -7,6 +7,7 @@ module
 
 public import AAR.IncompleteGamma.ExponentialIntegral
 public import AAR.IncompleteGamma.SeriesRecurrences
+public import AAR.IncompleteGamma.ExpIntegralAsymptotics
 
 /-!
 # Generalized sine and cosine integrals, DLMF §8.21
@@ -679,16 +680,197 @@ theorem genTrigAuxG_laplace_integral (a : ℂ) {z : ℂ} (hz : 0 < z.re) :
     genTrigAuxG a z=z^a/(2*I)*(∫ t : ℝ in Ioi 0, ((1-I*t)^(a-1)-(1+I*t)^(a-1))*exp (-z*t)) := by
   sorry
 
+/-- `e^{e^w} Γ(a, e^w) ~ ∑ (-1)^k (1-a)_k e^{(a-1-k) w}` on the logarithmic sector
+`|im w| ≤ 3π/2 - δ` (DLMF 8.11.2 continued to the logarithmic plane). -/
+theorem upperIncGammaOnLog_logSector_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 3*π/2) :
+    HasAsymptoticExpansion (logSector (3*π/2-δ)) (fun (k : ℕ) w => exp ((a-1-k)*w))
+      (fun k => (-1 : ℂ)^k*poch (1-a) k) (fun w => exp (exp w) * upperIncGammaOnLog a w) := by
+  have h := (genExpIntE_log_sector_asymptotic (1-a) hδ hδ1).mul_left (fun w => exp (a*w + exp w))
+  have hφ : (fun (k : ℕ) (w : ℂ) => exp (a*w + exp w) * exp (-exp w-(k+1 : ℂ)*w)) =
+      fun (k : ℕ) w => exp ((a-1-k)*w) := by
+    funext k w; rw [← Complex.exp_add]; congr 1; ring
+  have hf : (fun w => exp (a*w + exp w) • genExpIntEOnLog (1-a) w) =
+      fun w => exp (exp w) * upperIncGammaOnLog a w := by
+    funext w
+    rw [smul_eq_mul, genExpIntEOnLog, show (1:ℂ) - (1 - a) = a by ring, ← mul_assoc,
+      ← Complex.exp_add]
+    congr 2; ring
+  rw [hφ, hf] at h
+  exact h
+
+/-- `z ↦ log z + iπ s/2` (`s = ±1`) maps `|arg z| ≤ π - δ` into the logarithmic sector
+`|im w| ≤ 3π/2 - δ`, uniformly towards infinity. -/
+lemma tendsto_log_add_sector {s : ℝ} (hs : |s| ≤ 1) {δ : ℝ} :
+    Tendsto (fun z : ℂ => log z + s*π*I/2) (sector (π-δ)) (logSector (3*π/2-δ)) := by
+  unfold sector logSector
+  refine tendsto_inf.mpr ⟨tendsto_comap_iff.mpr ?_, tendsto_principal.mpr ?_⟩
+  · refine (tendsto_comap.mono_left inf_le_left).congr' ?_
+    filter_upwards [mem_inf_of_right (mem_principal_self _)] with z hz
+    obtain ⟨hz0, -⟩ := hz
+    simp only [Function.comp, add_re, log_re]
+    simp [Real.exp_log (norm_pos_iff.mpr hz0)]
+  · filter_upwards [mem_inf_of_right (mem_principal_self _)] with z hz
+    obtain ⟨-, hza⟩ := hz
+    show |(log z + s*π*I/2).im| ≤ 3*π/2-δ
+    have him : (log z + s*π*I/2).im = arg z + s*π/2 := by simp [log_im]
+    rw [him]
+    have h1 := abs_le.mp hza
+    have h2 := abs_le.mp hs
+    rw [abs_le]; constructor <;> nlinarith [Real.pi_pos]
+
+/-- `exp(s π i/2) = s i` for `s = ±1`. -/
+lemma exp_sign_mul_pi_div_two_mul_I {s : ℝ} (hs : s = 1 ∨ s = -1) :
+    exp ((s : ℂ) * π * I / 2) = s * I := by
+  rcases hs with rfl | rfl
+  · push_cast; rw [show (1:ℂ) * π * I / 2 = π / 2 * I by ring, exp_pi_div_two_mul_I]; ring
+  · push_cast; rw [show (-1:ℂ) * π * I / 2 = -π / 2 * I by ring, exp_neg_pi_div_two_mul_I]; ring
+
+/-- One exponential piece of the generalized auxiliary functions:
+`e^{-sπia/2} e^{siz} Γ(a, z e^{sπi/2}) ~ ∑ e^{-s(k+1)πi/2} (-1)^k (1-a)_k z^{a-1-k}` (`s = ±1`)
+in the sector `|arg z| ≤ π - δ`. -/
+theorem upperIncGamma_rotated_piece_asymptotic (a : ℂ) {s : ℝ} (hs : s = 1 ∨ s = -1) {δ : ℝ}
+    (hδ : 0 < δ) (hδ1 : δ < π) :
+    HasAsymptoticExpansion (sector (π-δ)) (fun (k : ℕ) z => z^(a-1-k))
+      (fun k => exp (-((s : ℂ)*(k+1)*π*I/2)) * ((-1 : ℂ)^k*poch (1-a) k))
+      (fun z => exp (-((s : ℂ)*π*I*a/2)) * (exp ((s : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + s*π*I/2))) := by
+  have hs1 : |s| ≤ 1 := by rcases hs with rfl | rfl <;> norm_num
+  have hnz : ∀ᶠ z in sector (π-δ), z ≠ 0 := by
+    filter_upwards [mem_inf_of_right (mem_principal_self _)] with z hz
+    exact hz.1
+  have h1 := (upperIncGammaOnLog_logSector_asymptotic a hδ (by linarith)).comp_tendsto
+    (tendsto_log_add_sector hs1 (δ := δ))
+  have h2 := h1.smul_scale (ψ := fun (k : ℕ) (z : ℂ) => z^(a-1-k))
+    (κ := fun (k : ℕ) => exp ((a-1-k)*((s : ℂ)*π*I/2))) (fun k => by
+      filter_upwards [hnz] with z hz0
+      rw [cpow_def_of_ne_zero hz0, ← Complex.exp_add]; congr 1; ring)
+  have h3 := h2.const_smul (exp (-((s : ℂ)*π*I*a/2)))
+  refine (h3.congr' ?_).congr_coeff ?_
+  · filter_upwards [hnz] with z hz0
+    simp only [Pi.smul_apply, smul_eq_mul, Function.comp]
+    rw [Complex.exp_add, Complex.exp_log hz0, exp_sign_mul_pi_div_two_mul_I hs]
+    congr 2; ring_nf
+  · funext k
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [← mul_assoc, ← Complex.exp_add]
+    congr 2; ring
+
+/-- `exp(-s(k+1)πi/2) = (-s i)^{k+1}` for `s = ±1`. -/
+lemma exp_neg_sign_mul_pi_div_two_mul_I_pow {s : ℝ} (hs : s = 1 ∨ s = -1) (k : ℕ) :
+    exp (-((s : ℂ)*(k+1)*π*I/2)) = (-(s : ℂ) * I)^(k+1) := by
+  have h := exp_sign_mul_pi_div_two_mul_I (s := -s) (by rcases hs with rfl | rfl <;> norm_num)
+  rw [show -((s : ℂ)*(k+1)*π*I/2) = ((k+1 : ℕ) : ℂ) * (((-s : ℝ) : ℂ)*π*I/2) by push_cast; ring,
+    Complex.exp_nat_mul, h]
+  push_cast; ring
+
+/-- The auxiliary functions in terms of the two exponential pieces. -/
+lemma genTrigAux_eq_pieces (a z : ℂ) :
+    genTrigAuxF a z = (exp (-(((-1:ℝ) : ℂ)*π*I*a/2)) * (exp (((-1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((-1:ℝ) : ℂ)*π*I/2)) -
+      exp (-(((1:ℝ) : ℂ)*π*I*a/2)) * (exp (((1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((1:ℝ) : ℂ)*π*I/2))) / (2*I) ∧
+    genTrigAuxG a z = (exp (-(((-1:ℝ) : ℂ)*π*I*a/2)) * (exp (((-1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((-1:ℝ) : ℂ)*π*I/2)) +
+      exp (-(((1:ℝ) : ℂ)*π*I*a/2)) * (exp (((1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((1:ℝ) : ℂ)*π*I/2))) / 2 := by
+  have e1 : log z + ((-1:ℝ) : ℂ)*π*I/2 = log z - π*I/2 := by push_cast; ring
+  have e2 : log z + ((1:ℝ) : ℂ)*π*I/2 = log z + π*I/2 := by push_cast; ring
+  have e3 : exp (-(((-1:ℝ) : ℂ)*π*I*a/2)) = exp (π*I*a/2) := by congr 1; push_cast; ring
+  have e4 : exp (-(((1:ℝ) : ℂ)*π*I*a/2)) = exp (-π*I*a/2) := by congr 1; push_cast; ring
+  have e5 : exp (((-1:ℝ) : ℂ)*I*z) = exp (-z*I) := by congr 1; push_cast; ring
+  have e6 : exp (((1:ℝ) : ℂ)*I*z) = exp (z*I) := by congr 1; push_cast; ring
+  rw [e1, e2, e3, e4, e5, e6]
+  simp only [genTrigAuxF, genTrigAuxG, genSinIntTail, genCosIntTail, genSinIntTailOnLog,
+    genCosIntTailOnLog, Complex.cos, Complex.sin]
+  set X := upperIncGammaOnLog a (log z - π*I/2)
+  set Y := upperIncGammaOnLog a (log z + π*I/2)
+  set α := exp (π*I*a/2)
+  set β := exp (-π*I*a/2)
+  set u := exp (z*I)
+  set v := exp (-z*I)
+  constructor
+  · field_simp
+    ring_nf
+    rw [I_sq]
+    ring
+  · field_simp
+    ring_nf
+
 /-- genTrigAuxF sector asymptotic. -/
 @[dlmf 8.21.E26]
 theorem genTrigAuxF_sector_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < π) :
     HasAsymptoticExpansion (sector (π-δ)) (fun k z => z^(a-1-2*k-0)) (fun k => (-1 : ℂ)^k*poch (1-a) (2*k+0)) (genTrigAuxF a) := by
-  sorry
+  have hm := upperIncGamma_rotated_piece_asymptotic a (s := -1) (Or.inr rfl) hδ hδ1
+  have hp := upperIncGamma_rotated_piece_asymptotic a (s := 1) (Or.inl rfl) hδ hδ1
+  have h := (hm.sub hp).const_smul (1 / (2 * I))
+  have hf : ((1 / (2 * I)) • ((fun z => exp (-(((-1:ℝ) : ℂ)*π*I*a/2)) * (exp (((-1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((-1:ℝ) : ℂ)*π*I/2))) -
+      (fun z => exp (-(((1:ℝ) : ℂ)*π*I*a/2)) * (exp (((1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((1:ℝ) : ℂ)*π*I/2))))) = genTrigAuxF a := by
+    funext z
+    rw [(genTrigAux_eq_pieces a z).1]
+    simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    ring
+  rw [hf] at h
+  have he := h.even (fun n => by
+    simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    rw [exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inr rfl),
+      exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inl rfl)]
+    push_cast
+    rw [show 2 * n + 1 + 1 = 2 * (n + 1) by ring, pow_mul, pow_mul]
+    simp)
+  refine (he.congr_scale fun n => Eventually.of_forall fun z => ?_).congr_coeff ?_
+  · simp only
+    congr 1; push_cast; ring
+  · funext n
+    simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul, add_zero]
+    rw [exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inr rfl),
+      exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inl rfl)]
+    push_cast
+    have h1 : (-(-1:ℂ) * I)^(2*n+1) = (-1)^n * I := by rw [pow_succ, pow_mul]; simp
+    have h2 : (-(1:ℂ) * I)^(2*n+1) = -((-1)^n * I) := by rw [pow_succ, pow_mul]; simp
+    rw [h1, h2, pow_mul (-1:ℂ) 2 n]
+    field_simp
+    ring
 
 /-- genTrigAuxG sector asymptotic. -/
 @[dlmf 8.21.E27]
 theorem genTrigAuxG_sector_asymptotic (a : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < π) :
     HasAsymptoticExpansion (sector (π-δ)) (fun k z => z^(a-1-2*k-1)) (fun k => (-1 : ℂ)^k*poch (1-a) (2*k+1)) (genTrigAuxG a) := by
-  sorry
+  have hm := upperIncGamma_rotated_piece_asymptotic a (s := -1) (Or.inr rfl) hδ hδ1
+  have hp := upperIncGamma_rotated_piece_asymptotic a (s := 1) (Or.inl rfl) hδ hδ1
+  have h := (hm.add hp).const_smul (1 / 2 : ℂ)
+  have hf : ((1 / 2 : ℂ) • ((fun z => exp (-(((-1:ℝ) : ℂ)*π*I*a/2)) * (exp (((-1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((-1:ℝ) : ℂ)*π*I/2))) +
+      (fun z => exp (-(((1:ℝ) : ℂ)*π*I*a/2)) * (exp (((1:ℝ) : ℂ)*I*z) *
+        upperIncGammaOnLog a (log z + ((1:ℝ) : ℂ)*π*I/2))))) = genTrigAuxG a := by
+    funext z
+    rw [(genTrigAux_eq_pieces a z).2]
+    simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+    ring
+  rw [hf] at h
+  have ho := h.odd (fun n => by
+    simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+    rw [exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inr rfl),
+      exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inl rfl)]
+    push_cast
+    have h1 : (-(-1:ℂ) * I)^(2*n+1) = (-1)^n * I := by rw [pow_succ, pow_mul]; simp
+    have h2 : (-(1:ℂ) * I)^(2*n+1) = -((-1)^n * I) := by rw [pow_succ, pow_mul]; simp
+    rw [h1, h2]
+    ring)
+  refine (ho.congr_scale fun n => Eventually.of_forall fun z => ?_).congr_coeff ?_
+  · simp only
+    congr 1; push_cast; ring
+  · funext n
+    simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+    rw [exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inr rfl),
+      exp_neg_sign_mul_pi_div_two_mul_I_pow (Or.inl rfl)]
+    push_cast
+    have h1 : (-(-1:ℂ) * I)^(2*n+1+1) = (-1)^(n+1) := by
+      rw [show 2*n+1+1 = 2*(n+1) by ring, pow_mul]; simp
+    have h2 : (-(1:ℂ) * I)^(2*n+1+1) = (-1)^(n+1) := by
+      rw [show 2*n+1+1 = 2*(n+1) by ring, pow_mul]; simp
+    rw [h1, h2, pow_succ (-1:ℂ) (2*n), pow_mul (-1:ℂ) 2 n, pow_succ (-1:ℂ) n]
+    ring
 
 end AAR.Confluent

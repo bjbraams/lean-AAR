@@ -806,3 +806,15 @@ other projects. The joint parameter holomorphy of the continued Gauss function, 
 Struve Poisson integrals and the remaining helpers of this round reuse the project's
 proved cores together with Mathlib. No new TauCeti theorem was adopted beyond those
 listed for the tier-A batch.
+
+## Blocker round (2026-10-20)
+
+The new files `AAR/Bessel/KIntegralRep.lean`, `YIntegralRep.lean`, `YSchlafli.lean`,
+`Schlafli.lean`, `ProductIntegral.lean`, `NeumannSeries.lean`,
+`ToMathlib/Analysis/ODE/PowerSeriesUniqueness.lean` and
+`ToMathlib/Analysis/Asymptotics/WatsonRotated.lean` are new project work built on Mathlib
+and the project's existing cores. No code was copied from other projects. From TauCeti,
+`TauCeti.Contour.tendsto_integral_sinc_atTop` (the Dirichlet integral, from
+`TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral`) is used in the proof of
+`struveH_integral_one_div_sq`. The WZ certificates for the two terminating identities in
+`NeumannSeries.lean` were found with sympy; the identities themselves are proved in Lean.

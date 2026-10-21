@@ -11,6 +11,7 @@ public import AAR.Confluent.Whittaker
 public import AAR.Confluent.Recurrence
 public import AAR.Bessel.Basic
 public import AAR.Bessel.Modified
+public import AAR.Bessel.KIntegralRep
 public import AAR.Hypergeometric.EulerIntegral
 public import AAR.Hypergeometric.ArgumentContinuation
 public import AAR.Hypergeometric.IntegralRepresentations
@@ -713,6 +714,385 @@ theorem kummerU_stieltjes_regularized {a b z : ℂ} (n : ℕ) (hz : z ∈ slitPl
             ((t : ℂ) + z) := by
   sorry
 
+section BesselKIntegral
+
+open Set
+
+/-- Complex powers of a positive real through the real logarithm. -/
+private lemma ofReal_cpow_eq_exp_log_aux {r : ℝ} (hr : 0 < r) (c : ℂ) :
+    (r : ℂ) ^ c = exp (c * Real.log r) := by
+  rw [cpow_def_of_ne_zero (by exact_mod_cast hr.ne'), ← ofReal_log hr.le, mul_comm]
+
+/-- The double integrand behind DLMF 13.4.7. -/
+def besselKUKernel (a b : ℂ) (x : ℝ) (t s : ℝ) : ℂ :=
+  exp (-(t : ℂ)) * (t : ℂ) ^ (a - b) * (exp (-(s : ℂ) - x * t / s) * (s : ℂ) ^ (b - 2))
+
+/-- Step 1: insert Schläfli's integral for `K_{b-1}(2√(xt))`. -/
+lemma besselK_kernel_eq_integral {a b : ℂ} {x t : ℝ} (hx : 0 < x) (ht : 0 < t) :
+    exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) * besselK (b - 1) (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) =
+      1 / 2 * (x : ℂ) ^ ((1 - b) / 2) * ∫ s : ℝ in Ioi 0, besselKUKernel a b x t s := by
+  have hxt : 0 < x * t := mul_pos hx ht
+  have hy : 0 < 2 * Real.sqrt (x * t) := by positivity
+  have hsq : ((Real.sqrt (x * t) : ℝ) : ℂ) = ((x : ℂ) * t) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow hxt.le]; push_cast; ring_nf
+  have harg : 2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ) = ((2 * Real.sqrt (x * t) : ℝ) : ℂ) := by
+    push_cast; rw [hsq]
+  rw [harg, besselK_ofReal_eq_integral_schlafli' hy]
+  have hint : ∫ s : ℝ in Ioi 0, besselKUKernel a b x t s = exp (-(t : ℂ)) * (t : ℂ) ^ (a - b) *
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ) - ((2 * Real.sqrt (x * t) : ℝ) : ℂ) ^ 2 / (4 * s)) *
+        (s : ℂ) ^ (b - 1 - 1) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1
+    funext s
+    unfold besselKUKernel
+    have h4 : ((2 * Real.sqrt (x * t) : ℝ) : ℂ) ^ 2 = 4 * (x * t : ℝ) := by
+      rw [← ofReal_pow, mul_pow, Real.sq_sqrt hxt.le]; push_cast; ring
+    rw [h4, show b - 1 - 1 = b - 2 by ring]
+    push_cast
+    field_simp
+  rw [hint]
+  have hs2 : ((2 * Real.sqrt (x * t) : ℝ) : ℂ) / 2 = ((Real.sqrt (x * t) : ℝ) : ℂ) := by
+    push_cast; ring
+  rw [hs2, ofReal_cpow_eq_exp_log_aux (Real.sqrt_pos.mpr hxt), ofReal_cpow_eq_exp_log_aux ht,
+    ofReal_cpow_eq_exp_log_aux hx, ofReal_cpow_eq_exp_log_aux ht, Real.log_sqrt hxt.le,
+    Real.log_mul hx.ne' ht.ne']
+  set I := ∫ s : ℝ in Ioi 0, exp (-(s : ℂ) - ((2 * Real.sqrt (x * t) : ℝ) : ℂ) ^ 2 / (4 * s)) *
+        (s : ℂ) ^ (b - 1 - 1)
+  have key : exp (-(t : ℂ)) * exp ((a - b / 2 - 1 / 2) * (Real.log t : ℂ)) *
+      exp (-(b - 1) * ((Real.log x + Real.log t) / 2 : ℝ)) =
+      exp ((1 - b) / 2 * (Real.log x : ℂ)) * (exp (-(t : ℂ)) * exp ((a - b) * (Real.log t : ℂ))) := by
+    rw [← exp_add, ← exp_add, ← exp_add, ← exp_add]
+    congr 1
+    push_cast
+    ring
+  linear_combination (1 / 2 * I) * key
+
+/-- Step 2: the inner Gamma integral in `t`. -/
+lemma integral_besselKUKernel_t {a b : ℂ} {x s : ℝ} (hx : 0 < x) (hs : 0 < s)
+    (hab : 0 < (a - b + 1).re) :
+    ∫ t : ℝ in Ioi 0, besselKUKernel a b x t s =
+      exp (-(s : ℂ)) * (s : ℂ) ^ (b - 2) * (((1 / (1 + x / s) : ℝ) : ℂ) ^ (a - b + 1) *
+        Gamma (a - b + 1)) := by
+  have hr : 0 < 1 + x / s := by positivity
+  have h := integral_cpow_mul_exp_neg_mul_Ioi hab hr
+  rw [show a - b + 1 - 1 = a - b by ring] at h
+  rw [ofReal_div, ofReal_one, ← h, ← MeasureTheory.integral_const_mul]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+  unfold besselKUKernel
+  have hs0 : (s : ℂ) ≠ 0 := by exact_mod_cast hs.ne'
+  have he : exp (-(t : ℂ)) * exp (-(s : ℂ) - x * t / s) =
+      exp (-(s : ℂ)) * exp (-(((1 + x / s : ℝ) : ℂ) * t)) := by
+    rw [← exp_add, ← exp_add]; congr 1; push_cast; field_simp; ring
+  linear_combination (t : ℂ) ^ (a - b) * (s : ℂ) ^ (b - 2) * he
+
+/-- Step 3: the outer integral in `s` is a scaled Tricomi Laplace integral. -/
+lemma integral_besselKU_s {a b : ℂ} {x : ℝ} (hx : 0 < x) :
+    ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ) ^ (b - 2) * ((1 / (1 + x / s) : ℝ) : ℂ) ^ (a - b + 1) =
+      (x : ℂ) ^ (b - 1) * ∫ u : ℝ in Ioi 0,
+        exp (-(x : ℂ) * u) * (u : ℂ) ^ (a - 1) * (1 + (u : ℂ)) ^ (b - a - 1) := by
+  have h := integral_comp_mul_left_Ioi (fun s : ℝ => exp (-(s : ℂ)) * (s : ℂ) ^ (b - 2) *
+    ((1 / (1 + x / s) : ℝ) : ℂ) ^ (a - b + 1)) 0 hx
+  rw [mul_zero] at h
+  have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  rw [← smul_eq_mul (a := (x : ℂ) ^ (b - 1)), ← MeasureTheory.integral_smul]
+  have h2 : ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ) ^ (b - 2) *
+      ((1 / (1 + x / s) : ℝ) : ℂ) ^ (a - b + 1) = (x : ℂ) * ∫ u : ℝ in Ioi 0,
+      exp (-((x * u : ℝ) : ℂ)) * ((x * u : ℝ) : ℂ) ^ (b - 2) *
+        ((1 / (1 + x / (x * u)) : ℝ) : ℂ) ^ (a - b + 1) := by
+    rw [h, real_smul]
+    push_cast
+    field_simp
+  rw [h2, ← smul_eq_mul (a := (x : ℂ)), ← MeasureTheory.integral_smul]
+  refine setIntegral_congr_fun measurableSet_Ioi fun u hu => ?_
+  have hu0 : (0 : ℝ) < u := hu
+  have hq : 1 / (1 + x / (x * u)) = u / (1 + u) := by field_simp; ring
+  rw [hq, smul_eq_mul, smul_eq_mul, ofReal_cpow_eq_exp_log_aux (mul_pos hx hu0),
+    ofReal_cpow_eq_exp_log_aux (by positivity : 0 < u / (1 + u)), Real.log_mul hx.ne' hu0.ne',
+    Real.log_div hu0.ne' (by positivity : (1 + u) ≠ 0), ofReal_cpow_eq_exp_log_aux hx,
+    ofReal_cpow_eq_exp_log_aux hu0,
+    show (1 + (u : ℂ)) = ((1 + u : ℝ) : ℂ) by push_cast; ring,
+    ofReal_cpow_eq_exp_log_aux (by positivity : 0 < 1 + u)]
+  have hxe : (x : ℂ) = exp (Real.log x) := by rw [← ofReal_exp, Real.exp_log hx]
+  conv_lhs => rw [hxe]
+  have key : ∀ A B C D : ℂ, exp A * (exp B * exp C * exp D) = exp (A + B + C + D) := by
+    intro A B C D; rw [exp_add, exp_add, exp_add]; ring
+  have key2 : ∀ A B C D : ℂ, exp A * (exp B * exp C * exp D) = exp (A + B + C + D) := key
+  rw [key, key2]
+  congr 1
+  push_cast
+  ring
+
+/-- Measurability of the double integrand. -/
+lemma measurable_besselKUKernel (a b : ℂ) (x : ℝ) :
+    Measurable (Function.uncurry (besselKUKernel a b x)) := by
+  unfold besselKUKernel Function.uncurry
+  fun_prop
+
+/-- The norm of the double integrand. -/
+lemma norm_besselKUKernel {a b : ℂ} {x t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    ‖besselKUKernel a b x t s‖ = Real.exp (-s) * s ^ (b.re - 2) *
+      (t ^ (a - b).re * Real.exp (-(1 + x / s) * t)) := by
+  unfold besselKUKernel
+  rw [norm_mul, norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp,
+    norm_cpow_eq_rpow_re_of_pos ht, norm_cpow_eq_rpow_re_of_pos hs]
+  have h1 : (-(s : ℂ) - x * t / s).re = -s - x * t / s := by
+    rw [show (x : ℂ) * t / s = ((x * t / s : ℝ) : ℂ) by push_cast; ring]
+    simp
+  rw [h1]
+  simp only [neg_re, ofReal_re, sub_re]
+  have : Real.exp (-t) * Real.exp (-s - x * t / s) = Real.exp (-s) * Real.exp (-(1 + x / s) * t) := by
+    rw [← Real.exp_add, ← Real.exp_add]; congr 1; field_simp; ring
+  simp only [show (2 : ℂ).re = 2 by norm_num]
+  linear_combination t ^ (a - b).re * s ^ (b.re - 2) * this
+
+/-- Absolute integrability of the double integrand on `(0,∞)²`. -/
+lemma integrable_besselKUKernel {a b : ℂ} {x : ℝ} (hx : 0 < x) (hab : 0 < (a - b + 1).re)
+    (ha : 0 < a.re) :
+    Integrable (Function.uncurry (besselKUKernel a b x))
+      ((volume.restrict (Ioi 0)).prod (volume.restrict (Ioi 0))) := by
+  set A := (a - b).re
+  have hA : -1 < A := by simp only [A, sub_re] at hab ⊢; simp at hab; linarith
+  rw [integrable_prod_iff' (measurable_besselKUKernel a b x).aestronglyMeasurable]
+  constructor
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with s hs
+    have hs0 : (0 : ℝ) < s := hs
+    have hg := (integrableOn_rpow_mul_exp_neg_mul_rpow (s := A) (p := 1) hA one_pos
+      (by positivity : 0 < 1 + x / s)).const_mul (Real.exp (-s) * s ^ (b.re - 2))
+    refine hg.mono' ((measurable_besselKUKernel a b x).comp
+      (measurable_id.prodMk measurable_const)).aestronglyMeasurable ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    rw [Function.uncurry_apply_pair, norm_besselKUKernel ht hs0, Real.rpow_one]
+  · have hcl : ∀ s ∈ Ioi (0 : ℝ), ∫ t : ℝ in Ioi 0, ‖Function.uncurry (besselKUKernel a b x) (t, s)‖ =
+        Real.exp (-s) * s ^ (b.re - 2) * ((1 / (1 + x / s)) ^ (A + 1) * Real.Gamma (A + 1)) := by
+      intro s hs
+      have hs0 : (0 : ℝ) < s := hs
+      rw [← Real.integral_rpow_mul_exp_neg_mul_Ioi (by linarith) (by positivity : 0 < 1 + x / s),
+        ← MeasureTheory.integral_const_mul]
+      refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+      rw [Function.uncurry_apply_pair, norm_besselKUKernel ht hs0, add_sub_cancel_right]
+      simp only [A]
+      ring_nf
+    refine Integrable.congr ?_ ((ae_restrict_mem measurableSet_Ioi).mono fun s hs => (hcl s hs).symm)
+    have hG := (Real.GammaIntegral_convergent ha).const_mul
+      (Real.Gamma (A + 1) * x ^ (-(A + 1)))
+    refine hG.mono' ?_ ?_
+    · exact (by fun_prop : Measurable fun s : ℝ => Real.exp (-s) * s ^ (b.re - 2) *
+        ((1 / (1 + x / s)) ^ (A + 1) * Real.Gamma (A + 1))).aestronglyMeasurable
+    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with s hs
+      have hs0 : (0 : ℝ) < s := hs
+      have hGp : 0 < Real.Gamma (A + 1) := Real.Gamma_pos_of_pos (by linarith)
+      have hq : 1 / (1 + x / s) = s / (s + x) := by field_simp
+      rw [Real.norm_of_nonneg (by positivity), hq, Real.div_rpow hs0.le (by positivity)]
+      have hsx : x ^ (A + 1) ≤ (s + x) ^ (A + 1) :=
+        Real.rpow_le_rpow hx.le (by linarith) (by linarith)
+      have hsA : s ^ (b.re - 2) * s ^ (A + 1) = s ^ (a.re - 1) := by
+        rw [← Real.rpow_add hs0]; congr 1; simp only [A, sub_re]; ring
+      have hxp : 0 < x ^ (A + 1) := Real.rpow_pos_of_pos hx _
+      rw [Real.rpow_neg hx.le]
+      have h3 : s ^ (A + 1) / (s + x) ^ (A + 1) ≤ s ^ (A + 1) * (x ^ (A + 1))⁻¹ := by
+        rw [div_eq_mul_inv]
+        exact mul_le_mul_of_nonneg_left (inv_anti₀ hxp hsx) (by positivity)
+      calc Real.exp (-s) * s ^ (b.re - 2) * (s ^ (A + 1) / (s + x) ^ (A + 1) * Real.Gamma (A + 1))
+          ≤ Real.exp (-s) * s ^ (b.re - 2) * (s ^ (A + 1) * (x ^ (A + 1))⁻¹ * Real.Gamma (A + 1)) := by
+            gcongr
+        _ = Real.Gamma (A + 1) * (x ^ (A + 1))⁻¹ * (Real.exp (-s) * (s ^ (b.re - 2) * s ^ (A + 1))) := by
+            ring
+        _ = _ := by rw [hsA]
+
+/-- DLMF 13.4.7 for real positive argument. -/
+lemma kummerU_eq_integral_besselK_ofReal {a b : ℂ} {x : ℝ} (hx : 0 < x)
+    (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
+    kummerU a b x = 2 * (x : ℂ) ^ ((1 - b) / 2) / (Gamma a * Gamma (a - b + 1)) *
+      ∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
+        besselK (b - 1) (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) := by
+  have hab : 0 < (a - b + 1).re := by simp at ha ⊢; linarith
+  have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  have hxre : 0 < (x : ℂ).re := by simpa using hx
+  have h1 : ∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
+        besselK (b - 1) (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) =
+      1 / 2 * (x : ℂ) ^ ((1 - b) / 2) * ∫ t : ℝ in Ioi 0, ∫ s : ℝ in Ioi 0,
+        besselKUKernel a b x t s := by
+    rw [← MeasureTheory.integral_const_mul]
+    exact setIntegral_congr_fun measurableSet_Ioi fun t ht => besselK_kernel_eq_integral hx ht
+  have h2 : ∫ t : ℝ in Ioi 0, ∫ s : ℝ in Ioi 0, besselKUKernel a b x t s =
+      Gamma (a - b + 1) * ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ) ^ (b - 2) *
+        ((1 / (1 + x / s) : ℝ) : ℂ) ^ (a - b + 1) := by
+    rw [integral_integral_swap (integrable_besselKUKernel hx hab ha0), ← MeasureTheory.integral_const_mul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun s hs => ?_
+    rw [integral_besselKUKernel_t hx hs hab]
+    ring
+  have hU := kummerU_laplace ha0 (b := b) (z := (x : ℂ)) hxre
+  have hG : Gamma a ≠ 0 := Gamma_ne_zero_of_re_pos ha0
+  have hG' : Gamma (a - b + 1) ≠ 0 := Gamma_ne_zero_of_re_pos hab
+  rw [h1, h2, integral_besselKU_s hx]
+  set L := ∫ u : ℝ in Ioi 0, exp (-(x : ℂ) * u) * (u : ℂ) ^ (a - 1) * (1 + (u : ℂ)) ^ (b - a - 1)
+  have hL : L = Gamma a * kummerU a b x := by rw [hU]; field_simp
+  rw [hL]
+  have hp : (x : ℂ) ^ ((1 - b) / 2) * (x : ℂ) ^ ((1 - b) / 2) * (x : ℂ) ^ (b - 1) = 1 := by
+    rw [← cpow_add _ _ hx0, ← cpow_add _ _ hx0, show (1 - b) / 2 + (1 - b) / 2 + (b - 1) = 0 by
+      ring, cpow_zero]
+  field_simp
+  linear_combination (-(kummerU a b x)) * hp
+
+/-- `(r w)^c = r^c w^c` for positive real `r`. -/
+private lemma ofReal_mul_cpow_aux {r : ℝ} (hr : 0 < r) {w : ℂ} (hw : w ≠ 0) (c : ℂ) :
+    ((r : ℂ) * w) ^ c = (r : ℂ) ^ c * w ^ c := by
+  rw [cpow_def_of_ne_zero (mul_ne_zero (by exact_mod_cast hr.ne') hw), log_ofReal_mul hr hw,
+    cpow_def_of_ne_zero (by exact_mod_cast hr.ne'), cpow_def_of_ne_zero hw, ← exp_add,
+    ofReal_log hr.le]
+  ring_nf
+
+/-- The slit plane is stable under positive real scaling. -/
+lemma mul_ofReal_mem_slitPlane {z : ℂ} (hz : z ∈ slitPlane) {t : ℝ} (ht : 0 < t) :
+    z * t ∈ slitPlane := by
+  rw [mem_slitPlane_iff] at hz ⊢
+  simp only [mul_re, mul_im, ofReal_re, ofReal_im, mul_zero, sub_zero, zero_add]
+  rcases hz with h | h
+  · exact Or.inl (mul_pos h ht)
+  · exact Or.inr (mul_ne_zero h ht.ne')
+
+/-- `2 (z t)^{1/2} = 2 √t z^{1/2}` for `t > 0`. -/
+lemma two_mul_cpow_half_mul_ofReal {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) :
+    2 * (z * t) ^ (1 / 2 : ℂ) = 2 * (Real.sqrt t : ℂ) * z ^ (1 / 2 : ℂ) := by
+  rw [mul_comm z, ofReal_mul_cpow_aux ht hz, Real.sqrt_eq_rpow, ofReal_cpow ht.le]
+  push_cast; ring
+
+/-- The real part of `2 (z t)^{1/2}`. -/
+lemma re_two_mul_cpow_half_mul_ofReal {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : 0 < t) :
+    (2 * (z * t) ^ (1 / 2 : ℂ)).re = 2 * Real.sqrt t * (z ^ (1 / 2 : ℂ)).re := by
+  rw [two_mul_cpow_half_mul_ofReal hz ht, show (2 : ℂ) * (Real.sqrt t : ℂ) =
+    ((2 * Real.sqrt t : ℝ) : ℂ) by push_cast; ring, re_ofReal_mul]
+
+/-- `2 (z t)^{1/2}` lies in the right half-plane. -/
+lemma two_mul_cpow_half_mem_slitPlane {z : ℂ} (hz : z ∈ slitPlane) {t : ℝ} (ht : 0 < t) :
+    2 * (z * t) ^ (1 / 2 : ℂ) ∈ slitPlane := by
+  refine Or.inl ?_
+  rw [re_two_mul_cpow_half_mul_ofReal (slitPlane_ne_zero hz) ht]
+  have := re_cpow_half_pos_of_mem_slitPlane hz
+  have := Real.sqrt_pos.mpr ht
+  positivity
+
+/-- Holomorphy in `z` of the Bessel-`K` integral of DLMF 13.4.7 on the slit plane. -/
+lemma differentiableOn_integral_besselK {a b : ℂ} (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
+    DifferentiableOn ℂ (fun z : ℂ => ∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) *
+      (t : ℂ) ^ (a - b / 2 - 1 / 2) * besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ))) slitPlane := by
+  set σ := |(b - 1).re|
+  set D := a.re - b.re / 2 + 1 / 2 - σ / 2
+  have hD : 0 < D := by
+    simp only [D, σ]
+    simp only [sub_re, one_re] at ha ⊢
+    rcases le_total 0 (b.re - 1) with h | h
+    · rw [abs_of_nonneg h]; linarith
+    · rw [abs_of_nonpos h]; linarith
+  set s := σ + D
+  have hs : 0 < s := by positivity
+  have hσs : |(b - 1).re| ≤ s := by simp only [s, σ]; linarith
+  refine Complex.differentiableOn_integral_Ioi_of_locally_dominated isOpen_slitPlane 0
+    (fun z hz => ?_) ?_ (fun z₀ hz₀ => ?_)
+  · refine ContinuousOn.aestronglyMeasurable (fun t ht => ?_) measurableSet_Ioi
+    have ht0 : (0 : ℝ) < t := ht
+    refine ContinuousAt.continuousWithinAt ?_
+    have hts : (t : ℂ) ∈ slitPlane := by simpa using ht0
+    have hzt : z * t ∈ slitPlane := mul_ofReal_mem_slitPlane hz ht0
+    have hw := two_mul_cpow_half_mem_slitPlane hz ht0
+    have hc : ContinuousAt (fun s : ℝ => (s : ℂ)) t := continuous_ofReal.continuousAt
+    have hK : ContinuousAt (besselK (b - 1)) (2 * (z * t) ^ (1 / 2 : ℂ)) :=
+      (differentiableOn_besselK_slitPlane (b - 1)).continuousOn.continuousAt (isOpen_slitPlane.mem_nhds hw)
+    have hin : ContinuousAt (fun s : ℝ => 2 * (z * s) ^ (1 / 2 : ℂ)) t :=
+      continuousAt_const.mul ((continuousAt_const.mul hc).cpow continuousAt_const hzt)
+    exact ((hc.neg.cexp).mul (hc.cpow continuousAt_const hts)).mul
+      (hK.comp (f := fun s : ℝ => 2 * (z * s) ^ (1 / 2 : ℂ)) hin)
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    have ht0 : (0 : ℝ) < t := ht
+    intro z hz
+    have hzt : z * t ∈ slitPlane := mul_ofReal_mem_slitPlane hz ht0
+    have hw := two_mul_cpow_half_mem_slitPlane hz ht0
+    have hK := (hasDerivAt_besselK (b - 1) hw).differentiableAt
+    have hin : DifferentiableAt ℂ (fun z : ℂ => 2 * (z * t) ^ (1 / 2 : ℂ)) z :=
+      ((differentiableAt_id.mul_const (t : ℂ)).cpow_const hzt).const_mul 2
+    exact ((hK.comp z hin).const_mul _).differentiableWithinAt
+  · set c := (z₀ ^ (1 / 2 : ℂ)).re / 2
+    have hc0 : 0 < c := half_pos (re_cpow_half_pos_of_mem_slitPlane hz₀)
+    have hcont : ContinuousAt (fun z : ℂ => (z ^ (1 / 2 : ℂ)).re) z₀ :=
+      continuous_re.continuousAt.comp (continuousAt_id.cpow continuousAt_const hz₀)
+    have hV : {z : ℂ | c < (z ^ (1 / 2 : ℂ)).re} ∩ slitPlane ∈ 𝓝 z₀ :=
+      Filter.inter_mem (hcont.eventually (lt_mem_nhds (half_lt_self
+        (re_cpow_half_pos_of_mem_slitPlane hz₀)))) (isOpen_slitPlane.mem_nhds hz₀)
+    refine ⟨_, hV, fun t => Real.Gamma s * c ^ (-s) * (Real.exp (-t) * t ^ (D / 2 - 1)),
+      (Real.GammaIntegral_convergent (half_pos hD)).const_mul _, ?_⟩
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht z hz
+    have ht0 : (0 : ℝ) < t := ht
+    have hzs : z ∈ slitPlane := hz.2
+    have hzc : c < (z ^ (1 / 2 : ℂ)).re := hz.1
+    have hz0 := slitPlane_ne_zero hzs
+    have hsq := Real.sqrt_pos.mpr ht0
+    have hre := re_two_mul_cpow_half_mul_ofReal hz0 ht0
+    have hrepos : 0 < (2 * (z * t) ^ (1 / 2 : ℂ)).re := by rw [hre]; nlinarith
+    have hKb := norm_besselK_le hrepos hs hσs
+    have hge : Real.sqrt t * c ≤ (2 * (z * t) ^ (1 / 2 : ℂ)).re / 2 := by
+      rw [hre]; nlinarith
+    have hpow : ((2 * (z * t) ^ (1 / 2 : ℂ)).re / 2) ^ (-s) ≤ (Real.sqrt t * c) ^ (-s) :=
+      Real.rpow_le_rpow_of_nonpos (by positivity) hge (by linarith)
+    have hsplit : (Real.sqrt t * c) ^ (-s) = t ^ (-s / 2) * c ^ (-s) := by
+      rw [Real.mul_rpow hsq.le hc0.le, Real.sqrt_eq_rpow, ← Real.rpow_mul ht0.le]
+      ring_nf
+    rw [norm_mul, norm_mul, Complex.norm_exp, norm_cpow_eq_rpow_re_of_pos ht0]
+    have hα : (a - b / 2 - 1 / 2).re = a.re - b.re / 2 - 1 / 2 := by simp
+    rw [hα]
+    simp only [neg_re, ofReal_re]
+    have htp : t ^ (a.re - b.re / 2 - 1 / 2) * t ^ (-s / 2) = t ^ (D / 2 - 1) := by
+      rw [← Real.rpow_add ht0]
+      congr 1
+      simp only [s, D]
+      ring
+    have hG : 0 ≤ Real.Gamma s := (Real.Gamma_pos_of_pos hs).le
+    calc Real.exp (-t) * t ^ (a.re - b.re / 2 - 1 / 2) * ‖besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ))‖
+        ≤ Real.exp (-t) * t ^ (a.re - b.re / 2 - 1 / 2) *
+            (Real.Gamma s * (t ^ (-s / 2) * c ^ (-s))) := by
+          gcongr
+          exact hKb.trans (mul_le_mul_of_nonneg_left (hpow.trans hsplit.le) hG)
+      _ = Real.Gamma s * c ^ (-s) * (Real.exp (-t) *
+            (t ^ (a.re - b.re / 2 - 1 / 2) * t ^ (-s / 2))) := by ring
+      _ = _ := by rw [htp]
+
+/-- **A Bessel-`K` integral for Tricomi's `U`** (DLMF 13.4.7) on the whole slit plane
+(stronger than DLMF, which states `|ph z| < π/2`):
+`U(a,b,z) = 2 z^{(1-b)/2} / (Γ(a) Γ(a-b+1)) ∫₀^∞ e^{-t} t^{a-b/2-1/2} K_{b-1}(2√(zt)) dt`. -/
+theorem kummerU_eq_integral_besselK {a b z : ℂ} (hz : z ∈ slitPlane)
+    (ha : (b - 1).re < a.re) (ha0 : 0 < a.re) :
+    kummerU a b z =
+      2 * z ^ ((1 - b) / 2) / (Gamma a * Gamma (a - b + 1)) *
+        ∫ t : ℝ in Ioi 0,
+          exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
+            besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ)) := by
+  have hf : AnalyticOnNhd ℂ (kummerU a b) slitPlane :=
+    (differentiableOn_kummerU a b).analyticOnNhd isOpen_slitPlane
+  have hg : AnalyticOnNhd ℂ (fun z : ℂ => 2 * z ^ ((1 - b) / 2) / (Gamma a * Gamma (a - b + 1)) *
+      ∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
+        besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ))) slitPlane := by
+    refine DifferentiableOn.analyticOnNhd ?_ isOpen_slitPlane
+    refine DifferentiableOn.mul ?_ (differentiableOn_integral_besselK ha ha0)
+    refine DifferentiableOn.div_const (DifferentiableOn.const_mul (fun w hw => ?_) _) _
+    exact (differentiableAt_id.cpow_const hw).differentiableWithinAt
+  have hfreq : ∃ᶠ w in 𝓝[≠] (1 : ℂ), kummerU a b w =
+      2 * w ^ ((1 - b) / 2) / (Gamma a * Gamma (a - b + 1)) *
+        ∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
+          besselK (b - 1) (2 * (w * t) ^ (1 / 2 : ℂ)) := by
+    have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] 1) (𝓝[≠] (1 : ℂ)) := by
+      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+      · exact ((continuous_ofReal.tendsto 1).mono_left nhdsWithin_le_nhds).trans (by simp)
+      · filter_upwards [self_mem_nhdsWithin] with r hr
+        simpa only [Set.mem_compl_iff, Set.mem_singleton_iff, ofReal_eq_one] using hr
+    apply ht.frequently
+    apply Eventually.frequently
+    filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (zero_lt_one' ℝ))] with r hr
+    exact kummerU_eq_integral_besselK_ofReal hr ha ha0
+  exact hf.eqOn_of_preconnected_of_frequently_eq hg
+    (starConvex_one_slitPlane.isPathConnected one_mem_slitPlane).isConnected.isPreconnected
+    one_mem_slitPlane hfreq hz
+
+end BesselKIntegral
+
 /-- A Bessel-K integral for Tricomi U, away from `z = 0` where the totalized values of both
 sides differ. -/
 @[dlmf 13.4.E7]
@@ -723,7 +1103,11 @@ theorem kummerU_integral_besselK {a b z : ℂ} (hz : 0 ≤ z.re) (hz0 : z ≠ 0)
         ∫ t : ℝ in Set.Ioi 0,
           exp (-(t : ℂ)) * (t : ℂ) ^ (a - b / 2 - 1 / 2) *
             besselK (b - 1) (2 * (z * t) ^ (1 / 2 : ℂ)) := by
-  sorry
+  refine kummerU_eq_integral_besselK ?_ ha ha0
+  rw [mem_slitPlane_iff]
+  rcases hz.lt_or_eq with h | h
+  · exact Or.inl h
+  · refine Or.inr fun him => hz0 (Complex.ext ?_ ?_) <;> simp [← h, him]
 
 open Set MeasureTheory AAR.Gamma in
 /-- The Cahen–Mellin integral in Barnes's orientation: `e^{-v} = 1/(2π) ∫ Γ(-(σ+iy)) v^{σ+iy} dy`
@@ -1681,7 +2065,22 @@ theorem whittakerW_integral_besselK {κ μ z : ℂ} (hκ : 0 < (μ - κ).re + 1 
         ∫ t : ℝ in Set.Ioi 0,
           exp (-(t : ℂ)) * (t : ℂ) ^ (-κ - 1 / 2) *
             besselK (2 * μ) (2 * (z * t) ^ (1 / 2 : ℂ)) := by
-  sorry
+  have hzs : z ∈ slitPlane := by
+    rw [mem_slitPlane_iff]
+    rcases hz.lt_or_eq with h | h
+    · exact Or.inl h
+    · refine Or.inr fun him => hz0 (Complex.ext ?_ ?_) <;> simp [← h, him]
+  have hU := kummerU_eq_integral_besselK (a := 1 / 2 + μ - κ) (b := 1 + 2 * μ) hzs
+    (by simp at hκ' ⊢; linarith) (by simp at hκ ⊢; linarith)
+  rw [show (1 - (1 + 2 * μ)) / 2 = -μ by ring,
+    show 1 / 2 + μ - κ - (1 + 2 * μ) + 1 = 1 / 2 - μ - κ by ring,
+    show 1 / 2 + μ - κ - (1 + 2 * μ) / 2 - 1 / 2 = -κ - 1 / 2 by ring,
+    show (1 : ℂ) + 2 * μ - 1 = 2 * μ by ring] at hU
+  rw [whittakerW, hU]
+  have hp : z ^ (1 / 2 + μ) * z ^ (-μ) = z ^ (1 / 2 : ℂ) := by
+    rw [← cpow_add _ _ hz0]; ring_nf
+  rw [← hp]
+  ring
 
 @[dlmf 13.16.E11]
 theorem whittakerW_barnes {κ μ : ℂ} {x σ : ℝ} (hx : 0 < x)

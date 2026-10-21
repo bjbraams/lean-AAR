@@ -2,7 +2,8 @@
 
 ## Scope and degree of completion
 
-**Current status, 2026-10-20 (evening):** 757 explicit admissions: 759 after the
+**Current status, 2026-10-20 (late evening):** 692 explicit admissions after the
+[blocker round](#blocker-round-2026-10-20-late-evening); before it, 757: 759 after the
 [shared-helper round](#shared-helper-round-priority-2-2026-10-20), less the corrected and
 proved DLMF 14.23.7 (`conicalQHat_boundary`) and 9.13.36 (`reidAiry_connection_36`); before that round, 1,038 after the
 [project-wide triage and tier-A batch](#project-wide-admission-triage-and-statement-corrections-2026-10-20),
@@ -4783,3 +4784,93 @@ prerequisites are available: `ferrers_wronskian_5` and `associated_wronskian_11`
   appears.
 - Umbrellas `ToMathlib.lean`, `AAR/Hypergeometric.lean` and `AAR/Struve.lean` now import
   the three new files. `git diff --check` is clean, and no commit was made.
+
+## Blocker round (2026-10-20, late evening)
+
+This round attacked the six blockers listed above, one parallel agent per blocker, with
+file-level ownership. It took the project from 757 to **692** admissions (65 proved), with
+no new admission and no statement change. One more statement was found to be false and is
+left admitted for a decision.
+
+### New infrastructure
+
+- `AAR/Bessel/KIntegralRep.lean`: DLMF 10.32.9 (`besselK_eq_integral_cosh`, all ν,
+  ℜ z > 0) and 10.32.10 (`besselK_eq_integral_schlafli_of_abs_arg_lt`, |ph z| < π/4),
+  order-uniform bounds `norm_besselK_le`, `norm_besselK_le_exp`, and holomorphy of K_ν
+  and I_ν on the slit plane.
+- `AAR/Bessel/YIntegralRep.lean`: the Struve K Laplace integral 11.5.2 for all ν
+  (`struveK_eq_integral`), DLMF 10.9.5 (`besselY_eq_integral`), Poisson's integral for
+  complex z, `hankelH1_eq_integral_Ioi_one`, and the K recurrence. It imports
+  `AAR.Struve.Properties`.
+- `AAR/Bessel/YSchlafli.lean`: DLMF 10.9.7 (`besselY_eq_schlafli`), all ν, ℜ z > 0.
+- `AAR/Bessel/Schlafli.lean`: DLMF 10.9.6 (`besselJ_eq_schlafli`), complex ν, ℜ z > 0, via
+  Hankel's 1/Γ formula in exponential coordinates (`schlafli_gamma`), plus a boundary form
+  for ℜ z = 0.
+- `AAR/Bessel/ProductIntegral.lean`: DLMF 10.9.26 (`besselJ_mul_besselJ_eq_integral`) and
+  DLMF 5.12.5 for complex parameters (`integral_cos_cpow_mul_cos`).
+- `AAR/Bessel/NeumannSeries.lean`: interchange of Neumann series with power series for
+  exponents 2k and k (J and I), holomorphy, Neumann's expansion of (z/2)^l, a fibre
+  regrouping lemma, regularized 13.6.9 for all c, and two terminating identities proved by
+  WZ certificates.
+- `ToMathlib/Analysis/ODE/PowerSeriesUniqueness.lean` (Mathlib only): Taylor recurrence
+  and its converse for second-order linear ODEs, analytic uniqueness (local and on
+  preconnected open sets), Gronwall uniqueness on intervals and the line, and existence
+  and uniqueness for 2×2 linear systems on compact intervals.
+- `ToMathlib/Analysis/Asymptotics/WatsonRotated.lean` (Mathlib only): rotation of Laplace
+  rays, Watson's lemma along rotated rays, and gluing of expansions on overlapping
+  sectors.
+
+All eight files are in the umbrellas (`AAR/Bessel.lean`, `ToMathlib.lean`).
+
+### Removals by blocker
+
+- K_ν (5): 13.4.7 `kummerU_integral_besselK` (with `kummerU_eq_integral_besselK` on the
+  whole slit plane, stronger than DLMF), 13.16.8, 8.6.6, 6.7.15, 6.7.16.
+- Y_ν (11): `struveK_laplace`, `struveK_zero_laplace`, `struveH_integral_zero_div`,
+  `struveH_integral_one_div_sq`, 11.6.1 `struveK_asymptotic`, 11.6.2 `struveM_asymptotic`,
+  `struveK_remainder_sign`, 11.6.5 for H and L, and the large-order expansions of H and L.
+- Schläfli (6): `angerA_integral`, `angerA_boundary_integral`, 11.10.19, 11.10.20, 11.10.30,
+  11.10.31; `AAR/Struve/AngerWeber.lean` is now free of admissions.
+- Neumann series (13): 11.4.18–22 (`struveH_bessel_series_18/19/20`, `struveH_zero_odd`,
+  `struveH_zero_products`, `struveH_one_even`, `struveH_one_products`), 11.9.7, 11.9.8,
+  13.24.3, 13.11.1, 13.11.2, 13.24.1.
+- ODE uniqueness (12): Weber W series and both connection formulas (12.14),
+  `legendreTransport_exists`, `legendreTransport_unique`, 14.20.3, 14.20.5, Whipple 14.9.16
+  and 14.9.17 (`AAR/Legendre/Connections.lean` is now free of admissions), 14.3.16 on the
+  whole cut plane, 14.3.18.
+- Sector asymptotics (18): 7.12.1–3, 7.12.6–7 and the erfc/Fresnel remainder bound and
+  sign; 6.12.1, 6.12.2, the f/g sector expansions and two remainder bounds; 8.20.2, 8.20.3;
+  8.21.26, 8.21.27.
+
+### Newly found statement defect (left admitted, decision needed)
+
+- `regularizedHGFun_besselJ_series` (DLMF 13.11.3) is false as stated with principal
+  branches. Its hypotheses allow ph z + ph(b − 2a) > π, and then the factors
+  (b−2a)^{(1−b−s)/2}, (z/2)^{(1−b+s)/2} and J_{b−1+s}(√(2z(b−2a))) use mismatched branches.
+  At a = 0.2 − 0.5i, b = 1.4 + 0.4i, z = −1.2 + 0.3i the stated right side is
+  2.8336 − 3.3899i, while M̃(a,b,z) = 1.18529 + 0.46781i (rechecked by the coordinator with
+  mpmath). Branch-consistent factors reproduce M̃. A fix is the extra hypothesis
+  |ph z + ph(b − 2a)| < π, or an entire form in which the J_ν power prefactor is absorbed.
+
+### Remaining gaps noted by the agents
+
+- J_ν Hankel-transform integrals (13.10.14/15, 13.23.10/11 in `Confluent/Integrals`) need
+  oscillatory J_ν integral machinery.
+- Continuation of U(a, z) past |ph z| = π/2 (connection formulas or a log-plane Tricomi U)
+  blocks the parabolic-cylinder sector expansions 12.9 and `pcfWS_asymptotic`.
+- The cubic transformation behind 15.8.32 `cubic_connection` (true numerically).
+- A K_μK_ν product formula for Nicholson's integral; Gegenbauer's addition theorem.
+- Conditionally convergent Struve integrals (11.5.7, 11.7.9–12) and Barnes integrals
+  (11.5.8–9); the Struve-primitive and Anger–Weber large-parameter clusters.
+- `fresnelAux_laplace_open` gives 7.7.10–11 on the open sector; the closed-sector
+  statements in `ErrorFunctions/Integrals.lean` need only a boundary continuity step.
+
+### Validation
+
+- The ordinary build `lake build > /tmp/AAR-build.log 2>&1` passes (9,819 jobs) with 692
+  `sorry` warnings and no errors.
+- A compiled audit of 8,778 `AAR`/`ToMathlib` theorems finds exactly 692 with `sorryAx`,
+  the same set as the source census; no other non-standard axiom occurs. The 65 removed
+  names are absent from the admitted set, and no new admission appears.
+- `git diff --check` is clean. No commit was made. The per-area DLMF acquisition ledgers
+  have not been updated for this round.

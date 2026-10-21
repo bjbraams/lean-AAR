@@ -466,11 +466,394 @@ theorem expIntAuxF_laplace_integral {z : ℂ} (hz : 0 ≤ z.re) :
     simp [expIntAuxF, sinIntTail, this]
   · exact (expIntAux_laplace_hasIntegralAtTop hz0 hz).1.congr fun t _ => by simp
 
+section BesselKZeroIntegrals
+
+open AAR.Bessel
+
+/-- `∫₀^∞ e^{-ct} e^{±it} dt = 1/(c ∓ i)`. -/
+lemma integral_exp_neg_mul_exp_I {c : ℝ} (hc : 0 < c) (ε : ℂ) (hε : ε.re = 0) :
+    ∫ t : ℝ in Ioi 0, exp ((-(c : ℂ) + ε) * t) = 1 / (c - ε) := by
+  have ha : (-(c : ℂ) + ε).re < 0 := by simp [hε, hc]
+  rw [integral_exp_mul_complex_Ioi ha 0]
+  have hne : (c : ℂ) - ε ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp [hε] at this; linarith
+  simp only [ofReal_zero, mul_zero, Complex.exp_zero]
+  have hne' : -(c : ℂ) + ε ≠ 0 := by
+    intro h; apply hne; linear_combination -h
+  rw [show (c : ℂ) - ε = -(-(c : ℂ) + ε) by ring]
+  field_simp
+
+/-- `∫₀^∞ e^{-ct} cos t dt = c/(c²+1)`. -/
+lemma integral_exp_neg_mul_cos {c : ℝ} (hc : 0 < c) :
+    ∫ t : ℝ in Ioi 0, exp (-(c : ℂ) * t) * cos t = c / (c ^ 2 + 1) := by
+  have h1 := integral_exp_neg_mul_exp_I hc I (by simp)
+  have h2 := integral_exp_neg_mul_exp_I hc (-I) (by simp)
+  have i1 := integrableOn_exp_mul_complex_Ioi (a := -(c : ℂ) + I) (by simp [hc]) 0
+  have i2 := integrableOn_exp_mul_complex_Ioi (a := -(c : ℂ) + -I) (by simp [hc]) 0
+  have he : ∀ t : ℝ, exp (-(c : ℂ) * t) * cos t =
+      (1 / 2 : ℂ) * (exp ((-(c : ℂ) + I) * t) + exp ((-(c : ℂ) + -I) * t)) := by
+    intro t
+    simp only [add_mul, exp_add, Complex.cos, neg_mul]
+    ring_nf
+  simp_rw [he]
+  rw [MeasureTheory.integral_const_mul, integral_add i1 i2, h1, h2]
+  have hne1 : (c : ℂ) - I ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp at this; linarith
+  have hne2 : (c : ℂ) - -I ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp at this; linarith
+  have hne3 : (c : ℂ) ^ 2 + 1 ≠ 0 := by
+    have : ((c ^ 2 + 1 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : c ^ 2 + 1 ≠ 0)
+    push_cast at this; exact this
+  field_simp
+  ring_nf
+  rw [I_sq]
+  ring
+
+/-- `∫₀^∞ e^{-ct} sin t dt = 1/(c²+1)`. -/
+lemma integral_exp_neg_mul_sin {c : ℝ} (hc : 0 < c) :
+    ∫ t : ℝ in Ioi 0, exp (-(c : ℂ) * t) * sin t = 1 / (c ^ 2 + 1) := by
+  have h1 := integral_exp_neg_mul_exp_I hc I (by simp)
+  have h2 := integral_exp_neg_mul_exp_I hc (-I) (by simp)
+  have i1 := integrableOn_exp_mul_complex_Ioi (a := -(c : ℂ) + I) (by simp [hc]) 0
+  have i2 := integrableOn_exp_mul_complex_Ioi (a := -(c : ℂ) + -I) (by simp [hc]) 0
+  have he : ∀ t : ℝ, exp (-(c : ℂ) * t) * sin t =
+      (-I / 2 : ℂ) * (exp ((-(c : ℂ) + I) * t) - exp ((-(c : ℂ) + -I) * t)) := by
+    intro t
+    simp only [add_mul, exp_add, Complex.sin, neg_mul]
+    ring_nf
+  simp_rw [he]
+  rw [MeasureTheory.integral_const_mul, integral_sub i1 i2, h1, h2]
+  have hne1 : (c : ℂ) - I ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp at this; linarith
+  have hne2 : (c : ℂ) - -I ≠ 0 := by
+    intro h; have := congrArg Complex.re h; simp at this; linarith
+  have hne3 : (c : ℂ) ^ 2 + 1 ≠ 0 := by
+    have : ((c ^ 2 + 1 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : c ^ 2 + 1 ≠ 0)
+    push_cast at this; exact this
+  field_simp
+  ring_nf
+  rw [I_sq]
+  ring
+
+
+/-- Schläfli's integral for `2 K₀(2√(xt))` with the `t`-dependence isolated. -/
+lemma two_mul_besselK_zero_eq_integral {x t : ℝ} (hx : 0 < x) (ht : 0 < t) :
+    2 * besselK 0 (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) =
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ)⁻¹ * exp (-((x / s : ℝ) : ℂ) * t) := by
+  have hxt : 0 < x * t := mul_pos hx ht
+  have harg : 2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ) = ((2 * Real.sqrt (x * t) : ℝ) : ℂ) := by
+    rw [show (x : ℂ) * t = ((x * t : ℝ) : ℂ) by push_cast; ring,
+      show (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) by norm_num, ← ofReal_cpow hxt.le, Real.sqrt_eq_rpow]
+    push_cast; ring_nf
+  have hy : 0 < 2 * Real.sqrt (x * t) := by positivity
+  rw [harg, besselK_ofReal_eq_integral_schlafli' hy 0, neg_zero, cpow_zero, mul_one,
+    ← mul_assoc, show (2 : ℂ) * (1 / 2) = 1 by norm_num, one_mul]
+  refine setIntegral_congr_fun measurableSet_Ioi fun s hs => ?_
+  have hs0 : (0 : ℝ) < s := hs
+  have hsc : (s : ℂ) ≠ 0 := by exact_mod_cast hs0.ne'
+  have hsq : (((2 * Real.sqrt (x * t) : ℝ) : ℂ)) ^ 2 = 4 * x * t := by
+    rw [← ofReal_pow, mul_pow, Real.sq_sqrt hxt.le]; push_cast; ring
+  rw [hsq, zero_sub, cpow_neg_one, mul_comm (exp _) _, mul_comm (exp _) _, mul_assoc,
+    mul_assoc, ← exp_add]
+  congr 2
+  push_cast
+  field_simp
+  ring
+
+/-- Fubini for the Schläfli kernel of `K₀(2√(xt))` against a bounded weight. -/
+lemma integral_besselK_zero_swap {x : ℝ} (hx : 0 < x) {wt : ℝ → ℂ} (hwm : Measurable wt)
+    (hw1 : ∀ t, ‖wt t‖ ≤ 1) :
+    ∫ t : ℝ in Ioi 0, (∫ s : ℝ in Ioi 0,
+        exp (-(s : ℂ)) * (s : ℂ)⁻¹ * exp (-((x / s : ℝ) : ℂ) * t)) * wt t =
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ)⁻¹ *
+        ∫ t : ℝ in Ioi 0, exp (-((x / s : ℝ) : ℂ) * t) * wt t := by
+  set f : ℝ → ℝ → ℂ := fun s t =>
+    exp (-(s : ℂ)) * (s : ℂ)⁻¹ * exp (-((x / s : ℝ) : ℂ) * t) * wt t with hf
+  have hmeas : Measurable (Function.uncurry f) := by
+    simp only [hf]
+    have : Measurable fun p : ℝ × ℝ => wt p.2 := hwm.comp measurable_snd
+    fun_prop
+  have hbound : ∀ s t : ℝ, 0 < s → ‖f s t‖ ≤ Real.exp (-s) * s⁻¹ * Real.exp (-(x / s) * t) := by
+    intro s t hs
+    simp only [hf, norm_mul, norm_inv, Complex.norm_exp, neg_re, ofReal_re, mul_re, ofReal_im,
+      mul_zero, sub_zero, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hs]
+    calc _ ≤ Real.exp (-s) * s⁻¹ * Real.exp (-(x / s) * t) * 1 := by gcongr; exact hw1 t
+      _ = _ := by ring
+  have hint : Integrable (Function.uncurry f) ((volume.restrict (Ioi (0 : ℝ))).prod
+      (volume.restrict (Ioi (0 : ℝ)))) := by
+    rw [integrable_prod_iff hmeas.aestronglyMeasurable]
+    constructor
+    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with s hs
+      have hs0 : (0 : ℝ) < s := hs
+      refine Integrable.mono' ((exp_neg_integrableOn_Ioi 0 (div_pos hx hs0)).const_mul
+        (Real.exp (-s) * s⁻¹)) (hmeas.comp measurable_prodMk_left).aestronglyMeasurable ?_
+      exact Eventually.of_forall fun t => by
+        simpa [Function.uncurry, mul_assoc] using hbound s t hs0
+    · refine Integrable.mono' (((exp_neg_integrableOn_Ioi 0 zero_lt_one).const_mul x⁻¹))
+        (hmeas.norm.stronglyMeasurable.integral_prod_right'.aestronglyMeasurable) ?_
+      filter_upwards [ae_restrict_mem measurableSet_Ioi] with s hs
+      have hs0 : (0 : ℝ) < s := hs
+      rw [Real.norm_eq_abs, abs_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
+      have hb : 0 < x / s := div_pos hx hs0
+      calc ∫ t in Ioi 0, ‖Function.uncurry f (s, t)‖ ≤
+            ∫ t in Ioi 0, Real.exp (-s) * s⁻¹ * Real.exp (-(x / s) * t) := by
+            refine integral_mono_of_nonneg (Eventually.of_forall fun _ => norm_nonneg _)
+              ((exp_neg_integrableOn_Ioi 0 hb).const_mul _) (Eventually.of_forall fun t => ?_)
+            exact hbound s t hs0
+        _ = x⁻¹ * Real.exp (-1 * s) := by
+            rw [MeasureTheory.integral_const_mul, integral_exp_mul_Ioi (by linarith) 0]
+            simp only [mul_zero, Real.exp_zero, neg_one_mul]
+            field_simp
+  have h := integral_integral_swap hint
+  calc _ = ∫ t : ℝ in Ioi 0, ∫ s : ℝ in Ioi 0, f s t :=
+        integral_congr_ae (Eventually.of_forall fun t => (integral_mul_const _ _).symm)
+    _ = ∫ s : ℝ in Ioi 0, ∫ t : ℝ in Ioi 0, f s t := h.symm
+    _ = _ := by
+      refine integral_congr_ae (Eventually.of_forall fun s => ?_)
+      simp only [hf]
+      rw [← MeasureTheory.integral_const_mul]
+      exact integral_congr_ae (Eventually.of_forall fun t => by simp only; ring)
+
+/-- `‖cos t‖ ≤ 1` for real `t`. -/
+lemma norm_cos_ofReal_le_one (t : ℝ) : ‖cos (t : ℂ)‖ ≤ 1 := by
+  rw [← ofReal_cos, Complex.norm_real, Real.norm_eq_abs]; exact Real.abs_cos_le_one t
+
+/-- `‖sin t‖ ≤ 1` for real `t`. -/
+lemma norm_sin_ofReal_le_one (t : ℝ) : ‖sin (t : ℂ)‖ ≤ 1 := by
+  rw [← ofReal_sin, Complex.norm_real, Real.norm_eq_abs]; exact Real.abs_sin_le_one t
+
+/-- Reduction of `2∫₀^∞ K₀(2√(xt)) wt(t) dt` to a single `s`-integral. -/
+lemma two_mul_integral_besselK_zero_mul {x : ℝ} (hx : 0 < x) {wt : ℝ → ℂ} (hwm : Measurable wt)
+    (hw1 : ∀ t, ‖wt t‖ ≤ 1) :
+    2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) * wt t =
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ)⁻¹ *
+        ∫ t : ℝ in Ioi 0, exp (-((x / s : ℝ) : ℂ) * t) * wt t := by
+  rw [← integral_besselK_zero_swap hx hwm hw1, ← MeasureTheory.integral_const_mul]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+  rw [← two_mul_besselK_zero_eq_integral hx ht]
+  ring
+
+/-- The Laplace representations of `f(x)` and `g(x)` as Lebesgue integrals, for `x > 0`. -/
+lemma expIntAux_ofReal_laplace_Ioi {x : ℝ} (hx : 0 < x) :
+    expIntAuxF x = ∫ u : ℝ in Ioi 0, exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1) ∧
+    expIntAuxG x = ∫ u : ℝ in Ioi 0, (u : ℂ) * exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1) := by
+  have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  obtain ⟨h1, h2⟩ := expIntAux_laplace_hasIntegralAtTop hx0 (by simp [hx.le])
+  have hden : ∀ u : ℝ, 1 ≤ ‖(u : ℂ) ^ 2 + 1‖ := fun u => by
+    rw [show ((u : ℂ) ^ 2 + 1) = ((u ^ 2 + 1 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_pos (by positivity)]
+    nlinarith [sq_nonneg u]
+  have hne : ∀ u : ℝ, (u : ℂ) ^ 2 + 1 ≠ 0 := fun u h => by
+    have := hden u; rw [h, norm_zero] at this; linarith
+  have hE : ∀ u : ℝ, ‖exp (-(x : ℂ) * u)‖ = Real.exp (-x * u) := fun u => by
+    rw [Complex.norm_exp]; congr 1; simp
+  have hdom := exp_neg_integrableOn_Ioi 0 hx
+  have i1 : IntegrableOn (fun u : ℝ => exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1)) (Ioi 0) := by
+    refine hdom.mono' ((Continuous.div (by fun_prop) (by fun_prop) hne).aestronglyMeasurable)
+      (Eventually.of_forall fun u => ?_)
+    rw [norm_div, hE]
+    exact div_le_self (Real.exp_pos _).le (hden u)
+  have i2 : IntegrableOn (fun u : ℝ => (u : ℂ) * exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1))
+      (Ioi 0) := by
+    refine hdom.mono' ((Continuous.div (by fun_prop) (by fun_prop) hne).aestronglyMeasurable)
+      ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+    have hu0 : (0 : ℝ) < u := hu
+    rw [norm_div, norm_mul, hE, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hu0,
+      show ((u : ℂ) ^ 2 + 1) = ((u ^ 2 + 1 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_pos (by positivity), div_le_iff₀ (by positivity)]
+    have := (Real.exp_pos (-x * u)).le
+    nlinarith [sq_nonneg (u - 1)]
+  exact ⟨(tendsto_nhds_unique (intervalIntegral_tendsto_integral_Ioi 0 i1 tendsto_id) h1).symm,
+    (tendsto_nhds_unique (intervalIntegral_tendsto_integral_Ioi 0 i2 tendsto_id) h2).symm⟩
+
+/-- Real-variable form of DLMF 6.7.15. -/
+lemma expIntAuxF_ofReal_eq_integral_besselK {x : ℝ} (hx : 0 < x) :
+    expIntAuxF x = 2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) * cos t := by
+  rw [two_mul_integral_besselK_zero_mul hx (by fun_prop) norm_cos_ofReal_le_one]
+  have h1 : ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ)⁻¹ *
+        ∫ t : ℝ in Ioi 0, exp (-((x / s : ℝ) : ℂ) * t) * cos t =
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * x / ((s : ℂ) ^ 2 + x ^ 2) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun s hs => ?_
+    have hs0 : (0 : ℝ) < s := hs
+    rw [integral_exp_neg_mul_cos (div_pos hx hs0)]
+    have hsc : (s : ℂ) ≠ 0 := by exact_mod_cast hs0.ne'
+    have hxc : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hne : (s : ℂ) ^ 2 + x ^ 2 ≠ 0 := by
+      have : ((s ^ 2 + x ^ 2 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : s ^ 2 + x ^ 2 ≠ 0)
+      push_cast at this; exact this
+    push_cast
+    have hq : ((x : ℂ) / s) ^ 2 + 1 = ((s : ℂ) ^ 2 + x ^ 2) / s ^ 2 := by field_simp; ring
+    rw [hq]
+    field_simp
+  have h2 : ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * x / ((s : ℂ) ^ 2 + x ^ 2) =
+      ∫ u : ℝ in Ioi 0, exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1) := by
+    have h := integral_comp_mul_left_Ioi
+      (fun s : ℝ => exp (-(s : ℂ)) * x / ((s : ℂ) ^ 2 + x ^ 2)) 0 hx
+    rw [mul_zero] at h
+    rw [← smul_inv_smul₀ hx.ne' (∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * x / ((s : ℂ) ^ 2 + x ^ 2)),
+      ← h, ← integral_smul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun u _ => ?_
+    have hxc : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hne : (u : ℂ) ^ 2 + 1 ≠ 0 := by
+      have : ((u ^ 2 + 1 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : u ^ 2 + 1 ≠ 0)
+      push_cast at this; exact this
+    rw [Complex.real_smul]
+    push_cast
+    rw [show ((x : ℂ) * u) ^ 2 + x ^ 2 = x ^ 2 * (u ^ 2 + 1) by ring, neg_mul]
+    field_simp
+  rw [h1, h2]
+  exact (expIntAux_ofReal_laplace_Ioi hx).1
+
+/-- Real-variable form of DLMF 6.7.16. -/
+lemma expIntAuxG_ofReal_eq_integral_besselK {x : ℝ} (hx : 0 < x) :
+    expIntAuxG x = 2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) * sin t := by
+  rw [two_mul_integral_besselK_zero_mul hx (by fun_prop) norm_sin_ofReal_le_one]
+  have h1 : ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * (s : ℂ)⁻¹ *
+        ∫ t : ℝ in Ioi 0, exp (-((x / s : ℝ) : ℂ) * t) * sin t =
+      ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * s / ((s : ℂ) ^ 2 + x ^ 2) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun s hs => ?_
+    have hs0 : (0 : ℝ) < s := hs
+    rw [integral_exp_neg_mul_sin (div_pos hx hs0)]
+    have hsc : (s : ℂ) ≠ 0 := by exact_mod_cast hs0.ne'
+    have hxc : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hne : (s : ℂ) ^ 2 + x ^ 2 ≠ 0 := by
+      have : ((s ^ 2 + x ^ 2 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : s ^ 2 + x ^ 2 ≠ 0)
+      push_cast at this; exact this
+    push_cast
+    have hq : ((x : ℂ) / s) ^ 2 + 1 = ((s : ℂ) ^ 2 + x ^ 2) / s ^ 2 := by field_simp; ring
+    rw [hq]
+    field_simp
+  have h2 : ∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * s / ((s : ℂ) ^ 2 + x ^ 2) =
+      ∫ u : ℝ in Ioi 0, (u : ℂ) * exp (-(x : ℂ) * u) / ((u : ℂ) ^ 2 + 1) := by
+    have h := integral_comp_mul_left_Ioi
+      (fun s : ℝ => exp (-(s : ℂ)) * s / ((s : ℂ) ^ 2 + x ^ 2)) 0 hx
+    rw [mul_zero] at h
+    rw [← smul_inv_smul₀ hx.ne' (∫ s : ℝ in Ioi 0, exp (-(s : ℂ)) * s / ((s : ℂ) ^ 2 + x ^ 2)),
+      ← h, ← integral_smul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun u _ => ?_
+    have hxc : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hne : (u : ℂ) ^ 2 + 1 ≠ 0 := by
+      have : ((u ^ 2 + 1 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast (by positivity : u ^ 2 + 1 ≠ 0)
+      push_cast at this; exact this
+    rw [Complex.real_smul]
+    push_cast
+    rw [show ((x : ℂ) * u) ^ 2 + x ^ 2 = x ^ 2 * (u ^ 2 + 1) by ring, neg_mul]
+    field_simp
+  rw [h1, h2]
+  exact (expIntAux_ofReal_laplace_Ioi hx).2
+
+/-- Holomorphy on the slit plane of `z ↦ ∫₀^∞ K₀(2√(zt)) wt(t) dt` for a bounded continuous `wt`. -/
+lemma differentiableOn_integral_besselK_zero_mul {wt : ℝ → ℂ} (hwc : Continuous wt)
+    (hw1 : ∀ t, ‖wt t‖ ≤ 1) :
+    DifferentiableOn ℂ (fun z : ℂ => ∫ t : ℝ in Ioi 0,
+      besselK 0 (2 * (z * t) ^ (1 / 2 : ℂ)) * wt t) slitPlane := by
+  refine Complex.differentiableOn_integral_Ioi_of_locally_dominated isOpen_slitPlane 0
+    (fun z hz => ?_) ?_ (fun z₀ hz₀ => ?_)
+  · refine ContinuousOn.aestronglyMeasurable (fun t ht => ?_) measurableSet_Ioi
+    have ht0 : (0 : ℝ) < t := ht
+    refine ContinuousAt.continuousWithinAt ?_
+    have hzt : z * t ∈ slitPlane := mul_ofReal_mem_slitPlane hz ht0
+    have hw := two_mul_cpow_half_mem_slitPlane hz ht0
+    have hc : ContinuousAt (fun s : ℝ => (s : ℂ)) t := continuous_ofReal.continuousAt
+    have hK : ContinuousAt (besselK 0) (2 * (z * t) ^ (1 / 2 : ℂ)) :=
+      (differentiableOn_besselK_slitPlane 0).continuousOn.continuousAt
+        (isOpen_slitPlane.mem_nhds hw)
+    have hin : ContinuousAt (fun s : ℝ => 2 * (z * s) ^ (1 / 2 : ℂ)) t :=
+      continuousAt_const.mul ((continuousAt_const.mul hc).cpow continuousAt_const hzt)
+    exact (hK.comp (f := fun s : ℝ => 2 * (z * s) ^ (1 / 2 : ℂ)) hin).mul hwc.continuousAt
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    have ht0 : (0 : ℝ) < t := ht
+    intro z hz
+    have hzt : z * t ∈ slitPlane := mul_ofReal_mem_slitPlane hz ht0
+    have hw := two_mul_cpow_half_mem_slitPlane hz ht0
+    have hK := (hasDerivAt_besselK 0 hw).differentiableAt
+    have hin : DifferentiableAt ℂ (fun z : ℂ => 2 * (z * t) ^ (1 / 2 : ℂ)) z :=
+      ((differentiableAt_id.mul_const (t : ℂ)).cpow_const hzt).const_mul 2
+    exact ((hK.comp z hin).mul_const _).differentiableWithinAt
+  · set c := (z₀ ^ (1 / 2 : ℂ)).re / 2
+    have hc0 : 0 < c := half_pos (re_cpow_half_pos_of_mem_slitPlane hz₀)
+    have hcont : ContinuousAt (fun z : ℂ => (z ^ (1 / 2 : ℂ)).re) z₀ :=
+      continuous_re.continuousAt.comp (continuousAt_id.cpow continuousAt_const hz₀)
+    have hV : {z : ℂ | c < (z ^ (1 / 2 : ℂ)).re} ∩ slitPlane ∈ 𝓝 z₀ :=
+      Filter.inter_mem (hcont.eventually (lt_mem_nhds (half_lt_self
+        (re_cpow_half_pos_of_mem_slitPlane hz₀)))) (isOpen_slitPlane.mem_nhds hz₀)
+    have hs : (0 : ℝ) < 1 / 2 := by norm_num
+    have hνs : |(0 : ℂ).re| ≤ 1 / 2 := by norm_num
+    refine ⟨_, hV, fun t => Real.Gamma (1 / 2) * (c / 2) ^ (-(1 / 2 : ℝ)) *
+        (t ^ (-(1 / 4 : ℝ)) * Real.exp (-c * t ^ (1 / 2 : ℝ))),
+      (integrableOn_rpow_mul_exp_neg_mul_rpow (by norm_num) (by norm_num) hc0).const_mul _, ?_⟩
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht z hz
+    have ht0 : (0 : ℝ) < t := ht
+    have hzs : z ∈ slitPlane := hz.2
+    have hzc : c < (z ^ (1 / 2 : ℂ)).re := hz.1
+    have hz0 := slitPlane_ne_zero hzs
+    have hsq := Real.sqrt_pos.mpr ht0
+    have hre := re_two_mul_cpow_half_mul_ofReal hz0 ht0
+    have hrepos : 0 < (2 * (z * t) ^ (1 / 2 : ℂ)).re := by rw [hre]; nlinarith
+    have hKb := norm_besselK_le_exp hrepos hs hνs
+    have hge : Real.sqrt t * c / 2 ≤ (2 * (z * t) ^ (1 / 2 : ℂ)).re / 4 := by
+      rw [hre]; nlinarith
+    have hge' : Real.sqrt t * c ≤ (2 * (z * t) ^ (1 / 2 : ℂ)).re / 2 := by
+      rw [hre]; nlinarith
+    have hpow : ((2 * (z * t) ^ (1 / 2 : ℂ)).re / 4) ^ (-(1 / 2 : ℝ)) ≤
+        (Real.sqrt t * c / 2) ^ (-(1 / 2 : ℝ)) :=
+      Real.rpow_le_rpow_of_nonpos (by positivity) hge (by norm_num)
+    have hsplit : (Real.sqrt t * c / 2) ^ (-(1 / 2 : ℝ)) =
+        t ^ (-(1 / 4 : ℝ)) * (c / 2) ^ (-(1 / 2 : ℝ)) := by
+      rw [mul_div_assoc, Real.mul_rpow hsq.le (by positivity), Real.sqrt_eq_rpow,
+        ← Real.rpow_mul ht0.le]
+      norm_num
+    have hexp : Real.exp (-((2 * (z * t) ^ (1 / 2 : ℂ)).re / 2)) ≤
+        Real.exp (-c * t ^ (1 / 2 : ℝ)) := by
+      rw [Real.exp_le_exp, ← Real.sqrt_eq_rpow]; linarith
+    have hG : 0 ≤ Real.Gamma (1 / 2) := (Real.Gamma_pos_of_pos hs).le
+    rw [norm_mul]
+    calc ‖besselK 0 (2 * (z * t) ^ (1 / 2 : ℂ))‖ * ‖wt t‖
+        ≤ ‖besselK 0 (2 * (z * t) ^ (1 / 2 : ℂ))‖ * 1 := by gcongr; exact hw1 t
+      _ ≤ Real.exp (-c * t ^ (1 / 2 : ℝ)) *
+            (Real.Gamma (1 / 2) * (t ^ (-(1 / 4 : ℝ)) * (c / 2) ^ (-(1 / 2 : ℝ)))) := by
+          rw [mul_one]
+          refine hKb.trans (mul_le_mul hexp (mul_le_mul_of_nonneg_left (hpow.trans hsplit.le) hG)
+            (by positivity) (Real.exp_pos _).le)
+      _ = _ := by ring
+
+/-- Identity-theorem extension from the positive axis for the Bessel-`K₀` integrals. -/
+lemma eqOn_slitPlane_of_ofReal_besselK_zero {f : ℂ → ℂ} (hf : DifferentiableOn ℂ f slitPlane)
+    {wt : ℝ → ℂ} (hwc : Continuous wt) (hw1 : ∀ t, ‖wt t‖ ≤ 1)
+    (hx : ∀ x : ℝ, 0 < x → f x =
+      2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * ((x : ℂ) * t) ^ (1 / 2 : ℂ)) * wt t)
+    {z : ℂ} (hz : z ∈ slitPlane) :
+    f z = 2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * (z * t) ^ (1 / 2 : ℂ)) * wt t := by
+  have hf' : AnalyticOnNhd ℂ f slitPlane := hf.analyticOnNhd isOpen_slitPlane
+  have hg : AnalyticOnNhd ℂ (fun z : ℂ => 2 * ∫ t : ℝ in Ioi 0,
+      besselK 0 (2 * (z * t) ^ (1 / 2 : ℂ)) * wt t) slitPlane :=
+    ((differentiableOn_integral_besselK_zero_mul hwc hw1).const_mul 2).analyticOnNhd
+      isOpen_slitPlane
+  have hfreq : ∃ᶠ w in 𝓝[≠] (1 : ℂ), f w =
+      2 * ∫ t : ℝ in Ioi 0, besselK 0 (2 * (w * t) ^ (1 / 2 : ℂ)) * wt t := by
+    have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] 1) (𝓝[≠] (1 : ℂ)) := by
+      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+      · exact ((continuous_ofReal.tendsto 1).mono_left nhdsWithin_le_nhds).trans (by simp)
+      · filter_upwards [self_mem_nhdsWithin] with r hr
+        simpa only [Set.mem_compl_iff, Set.mem_singleton_iff, ofReal_eq_one] using hr
+    apply ht.frequently
+    apply Eventually.frequently
+    filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (zero_lt_one' ℝ))] with r hr
+    exact hx r hr
+  exact hf'.eqOn_of_preconnected_of_frequently_eq hg
+    (starConvex_one_slitPlane.isPathConnected one_mem_slitPlane).isConnected.isPreconnected
+    one_mem_slitPlane hfreq hz
+
+end BesselKZeroIntegrals
+
 /-- expIntAuxF besselK integral. -/
 @[dlmf 6.7.E15]
 theorem expIntAuxF_besselK_integral {z : ℂ} (hz : z ∈ slitPlane) :
-    expIntAuxF z = 2*∫ t : ℝ in Ioi 0, AAR.Bessel.besselK 0 (2*(z*t)^(1/2 : ℂ))*cos t := by
-  sorry
+    expIntAuxF z = 2*∫ t : ℝ in Ioi 0, AAR.Bessel.besselK 0 (2*(z*t)^(1/2 : ℂ))*cos t :=
+  eqOn_slitPlane_of_ofReal_besselK_zero (fun w hw => (hasDerivAt_expIntAuxF hw).differentiableAt
+    |>.differentiableWithinAt) (by fun_prop) norm_cos_ofReal_le_one
+    (fun x hx => expIntAuxF_ofReal_eq_integral_besselK hx) hz
 
 /-- expIntAuxG oscillatory integral. -/
 @[dlmf 6.7.E14]
@@ -508,8 +891,10 @@ theorem expIntAuxG_laplace_integral {z : ℂ} (hz : 0 ≤ z.re) (hz0 : z ≠ 0) 
 /-- expIntAuxG besselK integral. -/
 @[dlmf 6.7.E16]
 theorem expIntAuxG_besselK_integral {z : ℂ} (hz : z ∈ slitPlane) :
-    expIntAuxG z = 2*∫ t : ℝ in Ioi 0, AAR.Bessel.besselK 0 (2*(z*t)^(1/2 : ℂ))*sin t := by
-  sorry
+    expIntAuxG z = 2*∫ t : ℝ in Ioi 0, AAR.Bessel.besselK 0 (2*(z*t)^(1/2 : ℂ))*sin t :=
+  eqOn_slitPlane_of_ofReal_besselK_zero (fun w hw => (hasDerivAt_expIntAuxG hw).differentiableAt
+    |>.differentiableWithinAt) (by fun_prop) norm_sin_ofReal_le_one
+    (fun x hx => expIntAuxG_ofReal_eq_integral_besselK hx) hz
 
 /-- expIntE1 inequality 1. -/
 @[dlmf 6.8.E1]

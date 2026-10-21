@@ -40,11 +40,119 @@ theorem conical_ode (τ μ : ℝ) (hμ : 0 ≤ μ) (hτ : 0 ≤ τ) {x : ℝ} (h
   rw [e]
   linear_combination h + (-(τ:ℂ)^2 * ferrersP (-1/2+I*τ) (-(μ:ℂ)) x) * I_sq
 
+/-- The conical Ferrers function is real-valued on `(-1,1)`. -/
+lemma conicalP_ofReal_re (τ μ : ℝ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
+    ((conicalP τ μ x).re : ℂ) = conicalP τ μ x := by
+  rw [Complex.conj_eq_iff_re.mp]
+  show (starRingEnd ℂ) (ferrersP (-1/2+I*τ) (-(μ:ℂ)) x) = ferrersP (-1/2+I*τ) (-(μ:ℂ)) x
+  rw [ferrersP_conj _ _ hx]
+  have e1 : (starRingEnd ℂ) (-1/2+I*(τ:ℂ)) = -(-1/2+I*τ)-1 := by
+    apply Complex.ext
+    · simp [map_ofNat]; norm_num
+    · simp [map_ofNat]
+  have e2 : (starRingEnd ℂ) (-(μ:ℂ)) = -(μ:ℂ) := by simp
+  rw [e1, e2, ferrers_connection_5 _ _ hx]
+
+/-- Differentiability of the conical function on `(-1,1)`. -/
+lemma conicalP_differentiableAt (τ μ : ℝ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
+    DifferentiableAt ℝ (conicalP τ μ) x :=
+  (((hasDerivAt_ferrersEven _ _ hx).const_mul _).add ((hasDerivAt_ferrersOdd _ _ hx).const_mul _)
+    ).differentiableAt.congr_of_eventuallyEq
+    ((ferrersP_eqOn_even_odd _ _).eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx))
+
 /-- conicalQHat connection. -/
 @[dlmf 14.20.E3]
 theorem conicalQHat_connection {τ μ : ℝ} (hτ : 0 ≤ τ) (hμ : 0 ≤ μ) (hex : τ ≠ 0 ∨ ∀ n : ℕ, μ ≠ n+1/2) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     conicalQHat τ μ x=π*Real.exp (-τ*π)*Real.sin (μ*π)*Real.sinh (τ*π)/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))*conicalP τ μ x+π*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))*conicalP τ μ (-x) := by
-  sorry
+  have hxm : -x ∈ Ioo (-1:ℝ) 1 := ⟨by linarith [hx.2], by linarith [hx.1]⟩
+  set ν : ℂ := -1/2+I*τ with hν
+  have hreg1 : LegendreQRegular ν (μ:ℂ) := by
+    intro n hn
+    have := congrArg Complex.re hn
+    simp [hν] at this
+    linarith
+  have hreg2 : LegendreQRegular ν (-(μ:ℂ)) := by
+    intro n hn
+    have hr := congrArg Complex.re hn
+    have hi := congrArg Complex.im hn
+    simp [hν] at hr hi
+    rcases hex with h | h
+    · exact h hi
+    · exact h n (by linarith)
+  have h10 := ferrers_connection_10 ν (μ:ℂ) hreg1 hreg2 hx
+  have hw : (ν-μ)*π = ((-(μ*π) - π/2 : ℝ):ℂ) + ((τ*π:ℝ):ℂ)*I := by rw [hν]; push_cast; ring
+  have hsw : sin ((ν-μ)*π) = ((-(Real.cos (μ*π)*Real.cosh (τ*π))):ℝ) + (-(Real.sin (μ*π)*Real.sinh (τ*π)):ℝ)*I := by
+    rw [hw, Complex.sin_add_mul_I, ← ofReal_sin, ← ofReal_cos, ← ofReal_sinh, ← ofReal_cosh,
+      Real.sin_sub_pi_div_two, Real.cos_sub_pi_div_two, Real.cos_neg, Real.sin_neg]
+    simp only [ofReal_neg, ofReal_mul]; ring
+  have hcw : cos ((ν-μ)*π) = (-(Real.sin (μ*π)*Real.cosh (τ*π)):ℝ) + (Real.cos (μ*π)*Real.sinh (τ*π):ℝ)*I := by
+    rw [hw, Complex.cos_add_mul_I, ← ofReal_sin, ← ofReal_cos, ← ofReal_sinh, ← ofReal_cosh,
+      Real.sin_sub_pi_div_two, Real.cos_sub_pi_div_two, Real.cos_neg, Real.sin_neg]
+    simp only [ofReal_neg, ofReal_mul]; ring
+  have he : exp (μ*π*I) = (Real.cos (μ*π):ℂ) + (Real.sin (μ*π):ℂ)*I := by
+    rw [show (μ:ℂ)*π*I = ((μ*π:ℝ):ℂ)*I by push_cast; ring, exp_mul_I, ← ofReal_sin, ← ofReal_cos]
+  have hexp : Real.exp (-τ*π) = Real.cosh (τ*π) - Real.sinh (τ*π) := by
+    rw [show -τ*π = -(τ*π) by ring, Real.cosh_eq, Real.sinh_eq]; ring
+  have hc0 : τ = 0 → Real.cos (μ*π) ≠ 0 := by
+    intro h0 hc0
+    obtain ⟨k, hk⟩ := Real.cos_eq_zero_iff.mp hc0
+    have hk' : μ = k + 1/2 := by
+      have := Real.pi_pos
+      field_simp at hk; linarith
+    rcases hex with h | h
+    · exact h h0
+    · have hk0 : (0:ℤ) ≤ k := by
+        have : (-1:ℝ) < k := by linarith
+        exact_mod_cast (show (-1:ℤ) < k by exact_mod_cast this)
+      apply h k.toNat
+      rw [hk']; congr 1; exact_mod_cast (Int.toNat_of_nonneg hk0).symm
+  have hS0 : τ ≠ 0 → Real.sinh (τ*π) ≠ 0 := by
+    intro h; rw [Ne, Real.sinh_eq_zero]; exact mul_ne_zero h Real.pi_ne_zero
+  unfold conicalQHat
+  rw [← conicalP_ofReal_re τ μ hx, ← conicalP_ofReal_re τ μ hxm]
+  have hp : ferrersP ν (-(μ:ℂ)) x = (conicalP τ μ x).re := (conicalP_ofReal_re τ μ hx).symm
+  have hq : ferrersP ν (-(μ:ℂ)) (-x) = (conicalP τ μ (-x)).re := (conicalP_ofReal_re τ μ hxm).symm
+  rw [hp, hq, hsw, hcw] at h10
+  rw [he, hexp]
+  generalize (conicalP τ μ x).re = p at h10 ⊢
+  generalize (conicalP τ μ (-x)).re = q at h10 ⊢
+  generalize ferrersQ ν (-(μ:ℂ)) x = Q at h10 ⊢
+  have pyth : Real.sin (μ*π)^2+Real.cos (μ*π)^2 = 1 := Real.sin_sq_add_cos_sq _
+  have hyp : Real.cosh (τ*π)^2 - Real.sinh (τ*π)^2 = 1 := Real.cosh_sq_sub_sinh_sq _
+  have hC : 1 ≤ Real.cosh (τ*π) := Real.one_le_cosh _
+  generalize Real.cos (μ*π) = c at *
+  generalize Real.sin (μ*π) = s at *
+  generalize Real.cosh (τ*π) = C at *
+  generalize Real.sinh (τ*π) = S at *
+  have hD : 0 < C^2 - s^2 := by
+    by_cases h0 : τ = 0
+    · nlinarith [sq_pos_of_ne_zero (hc0 h0), sq_nonneg S]
+    · nlinarith [sq_pos_of_ne_zero (hS0 h0), sq_nonneg c]
+  have hPi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have key : (((-(c*C)):ℝ) + (-(s*S):ℝ)*I) * ((-(c*C):ℝ) - (-(s*S):ℝ)*I) = ((C^2-s^2:ℝ):ℂ) := by
+    have e : ((c*C)^2 + (s*S)^2 : ℝ) = C^2-s^2 := by linear_combination C^2*pyth - s^2*hyp
+    rw [← e]; apply Complex.ext <;> simp only [mul_re, mul_im, add_re, add_im, sub_re, sub_im, ofReal_re, ofReal_im, I_re, I_im] <;> ring
+  have h2 : (2/π*(C^2-s^2:ℝ):ℂ) * Q = (((-(s*C):ℝ) + (c*S:ℝ)*I) * p - q) * ((-(c*C):ℝ) - (-(s*S):ℝ)*I) := by
+    linear_combination ((-(c*C):ℝ) - (-(s*S):ℝ)*I) * h10 - (2/π*Q) * key
+  have hQ : Q = ((π/2/(C^2-s^2) : ℝ):ℂ) * ((((-(s*C):ℝ) + (c*S:ℝ)*I) * p - q) * ((-(c*C):ℝ) - (-(s*S):ℝ)*I)) := by
+    rw [← h2]
+    have : ((C^2-s^2:ℝ):ℂ) ≠ 0 := ofReal_ne_zero.mpr hD.ne'
+    push_cast at this ⊢
+    field_simp
+  have hre : (((c:ℂ) + (s:ℂ)*I) * Q).re = π/2/(C^2-s^2) * ((-(c^2*C+s^2*S))*(-(s*C*p)-q) - c*s*(S-C)*(c*S*p)) := by
+    rw [hQ]; simp only [mul_re, mul_im, add_re, add_im, sub_re, sub_im, ofReal_re, ofReal_im, I_re, I_im]; ring
+  rw [hre]
+  have hfin : π/2/(C^2-s^2) * ((-(c^2*C+s^2*S))*(-(s*C*p)-q) - c*s*(S-C)*(c*S*p)) - π/2*s*p
+      - (π*(C-S)*s*S/(2*(C^2-s^2))*p + π*((C-S)*c^2+S)/(2*(C^2-s^2))*q)
+      = π/(2*(C^2-s^2)) * (p*((s*S*C+s)*(s^2+c^2-1) + s*(c^2-1)*(C^2-S^2-1)) + q*(S*(s^2+c^2-1))) := by
+    field_simp; ring
+  rw [show s^2+c^2-1 = 0 by linarith, show C^2-S^2-1 = 0 by linarith] at hfin
+  have : π/2/(C^2-s^2) * ((-(c^2*C+s^2*S))*(-(s*C*p)-q) - c*s*(S-C)*(c*S*p)) - π/2*s*p
+      = π*(C-S)*s*S/(2*(C^2-s^2))*p + π*((C-S)*c^2+S)/(2*(C^2-s^2))*q := by linarith [hfin]
+  rw [← sub_eq_zero]
+  have h3 := congrArg (fun r : ℝ => (r:ℂ)) this
+  push_cast at h3 ⊢
+  linear_combination h3
 
 /-- conical wronskian. -/
 @[dlmf 14.20.E4]
@@ -63,7 +171,32 @@ theorem conical_wronskian (τ μ : ℝ) (hτ : 0 ≤ τ) (hμ : 0 ≤ μ) {x : �
 @[dlmf 14.20.E5]
 theorem conicalQHat_wronskian {τ μ : ℝ} (hτ : 0 ≤ τ) (hμ : 0 ≤ μ) (hex : τ ≠ 0 ∨ ∀ n : ℕ, μ ≠ n+1/2) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     ferrersWronskian (conicalP τ μ) (conicalQHat τ μ) x=π*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/((‖Gamma (μ+1/2+I*τ)‖^2:ℂ)*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2)*(1-x^2)) := by
-  sorry
+  set A : ℂ := π*Real.exp (-τ*π)*Real.sin (μ*π)*Real.sinh (τ*π)/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))
+  set B : ℂ := π*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/(2*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2))
+  have hev : conicalQHat τ μ =ᶠ[nhds x] fun y => A*conicalP τ μ y+B*conicalP τ μ (-y) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+    exact conicalQHat_connection hτ hμ hex hy
+  have hxm : -x ∈ Ioo (-1:ℝ) 1 := ⟨by linarith [hx.2], by linarith [hx.1]⟩
+  have hd1 : DifferentiableAt ℝ (conicalP τ μ) x := conicalP_differentiableAt τ μ hx
+  have hd2 : DifferentiableAt ℝ (fun y => conicalP τ μ (-y)) x :=
+    (conicalP_differentiableAt τ μ hxm).comp x differentiableAt_id.neg
+  have hW := conical_wronskian τ μ hτ hμ hx
+  unfold ferrersWronskian at hW ⊢
+  have hder : deriv (fun y => A*conicalP τ μ y+B*conicalP τ μ (-y)) x =
+      A*deriv (conicalP τ μ) x + B*deriv (fun y => conicalP τ μ (-y)) x :=
+    ((hd1.hasDerivAt.const_mul A).add (hd2.hasDerivAt.const_mul B)).deriv
+  rw [hev.deriv_eq, hev.eq_of_nhds, hder]
+  have hW' : conicalP τ μ x * deriv (fun x => conicalP τ μ (-x)) x - conicalP τ μ (-x) * deriv (conicalP τ μ) x =
+      2 / (↑‖Gamma (↑μ + 1 / 2 + I * ↑τ)‖ ^ 2 * (1 - ↑x ^ 2)) := hW
+  have hfin : B * (2 / (↑‖Gamma (↑μ + 1 / 2 + I * ↑τ)‖ ^ 2 * (1 - ↑x ^ 2))) =
+      π*(Real.exp (-τ*π)*(Real.cos (μ*π))^2+Real.sinh (τ*π))/((‖Gamma (μ+1/2+I*τ)‖^2:ℂ)*((Real.cosh (τ*π))^2-(Real.sin (μ*π))^2)*(1-x^2)) := by
+    simp only [B]
+    generalize ((Real.cosh (τ*π):ℂ)^2-(Real.sin (μ*π):ℂ)^2) = D
+    generalize ((‖Gamma (μ+1/2+I*τ)‖:ℂ)^2) = G
+    generalize (1-(x:ℂ)^2) = X
+    ring
+  rw [← hfin]
+  linear_combination B * hW'
 
 /-- conical associated connection. -/
 @[dlmf 14.20.E6]

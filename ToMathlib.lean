@@ -13,12 +13,14 @@ public import ToMathlib.Analysis.EulerMaclaurin
 public import ToMathlib.Analysis.BooleSummation
 public import ToMathlib.Analysis.Asymptotics.AsymptoticExpansion
 public import ToMathlib.Analysis.Asymptotics.Watson
+public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import ToMathlib.Analysis.Integral.Laplace
 public import ToMathlib.Analysis.Complex.Carlson
 public import ToMathlib.Analysis.Complex.FactorialSeries
 public import ToMathlib.Analysis.Complex.ParametricHolomorphy
 public import ToMathlib.Analysis.Complex.SegmentPrimitive
 public import ToMathlib.Analysis.ODE.SturmComparison
+public import ToMathlib.Analysis.ODE.PowerSeriesUniqueness
 public import ToMathlib.Analysis.ODE.SoninePolya
 public import ToMathlib.Analysis.ODE.Volterra
 
@@ -37,10 +39,14 @@ the namespaces of the Mathlib APIs they extend. These modules import Mathlib onl
 * `ToMathlib.Analysis.BooleSummation`: Boole's alternating summation formula.
 * `ToMathlib.Analysis.Asymptotics.AsymptoticExpansion`: Poincaré asymptotic expansions.
 * `ToMathlib.Analysis.Asymptotics.Watson`: Watson's lemma for Laplace transforms.
+* `ToMathlib.Analysis.Asymptotics.WatsonRotated`: rotation of Laplace rays, Watson's lemma along
+  rotated rays, and gluing of asymptotic expansions on overlapping sectors.
 * `ToMathlib.Analysis.Integral.Laplace`: quantitative Laplace asymptotics with a quadratic
   phase (a copy of the `lean-codes` module of the same path).
 * `ToMathlib.Analysis.ODE.SturmComparison`: Sturm's comparison and separation theorems for
   `(p y')' + q y = 0`.
+* `ToMathlib.Analysis.ODE.PowerSeriesUniqueness`: uniqueness for second-order linear ODEs
+  (analytic, via the Taylor recurrence; real-variable, via Gronwall) and 2×2 linear systems.
 * `ToMathlib.Analysis.ODE.SoninePolya`: the Sonine–Pólya theorem on relative maxima.
 * `ToMathlib.Analysis.ODE.Volterra`: the Volterra integral equation and Gronwall-type
   perturbation estimate for `u'' + ω² u = g u`.

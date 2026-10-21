@@ -8,6 +8,7 @@ module
 public import AAR.Struve.Basic
 public import AAR.Bessel.Elementary
 public import AAR.Struve.Poisson
+public import AAR.Bessel.NeumannSeries
 
 /-!
 # Struve half-integer orders, recurrences and Bessel expansions
@@ -488,43 +489,552 @@ term with `2k+2ν+1 = 0` is a removable quotient but the totalized Lean term is 
 theorem struveH_bessel_series_18 (ν : ℂ) (hν : ∀ n : ℕ, ν ≠ -(n+1))
     (hν' : ∀ n : ℕ, ν + 1/2 ≠ -n) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => (4/(Real.sqrt π*Gamma (ν+1/2))) * ((2*k+ν+1)*Gamma (k+ν+1)/((k.factorial:ℂ)*(2*k+1)*(2*k+2*ν+1))*besselJ (2*k+ν+1) z)) (struveH ν z) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have hl : ∀ n : ℕ, ν + 1 ≠ -n := fun n h => hν n (by linear_combination h)
+  have hx : ∀ i : ℕ, (1 / 2 : ℂ) + i ≠ 0 := fun i h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg i : (0:ℝ) ≤ i)]
+  have hy : ∀ i : ℕ, (ν + 1 / 2 : ℂ) + i ≠ 0 := fun i h => hν' i (by linear_combination h)
+  have ha : ∀ n : ℕ, (n : ℂ) + 1 / 2 ≠ 0 := fun n => by rw [add_comm]; exact hx n
+  have hb : ∀ n : ℕ, (n : ℂ) + (ν + 1 / 2) ≠ 0 := fun n => by rw [add_comm]; exact hy n
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hG0 : Gamma (ν + 1 / 2) ≠ 0 :=
+    Complex.Gamma_ne_zero fun m h => hν' m (by linear_combination h)
+  have hhalf : Gamma (1 / 2) = (Real.sqrt π : ℂ) := by
+    rw [Gamma_one_half_eq, show ((1 / 2 : ℂ)) = ((1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow Real.pi_pos.le, ← Real.sqrt_eq_rpow]
+  have h := (hasSum_besselJ_neumann_lommel (l := ν + 1) (a := 1 / 2) (b := ν + 1 / 2)
+    (by ring) hl ha hb hz0).mul_left (1 / ((Real.sqrt π : ℂ) * Gamma (ν + 1 / 2)))
+  convert h using 1
+  · funext k
+    have h1 := ha k
+    have h2 := hb k
+    have h3 : (2 * k + 1 : ℂ) ≠ 0 := by
+      intro h; apply h1; linear_combination h / 2
+    have h4 : (2 * k + 2 * ν + 1 : ℂ) ≠ 0 := by
+      intro h; apply h2; linear_combination h / 2
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    rw [powerNeumannCoeff, show (2 * k + ν + 1 : ℂ) = ν + 1 + 2 * k by ring,
+      show (k + ν + 1 : ℂ) = ν + 1 + k by ring]
+    field_simp
+    ring
+  · rw [struveH, struveHCore, mul_left_comm, ← tsum_mul_left (α := ℂ)
+      (a := 1 / ((Real.sqrt π : ℂ) * Gamma (ν + 1 / 2)))]
+    congr 1
+    refine tsum_congr fun j => ?_
+    have hP := Gamma_add_nat_succ_eq_prod hx j
+    have hQ := Gamma_add_nat_succ_eq_prod hy j
+    rw [struveCoeff, show (j : ℂ) + 3 / 2 = 1 / 2 + j + 1 by ring, hP,
+      show (j : ℂ) + ν + 3 / 2 = ν + 1 / 2 + j + 1 by ring, hQ, hhalf, Finset.prod_mul_distrib, pow_mul]
+    have hp1 : ∏ i ∈ Finset.range (j + 1), ((i : ℂ) + 1 / 2) = ∏ i ∈ Finset.range (j + 1), (1 / 2 + (i : ℂ)) :=
+      Finset.prod_congr rfl fun i _ => add_comm _ _
+    have hp2 : ∏ i ∈ Finset.range (j + 1), ((i : ℂ) + (ν + 1 / 2)) =
+        ∏ i ∈ Finset.range (j + 1), (ν + 1 / 2 + (i : ℂ)) := Finset.prod_congr rfl fun i _ => add_comm _ _
+    have hq1 : ∏ i ∈ Finset.range (j + 1), (1 / 2 + (i : ℂ)) ≠ 0 := Finset.prod_ne_zero_iff.mpr fun i _ => hx i
+    have hq2 : ∏ i ∈ Finset.range (j + 1), (ν + 1 / 2 + (i : ℂ)) ≠ 0 :=
+      Finset.prod_ne_zero_iff.mpr fun i _ => hy i
+    rw [hp1, hp2]
+    field_simp
 
 /-- struveH bessel series 19. -/
 @[dlmf 11.4.E19]
 theorem struveH_bessel_series_19 (ν : ℂ)  {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => (z/(2*π))^(1/2:ℂ) * ((z/2)^k/((k.factorial:ℂ)*(k+1/2))*besselJ (k+ν+1/2) z)) (struveH ν z) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have hw0 : z / 2 ≠ 0 := div_ne_zero hz0 two_ne_zero
+  set a : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + 1 / 2)) with ha_def
+  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le (1 / 2 : ℂ)
+  have ha : ∀ k, ‖a k‖ ≤ B * 1 ^ k := fun k => by
+    have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
+    show ‖1 / ((k ! : ℂ) * (k + 1 / 2))‖ ≤ B * 1 ^ k
+    rw [one_pow, mul_one, one_div, mul_inv, norm_mul, norm_inv, Complex.norm_natCast]
+    calc (k ! : ℝ)⁻¹ * ‖((k : ℂ) + 1 / 2)⁻¹‖ ≤ 1 * B := by
+          gcongr
+          · exact inv_le_one_of_one_le₀ hf
+          · exact hB k
+      _ = B := one_mul B
+  have hx : ∀ i : ℕ, (1 / 2 : ℂ) + i ≠ 0 := fun i h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg i : (0:ℝ) ≤ i)]
+  have hcoeff : ∀ j, neumannCoeff (ν + 1 / 2) (-1) a (fun k => k) j =
+      (-1) ^ j / (Gamma (ν + 1 / 2 + j + 1) * ∏ i ∈ Finset.range (j + 1), (1 / 2 + (i : ℂ))) := by
+    intro j
+    rw [div_mul_eq_div_div_swap, ← sum_antidiagonal_neg_one_pow_div_add j hx, Finset.sum_div]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rw [Finset.mem_antidiagonal] at hp
+    rw [regularizedHGFunCoeff_empty, ha_def]
+    have hj : (j : ℂ) = p.1 + p.2 := by exact_mod_cast hp.symm
+    rw [hj, show ν + 1 / 2 + ((p.1 : ℕ) : ℂ) + 1 + ((p.2 : ℕ) : ℂ) = ν + 1 / 2 + (p.1 + p.2) + 1 by
+      ring]
+    simp only [div_eq_mul_inv, one_mul, mul_inv]
+    ring
+  have h := hasSum_besselJ_neumann_of_coeff hz0 (ν + 1 / 2) a (fun k => k) (fun k => k)
+    (fun k => by ring)
+    (summable_neumann_of_norm_le zero_le_one ha _ (fun k => ⟨le_rfl, by omega⟩) _) _ hcoeff
+  have h2 := h.mul_left ((z / (2 * π)) ^ (1 / 2 : ℂ))
+  convert h2 using 1
+  · funext k
+    simp only [ha_def]
+    rw [show (k : ℂ) + ν + 1 / 2 = ν + 1 / 2 + k by ring]
+    ring
+  · have hπ : (0 : ℝ) < π := Real.pi_pos
+    have hkey : (z / (2 * π)) ^ (1 / 2 : ℂ) * (z / 2) ^ (ν + 1 / 2) =
+        (z / 2) ^ (ν + 1) / Gamma (1 / 2) := by
+      rw [Complex.Gamma_one_half_eq, show z / (2 * π) = (z / 2) / (π : ℂ) by ring,
+        div_ofReal_cpow hπ hw0, div_mul_eq_mul_div, ← cpow_add _ _ hw0]
+      ring_nf
+    rw [← mul_assoc, hkey, struveH, struveHCore,
+      show ∀ X Y : ℂ, X / Gamma (1 / 2) * Y = X * ((Gamma (1 / 2))⁻¹ * Y) from fun X Y => by ring,
+      ← tsum_mul_left (α := ℂ) (a := (Gamma (1 / 2))⁻¹)]
+    congr 1
+    refine tsum_congr fun j => ?_
+    have hG := Gamma_add_nat_succ_eq_prod hx j
+    rw [struveCoeff, show (j : ℂ) + 3 / 2 = 1 / 2 + j + 1 by ring, hG,
+      show (j : ℂ) + ν + 3 / 2 = ν + 1 / 2 + j + 1 by ring, pow_mul]
+    have hG0 : Gamma (1 / 2) ≠ 0 := by
+      rw [Complex.Gamma_one_half_eq]; exact (cpow_ne_zero_iff_of_exponent_ne_zero (by norm_num)).mpr
+        (ofReal_ne_zero.mpr hπ.ne')
+    field_simp
 
 /-- struveH bessel series 20. -/
 @[dlmf 11.4.E20]
 theorem struveH_bessel_series_20 (ν : ℂ) (hν : ∀ n : ℕ, ν+1/2 ≠ -n) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => (z/2)^(ν+1/2)/Gamma (ν+1/2) * ((z/2)^k/((k.factorial:ℂ)*(k+ν+1/2))*besselJ (k+1/2) z)) (struveH ν z) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have hw0 : z / 2 ≠ 0 := div_ne_zero hz0 two_ne_zero
+  set a : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + ν + 1 / 2)) with ha_def
+  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le (ν + 1 / 2 : ℂ)
+  have ha : ∀ k, ‖a k‖ ≤ B * 1 ^ k := fun k => by
+    have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
+    show ‖1 / ((k ! : ℂ) * (k + ν + 1 / 2))‖ ≤ B * 1 ^ k
+    rw [one_pow, mul_one, one_div, mul_inv, norm_mul, norm_inv, Complex.norm_natCast,
+      show (k : ℂ) + ν + 1 / 2 = k + (ν + 1 / 2) by ring]
+    calc (k ! : ℝ)⁻¹ * ‖((k : ℂ) + (ν + 1 / 2))⁻¹‖ ≤ 1 * B := by
+          gcongr
+          · exact inv_le_one_of_one_le₀ hf
+          · exact hB k
+      _ = B := one_mul B
+  have hx : ∀ i : ℕ, (ν + 1 / 2 : ℂ) + i ≠ 0 := fun i h => hν i (by linear_combination h)
+  have hcoeff : ∀ j, neumannCoeff (1 / 2) (-1) a (fun k => k) j =
+      (-1) ^ j / (Gamma (1 / 2 + j + 1) * ∏ i ∈ Finset.range (j + 1), (ν + 1 / 2 + (i : ℂ))) := by
+    intro j
+    rw [div_mul_eq_div_div_swap, ← sum_antidiagonal_neg_one_pow_div_add j hx, Finset.sum_div]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rw [Finset.mem_antidiagonal] at hp
+    rw [regularizedHGFunCoeff_empty, ha_def]
+    dsimp only
+    have hj : (j : ℂ) = p.1 + p.2 := by exact_mod_cast hp.symm
+    rw [hj, show 1 / 2 + ((p.1 : ℕ) : ℂ) + 1 + ((p.2 : ℕ) : ℂ) = 1 / 2 + (p.1 + p.2) + 1 by
+      ring, show (p.1 : ℂ) + ν + 1 / 2 = ν + 1 / 2 + p.1 by ring]
+    simp only [div_eq_mul_inv, one_mul, mul_inv]
+    ring
+  have h := hasSum_besselJ_neumann_of_coeff hz0 (1 / 2) a (fun k => k) (fun k => k)
+    (fun k => by ring)
+    (summable_neumann_of_norm_le zero_le_one ha _ (fun k => ⟨le_rfl, by omega⟩) _) _ hcoeff
+  have h2 := h.mul_left ((z / 2) ^ (ν + 1 / 2) / Gamma (ν + 1 / 2))
+  convert h2 using 1
+  · funext k
+    simp only [ha_def]
+    rw [show (k : ℂ) + 1 / 2 = 1 / 2 + k by ring]
+    ring
+  · have hkey : (z / 2) ^ (ν + 1 / 2) / Gamma (ν + 1 / 2) * (z / 2) ^ (1 / 2 : ℂ) =
+        (z / 2) ^ (ν + 1) / Gamma (ν + 1 / 2) := by
+      rw [div_mul_eq_mul_div, ← cpow_add _ _ hw0]
+      ring_nf
+    rw [← mul_assoc, hkey, struveH, struveHCore,
+      show ∀ X Y : ℂ, X / Gamma (ν + 1 / 2) * Y = X * ((Gamma (ν + 1 / 2))⁻¹ * Y) from
+        fun X Y => by ring,
+      ← tsum_mul_left (α := ℂ) (a := (Gamma (ν + 1 / 2))⁻¹)]
+    congr 1
+    refine tsum_congr fun j => ?_
+    have hG := Gamma_add_nat_succ_eq_prod hx j
+    have hG0 : Gamma (ν + 1 / 2) ≠ 0 :=
+      Complex.Gamma_ne_zero fun m h => hν m (by linear_combination h)
+    rw [struveCoeff, show (j : ℂ) + ν + 3 / 2 = ν + 1 / 2 + j + 1 by ring, hG,
+      show (j : ℂ) + 3 / 2 = 1 / 2 + j + 1 by ring, pow_mul]
+    field_simp
 
 /-- struveH zero odd. -/
 @[dlmf 11.4.E21]
 theorem struveH_zero_odd {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 4/π*besselJ (2*k+1) z/(2*k+1)) (struveH 0 z) := by
-  sorry
+  have h := struveH_bessel_series_18 0 (fun n h => by have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)])
+    (fun n h => by have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]) hz
+  have hhalf : Gamma (1 / 2) = (Real.sqrt π : ℂ) := by
+    rw [Gamma_one_half_eq, show ((1 / 2 : ℂ)) = ((1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow Real.pi_pos.le, ← Real.sqrt_eq_rpow]
+  have hpi : (Real.sqrt π : ℂ) * Real.sqrt π = π := by
+    rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  convert h using 1
+  funext k
+  have h3 : (2 * k + 1 : ℂ) ≠ 0 := by
+    intro h; have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+  have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  simp only [zero_add, mul_zero, add_zero]
+  rw [hhalf, show (k : ℂ) + 1 = k + 1 by rfl, Complex.Gamma_nat_eq_factorial, ← hpi]
+  field_simp
 
 /-- struveH zero products. -/
 @[dlmf 11.4.E21]
 theorem struveH_zero_products {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 2*(-1)^k*(besselJ (k+1/2) (z/2))^2) (struveH 0 z) := by
-  sorry
+  have hx := div_two_mem_slitPlane hz
+  set u : ℂ := z / 4 with hu
+  set f : ℕ × ℕ → ℂ := fun p => 2 * (-1) ^ p.1 * u ^ (2 * p.1 + 1) *
+    (poch (2 * p.1 + p.2 + 2 : ℂ) p.2 * (-(u ^ 2)) ^ p.2 / p.2 ! *
+      ((Gamma (p.1 + p.2 + 3 / 2))⁻¹) ^ 2) with hf
+  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (3 / 2 : ℂ)
+  -- absolute summability
+  have hsum : Summable fun p => ‖f p‖ := by
+    have hg := Real.summable_pow_div_factorial (16 * ‖u‖ ^ 2)
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun p => ?_)
+      ((hg.mul_of_nonneg hg (fun _ => by positivity) (fun _ => by positivity)).mul_left
+        (4 * C ^ 2 * ‖u‖))
+    obtain ⟨k, m⟩ := p
+    simp only [hf]
+    rw [mul_div_right_comm, poch_div_factorial_eq_choose]
+    simp only [norm_mul, norm_pow, norm_neg, norm_one, one_pow, mul_one,
+      Complex.norm_natCast, Complex.norm_ofNat]
+    have hch : ((2 * k + 2 * m + 1).choose m : ℝ) ≤ 2 * 4 ^ (k + m) := by
+      have := Nat.choose_le_two_pow (2 * k + 2 * m + 1) m
+      have h' : (2 : ℕ) ^ (2 * k + 2 * m + 1) = 2 * 4 ^ (k + m) := by
+        rw [pow_succ, show 2 * k + 2 * m = 2 * (k + m) by ring, pow_mul]; norm_num; ring
+      exact_mod_cast h' ▸ this
+    have hG := hC (k + m)
+    rw [show (3 / 2 : ℂ) + ((k + m : ℕ) : ℂ) = k + m + 3 / 2 by push_cast; ring] at hG
+    have hfac : ((k ! : ℝ) * m !) ≤ ((k + m)! : ℝ) ^ 2 := by
+      have h1 : ((k ! : ℝ) * m !) ≤ (k + m)! := by
+        exact_mod_cast Nat.le_of_dvd (Nat.factorial_pos _)
+          (Nat.factorial_mul_factorial_dvd_factorial_add k m)
+      have h2 : (1 : ℝ) ≤ (k + m)! := by
+        exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero _)
+      nlinarith
+    have hk0 : (0 : ℝ) < k ! := by exact_mod_cast Nat.factorial_pos k
+    have hm0 : (0 : ℝ) < m ! := by exact_mod_cast Nat.factorial_pos m
+    calc 2 * ‖u‖ ^ (2 * k + 1) * (((2 * k + 2 * m + 1).choose m : ℝ) * (‖u‖ ^ 2) ^ m *
+          ‖(Gamma (k + m + 3 / 2))⁻¹‖ ^ 2)
+        ≤ 2 * ‖u‖ ^ (2 * k + 1) * ((2 * 4 ^ (k + m)) * (‖u‖ ^ 2) ^ m *
+          (C * (2 ^ (k + m) / (k + m)!)) ^ 2) := by gcongr
+      _ = 4 * C ^ 2 * ‖u‖ * ((16 * ‖u‖ ^ 2) ^ k * (16 * ‖u‖ ^ 2) ^ m / ((k + m)! : ℝ) ^ 2) := by
+          have e1 : (4 : ℝ) ^ (k + m) = (2 ^ (k + m)) ^ 2 := by
+            rw [← pow_mul, mul_comm, pow_mul]; norm_num
+          have e2 : (16 * ‖u‖ ^ 2) ^ k * (16 * ‖u‖ ^ 2) ^ m =
+              (2 ^ (k + m)) ^ 4 * (‖u‖ ^ (2 * k) * (‖u‖ ^ 2) ^ m) := by
+            rw [mul_pow, mul_pow, show (16 : ℝ) ^ k = (2 ^ k) ^ 4 by
+                rw [← pow_mul, mul_comm, pow_mul]; norm_num,
+              show (16 : ℝ) ^ m = (2 ^ m) ^ 4 by rw [← pow_mul, mul_comm, pow_mul]; norm_num,
+              pow_add, mul_pow, ← pow_mul]
+            ring
+          rw [e1, e2, pow_succ]
+          generalize (2 : ℝ) ^ (k + m) = X
+          field_simp
+          ring
+      _ ≤ 4 * C ^ 2 * ‖u‖ * ((16 * ‖u‖ ^ 2) ^ k * (16 * ‖u‖ ^ 2) ^ m / ((k ! : ℝ) * m !)) := by
+          gcongr
+      _ = _ := by field_simp
+  have hs := hsum.of_norm
+  -- inner sums
+  have hinner : ∀ k : ℕ, HasSum (fun m => f (k, m)) (2 * (-1) ^ k * (besselJ (k + 1 / 2) (z / 2)) ^ 2) := by
+    intro k
+    rw [pow_two, besselJ_mul_besselJ _ _ hx]
+    rw [show (k : ℂ) + 1 / 2 + (k + 1 / 2) = ((2 * k + 1 : ℕ) : ℂ) by push_cast; ring, cpow_natCast,
+      show z / 2 / 2 = u by rw [hu]; ring]
+    convert (hs.prod_factor k).hasSum using 1
+    rw [← tsum_mul_left, ← tsum_mul_left]
+    refine tsum_congr fun m => ?_
+    simp only [hf]
+    rw [show (((2 * k + 1 : ℕ) : ℂ) + m + 1) = 2 * k + m + 2 by push_cast; ring,
+      show (k : ℂ) + 1 / 2 + m + 1 = k + m + 3 / 2 by ring,
+      show -((z / 2) ^ 2 / 4) = -(u ^ 2) by rw [hu]; ring]
+    ring
+  have h1 := hs.hasSum.prod_fiberwise hinner
+  -- Finset.antidiagonal sums
+  have hs2 := hs.hasSum
+  rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).hasSum_iff] at hs2
+  have h2 := hs2.sigma fun j => hasSum_fintype _
+  have hcoef : ∀ j : ℕ, ∑ b : Finset.antidiagonal j,
+      (f ∘ Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd) ⟨j, b⟩ =
+      z / 2 * ((-1) ^ j * (z / 2) ^ (2 * j) * struveCoeff 0 j) := by
+    intro j
+    simp only [Function.comp_apply, Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd_apply]
+    rw [Finset.sum_coe_sort (Finset.antidiagonal j) f]
+    have hterm : ∀ p ∈ Finset.antidiagonal j, f p = 2 * (-1) ^ j * u ^ (2 * j + 1) *
+        ((Gamma (j + 3 / 2))⁻¹) ^ 2 * ((2 * j + 1).choose p.2 : ℕ) := by
+      intro p hp
+      rw [Finset.mem_antidiagonal] at hp
+      obtain ⟨k, m⟩ := p
+      simp only at hp
+      subst hp
+      simp only [hf]
+      rw [mul_div_right_comm, poch_div_factorial_eq_choose,
+        show 2 * (k + m) + 1 = 2 * k + 2 * m + 1 by ring, neg_pow (u ^ 2) m, ← pow_mul]
+      push_cast
+      ring
+    rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum]
+    have hsw := Finset.Nat.sum_antidiagonal_swap (n := j)
+      (f := fun p : ℕ × ℕ => (((2 * j + 1).choose p.2 : ℕ) : ℂ))
+    simp only [Prod.snd_swap] at hsw
+    rw [← hsw, Finset.Nat.sum_antidiagonal_eq_sum_range_succ (fun a _ =>
+      (((2 * j + 1).choose a : ℕ) : ℂ)) j]
+    rw [show ∑ k ∈ Finset.range j.succ, (((2 * j + 1).choose k : ℕ) : ℂ) = ((4 ^ j : ℕ) : ℂ) by
+      rw [← Nat.sum_range_choose_halfway j]; push_cast; rfl]
+    rw [struveCoeff, hu]
+    push_cast
+    rw [show (j : ℂ) + 0 + 3 / 2 = j + 3 / 2 by ring]
+    have h4 : (4 : ℂ) = 2 ^ 2 := by norm_num
+    rw [h4, div_pow, div_pow]
+    simp only [← pow_mul]
+    field_simp
+    ring
+  simp_rw [hcoef] at h2
+  have h3 := (hasSum_struveHCore 0 z).mul_left (z / 2)
+  have heq := h2.unique h3
+  rw [struveH, show ((0 : ℂ) + 1) = ((1 : ℕ) : ℂ) by simp, cpow_natCast, pow_one, ← heq]
+  exact h1
 
 /-- struveH one even. -/
 @[dlmf 11.4.E22]
 theorem struveH_one_even {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 4/π*besselJ (2*(k+1)) z/(4*(k+1:ℂ)^2-1)) (struveH 1 z-2/π*(1-besselJ 0 z)) := by
-  sorry
+  have h := struveH_bessel_series_18 1 (fun n h => by have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)])
+    (fun n h => by have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]) hz
+  have hJ := (hasSum_besselJ_cos z 0).mul_left (2 / (π : ℂ))
+  simp only [Complex.ofReal_zero, mul_zero, Complex.cos_zero, mul_one, Complex.sin_zero] at hJ
+  have hd := h.sub hJ
+  have hΓ : Gamma (1 + 1 / 2) = (Real.sqrt π : ℂ) / 2 := by
+    rw [show (1 + 1 / 2 : ℂ) = 1 / 2 + 1 by ring, Gamma_add_one _ (by norm_num), Gamma_one_half_eq,
+      show ((1 / 2 : ℂ)) = ((1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow Real.pi_pos.le, ← Real.sqrt_eq_rpow]
+    push_cast; ring
+  have hpi : (Real.sqrt π : ℂ) * Real.sqrt π = π := by
+    rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hπ' : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_pos.ne'
+  convert hd using 1
+  · funext k
+    have h3 : (2 * k + 1 : ℂ) ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+    have h4 : (2 * k + 2 * 1 + 1 : ℂ) ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+    have h5 : (4 * (k + 1 : ℂ) ^ 2 - 1) ≠ 0 := by
+      rw [show (4 * (k + 1 : ℂ) ^ 2 - 1) = (2 * k + 1) * (2 * k + 2 * 1 + 1) by ring]
+      exact mul_ne_zero h3 h4
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    rw [hΓ, show (k : ℂ) + 1 + 1 = ((k + 1 : ℕ) : ℂ) + 1 by push_cast; ring,
+      Complex.Gamma_nat_eq_factorial, show (2 * k + 1 + 1 : ℂ) = ((2 * k + 2 : ℕ) : ℂ) by
+        push_cast; ring, show (2 * ((k : ℂ) + 1)) = ((2 * k + 2 : ℕ) : ℂ) by push_cast; ring,
+      Nat.factorial_succ]
+    generalize besselJ ((2 * k + 2 : ℕ) : ℂ) z = J
+    rw [← hpi]
+    push_cast
+    rw [show (4 * ((k : ℂ) + 1) ^ 2 - 1) = (2 * k + 1) * (2 * k + 3) by ring,
+      show (2 * (k : ℂ) + 2 * 1 + 1) = 2 * k + 3 by ring]
+    have h4' : (2 * k + 3 : ℂ) ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+    field_simp
+    ring
+
+/-- `(n+1)_m / m! = C(n+m, m)` for natural `n`. -/
+theorem poch_natCast_add_one_div_factorial (n m : ℕ) :
+    poch ((n : ℂ) + 1) m / m ! = ((n + m).choose m : ℕ) := by
+  have h1 := poch_natCast_add_one_mul_factorial n m
+  have h2 := Nat.choose_mul_factorial_mul_factorial (show m ≤ n + m by omega)
+  rw [show n + m - m = n by omega] at h2
+  rw [← h2] at h1
+  have hf1 : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hf2 : (m ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  push_cast at h1 ⊢
+  rw [div_eq_iff hf2]
+  apply mul_right_cancel₀ hf1
+  rw [h1]
+
+/-- Parity-restricted binomial sums: `∑_{b ≤ j, j - b even} C(n+1, b) = ∑_{b ≤ j} C(n, b)`. -/
+theorem sum_range_even_choose_succ (n j : ℕ) :
+    ∑ b ∈ Finset.range (j + 1), (if Even (j - b) then (n + 1).choose b else 0) =
+      ∑ b ∈ Finset.range (j + 1), n.choose b := by
+  induction j using Nat.twoStepInduction with
+  | zero => simp
+  | one => simp [Finset.sum_range_succ]; omega
+  | more j ih _ =>
+    rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ (fun b => n.choose b),
+      Finset.sum_range_succ (fun b => n.choose b), ← ih]
+    have : ∀ b ∈ Finset.range (j + 1), (if Even (j + 2 - b) then (n + 1).choose b else 0) =
+        (if Even (j - b) then (n + 1).choose b else 0) := by
+      intro b hb
+      rw [Finset.mem_range] at hb
+      rw [show j + 2 - b = (j - b) + 2 by omega]
+      simp [Nat.even_add]
+    rw [Finset.sum_congr rfl this]
+    simp [show j + 2 - (j + 1) = 1 by omega, Nat.choose_succ_succ]
+    ring
+
+/-- `∑_{a ≤ j, a even} C(2j+2, j-a) = 4^j`. -/
+theorem sum_range_even_choose_eq_four_pow (j : ℕ) : ∑ a ∈ Finset.range (j + 1), (if Even a then (2 * j + 2).choose (j - a) else 0)
+    = 4 ^ j := by
+  rw [← Finset.sum_range_reflect, ← Nat.sum_range_choose_halfway j]
+  rw [← sum_range_even_choose_succ]
+  refine Finset.sum_congr rfl fun b hb => ?_
+  rw [Finset.mem_range] at hb
+  rw [show j + 1 - 1 - b = j - b by omega, show j - (j - b) = b by omega]
 
 /-- struveH one products. -/
 @[dlmf 11.4.E22]
 theorem struveH_one_products {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 4*besselJ (2*k+1/2) (z/2)*besselJ (2*k+3/2) (z/2)) (struveH 1 z) := by
-  sorry
+  have hx := div_two_mem_slitPlane hz
+  set u : ℂ := z / 4 with hu
+  set f : ℕ × ℕ → ℂ := fun p => 4 * u ^ (4 * p.1 + 2) *
+    (poch (4 * p.1 + p.2 + 3 : ℂ) p.2 * (-(u ^ 2)) ^ p.2 / p.2 ! *
+      ((Gamma (2 * p.1 + p.2 + 3 / 2))⁻¹ * (Gamma (2 * p.1 + p.2 + 5 / 2))⁻¹)) with hf
+  have hpoch : ∀ k m : ℕ, poch (4 * k + m + 3 : ℂ) m / m ! = ((4 * k + 2 * m + 2).choose m : ℕ) := by
+    intro k m
+    rw [show (4 * k + m + 3 : ℂ) = ((4 * k + m + 2 : ℕ) : ℂ) + 1 by push_cast; ring,
+      poch_natCast_add_one_div_factorial, show 4 * k + m + 2 + m = 4 * k + 2 * m + 2 by ring]
+  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (3 / 2 : ℂ)
+  obtain ⟨C', hC0', hC'⟩ := exists_norm_inv_Gamma_add_nat_le (5 / 2 : ℂ)
+  -- absolute summability
+  have hsum : Summable fun p => ‖f p‖ := by
+    have hA := Real.summable_pow_div_factorial (256 * ‖u‖ ^ 4)
+    have hB := Real.summable_pow_div_factorial (16 * ‖u‖ ^ 2)
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun p => ?_)
+      ((hA.mul_of_nonneg hB (fun _ => by positivity) (fun _ => by positivity)).mul_left
+        (16 * C * C' * ‖u‖ ^ 2))
+    obtain ⟨k, m⟩ := p
+    simp only [hf]
+    rw [mul_div_right_comm, hpoch]
+    simp only [norm_mul, norm_pow, norm_neg, Complex.norm_natCast, Complex.norm_ofNat]
+    have hch : ((4 * k + 2 * m + 2).choose m : ℝ) ≤ 4 * 16 ^ k * 4 ^ m := by
+      have := Nat.choose_le_two_pow (4 * k + 2 * m + 2) m
+      have h' : (2 : ℕ) ^ (4 * k + 2 * m + 2) = 4 * 16 ^ k * 4 ^ m := by
+        rw [pow_add, pow_add, pow_mul, pow_mul]; norm_num; ring
+      exact_mod_cast h' ▸ this
+    have hG := hC (2 * k + m)
+    have hG' := hC' (2 * k + m)
+    rw [show (3 / 2 : ℂ) + ((2 * k + m : ℕ) : ℂ) = 2 * k + m + 3 / 2 by push_cast; ring] at hG
+    rw [show (5 / 2 : ℂ) + ((2 * k + m : ℕ) : ℂ) = 2 * k + m + 5 / 2 by push_cast; ring] at hG'
+    have hfac : ((k ! : ℝ) * m !) ≤ ((2 * k + m)! : ℝ) ^ 2 := by
+      have h1 : ((k ! : ℝ) * m !) ≤ (2 * k + m)! := by
+        have h0 : k ! * m ! ≤ (k + m)! := Nat.le_of_dvd (Nat.factorial_pos _)
+          (Nat.factorial_mul_factorial_dvd_factorial_add k m)
+        exact_mod_cast h0.trans (Nat.factorial_le (by omega))
+      have h2 : (1 : ℝ) ≤ (2 * k + m)! := by
+        exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero _)
+      nlinarith
+    have hk0 : (0 : ℝ) < k ! := by exact_mod_cast Nat.factorial_pos k
+    have hm0 : (0 : ℝ) < m ! := by exact_mod_cast Nat.factorial_pos m
+    have hn0 : (0 : ℝ) < (2 * k + m)! := by exact_mod_cast Nat.factorial_pos _
+    calc 4 * ‖u‖ ^ (4 * k + 2) * (((4 * k + 2 * m + 2).choose m : ℝ) * (‖u‖ ^ 2) ^ m *
+          (‖(Gamma (2 * k + m + 3 / 2))⁻¹‖ * ‖(Gamma (2 * k + m + 5 / 2))⁻¹‖))
+        ≤ 4 * ‖u‖ ^ (4 * k + 2) * ((4 * 16 ^ k * 4 ^ m) * (‖u‖ ^ 2) ^ m *
+          ((C * (2 ^ (2 * k + m) / (2 * k + m)!)) * (C' * (2 ^ (2 * k + m) / (2 * k + m)!)))) := by
+          gcongr
+      _ = 16 * C * C' * ‖u‖ ^ 2 * ((256 * ‖u‖ ^ 4) ^ k * (16 * ‖u‖ ^ 2) ^ m /
+            ((2 * k + m)! : ℝ) ^ 2) := by
+          field_simp
+          rw [mul_pow (‖u‖ ^ 4), mul_pow (‖u‖ ^ 2),
+            show (256 : ℝ) ^ k = 16 ^ k * 16 ^ k by rw [← mul_pow]; norm_num,
+            show (16 : ℝ) ^ m = 4 ^ m * 4 ^ m by rw [← mul_pow]; norm_num,
+            show ((2 : ℝ) ^ (2 * k + m)) ^ 2 = 16 ^ k * 4 ^ m by
+              rw [← pow_mul, show (2 * k + m) * 2 = 2 * (2 * k) + 2 * m by ring, pow_add, pow_mul,
+                pow_mul, ← pow_mul]; norm_num; rw [pow_mul, pow_mul]; norm_num]
+          ring
+      _ ≤ 16 * C * C' * ‖u‖ ^ 2 * ((256 * ‖u‖ ^ 4) ^ k * (16 * ‖u‖ ^ 2) ^ m /
+            ((k ! : ℝ) * m !)) := by
+          gcongr
+      _ = _ := by field_simp
+  have hs := hsum.of_norm
+  -- inner sums
+  have hinner : ∀ k : ℕ, HasSum (fun m => f (k, m))
+      (4 * besselJ (2 * k + 1 / 2) (z / 2) * besselJ (2 * k + 3 / 2) (z / 2)) := by
+    intro k
+    rw [mul_assoc, besselJ_mul_besselJ _ _ hx]
+    rw [show (2 * k : ℂ) + 1 / 2 + (2 * k + 3 / 2) = ((4 * k + 2 : ℕ) : ℂ) by push_cast; ring,
+      cpow_natCast, show z / 2 / 2 = u by rw [hu]; ring]
+    convert (hs.prod_factor k).hasSum using 1
+    rw [← tsum_mul_left, ← tsum_mul_left]
+    refine tsum_congr fun m => ?_
+    simp only [hf]
+    rw [show (((4 * k + 2 : ℕ) : ℂ) + m + 1) = 4 * k + m + 3 by push_cast; ring,
+      show (2 * k : ℂ) + 1 / 2 + m + 1 = 2 * k + m + 3 / 2 by ring,
+      show (2 * k : ℂ) + 3 / 2 + m + 1 = 2 * k + m + 5 / 2 by ring,
+      show -((z / 2) ^ 2 / 4) = -(u ^ 2) by rw [hu]; ring]
+    ring
+  have h1 := hs.hasSum.prod_fiberwise hinner
+  -- spread the first index over even integers
+  set h : ℕ × ℕ → ℂ := fun p => if Even p.1 then f (p.1 / 2, p.2) else 0 with hh
+  set g : ℕ × ℕ → ℕ × ℕ := fun p => (2 * p.1, p.2) with hg
+  have hginj : Function.Injective g := by
+    intro p q hpq
+    simp only [hg, Prod.mk.injEq] at hpq
+    exact Prod.ext (by omega) hpq.2
+  have hhg : h ∘ g = f := by
+    funext p
+    simp [hh, hg, Nat.mul_div_cancel_left _ two_pos]
+  have hzero : ∀ x ∉ Set.range g, h x = 0 := by
+    intro x hx'
+    simp only [hh]
+    split_ifs with he
+    · exfalso; apply hx'
+      obtain ⟨r, hr⟩ := he
+      exact ⟨(r, x.2), Prod.ext (by simp only [hg]; omega) rfl⟩
+    · rfl
+  have hhs : HasSum h (∑' p, f p) := by
+    rw [← hginj.hasSum_iff hzero, hhg]; exact hs.hasSum
+  have hs2 := hhs
+  rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).hasSum_iff] at hs2
+  have h2 := hs2.sigma fun j => hasSum_fintype _
+  have hcoef : ∀ j : ℕ, ∑ b : Finset.antidiagonal j,
+      (h ∘ Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd) ⟨j, b⟩ =
+      (z / 2) ^ 2 * ((-1) ^ j * (z / 2) ^ (2 * j) * struveCoeff 1 j) := by
+    intro j
+    simp only [Function.comp_apply, Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd_apply]
+    rw [Finset.sum_coe_sort (Finset.antidiagonal j) h]
+    have hterm : ∀ p ∈ Finset.antidiagonal j, h p = 4 * (-1) ^ j * u ^ (2 * j + 2) *
+        ((Gamma (j + 3 / 2))⁻¹ * (Gamma (j + 5 / 2))⁻¹) *
+        (if Even p.1 then (((2 * j + 2).choose (j - p.1) : ℕ) : ℂ) else 0) := by
+      intro p hp
+      rw [Finset.mem_antidiagonal] at hp
+      obtain ⟨a, b⟩ := p
+      simp only at hp
+      subst hp
+      simp only [hh]
+      split_ifs with he
+      · obtain ⟨k, rfl⟩ := he
+        simp only [hf]
+        rw [show (k + k) / 2 = k by omega, mul_div_right_comm, hpoch,
+          show 4 * k + 2 * b + 2 = 2 * (k + k + b) + 2 by ring,
+          show k + k + b - (k + k) = b by omega, neg_pow (u ^ 2) b, ← pow_mul]
+        rw [show (-1 : ℂ) ^ (k + k + b) = (-1) ^ b by
+          rw [pow_add, ← two_mul, pow_mul]; norm_num]
+        push_cast
+        rw [show (2 * (k : ℂ) + b + 3 / 2) = k + k + b + 3 / 2 by ring,
+          show (2 * (k : ℂ) + b + 5 / 2) = k + k + b + 5 / 2 by ring]
+        ring
+      · simp
+    rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum]
+    rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ (fun a _ =>
+      (if Even a then (((2 * j + 2).choose (j - a) : ℕ) : ℂ) else 0)) j]
+    have h4 : ∑ a ∈ Finset.range j.succ,
+        (if Even a then (((2 * j + 2).choose (j - a) : ℕ) : ℂ) else 0) = ((4 ^ j : ℕ) : ℂ) := by
+      rw [← sum_range_even_choose_eq_four_pow j]
+      push_cast
+      refine Finset.sum_congr rfl fun a _ => ?_
+      split_ifs <;> simp
+    rw [h4, struveCoeff, hu]
+    push_cast
+    rw [show (j : ℂ) + 1 + 3 / 2 = j + 5 / 2 by ring]
+    have h4' : (4 : ℂ) = 2 ^ 2 := by norm_num
+    rw [h4', div_pow, div_pow]
+    simp only [← pow_mul]
+    field_simp
+    congr 1
+    rw [div_pow]
+    field_simp
+    ring
+  simp_rw [hcoef] at h2
+  have h3 := (hasSum_struveHCore 1 z).mul_left ((z / 2) ^ 2)
+  have heq := h2.unique h3
+  rw [struveH, show ((1 : ℂ) + 1) = ((2 : ℕ) : ℂ) by norm_num, cpow_natCast, ← heq]
+  exact h1
 
 /-- struveH recurrence. -/
 @[dlmf 11.4.E23]

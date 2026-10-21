@@ -7,8 +7,11 @@ module
 
 public import AAR.Struve.Lommel
 public import AAR.Struve.Representations
+public import AAR.Bessel.Schlafli
+public import AAR.Bessel.ProductIntegral
 public import AAR.ErrorFunctions.Basic
 public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
 
 /-!
 # Anger and Weber functions: entire definitions and identities
@@ -331,16 +334,93 @@ theorem continuousAt_angerA_order (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   filter_upwards [eventually_nhdsNE_not_int ν] with μ hμ
   exact (angerA_regular hμ hz).symm
 
+/-- The Anger function is the angular part of Schläfli's integral. -/
+theorem angerJ_eq_angular (ν z : ℂ) :
+    angerJ ν z = 1 / π * ∫ θ in (0:ℝ)..π, cos (z * Real.sin θ - ν * θ) := by
+  rw [angerJ]
+  congr 1
+  refine intervalIntegral.integral_congr fun θ _ => ?_
+  rw [← cos_neg]
+  ring_nf
+
+/-- Anger–Weber consequence of Schläfli's integral (DLMF 10.9.6 with 11.10.1):
+`𝐉_ν(z) - J_ν(z) = (sin νπ/π) ∫₀^∞ e^{-νt - z sinh t} dt` for `ℜ z > 0`. -/
+theorem angerJ_sub_besselJ_eq_integral (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
+    angerJ ν z - besselJ ν z =
+      sin (ν * π) / π * ∫ t in Ioi (0:ℝ), exp (-ν * t - z * Real.sinh t) := by
+  rw [angerJ_eq_angular, angular_sub_besselJ_eq_schlafli ν hz]
+  congr 2
+  funext t
+  ring_nf
+
+/-- At nonintegral order and `ℜ w > 0`, the regular quotient is the Schläfli radial integral. -/
+theorem angerARegular_eq_integral {μ : ℂ} (hμ : ∀ n : ℤ, μ ≠ n) {w : ℂ} (hw : 0 < w.re) :
+    angerARegular μ w = (∫ t in Ioi (0:ℝ), exp (-(w * Real.sinh t) - μ * t)) / π := by
+  have hs := sin_pi_mul_ne_zero_of_not_int hμ
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+  rw [angerARegular, angerJ_eq_angular, angular_sub_besselJ_eq_schlafli μ hw, mul_comm μ]
+  field_simp
+
 /-- angerA integral. -/
 @[dlmf 11.10.E4]
 theorem angerA_integral (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
     HasIntegralAtTop (fun t : ℝ => exp (-ν*t-z*Real.sinh t)/π) 0 (angerA ν z) := by
-  sorry
+  have hzs : z ∈ slitPlane := Or.inl hz
+  set R : ℂ → ℂ := fun μ => ∫ t in Ioi (0:ℝ), exp (-(z * Real.sinh t) - μ * t) with hR
+  have hRc : Continuous R := (differentiable_schlafli_order hz).continuous
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+  have hreg {μ : ℂ} (hμ : ∀ n : ℤ, μ ≠ n) : angerARegular μ z = R μ / π :=
+    angerARegular_eq_integral hμ hz
+  have hA : angerA ν z = R ν / π := by
+    refine tendsto_nhds_unique (angerA_order_limit ν hzs) ?_
+    have h := ((hRc.tendsto ν).div_const (π : ℂ)).mono_left (nhdsWithin_le_nhds (s := {ν}ᶜ))
+    refine h.congr' ?_
+    filter_upwards [eventually_nhdsNE_not_int ν] with μ hμ
+    exact (hreg hμ).symm
+  have ht := (tendsto_intervalIntegral_schlafli ν hz).div_const (π : ℂ)
+  unfold HasIntegralAtTop
+  rw [hA]
+  refine ht.congr fun b => ?_
+  rw [← intervalIntegral.integral_div]
+  refine intervalIntegral.integral_congr fun t _ => ?_
+  ring_nf
 
 /-- Boundary extension of the defining integral. -/
 theorem angerA_boundary_integral {ν z : ℂ} (hν : 0 < ν.re) (hz : z.re = 0) (hz0 : z ≠ 0) :
     HasIntegralAtTop (fun t : ℝ => exp (-ν*t-z*Real.sinh t)/π) 0 (angerA ν z) := by
-  sorry
+  have hzim : z.im ≠ 0 := fun h => hz0 (Complex.ext hz h)
+  have hzs : z ∈ slitPlane := Or.inr hzim
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+  have hzre : 0 ≤ z.re := hz.ge
+  have hcl : z ∈ closure {w : ℂ | 0 < w.re} := by rw [closure_setOfPred_lt_re]; exact hzre
+  have : (𝓝[{w : ℂ | 0 < w.re}] z).NeBot := mem_closure_iff_nhdsWithin_neBot.1 hcl
+  have hkey {μ : ℂ} (hμ : ∀ n : ℤ, μ ≠ n) (hμr : 0 < μ.re) :
+      angerARegular μ z = schlafliBoundary μ z / π := by
+    have hf : ContinuousAt (fun w => angerARegular μ w) z := by
+      unfold angerARegular
+      exact (((angerJ_entire μ) z).continuousAt.sub
+        (analyticAt_besselJ μ hzs).continuousAt).div_const _
+    have hg := (continuousWithinAt_schlafliBoundary_right hμr hz0).div_const (π : ℂ)
+    refine tendsto_nhds_unique (l := 𝓝[{w : ℂ | 0 < w.re}] z) (hf.tendsto.mono_left nhdsWithin_le_nhds) ?_
+    refine ((hg.mono (s := {w : ℂ | 0 < w.re}) (fun w (hw : 0 < w.re) => show 0 ≤ w.re from le_of_lt hw)).tendsto).congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with w hw
+    rw [angerARegular_eq_integral hμ hw, integral_schlafli_eq_schlafliBoundary hμr hw]
+  have hA : angerA ν z = schlafliBoundary ν z / π := by
+    refine tendsto_nhds_unique (angerA_order_limit ν hzs) ?_
+    have h := ((continuousAt_schlafliBoundary_order hν hzre).div_const (π : ℂ)).tendsto.mono_left
+      (nhdsWithin_le_nhds (s := {ν}ᶜ))
+    refine h.congr' ?_
+    have hopen : {μ : ℂ | 0 < μ.re} ∈ 𝓝[≠] ν :=
+      nhdsWithin_le_nhds ((isOpen_lt continuous_const continuous_re).mem_nhds hν)
+    filter_upwards [eventually_nhdsNE_not_int ν, hopen] with μ hμ hμr
+    exact (hkey hμ hμr).symm
+  have ht := (tendsto_intervalIntegral_schlafliBoundary hν hzre hz0).div_const (π : ℂ)
+  unfold HasIntegralAtTop
+  rw [hA]
+  refine ht.congr fun b => ?_
+  rw [← intervalIntegral.integral_div]
+  refine intervalIntegral.integral_congr fun t _ => ?_
+  ring_nf
 
 /-- angerJ double integral. -/
 @[dlmf 11.10.E3]
@@ -1054,17 +1134,330 @@ def angerFresnelPlus (z : ℂ) : ℂ :=
 def angerFresnelMinus (z : ℂ) : ℂ :=
   fresnelCosInt z-fresnelSinInt z
 
+/-- Weighted derivative identity `z 𝐉_ν' + ν 𝐉_ν = z 𝐉_{ν-1} + sin(πν)/π` away from the origin. -/
+lemma angerHalf_weighted_add (ν : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    z*deriv (angerJ ν) z+(1:ℂ)*ν*angerJ ν z = (1:ℂ)*z*angerJ (ν-1) z+(1:ℂ)*(sin (π*ν))/π := by
+  rw [(hasDerivAt_angerJ_shift ν z).deriv]
+  have := angerJ_recurrence_aux ν hz
+  rw [show angerJ (ν+1) z = 2*ν/z*angerJ ν z-2/(π*z)*(sin (π*ν))-angerJ (ν-1) z by
+    linear_combination this]
+  field_simp
+  ring
+
+/-- Weighted derivative identity `z 𝐉_ν' - ν 𝐉_ν = -z 𝐉_{ν+1} - sin(πν)/π` away from the
+origin. -/
+lemma angerHalf_weighted_sub (ν : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    z*deriv (angerJ ν) z+(-1:ℂ)*ν*angerJ ν z =
+      (-1:ℂ)*z*angerJ (ν-(-1)) z+(-1:ℂ)*(sin (π*ν))/π := by
+  rw [(hasDerivAt_angerJ_shift ν z).deriv, sub_neg_eq_add]
+  have := angerJ_recurrence_aux ν hz
+  rw [show angerJ (ν-1) z = 2*ν/z*angerJ ν z-2/(π*z)*(sin (π*ν))-angerJ (ν+1) z by
+    linear_combination this]
+  field_simp
+  ring
+
+/-- Defect of DLMF 11.10.20, scaled by `√(πx/2)`, on the real line. -/
+noncomputable def angerHalfDefectF (x : ℝ) : ℂ :=
+  (Real.sqrt (π * x / 2) : ℂ) * angerJ (1/2) x -
+    (angerFresnelPlus (Real.sqrt (2 * x / π)) * sin x +
+      angerFresnelMinus (Real.sqrt (2 * x / π)) * cos x)
+
+/-- Defect of DLMF 11.10.19, scaled by `√(πx/2)`, on the real line. -/
+noncomputable def angerHalfDefectG (x : ℝ) : ℂ :=
+  (Real.sqrt (π * x / 2) : ℂ) * angerJ (-1/2) x -
+    (angerFresnelPlus (Real.sqrt (2 * x / π)) * cos x -
+      angerFresnelMinus (Real.sqrt (2 * x / π)) * sin x)
+
+/-- `d/dx √(cx) = √(cx)/(2x)` for `c, x > 0`, as a complex-valued function. -/
+lemma hasDerivAt_sqrt_mul (c : ℝ) (hc : 0 < c) {x : ℝ} (hx : 0 < x) :
+    HasDerivAt (fun x : ℝ => (Real.sqrt (c * x) : ℂ))
+      ((Real.sqrt (c * x) : ℂ) / (2 * x)) x := by
+  have h := ((Real.hasDerivAt_sqrt (by positivity : c * x ≠ 0)).comp x
+    ((hasDerivAt_id x).const_mul c)).ofReal_comp
+  refine h.congr_deriv ?_
+  have hs : Real.sqrt (c * x) ^ 2 = c * x := Real.sq_sqrt (by positivity)
+  have hs0 : Real.sqrt (c * x) ≠ 0 := (Real.sqrt_pos.2 (by positivity)).ne'
+  have h0 : ((Real.sqrt (c * x)) : ℂ) ≠ 0 := ofReal_ne_zero.2 hs0
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.2 hx.ne'
+  have : ((Real.sqrt (c * x)) : ℂ) ^ 2 = c * x := by exact_mod_cast hs
+  push_cast
+  field_simp
+  linear_combination -this
+
+/-- Derivatives of `C(√(2x/π))` and `S(√(2x/π))`. -/
+lemma hasDerivAt_fresnel_sqrt {x : ℝ} (hx : 0 < x) :
+    HasDerivAt (fun x : ℝ => fresnelCosInt (Real.sqrt (2 * x / π)))
+        (cos x * ((Real.sqrt (2 * x / π) : ℂ) / (2 * x))) x ∧
+      HasDerivAt (fun x : ℝ => fresnelSinInt (Real.sqrt (2 * x / π)))
+        (sin x * ((Real.sqrt (2 * x / π) : ℂ) / (2 * x))) x := by
+  have hw := hasDerivAt_sqrt_mul (2 / π) (by positivity) hx
+  simp only [show ∀ y : ℝ, 2 / π * y = 2 * y / π from fun y => by ring] at hw
+  have hw2 : π * ((Real.sqrt (2 * x / π) : ℝ) : ℂ) ^ 2 / 2 = x := by
+    have : Real.sqrt (2 * x / π) ^ 2 = 2 * x / π := Real.sq_sqrt (by positivity)
+    have h' : ((Real.sqrt (2 * x / π) : ℝ) : ℂ) ^ 2 = 2 * x / π := by exact_mod_cast this
+    rw [h']
+    have : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+    field_simp
+  constructor
+  · have := (hasDerivAt_fresnelCosInt_complex _).comp x hw
+    rwa [hw2] at this
+  · have := (hasDerivAt_fresnelSinInt_complex _).comp x hw
+    rwa [hw2] at this
+
+/-- `sin(π/2) = 1` in complex form. -/
+lemma sin_pi_mul_half_complex : sin (π * (1/2 : ℂ)) = 1 := by
+  rw [show π * (1/2 : ℂ) = (π/2 : ℝ) by push_cast; ring, ← ofReal_sin, Real.sin_pi_div_two]
+  simp
+
+/-- `2√(πx/2) = π√(2x/π)`. -/
+lemma two_mul_sqrt_eq_pi_mul_sqrt (x : ℝ) :
+    2 * (Real.sqrt (π * x / 2) : ℂ) = π * Real.sqrt (2 * x / π) := by
+  have h : 2 * Real.sqrt (π * x / 2) = π * Real.sqrt (2 * x / π) := by
+    rw [← Real.sqrt_sq (zero_le_two : (0:ℝ) ≤ 2), ← Real.sqrt_mul (sq_nonneg _),
+      ← Real.sqrt_sq Real.pi_pos.le, ← Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq zero_le_two,
+      Real.sqrt_sq Real.pi_pos.le]
+    congr 1
+    have := Real.pi_pos
+    field_simp
+  exact_mod_cast h
+
+/-- The scaled defects satisfy `F' = G`. -/
+lemma hasDerivAt_angerHalfDefectF {x : ℝ} (hx : 0 < x) :
+    HasDerivAt angerHalfDefectF (angerHalfDefectG x) x := by
+  have hs := hasDerivAt_sqrt_mul (π / 2) (by positivity) hx
+  simp only [show ∀ y : ℝ, π / 2 * y = π * y / 2 from fun y => by ring] at hs
+  have ha := (angerJ_entire (1/2) (x : ℂ)).hasDerivAt.comp_ofReal
+  obtain ⟨hC, hS⟩ := hasDerivAt_fresnel_sqrt hx
+  have hsin := (Complex.hasDerivAt_sin (x : ℂ)).comp_ofReal
+  have hcos := (Complex.hasDerivAt_cos (x : ℂ)).comp_ofReal
+  have h := (hs.mul ha).sub (((hC.add hS).mul hsin).add ((hC.sub hS).mul hcos))
+  unfold angerHalfDefectF
+  refine h.congr_deriv ?_
+  have hw := angerHalf_weighted_add (1/2) (ofReal_ne_zero.2 hx.ne')
+  rw [show (1/2 : ℂ) - 1 = -1/2 by norm_num, sin_pi_mul_half_complex] at hw
+  have hsw := two_mul_sqrt_eq_pi_mul_sqrt x
+  have htrig := sin_sq_add_cos_sq (x : ℂ)
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.2 hx.ne'
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+  unfold angerHalfDefectG angerFresnelPlus angerFresnelMinus
+  simp only [Pi.add_apply, Pi.sub_apply]
+  set s : ℂ := (Real.sqrt (π * x / 2) : ℂ)
+  set w : ℂ := (Real.sqrt (2 * x / π) : ℂ)
+  set D := deriv (angerJ (1/2)) (x : ℂ)
+  have hD : D = (x * angerJ (-1/2) x + 1 / π - angerJ (1/2) x / 2) / x := by
+    rw [eq_div_iff hx0]; linear_combination hw
+  rw [hD]
+  field_simp
+  linear_combination hsw - π * w * htrig
+
+/-- The scaled defects satisfy `G' = -F`. -/
+lemma hasDerivAt_angerHalfDefectG {x : ℝ} (hx : 0 < x) :
+    HasDerivAt angerHalfDefectG (-angerHalfDefectF x) x := by
+  have hs := hasDerivAt_sqrt_mul (π / 2) (by positivity) hx
+  simp only [show ∀ y : ℝ, π / 2 * y = π * y / 2 from fun y => by ring] at hs
+  have ha := (angerJ_entire (-1/2) (x : ℂ)).hasDerivAt.comp_ofReal
+  obtain ⟨hC, hS⟩ := hasDerivAt_fresnel_sqrt hx
+  have hsin := (Complex.hasDerivAt_sin (x : ℂ)).comp_ofReal
+  have hcos := (Complex.hasDerivAt_cos (x : ℂ)).comp_ofReal
+  have h := (hs.mul ha).sub (((hC.add hS).mul hcos).sub ((hC.sub hS).mul hsin))
+  unfold angerHalfDefectG
+  refine h.congr_deriv ?_
+  have hw := angerHalf_weighted_sub (-1/2) (ofReal_ne_zero.2 hx.ne')
+  have hsn : sin (π * (-1/2 : ℂ)) = -1 := by
+    rw [show π * (-1/2 : ℂ) = -(π * (1/2 : ℂ)) by ring, sin_neg, sin_pi_mul_half_complex]
+  rw [show (-1/2 : ℂ) - (-1) = 1/2 by norm_num, hsn] at hw
+  have hsw := two_mul_sqrt_eq_pi_mul_sqrt x
+  have htrig := sin_sq_add_cos_sq (x : ℂ)
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.2 hx.ne'
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
+  unfold angerHalfDefectF angerFresnelPlus angerFresnelMinus
+  simp only [Pi.add_apply, Pi.sub_apply]
+  set s : ℂ := (Real.sqrt (π * x / 2) : ℂ)
+  set w : ℂ := (Real.sqrt (2 * x / π) : ℂ)
+  set D := deriv (angerJ (-1/2)) (x : ℂ)
+  have hD : D = (-(x * angerJ (1/2) x) + 1 / π - angerJ (-1/2) x / 2) / x := by
+    rw [eq_div_iff hx0]; linear_combination hw
+  rw [hD]
+  field_simp
+  linear_combination hsw - π * w * htrig
+
+/-- Continuity of the defect `F`. -/
+lemma continuous_angerHalfDefectF : Continuous angerHalfDefectF := by
+  have h1 : Continuous fun x : ℝ => angerJ (1/2) x := (angerJ_entire _).continuous.comp continuous_ofReal
+  have hw : Continuous fun x : ℝ => ((Real.sqrt (2 * x / π) : ℝ) : ℂ) :=
+    continuous_ofReal.comp (by fun_prop)
+  have hC := fresnelCosInt_entire.continuous.comp hw
+  have hS := fresnelSinInt_entire.continuous.comp hw
+  unfold angerHalfDefectF angerFresnelPlus angerFresnelMinus
+  exact ((continuous_ofReal.comp (by fun_prop)).mul h1).sub
+    (((hC.add hS).mul (by fun_prop)).add ((hC.sub hS).mul (by fun_prop)))
+
+/-- Continuity of the defect `G`. -/
+lemma continuous_angerHalfDefectG : Continuous angerHalfDefectG := by
+  have h1 : Continuous fun x : ℝ => angerJ (-1/2) x :=
+    (angerJ_entire _).continuous.comp continuous_ofReal
+  have hw : Continuous fun x : ℝ => ((Real.sqrt (2 * x / π) : ℝ) : ℂ) :=
+    continuous_ofReal.comp (by fun_prop)
+  have hC := fresnelCosInt_entire.continuous.comp hw
+  have hS := fresnelSinInt_entire.continuous.comp hw
+  unfold angerHalfDefectG angerFresnelPlus angerFresnelMinus
+  exact ((continuous_ofReal.comp (by fun_prop)).mul h1).sub
+    (((hC.add hS).mul (by fun_prop)).sub ((hC.sub hS).mul (by fun_prop)))
+
+/-- Both defects vanish at the origin. -/
+lemma angerHalfDefect_zero : angerHalfDefectF 0 = 0 ∧ angerHalfDefectG 0 = 0 := by
+  simp [angerHalfDefectF, angerHalfDefectG, angerFresnelPlus, angerFresnelMinus,
+    fresnelCosInt, fresnelSinInt]
+
+/-- A function on `[0, ∞)` with zero derivative on `(0, ∞)` and continuous at `0` is constant. -/
+lemma angerHalf_eq_of_hasDerivAt_zero {u : ℝ → ℂ} (hu : Continuous u)
+    (hd : ∀ x, 0 < x → HasDerivAt u 0 x) {x : ℝ} (hx : 0 < x) : u x = u 0 := by
+  have hconst : ∀ y, 0 < y → u y = u x := fun y hy =>
+    isOpen_Ioi.is_const_of_deriv_eq_zero isPreconnected_Ioi
+      (fun z hz => (hd z hz).differentiableAt.differentiableWithinAt)
+      (fun z hz => (hd z hz).deriv) hy hx
+  have ht : Tendsto u (𝓝[>] 0) (𝓝 (u 0)) := (hu.tendsto 0).mono_left nhdsWithin_le_nhds
+  have ht' : Tendsto u (𝓝[>] 0) (𝓝 (u x)) :=
+    tendsto_const_nhds.congr' (eventually_nhdsWithin_of_forall fun y hy => (hconst y hy).symm)
+  exact tendsto_nhds_unique ht' ht
+
+/-- Both defects vanish on `(0, ∞)`: `F cos - G sin` and `F sin + G cos` are constant. -/
+theorem angerHalfDefect_eq_zero {x : ℝ} (hx : 0 < x) :
+    angerHalfDefectF x = 0 ∧ angerHalfDefectG x = 0 := by
+  set u : ℝ → ℂ := fun y => angerHalfDefectF y * cos y - angerHalfDefectG y * sin y
+  set v' : ℝ → ℂ := fun y => angerHalfDefectF y * sin y + angerHalfDefectG y * cos y
+  have hsin (y : ℝ) := (Complex.hasDerivAt_sin (y : ℂ)).comp_ofReal
+  have hcos (y : ℝ) := (Complex.hasDerivAt_cos (y : ℂ)).comp_ofReal
+  have hu : ∀ y, 0 < y → HasDerivAt u 0 y := fun y hy => by
+    have := ((hasDerivAt_angerHalfDefectF hy).mul (hcos y)).sub
+      ((hasDerivAt_angerHalfDefectG hy).mul (hsin y))
+    refine this.congr_deriv ?_
+    ring
+  have hv : ∀ y, 0 < y → HasDerivAt v' 0 y := fun y hy => by
+    have := ((hasDerivAt_angerHalfDefectF hy).mul (hsin y)).add
+      ((hasDerivAt_angerHalfDefectG hy).mul (hcos y))
+    refine this.congr_deriv ?_
+    ring
+  have hcu : Continuous u := by
+    exact (continuous_angerHalfDefectF.mul (by fun_prop)).sub
+      (continuous_angerHalfDefectG.mul (by fun_prop))
+  have hcv : Continuous v' := by
+    exact (continuous_angerHalfDefectF.mul (by fun_prop)).add
+      (continuous_angerHalfDefectG.mul (by fun_prop))
+  have hu0 := angerHalf_eq_of_hasDerivAt_zero hcu hu hx
+  have hv0 := angerHalf_eq_of_hasDerivAt_zero hcv hv hx
+  obtain ⟨hF0, hG0⟩ := angerHalfDefect_zero
+  simp only [u, v', hF0, hG0, zero_mul, sub_zero, add_zero] at hu0 hv0
+  have htrig := sin_sq_add_cos_sq (x : ℂ)
+  constructor
+  · linear_combination cos (x : ℂ) * hu0 + sin (x : ℂ) * hv0 +
+      -angerHalfDefectF x * htrig
+  · linear_combination -sin (x : ℂ) * hu0 + cos (x : ℂ) * hv0 +
+      -angerHalfDefectG x * htrig
+
+/-- `r^{1/2} = √r` for `r ≥ 0`. -/
+lemma ofReal_cpow_half {r : ℝ} (hr : 0 ≤ r) : (r : ℂ) ^ (1/2 : ℂ) = (Real.sqrt r : ℂ) := by
+  rw [Real.sqrt_eq_rpow, ofReal_cpow hr]; push_cast; ring_nf
+
+/-- `r^{-1/2} = (√r)⁻¹` for `r ≥ 0`. -/
+lemma ofReal_cpow_neg_half {r : ℝ} (hr : 0 ≤ r) :
+    (r : ℂ) ^ (-1/2 : ℂ) = ((Real.sqrt r : ℂ))⁻¹ := by
+  rw [show (-1/2 : ℂ) = -(1/2) by ring, cpow_neg, ofReal_cpow_half hr]
+
+/-- The slit plane is invariant under positive real scaling. -/
+lemma mul_mem_slitPlane_of_pos {r : ℝ} (hr : 0 < r) {z : ℂ} (hz : z ∈ slitPlane) :
+    (r : ℂ) * z ∈ slitPlane := by
+  rw [mem_slitPlane_iff] at hz ⊢
+  simp only [mul_re, ofReal_re, ofReal_im, zero_mul, sub_zero, mul_im, add_zero]
+  rcases hz with h | h
+  · exact Or.inl (mul_pos hr h)
+  · exact Or.inr (mul_ne_zero hr.ne' h)
+
+/-- Positive reals accumulate at `1` in the punctured complex neighbourhood. -/
+lemma frequently_ofReal_pos {P : ℂ → Prop} (hP : ∀ x : ℝ, 0 < x → P x) :
+    ∃ᶠ z in 𝓝[≠] (1 : ℂ), P z := by
+  have hu : Tendsto (fun n : ℕ => ((1 + 1 / ((n : ℝ) + 1) : ℝ) : ℂ)) atTop (𝓝[≠] (1 : ℂ)) := by
+    refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun n => ?_⟩
+    · have := (tendsto_one_div_add_atTop_nhds_zero_nat).const_add (1 : ℝ)
+      rw [add_zero] at this
+      have h2 := (continuous_ofReal.tendsto _).comp this
+      simpa [Function.comp_def] using h2
+    · simp only [mem_compl_iff, mem_singleton_iff]
+      intro h
+      have h' : (1 + 1 / ((n:ℝ) + 1) : ℝ) = 1 := by exact_mod_cast h
+      have : (0:ℝ) < 1 / ((n:ℝ) + 1) := by positivity
+      linarith
+  exact hu.frequently (Frequently.of_forall fun n => hP _ (by positivity))
+
+/-- The Fresnel right-hand sides of DLMF 11.10.19–20 are holomorphic on the slit plane. -/
+lemma differentiableOn_angerHalf_rhs (A B : ℂ → ℂ) (hA : Differentiable ℂ A)
+    (hB : Differentiable ℂ B) :
+    DifferentiableOn ℂ (fun z : ℂ => (π*z/2)^(-1/2:ℂ) *
+      (angerFresnelPlus ((2*z/π)^(1/2:ℂ)) * A z - angerFresnelMinus ((2*z/π)^(1/2:ℂ)) * B z))
+      slitPlane := by
+  intro z hz
+  have h1 : π * z / 2 ∈ slitPlane := by
+    have := mul_mem_slitPlane_of_pos (by positivity : (0:ℝ) < π / 2) hz
+    convert this using 1; push_cast; ring
+  have h2 : 2 * z / π ∈ slitPlane := by
+    have := mul_mem_slitPlane_of_pos (by positivity : (0:ℝ) < 2 / π) hz
+    convert this using 1; push_cast; ring
+  have hc1 : DifferentiableAt ℂ (fun z : ℂ => (π*z/2)^(-1/2:ℂ)) z :=
+    DifferentiableAt.cpow (by fun_prop) (differentiableAt_const _) h1
+  have hc2 : DifferentiableAt ℂ (fun z : ℂ => (2*z/π)^(1/2:ℂ)) z :=
+    DifferentiableAt.cpow (by fun_prop) (differentiableAt_const _) h2
+  have hP : DifferentiableAt ℂ (fun z : ℂ => angerFresnelPlus ((2*z/π)^(1/2:ℂ))) z := by
+    unfold angerFresnelPlus
+    exact ((fresnelCosInt_entire _).comp z hc2).add ((fresnelSinInt_entire _).comp z hc2)
+  have hM : DifferentiableAt ℂ (fun z : ℂ => angerFresnelMinus ((2*z/π)^(1/2:ℂ))) z := by
+    unfold angerFresnelMinus
+    exact ((fresnelCosInt_entire _).comp z hc2).sub ((fresnelSinInt_entire _).comp z hc2)
+  exact (hc1.mul ((hP.mul (hA z)).sub (hM.mul (hB z)))).differentiableWithinAt
+
+/-- The slit plane is preconnected. -/
+lemma isPreconnected_slitPlane' : IsPreconnected slitPlane :=
+  (starConvex_one_slitPlane.isPathConnected one_mem_slitPlane).isConnected.isPreconnected
+
 /-- angerJ half 19. -/
 @[dlmf 11.10.E19]
 theorem angerJ_half_19 {z : ℂ} (hz : z ∈ slitPlane) :
     angerJ (-1/2) z = (π*z/2)^(-1/2:ℂ)*(angerFresnelPlus ((2*z/π)^(1/2:ℂ))*cos z-angerFresnelMinus ((2*z/π)^(1/2:ℂ))*sin z) := by
-  sorry
+  have hf : AnalyticOnNhd ℂ (angerJ (-1/2)) slitPlane :=
+    (analyticOnNhd_univ_iff_differentiable.2 (angerJ_entire _)).mono (subset_univ _)
+  have hg := (differentiableOn_angerHalf_rhs cos sin differentiable_cos differentiable_sin).analyticOnNhd
+    isOpen_slitPlane
+  refine hf.eqOn_of_preconnected_of_frequently_eq hg isPreconnected_slitPlane' one_mem_slitPlane
+    (frequently_ofReal_pos fun x hx => ?_) hz
+  have h := (angerHalfDefect_eq_zero hx).2
+  unfold angerHalfDefectG at h
+  have hs0 : (Real.sqrt (π * x / 2) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.2 (Real.sqrt_pos.2 (by positivity)).ne'
+  rw [show π * (x : ℂ) / 2 = ((π * x / 2 : ℝ) : ℂ) by push_cast; ring,
+    show 2 * (x : ℂ) / π = ((2 * x / π : ℝ) : ℂ) by push_cast; ring,
+    ofReal_cpow_neg_half (by positivity), ofReal_cpow_half (by positivity),
+    eq_inv_mul_iff_mul_eq₀ hs0]
+  linear_combination h
 
 /-- angerJ half 20. -/
 @[dlmf 11.10.E20]
 theorem angerJ_half_20 {z : ℂ} (hz : z ∈ slitPlane) :
     angerJ (1/2) z = (π*z/2)^(-1/2:ℂ)*(angerFresnelPlus ((2*z/π)^(1/2:ℂ))*sin z+angerFresnelMinus ((2*z/π)^(1/2:ℂ))*cos z) := by
-  sorry
+  have hf : AnalyticOnNhd ℂ (angerJ (1/2)) slitPlane :=
+    (analyticOnNhd_univ_iff_differentiable.2 (angerJ_entire _)).mono (subset_univ _)
+  have hg := (differentiableOn_angerHalf_rhs sin (fun z => -cos z) differentiable_sin
+    differentiable_cos.neg).analyticOnNhd isOpen_slitPlane
+  have key := hf.eqOn_of_preconnected_of_frequently_eq hg isPreconnected_slitPlane'
+    one_mem_slitPlane (frequently_ofReal_pos fun x hx => ?_) hz
+  · rw [key]; ring
+  have h := (angerHalfDefect_eq_zero hx).1
+  unfold angerHalfDefectF at h
+  have hs0 : (Real.sqrt (π * x / 2) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.2 (Real.sqrt_pos.2 (by positivity)).ne'
+  rw [show π * (x : ℂ) / 2 = ((π * x / 2 : ℝ) : ℂ) by push_cast; ring,
+    show 2 * (x : ℂ) / π = ((2 * x / π : ℝ) : ℂ) by push_cast; ring,
+    ofReal_cpow_neg_half (by positivity), ofReal_cpow_half (by positivity),
+    eq_inv_mul_iff_mul_eq₀ hs0]
+  linear_combination h
 
 /-- anger weber half. -/
 @[dlmf 11.10.E19, dlmf 11.10.E20]
@@ -1516,17 +1909,71 @@ theorem angerJ_int (n : ℤ) {z : ℂ} (hz : z ∈ slitPlane) :
     angerJ n z = besselJ n z := by
   exact angerJ_int_aux n hz
 
+/-- Folding `[0, π]` about `π/2`: `∫₀^π f = ∫₀^{π/2} (f(π/2+ψ) + f(π/2-ψ)) dψ`. -/
+theorem integral_zero_pi_fold {f : ℝ → ℂ} (hf : Continuous f) :
+    ∫ θ in (0:ℝ)..π, f θ = ∫ ψ in (0:ℝ)..(π / 2), (f (π / 2 + ψ) + f (π / 2 - ψ)) := by
+  have h1 : IntervalIntegrable (fun ψ => f (π / 2 + ψ)) volume 0 (π / 2) :=
+    (hf.comp (continuous_const.add continuous_id)).intervalIntegrable _ _
+  have h2 : IntervalIntegrable (fun ψ => f (π / 2 - ψ)) volume 0 (π / 2) :=
+    (hf.comp (continuous_const.sub continuous_id)).intervalIntegrable _ _
+  rw [← intervalIntegral.integral_add_adjacent_intervals (b := π / 2)
+      (hf.intervalIntegrable _ _) (hf.intervalIntegrable _ _),
+    intervalIntegral.integral_add h1 h2, add_comm]
+  congr 1
+  · rw [intervalIntegral.integral_comp_add_left (fun x => f x) (π / 2)]
+    norm_num [add_halves]
+  · rw [intervalIntegral.integral_comp_sub_left (fun x => f x) (π / 2)]
+    norm_num
+
+/-- The folded Anger integrand: `cos(ν(π/2±ψ) - z cos ψ)` summed over both signs. -/
+theorem angerFold_cos (ν z : ℂ) (ψ : ℝ) :
+    cos (ν * ((π / 2 + ψ : ℝ) : ℂ) - z * Real.sin (π / 2 + ψ)) +
+      cos (ν * ((π / 2 - ψ : ℝ) : ℂ) - z * Real.sin (π / 2 - ψ)) =
+    2 * (((2 * sin (ν * π / 2)) / 2 * sin (z * Real.cos ψ) +
+      (2 * cos (ν * π / 2)) / 2 * cos (z * Real.cos ψ)) * cos (ν * ψ)) := by
+  rw [add_comm (π / 2) ψ, Real.sin_add_pi_div_two, Real.sin_pi_div_two_sub, add_comm ψ]
+  push_cast
+  have e1 : ν * (π / 2 + ψ) - z * cos (ψ : ℂ) = (ν * π / 2 - z * cos (ψ : ℂ)) + ν * ψ := by ring
+  have e2 : ν * (π / 2 - ψ) - z * cos (ψ : ℂ) = (ν * π / 2 - z * cos (ψ : ℂ)) - ν * ψ := by ring
+  rw [e1, e2]
+  simp only [cos_add, cos_sub, sin_sub]
+  ring
+
+/-- The folded Weber integrand: `sin(ν(π/2±ψ) - z cos ψ)` summed over both signs. -/
+theorem angerFold_sin (ν z : ℂ) (ψ : ℝ) :
+    sin (ν * ((π / 2 + ψ : ℝ) : ℂ) - z * Real.sin (π / 2 + ψ)) +
+      sin (ν * ((π / 2 - ψ : ℝ) : ℂ) - z * Real.sin (π / 2 - ψ)) =
+    2 * (((-2 * cos (ν * π / 2)) / 2 * sin (z * Real.cos ψ) +
+      (2 * sin (ν * π / 2)) / 2 * cos (z * Real.cos ψ)) * cos (ν * ψ)) := by
+  rw [add_comm (π / 2) ψ, Real.sin_add_pi_div_two, Real.sin_pi_div_two_sub, add_comm ψ]
+  push_cast
+  have e1 : ν * (π / 2 + ψ) - z * cos (ψ : ℂ) = (ν * π / 2 - z * cos (ψ : ℂ)) + ν * ψ := by ring
+  have e2 : ν * (π / 2 - ψ) - z * cos (ψ : ℂ) = (ν * π / 2 - z * cos (ψ : ℂ)) - ν * ψ := by ring
+  rw [e1, e2]
+  simp only [sin_add, sin_sub, cos_sub]
+  ring
+
 /-- angerJ bessel products. -/
 @[dlmf 11.10.E30]
 theorem angerJ_bessel_products (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 2*sin (ν*π/2)*(-1)^k*besselJ (k-ν/2+1/2) (z/2)*besselJ (k+ν/2+1/2) (z/2)+2*cos (ν*π/2)*(if k=0 then 1/2 else 1)*(-1)^k*besselJ (k-ν/2) (z/2)*besselJ (k+ν/2) (z/2)) (angerJ ν z) := by
-  sorry
+  convert hasSum_besselJ_products_integral (2 * sin (ν * π / 2)) (2 * cos (ν * π / 2)) ν hz
+    using 1
+  rw [angerJ, integral_zero_pi_fold (by fun_prop)]
+  simp_rw [angerFold_cos]
+  rw [intervalIntegral.integral_const_mul]
+  ring
 
 /-- weberE bessel products. -/
 @[dlmf 11.10.E31]
 theorem weberE_bessel_products (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => -2*cos (ν*π/2)*(-1)^k*besselJ (k-ν/2+1/2) (z/2)*besselJ (k+ν/2+1/2) (z/2)+2*sin (ν*π/2)*(if k=0 then 1/2 else 1)*(-1)^k*besselJ (k-ν/2) (z/2)*besselJ (k+ν/2) (z/2)) (weberE ν z) := by
-  sorry
+  convert hasSum_besselJ_products_integral (-2 * cos (ν * π / 2)) (2 * sin (ν * π / 2)) ν hz
+    using 1
+  rw [weberE, integral_zero_pi_fold (by fun_prop)]
+  simp_rw [angerFold_sin]
+  rw [intervalIntegral.integral_const_mul]
+  ring
 
 /-- angerJ recurrence. -/
 @[dlmf 11.10.E32]

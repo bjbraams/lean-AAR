@@ -119,13 +119,123 @@ theorem associated_hypergeometric_15 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitP
 @[dlmf 14.3.E16]
 theorem associated_hypergeometric_16 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     cos (ν*π)*associatedP ν (-μ) z=2^ν*Real.sqrt π*z^(ν-μ)*legendreBranchPower μ z/Gamma (ν+μ+1)*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/z^2)-Real.sqrt π*legendreBranchPower μ z/(2^(ν+1)*Gamma (μ-ν)*z^(ν+μ+1))*regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/z^2) := by
-  sorry
+  set D : Set ℂ := {z : ℂ | z-1 ∈ slitPlane} with hD
+  have hDo : IsOpen D := isOpen_slitPlane.preimage (continuous_sub_right 1)
+  have hDc : IsPreconnected D := by
+    have : D = (fun w => w+1) '' slitPlane := by
+      ext w; simp only [hD, mem_image]
+      show w - 1 ∈ slitPlane ↔ _
+      exact ⟨fun h => ⟨w-1, h, by ring⟩, fun ⟨u, hu, e⟩ => by rw [← e]; simpa using hu⟩
+    rw [this]
+    exact (StarConvex.isPathConnected starConvex_one_slitPlane (Or.inl (by simp))).isConnected.isPreconnected.image _ (by fun_prop : Continuous fun w : ℂ => w+1).continuousOn
+  have hmem : ∀ w ∈ D, w + 1 ∈ slitPlane ∧ w - 1 ∈ slitPlane ∧ w ∈ slitPlane ∧
+      (1-w)/2 ∈ cutPlane ∧ 1/w^2 ∈ cutPlane := by
+    intro w hw
+    have h2 : w - 1 ∈ slitPlane := hw
+    have h1 : w + 1 ∈ slitPlane := by
+      have := one_add_mem_slitPlane_of_sub_one h2; rwa [add_comm] at this
+    have h3 : w ∈ slitPlane := by
+      rw [mem_slitPlane_iff] at h2 ⊢
+      rcases h2 with h | h
+      · left; simp at h; linarith
+      · right; simpa using h
+    exact ⟨h1, h2, h3, mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one h2),
+      one_sub_inv_sq_mem_slitPlane_of_sub_one h2⟩
+  have hf : AnalyticOnNhd ℂ (fun z => cos (ν*π)*associatedP ν (-μ) z) D := by
+    refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
+    obtain ⟨h1, h2, -, h4, -⟩ := hmem w hw
+    unfold associatedP
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := assumption)
+  have hg : AnalyticOnNhd ℂ (fun z => 2^ν*Real.sqrt π*z^(ν-μ)*legendreBranchPower μ z/Gamma (ν+μ+1)*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/z^2)-Real.sqrt π*legendreBranchPower μ z/(2^(ν+1)*Gamma (μ-ν)*z^(ν+μ+1))*regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/z^2)) D := by
+    refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
+    obtain ⟨h1, h2, h3, -, h5⟩ := hmem w hw
+    have h0 : w ^ 2 ≠ 0 := pow_ne_zero 2 (slitPlane_ne_zero h3)
+    have h6 : w ^ (ν+μ+1) ≠ 0 := by rw [cpow_def_of_ne_zero (slitPlane_ne_zero h3)]; exact exp_ne_zero _
+    unfold legendreBranchPower
+    simp only [div_eq_mul_inv, mul_inv]
+    apply DifferentiableAt.differentiableWithinAt
+    fun_prop (disch := first | assumption | simpa [div_eq_mul_inv] using h5)
+  have hreal : ∀ t : ℝ, t ∈ Ioo (1:ℝ) 2 → cos (ν*π)*associatedP ν (-μ) t = 2^ν*Real.sqrt π*(t:ℂ)^(ν-μ)*legendreBranchPower μ t/Gamma (ν+μ+1)*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/(t:ℂ)^2)-Real.sqrt π*legendreBranchPower μ t/(2^(ν+1)*Gamma (μ-ν)*(t:ℂ)^(ν+μ+1))*regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/(t:ℂ)^2) := by
+    intro t ht
+    have htp : (0:ℝ) < t := by linarith [ht.1]
+    have ht0 : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr htp.ne'
+    have hz1 : (t:ℂ) - 1 ∈ slitPlane := Or.inl (by simp; linarith [ht.1])
+    rw [associatedP_neg_eq_quadratic ν μ hz1 (by simpa using htp)]
+    have hinv : 1/(t:ℂ)^2 = ((1/t^2:ℝ):ℂ) := by push_cast; ring
+    have hlt : 1/t^2 < 1 := by rw [div_lt_one (by positivity)]; nlinarith [ht.1]
+    have hpos : 0 < 1/t^2 := by positivity
+    have hw : ‖1-1/(t:ℂ)^2‖ < 1 := by
+      rw [hinv, ← ofReal_one, ← ofReal_sub, norm_real, Real.norm_eq_abs, abs_lt]
+      constructor <;> linarith
+    have h1w : ‖1-(1-1/(t:ℂ)^2)‖ < 1 := by
+      rw [sub_sub_cancel, hinv, norm_real, Real.norm_eq_abs, abs_lt]
+      constructor <;> linarith
+    have hc := regularized_connection_one_sub ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) hw h1w
+    rw [← regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hw,
+      ← regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ h1w,
+      ← regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ h1w, sub_sub_cancel,
+      show μ+1-(μ-ν)/2-(μ-ν+1)/2 = ν+1/2 by ring, show ν+1/2+1 = ν+3/2 by ring,
+      show (μ-ν)/2+(μ-ν+1)/2-(μ+1)+1 = 1/2-ν by ring,
+      show μ+1-(μ-ν)/2 = (ν+μ+2)/2 by ring, show μ+1-(μ-ν+1)/2 = (ν+μ+1)/2 by ring,
+      show (π:ℂ)*(ν+1/2) = ν*π + π/2 by ring, Complex.sin_add_pi_div_two] at hc
+    have hd1 := Complex.Gamma_mul_Gamma_add_half ((ν+μ+1)/2)
+    rw [show (ν+μ+1)/2+1/2 = (ν+μ+2)/2 by ring, show 1-2*((ν+μ+1)/2) = -ν-μ by ring,
+      show 2*((ν+μ+1)/2) = ν+μ+1 by ring] at hd1
+    have hd2 := Complex.Gamma_mul_Gamma_add_half ((μ-ν)/2)
+    rw [show (μ-ν)/2+1/2 = (μ-ν+1)/2 by ring, show 1-2*((μ-ν)/2) = 1-μ+ν by ring,
+      show 2*((μ-ν)/2) = μ-ν by ring] at hd2
+    rw [mul_comm (Gamma ((ν+μ+2)/2)), hd1, hd2] at hc
+    have hπ : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+    set s : ℂ := ((Real.sqrt π:ℝ):ℂ) with hs
+    have hs0 : s ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    have hss : s*s = π := by rw [hs, ← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+    have f2 : (π:ℂ)*s⁻¹ = s := by rw [← hss]; field_simp
+    have h2 : (2:ℂ) ≠ 0 := two_ne_zero
+    have f1 : (2:ℂ)^(-μ)*((2:ℂ)^(-ν-μ))⁻¹ = 2^ν := by
+      rw [← cpow_neg, ← cpow_add _ _ h2]; ring_nf
+    have f3 : (2:ℂ)^(-μ)*((2:ℂ)^(1-μ+ν))⁻¹ = ((2:ℂ)^(ν+1))⁻¹ := by
+      rw [← cpow_neg, ← cpow_neg, ← cpow_add _ _ h2]; ring_nf
+    have f4 : (t:ℂ)^(ν-μ)*(1/(t:ℂ)^2)^(ν+1/2) = ((t:ℂ)^(ν+μ+1))⁻¹ := by
+      have hl : log (1/(t:ℂ)^2) = -2*log (t:ℂ) := by
+        rw [hinv, ← ofReal_log hpos.le, ← ofReal_log htp.le, Real.log_div one_ne_zero (by positivity),
+          Real.log_one, Real.log_pow]; push_cast; ring
+      have h10 : 1/(t:ℂ)^2 ≠ 0 := by simp [ht0]
+      rw [cpow_def_of_ne_zero ht0, cpow_def_of_ne_zero h10, cpow_def_of_ne_zero ht0, hl, ← exp_add,
+        ← exp_neg]
+      congr 1; ring
+    have hmain : cos (ν*π) * regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/(t:ℂ)^2) =
+        π * (regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/(t:ℂ)^2) / (Gamma (ν+μ+1)*2^(-ν-μ)*s) -
+          (1/(t:ℂ)^2)^(ν+1/2) / (Gamma (μ-ν)*2^(1-μ+ν)*s) *
+            regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/(t:ℂ)^2)) := by
+      rw [← hc]; field_simp
+    set T := (t:ℂ)^(ν-μ)
+    set Y := (1/(t:ℂ)^2)^(ν+1/2)
+    set BP := legendreBranchPower μ t
+    set F1 := regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/(t:ℂ)^2)
+    set F2 := regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/(t:ℂ)^2)
+    set K1 := T*BP*F1*(Gamma (ν+μ+1))⁻¹
+    set K2 := BP*F2*(Gamma (μ-ν))⁻¹
+    linear_combination ((2:ℂ)^(-μ)*T*BP) * hmain + K1*(π*s⁻¹)*f1 + K1*2^ν*f2
+      - K2*(π*s⁻¹)*(T*Y)*f3 - K2*((2:ℂ)^(ν+1))⁻¹*(T*Y)*f2 - K2*((2:ℂ)^(ν+1))⁻¹*s*f4
+  have hfreq : ∃ᶠ w in 𝓝[≠] ((3/2:ℝ):ℂ), cos (ν*π)*associatedP ν (-μ) w = 2^ν*Real.sqrt π*w^(ν-μ)*legendreBranchPower μ w/Gamma (ν+μ+1)*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/w^2)-Real.sqrt π*legendreBranchPower μ w/(2^(ν+1)*Gamma (μ-ν)*w^(ν+μ+1))*regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/w^2) := by
+    have hT : Tendsto (fun t : ℝ => (t:ℂ)) (𝓝[≠] (3/2:ℝ)) (𝓝[≠] ((3/2:ℝ):ℂ)) :=
+      (continuous_ofReal.tendsto _).inf (tendsto_principal_principal.mpr fun t ht =>
+        fun h => ht (ofReal_injective h))
+    apply hT.frequently
+    have hev : ∀ᶠ t : ℝ in 𝓝[≠] (3/2:ℝ), cos (ν*π)*associatedP ν (-μ) t = 2^ν*Real.sqrt π*(t:ℂ)^(ν-μ)*legendreBranchPower μ t/Gamma (ν+μ+1)*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (1/2-ν) (1/(t:ℂ)^2)-Real.sqrt π*legendreBranchPower μ t/(2^(ν+1)*Gamma (μ-ν)*(t:ℂ)^(ν+μ+1))*regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) (1/(t:ℂ)^2) := by
+      apply eventually_nhdsWithin_of_eventually_nhds
+      filter_upwards [Ioo_mem_nhds (by norm_num : (1:ℝ) < 3/2) (by norm_num : (3/2:ℝ) < 2)]
+        with t ht using hreal t ht
+    exact hev.frequently
+  have h32 : ((3/2:ℝ):ℂ) ∈ D := Or.inl (by simp; norm_num)
+  exact hf.eqOn_of_preconnected_of_frequently_eq hg hDc h32 hfreq hz
 
 /-- associated hypergeometric 18. -/
 @[dlmf 14.3.E18]
 theorem associated_hypergeometric_18 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) (hre : 0 < z.re) :
     associatedP ν (-μ) z=2^(-μ)*z^(ν-μ)*legendreBranchPower μ z*regularizedGaussHG ((μ-ν)/2) ((μ-ν+1)/2) (μ+1) (1-1/z^2) := by
-  sorry
+  exact associatedP_neg_eq_quadratic ν μ hz hre
 
 /-- associated hypergeometric 20. -/
 @[dlmf 14.3.E20]

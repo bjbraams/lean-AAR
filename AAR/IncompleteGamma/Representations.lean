@@ -8,6 +8,7 @@ module
 public import AAR.IncompleteGamma.SpecialValues
 public import AAR.IncompleteGamma.SeriesRecurrences
 public import AAR.Confluent.Integrals
+public import AAR.Bessel.Elementary
 
 /-!
 # Real, contour and Mellin–Barnes representations, DLMF §8.6
@@ -198,7 +199,18 @@ theorem upperIncGamma_laplace_integral_complex (a : ℂ) {z : ℂ} (hz : 0 < z.r
 @[dlmf 8.6.E6]
 theorem upperIncGamma_besselK_integral {a : ℂ} (ha : a.re < 1) {z : ℂ} (hz : z ∈ slitPlane) :
     upperIncGamma a z=2*z^(a/2)*exp (-z)/Gamma (1-a)*(∫ t : ℝ in Ioi 0, exp (-t : ℂ)*(t : ℂ)^(-a/2)*AAR.Bessel.besselK a (2*(z*t)^(1/2 : ℂ))) := by
-  sorry
+  -- DLMF 13.4.7 at `a = b = 1 - a`, with `K_{-a} = K_a`.
+  have h := kummerU_eq_integral_besselK (a := 1 - a) (b := 1 - a) hz (by simp) (by simp; linarith)
+  rw [show (1 - (1 - a)) / 2 = a / 2 by ring, show 1 - a - (1 - a) + 1 = (1 : ℂ) by ring,
+    show 1 - a - (1 - a) / 2 - 1 / 2 = -a / 2 by ring, show 1 - a - 1 = -a by ring,
+    Gamma_one, mul_one] at h
+  have hi : (∫ t : ℝ in Ioi 0, exp (-(t : ℂ)) * (t : ℂ) ^ (-a / 2) *
+      AAR.Bessel.besselK (-a) (2 * (z * t) ^ (1 / 2 : ℂ))) =
+      ∫ t : ℝ in Ioi 0, exp (-t : ℂ)*(t : ℂ)^(-a/2)*AAR.Bessel.besselK a (2*(z*t)^(1/2 : ℂ)) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+    rw [AAR.Bessel.besselK_neg a (two_mul_cpow_half_mem_slitPlane hz ht)]
+  rw [upperIncGamma, h, hi]
+  ring
 
 /-- upperIncGamma logarithmic integral. -/
 @[dlmf 8.6.E7]

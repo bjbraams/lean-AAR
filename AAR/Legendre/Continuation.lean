@@ -7,6 +7,7 @@ module
 
 public import AAR.Legendre.Conical
 public import AAR.Legendre.Hypergeometric
+public import ToMathlib.Analysis.ODE.PowerSeriesUniqueness
 
 /-!
 # Legendre boundary values and continuation by ODE transport
@@ -651,12 +652,71 @@ def legendreTransport (ν μ : ℂ) (γ : ℝ → ℂ) (a b : ℂ) : ℂ :=
 /-- Existence on a compact path avoiding both regular singular points. -/
 theorem legendreTransport_exists (ν μ a b : ℂ) (γ : ℝ → ℂ) (hγ : ContDiff ℝ 1 γ) (hreg : ∀ t ∈ Icc (0:ℝ) 1, γ t ≠ 1 ∧ γ t ≠ -1) :
     ∃ u v : ℝ → ℂ, IsLegendreTransport ν μ γ a b u v := by
-  sorry
+  have hγc : Continuous γ := hγ.continuous
+  have hγ'c : Continuous (deriv γ) := hγ.continuous_deriv le_rfl
+  have hne : ∀ t ∈ Icc (0:ℝ) 1, 1 - γ t ^ 2 ≠ 0 := fun t ht h0 => by
+    have : (1 - γ t) * (1 + γ t) = 0 := by linear_combination h0
+    rcases mul_eq_zero.mp this with h | h
+    · exact (hreg t ht).1 (by linear_combination -h)
+    · exact (hreg t ht).2 (by linear_combination h)
+  have hden : ContinuousOn (fun t => 1 - γ t ^ 2) (Icc 0 1) := by fun_prop
+  obtain ⟨u, v, hu0, hv0, huv⟩ := ODE.exists_linear_system_Icc (E := ℂ) (𝕜 := ℂ) zero_le_one
+    (a₁₁ := fun _ => 0) (a₁₂ := deriv γ)
+    (a₂₁ := fun t => -(deriv γ t * (ν*(ν+1) - μ^2/(1 - γ t ^ 2))) / (1 - γ t ^ 2))
+    (a₂₂ := fun t => deriv γ t * (2 * γ t) / (1 - γ t ^ 2))
+    continuousOn_const hγ'c.continuousOn
+    (((hγ'c.continuousOn.mul (continuousOn_const.sub
+      (continuousOn_const.div hden hne))).neg).div hden hne)
+    ((hγ'c.continuousOn.mul (continuousOn_const.mul hγc.continuousOn)).div hden hne) a b
+  refine ⟨u, v, hu0, hv0, fun t ht => (huv t ht).1.continuousWithinAt,
+    fun t ht => (huv t ht).2.continuousWithinAt, fun t ht => ?_⟩
+  obtain ⟨h1, h2⟩ := huv t ht
+  refine ⟨h1.congr_deriv (by simp), h2.congr_deriv ?_⟩
+  have := hne t ht
+  simp only [smul_eq_mul]; field_simp; ring
+
+
+/-- Uniqueness of Legendre transports with given initial data. -/
+lemma isLegendreTransport_unique {ν μ a b : ℂ} {γ : ℝ → ℂ} (hγ : ContDiff ℝ 1 γ)
+    (hreg : ∀ t ∈ Icc (0:ℝ) 1, γ t ≠ 1 ∧ γ t ≠ -1) {u v u₁ v₁ : ℝ → ℂ}
+    (h : IsLegendreTransport ν μ γ a b u v) (h₁ : IsLegendreTransport ν μ γ a b u₁ v₁) :
+    EqOn u u₁ (Icc 0 1) ∧ EqOn v v₁ (Icc 0 1) := by
+  obtain ⟨hu0, hv0, -, -, hd⟩ := h
+  obtain ⟨hu0', hv0', -, -, hd'⟩ := h₁
+  have hγc : Continuous γ := hγ.continuous
+  have hγ'c : Continuous (deriv γ) := hγ.continuous_deriv le_rfl
+  have hne : ∀ t ∈ Icc (0:ℝ) 1, 1 - γ t ^ 2 ≠ 0 := fun t ht h0 => by
+    have : (1 - γ t) * (1 + γ t) = 0 := by linear_combination h0
+    rcases mul_eq_zero.mp this with h | h
+    · exact (hreg t ht).1 (by linear_combination -h)
+    · exact (hreg t ht).2 (by linear_combination h)
+  have hden : ContinuousOn (fun t => 1 - γ t ^ 2) (Icc 0 1) := by fun_prop
+  refine ODE.eqOn_Icc_of_linear_system (𝕜 := ℂ) (t₀ := 0) ⟨le_rfl, zero_le_one⟩
+    (a₁₁ := fun _ => 0) (a₁₂ := deriv γ)
+    (a₂₁ := fun t => -(deriv γ t * (ν*(ν+1) - μ^2/(1 - γ t ^ 2))) / (1 - γ t ^ 2))
+    (a₂₂ := fun t => deriv γ t * (2 * γ t) / (1 - γ t ^ 2))
+    continuousOn_const hγ'c.continuousOn ?_ ?_ (fun t ht => ?_) (fun t ht => ?_)
+    (by rw [hu0, hu0']) (by rw [hv0, hv0'])
+  · refine ContinuousOn.div ?_ hden hne
+    refine (hγ'c.continuousOn.mul (continuousOn_const.sub
+      (continuousOn_const.div hden hne))).neg
+  · exact (hγ'c.continuousOn.mul (continuousOn_const.mul hγc.continuousOn)).div hden hne
+  · obtain ⟨h1, h2⟩ := hd t ht
+    refine ⟨h1.congr_deriv (by simp), h2.congr_deriv ?_⟩
+    have := hne t ht
+    simp only [smul_eq_mul]; field_simp; ring
+  · obtain ⟨h1, h2⟩ := hd' t ht
+    refine ⟨h1.congr_deriv (by simp), h2.congr_deriv ?_⟩
+    have := hne t ht
+    simp only [smul_eq_mul]; field_simp; ring
 
 /-- Uniqueness identifies the actual analytic continuation, independently of the chosen solution. -/
 theorem legendreTransport_unique (ν μ a b : ℂ) (γ : ℝ → ℂ) (hγ : ContDiff ℝ 1 γ) (hreg : ∀ t ∈ Icc (0:ℝ) 1, γ t ≠ 1 ∧ γ t ≠ -1) {u v : ℝ → ℂ} (huv : IsLegendreTransport ν μ γ a b u v) :
     legendreTransport ν μ γ a b=u 1 := by
-  sorry
+  have hex : ∃ p : (ℝ → ℂ) × (ℝ → ℂ), IsLegendreTransport ν μ γ a b p.1 p.2 := ⟨(u, v), huv⟩
+  have hs := Classical.epsilon_spec hex
+  exact (isLegendreTransport_unique hγ hreg hs huv).1 ⟨zero_le_one, le_rfl⟩
+
 
 /-- Half-circuits of the confocal ellipse, with inherited path orientation. -/
 def legendreEllipsePath (z : ℂ) (s : ℤ) (t : ℝ) : ℂ :=

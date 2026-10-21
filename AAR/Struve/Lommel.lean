@@ -7,6 +7,7 @@ module
 
 public import AAR.Struve.Basic
 public import AAR.Bessel.Elementary
+public import AAR.Bessel.NeumannSeries
 
 /-!
 # Lommel functions and parameter continuation
@@ -405,13 +406,122 @@ theorem lommel_general_solution {μ ν : ℂ} (h : LommelRegular μ ν) (f : ℂ
 @[dlmf 11.9.E7]
 theorem lommelS_bessel_series_7 {μ ν : ℂ} (h : ∀ n : ℕ, μ-ν ≠ -(n+1) ∧ μ+ν ≠ -(n+1)) (hm : ∀ n : ℕ, μ ≠ -(n+1)) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 2^(μ+1)*(2*k+μ+1)*Gamma (k+μ+1)/((k.factorial:ℂ)*(2*k+μ-ν+1)*(2*k+μ+ν+1))*besselJ (2*k+μ+1) z) (lommelS μ ν z) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have hl : ∀ n : ℕ, μ + 1 ≠ -n := fun n h' => hm n (by linear_combination h')
+  have ha : ∀ n : ℕ, (n : ℂ) + (μ - ν + 1) / 2 ≠ 0 := fun n h' =>
+    (h (2 * n)).1 (by push_cast; linear_combination 2 * h')
+  have hb : ∀ n : ℕ, (n : ℂ) + (μ + ν + 1) / 2 ≠ 0 := fun n h' =>
+    (h (2 * n)).2 (by push_cast; linear_combination 2 * h')
+  have hL := (hasSum_besselJ_neumann_lommel (l := μ + 1) (a := (μ - ν + 1) / 2)
+    (b := (μ + ν + 1) / 2) (by ring) hl ha hb hz0).mul_left ((2 : ℂ) ^ (μ + 1) / 4)
+  have hA : ∀ j : ℕ, lommelA μ ν (j + 1) =
+      4 ^ (j + 1) * ∏ i ∈ Finset.range (j + 1), (((i : ℂ) + (μ - ν + 1) / 2) * (i + (μ + ν + 1) / 2)) := by
+    intro j
+    rw [lommelA, show (4 : ℂ) ^ (j + 1) = ∏ _i ∈ Finset.range (j + 1), (4 : ℂ) by simp,
+      ← Finset.prod_mul_distrib]
+    exact Finset.prod_congr rfl fun i _ => by ring
+  convert hL using 1
+  · funext k
+    have h1 := ha k
+    have h2 := hb k
+    have h3 : (2 * k + μ - ν + 1 : ℂ) ≠ 0 := fun h' => h1 (by linear_combination h' / 2)
+    have h4 : (2 * k + μ + ν + 1 : ℂ) ≠ 0 := fun h' => h2 (by linear_combination h' / 2)
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    rw [powerNeumannCoeff, show (2 * k + μ + 1 : ℂ) = μ + 1 + 2 * k by ring,
+      show (k + μ + 1 : ℂ) = μ + 1 + k by ring,
+      show ((k ! : ℂ) * (2 * k + μ - ν + 1) * (2 * k + μ + ν + 1)) =
+        k ! * (4 * ((k + (μ - ν + 1) / 2) * (k + (μ + ν + 1) / 2))) by ring]
+    field_simp
+  · have h2 : (2 : ℂ) ^ (μ + 1) ≠ 0 := cpow_ne_zero_iff_of_exponent_ne_zero
+      (fun h' => hl 0 (by simpa using h')) |>.mpr two_ne_zero
+    rw [lommelS, div_two_cpow hz0, show ∀ X Y : ℂ, 2 ^ (μ + 1) / 4 * (X / 2 ^ (μ + 1) * Y) =
+      X * (1 / 4 * Y) from fun X Y => by field_simp, ← tsum_mul_left (α := ℂ) (a := 1 / 4)]
+    congr 1
+    refine tsum_congr fun j => ?_
+    have hP : ∏ i ∈ Finset.range (j + 1), (((i : ℂ) + (μ - ν + 1) / 2) * (i + (μ + ν + 1) / 2)) ≠ 0 :=
+      Finset.prod_ne_zero_iff.mpr fun i _ => mul_ne_zero (ha i) (hb i)
+    rw [hA, div_pow, pow_mul, pow_mul, pow_succ]
+    generalize ∏ i ∈ Finset.range (j + 1), (((i : ℂ) + (μ - ν + 1) / 2) * (i + (μ + ν + 1) / 2)) = P at hP ⊢
+    field_simp
+    ring
 
 /-- lommelS bessel series 8. -/
 @[dlmf 11.9.E8]
 theorem lommelS_bessel_series_8 {μ ν : ℂ} (h : ∀ n : ℕ, μ-ν ≠ -(n+1) ∧ μ+ν ≠ -(n+1)) (hm : ∀ n : ℕ, μ ≠ -(n+1)) {z : ℂ} (hz : z ∈ slitPlane) :
     HasSum (fun k : ℕ => 2^((μ+ν-1)/2)*Gamma ((μ+ν+1)/2)*z^((μ+1-ν)/2)*(z/2)^k/((k.factorial:ℂ)*(2*k+μ-ν+1))*besselJ (k+(μ+ν+1)/2) z) (lommelS μ ν z) := by
-  sorry
+  have hz0 := slitPlane_ne_zero hz
+  have hw0 : z / 2 ≠ 0 := div_ne_zero hz0 two_ne_zero
+  set α : ℂ := (μ - ν + 1) / 2 with hα
+  set β : ℂ := (μ + ν + 1) / 2 with hβ
+  have ha : ∀ n : ℕ, (n : ℂ) + α ≠ 0 := fun n h' =>
+    (h (2 * n)).1 (by push_cast; linear_combination 2 * h')
+  have hb : ∀ n : ℕ, (n : ℂ) + β ≠ 0 := fun n h' =>
+    (h (2 * n)).2 (by push_cast; linear_combination 2 * h')
+  have hx : ∀ i : ℕ, α + i ≠ 0 := fun i => by rw [add_comm]; exact ha i
+  have hy : ∀ i : ℕ, β + i ≠ 0 := fun i => by rw [add_comm]; exact hb i
+  have hGβ : Gamma β ≠ 0 := Complex.Gamma_ne_zero fun m h' => hy m (by rw [h']; ring)
+  set c : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + α)) with hc_def
+  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le α
+  have hcb : ∀ k, ‖c k‖ ≤ B * 1 ^ k := fun k => by
+    have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
+    show ‖1 / ((k ! : ℂ) * (k + α))‖ ≤ B * 1 ^ k
+    rw [one_pow, mul_one, one_div, mul_inv, norm_mul, norm_inv, Complex.norm_natCast]
+    calc (k ! : ℝ)⁻¹ * ‖((k : ℂ) + α)⁻¹‖ ≤ 1 * B := by
+          gcongr
+          · exact inv_le_one_of_one_le₀ hf
+          · exact hB k
+      _ = B := one_mul B
+  have hcoeff : ∀ j, neumannCoeff β (-1) c (fun k => k) j =
+      (-1) ^ j / (Gamma (β + j + 1) * ∏ i ∈ Finset.range (j + 1), (α + (i : ℂ))) := by
+    intro j
+    rw [div_mul_eq_div_div_swap, ← sum_antidiagonal_neg_one_pow_div_add j hx, Finset.sum_div]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rw [Finset.mem_antidiagonal] at hp
+    rw [regularizedHGFunCoeff_empty, hc_def]
+    dsimp only
+    have hj : (j : ℂ) = p.1 + p.2 := by exact_mod_cast hp.symm
+    rw [hj, show β + ((p.1 : ℕ) : ℂ) + 1 + ((p.2 : ℕ) : ℂ) = β + (p.1 + p.2) + 1 by ring,
+      show (p.1 : ℂ) + α = α + p.1 by ring]
+    simp only [div_eq_mul_inv, one_mul, mul_inv]
+    ring
+  have hN := hasSum_besselJ_neumann_of_coeff hz0 β c (fun k => k) (fun k => k)
+    (fun k => by ring)
+    (summable_neumann_of_norm_le zero_le_one hcb _ (fun k => ⟨le_rfl, by omega⟩) _) _ hcoeff
+  have h2 := hN.mul_left (2 ^ ((μ + ν - 1) / 2) * Gamma β * z ^ ((μ + 1 - ν) / 2) / 2)
+  convert h2 using 1
+  · funext k
+    have h1 := ha k
+    have h3 : (2 * k + μ - ν + 1 : ℂ) = 2 * (k + α) := by rw [hα]; ring
+    have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+    rw [h3, show (k : ℂ) + β = β + k by ring]
+    simp only [hc_def]
+    field_simp
+  · have h2pos : (2 : ℂ) ^ β ≠ 0 := by
+      exact cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+    have hpre : 2 ^ ((μ + ν - 1) / 2) * Gamma β * z ^ ((μ + 1 - ν) / 2) / 2 * (z / 2) ^ β =
+        z ^ (μ + 1) * Gamma β / 4 := by
+      rw [div_two_cpow hz0, show (μ + ν - 1) / 2 = β - 1 by rw [hβ]; ring,
+        cpow_sub _ _ two_ne_zero, cpow_one, show (μ + 1 - ν) / 2 = α by rw [hα]; ring,
+        show μ + 1 = α + β by rw [hα, hβ]; ring, cpow_add _ _ hz0]
+      field_simp
+      ring
+    rw [lommelS, ← mul_assoc, hpre, show ∀ X Y : ℂ, X * Gamma β / 4 * Y = X * (Gamma β / 4 * Y) from
+      fun X Y => by ring, ← tsum_mul_left (α := ℂ) (a := Gamma β / 4)]
+    congr 1
+    refine tsum_congr fun j => ?_
+    have hP := Gamma_add_nat_succ_eq_prod hy j
+    have hA : lommelA μ ν (j + 1) =
+        4 ^ (j + 1) * ((∏ i ∈ Finset.range (j + 1), (α + (i : ℂ))) * ∏ i ∈ Finset.range (j + 1), (β + (i : ℂ))) := by
+      rw [lommelA, show (4 : ℂ) ^ (j + 1) = ∏ _i ∈ Finset.range (j + 1), (4 : ℂ) by simp,
+        ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib]
+      exact Finset.prod_congr rfl fun i _ => by rw [hα, hβ]; ring
+    have hq1 : ∏ i ∈ Finset.range (j + 1), (α + (i : ℂ)) ≠ 0 := Finset.prod_ne_zero_iff.mpr fun i _ => hx i
+    have hq2 : ∏ i ∈ Finset.range (j + 1), (β + (i : ℂ)) ≠ 0 := Finset.prod_ne_zero_iff.mpr fun i _ => hy i
+    rw [hA, hP, div_pow, pow_mul, pow_mul, pow_succ]
+    generalize ∏ i ∈ Finset.range (j + 1), (α + (i : ℂ)) = P at hq1 ⊢
+    generalize ∏ i ∈ Finset.range (j + 1), (β + (i : ℂ)) = Q at hq2 ⊢
+    field_simp
+    ring
 
 /-- lommelCapital asymptotic. -/
 @[dlmf 11.9.E9]

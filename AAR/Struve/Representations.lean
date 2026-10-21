@@ -6,6 +6,8 @@ Authors: Bastiaan J Braams
 module
 
 public import AAR.Struve.Properties
+public import AAR.Bessel.YIntegralRep
+public import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 public import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
 
 /-!
@@ -48,13 +50,53 @@ theorem struveH_integral {ν : ℂ} (hν : -1/2 < ν.re) {z : ℂ} (hz : z ∈ s
 @[dlmf 11.5.E2]
 theorem struveK_laplace (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
     HasIntegralAtTop (fun t : ℝ => 2*(z/2)^ν/(Real.sqrt π*Gamma (ν+1/2))*exp (-z*t)*(1+t^2:ℂ)^(ν-1/2)) 0 (struveK ν z) := by
-  sorry
+  -- `AAR.Bessel.struveK_eq_besselYLaplace` (contour rotation plus downward induction in `ν`)
+  have h := intervalIntegral_tendsto_integral_Ioi 0
+    ((integrableOn_yLaplaceKernel ν hz).const_mul (2*(z/2)^ν/(Real.sqrt π*Gamma (ν+1/2))))
+    tendsto_id
+  rw [integral_const_mul, show 2*(z/2)^ν/(Real.sqrt π*Gamma (ν+1/2)) *
+    ∫ a in Ioi (0:ℝ), yLaplaceKernel ν z a = besselYLaplace ν z from rfl,
+    ← struveK_eq_besselYLaplace ν hz] at h
+  refine h.congr fun R => ?_
+  simp only [id, yLaplaceKernel, mul_assoc]
+
+/-- The real hyperbolic sine tends to infinity. -/
+theorem tendsto_real_sinh_atTop : Tendsto Real.sinh atTop atTop :=
+  tendsto_atTop_mono' atTop (eventually_ge_atTop 0 |>.mono fun _ hx => Real.self_le_sinh_iff.mpr hx)
+    tendsto_id
 
 /-- struveK zero laplace. -/
 @[dlmf 11.5.E3]
 theorem struveK_zero_laplace {z : ℂ} (hz : 0 < z.re) :
     HasIntegralAtTop (fun t : ℝ => 2/π*exp (-z*Real.sinh t)) 0 (struveK 0 z) := by
-  sorry
+  -- DLMF 11.5.2 at `ν = 0` with the substitution `t = sinh u`
+  set c : ℂ := 2*(z/2)^(0:ℂ)/(Real.sqrt π*Gamma (0+1/2))
+  have hc : c = (2/π : ℂ) := by
+    simp only [c]
+    rw [cpow_zero, zero_add, AAR.Confluent.Gamma_one_half_eq_sqrt, ← ofReal_mul,
+      Real.mul_self_sqrt Real.pi_pos.le]; ring
+  have h := intervalIntegral_tendsto_integral_Ioi 0
+    ((integrableOn_yLaplaceKernel 0 hz).const_mul c) tendsto_real_sinh_atTop
+  rw [integral_const_mul, show c * ∫ a in Ioi (0:ℝ), yLaplaceKernel 0 z a = besselYLaplace 0 z
+    from rfl, ← struveK_eq_besselYLaplace 0 hz] at h
+  refine h.congr fun R => ?_
+  have hsub := intervalIntegral.integral_deriv_smul_comp (a := 0) (b := R) (f := Real.sinh)
+    (f' := Real.cosh) (g := fun t => c * yLaplaceKernel 0 z t)
+    (fun x _ => Real.hasDerivAt_sinh x) Real.continuous_cosh.continuousOn
+    ((continuous_yLaplaceKernel 0 z).const_mul c)
+  rw [Real.sinh_zero] at hsub
+  rw [← hsub]
+  refine intervalIntegral.integral_congr fun u _ => ?_
+  simp only [Function.comp, yLaplaceKernel, hc, real_smul]
+  have hch : 0 < Real.cosh u := Real.cosh_pos u
+  have h1 : (1 + ((Real.sinh u : ℝ) : ℂ) ^ 2) ^ ((0:ℂ) - 1/2) = ((Real.cosh u)⁻¹ : ℝ) := by
+    rw [show (1 + ((Real.sinh u : ℝ) : ℂ) ^ 2) = ((Real.cosh u ^ 2 : ℝ) : ℂ) by
+      rw [Real.cosh_sq]; push_cast; ring,
+      show ((0:ℂ) - 1/2) = ((-1/2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow (sq_nonneg _), ← Real.rpow_natCast, ← Real.rpow_mul hch.le]
+    norm_num [Real.rpow_neg_one]
+  have h2 : ((Real.cosh u : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr hch.ne'
+  rw [h1, ofReal_inv]; field_simp
 
 /-- struveM integral. -/
 @[dlmf 11.5.E4]
@@ -466,17 +508,201 @@ theorem struveH_sonine {ν : ℂ} (hν0 : -3/2 < ν.re) (hν1 : ν.re < 1/2) {z 
     ring
   · ring
 
+/-- The sine integral `Si(x) = ∫₀ˣ sinc` is bounded on `[0,∞)`. -/
+theorem exists_bound_integral_sinc : ∃ C : ℝ, ∀ x : ℝ, 0 ≤ x → |∫ u in (0:ℝ)..x, Real.sinc u| ≤ C := by
+  obtain ⟨X, hX⟩ := eventually_atTop.mp
+    ((TauCeti.Contour.tendsto_integral_sinc_atTop).eventually (Metric.ball_mem_nhds (π/2) one_pos))
+  refine ⟨max X (π/2 + 1), fun x hx => ?_⟩
+  by_cases h : X ≤ x
+  · have := hX x h
+    rw [Real.dist_eq] at this
+    have := abs_sub_abs_le_abs_sub (∫ u in (0:ℝ)..x, Real.sinc u) (π/2)
+    rw [abs_of_pos (by positivity : (0:ℝ) < π/2)] at this
+    exact (by linarith : _ ≤ π/2+1).trans (le_max_right _ _)
+  · push Not at h
+    have hb := intervalIntegral.norm_integral_le_of_norm_le_const (a := 0) (b := x) (C := 1)
+      (f := Real.sinc) (fun u _ => by rw [Real.norm_eq_abs]; exact Real.abs_sinc_le_one u)
+    rw [Real.norm_eq_abs, sub_zero, abs_of_nonneg hx, one_mul] at hb
+    exact hb.trans (by linarith [le_max_left X (π/2+1)])
+
+/-- `∫₀^R c sinc(tc) dt = ∫₀^{Rc} sinc`. -/
+lemma integral_mul_sinc_mul (c R : ℝ) :
+    ∫ t in (0:ℝ)..R, c * Real.sinc (t * c) = ∫ u in (0:ℝ)..R * c, Real.sinc u := by
+  rcases eq_or_ne c 0 with rfl | hc
+  · simp
+  · have := intervalIntegral.integral_comp_mul_right (a := 0) (b := R) Real.sinc hc
+    rw [intervalIntegral.integral_const_mul, this, zero_mul, smul_eq_mul]
+    field_simp
+
+/-- Dirichlet's integral under a parametric integral: for `g` continuous on `[a,b]` and `c ≥ 0`
+continuous, positive on `(a,b)`,
+`∫₀^R ∫_a^b g(s) c(s) sinc(t c(s)) ds dt → (π/2) ∫_a^b g`. -/
+theorem tendsto_integral_integral_mul_sinc {a b : ℝ} (hab : a ≤ b) {g : ℝ → ℂ} {c : ℝ → ℝ}
+    (hg : ContinuousOn g (Icc a b)) (hc : ContinuousOn c (Icc a b))
+    (hc0 : ∀ s ∈ Icc a b, 0 ≤ c s) (hc1 : ∀ s ∈ Ioo a b, 0 < c s) :
+    Tendsto (fun R : ℝ => ∫ t in (0:ℝ)..R, ∫ s in a..b, g s * ((c s * Real.sinc (t * c s) : ℝ) : ℂ))
+      atTop (𝓝 (((π/2 : ℝ) : ℂ) * ∫ s in a..b, g s)) := by
+  obtain ⟨C, hC⟩ := exists_bound_integral_sinc
+  set Si : ℝ → ℝ := fun x => ∫ u in (0:ℝ)..x, Real.sinc u
+  have hSi : Continuous Si := by
+    have := intervalIntegral.continuous_primitive (μ := volume) (f := Real.sinc)
+      (fun x y => Real.continuous_sinc.intervalIntegrable x y) 0
+    exact this
+  -- Fubini and substitution
+  have hswap : ∀ R : ℝ, 0 ≤ R → (∫ t in (0:ℝ)..R, ∫ s in a..b,
+      g s * ((c s * Real.sinc (t * c s) : ℝ) : ℂ)) = ∫ s in a..b, g s * (Si (R * c s) : ℂ) := by
+    intro R hR
+    rw [intervalIntegral_intervalIntegral_swap]
+    · refine intervalIntegral.integral_congr fun s _ => ?_
+      rw [intervalIntegral.integral_const_mul]
+      congr 1
+      rw [intervalIntegral.integral_ofReal, integral_mul_sinc_mul]
+    · have hK : ContinuousOn (Function.uncurry fun t s => g s * ((c s * Real.sinc (t * c s) : ℝ) : ℂ))
+          (Icc 0 R ×ˢ Icc a b) := by
+        have hm : MapsTo Prod.snd (Icc 0 R ×ˢ Icc a b) (Icc a b) := fun p hp => hp.2
+        refine (hg.comp continuousOn_snd hm).mul ?_
+        refine continuous_ofReal.comp_continuousOn ?_
+        exact (hc.comp continuousOn_snd hm).mul
+          (Real.continuous_sinc.comp_continuousOn (continuousOn_fst.mul
+            (hc.comp continuousOn_snd hm)))
+      refine (hK.integrableOn_compact (isCompact_Icc.prod isCompact_Icc)).mono_set ?_
+      rw [uIoc_of_le hR, uIoc_of_le hab]
+      exact prod_mono Ioc_subset_Icc_self Ioc_subset_Icc_self
+  have hlim : Tendsto (fun R : ℝ => ∫ s in a..b, g s * (Si (R * c s) : ℂ)) atTop
+      (𝓝 (∫ s in a..b, g s * ((π/2 : ℝ) : ℂ))) := by
+    refine intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+      (fun s => ‖g s‖ * C) ?_ ?_ ?_ ?_
+    · refine Eventually.of_forall fun R => ?_
+      refine ContinuousOn.aestronglyMeasurable ?_ measurableSet_uIoc
+      refine (hg.mul (continuous_ofReal.comp_continuousOn (hSi.comp_continuousOn
+        (continuousOn_const.mul hc)))).mono ?_
+      rw [uIoc_of_le hab]; exact Ioc_subset_Icc_self
+    · filter_upwards [eventually_ge_atTop (0:ℝ)] with R hR
+      refine Eventually.of_forall fun s hs => ?_
+      rw [uIoc_of_le hab] at hs
+      rw [norm_mul, Complex.norm_real, Real.norm_eq_abs]
+      exact mul_le_mul_of_nonneg_left (hC _ (mul_nonneg hR (hc0 s (Ioc_subset_Icc_self hs))))
+        (norm_nonneg _)
+    · refine (ContinuousOn.intervalIntegrable ?_).mul_const C
+      rw [uIcc_of_le hab]; exact continuous_norm.comp_continuousOn hg
+    · have hb : ∀ᵐ s ∂(volume : Measure ℝ), s ≠ b := by
+        rw [ae_iff]; simp [measure_singleton]
+      filter_upwards [hb] with s hsb hs
+      rw [uIoc_of_le hab] at hs
+      have hcs := hc1 s ⟨hs.1, lt_of_le_of_ne hs.2 hsb⟩
+      refine Tendsto.const_mul _ ?_
+      exact (continuous_ofReal.tendsto _).comp
+        ((TauCeti.Contour.tendsto_integral_sinc_atTop).comp
+          (tendsto_id.atTop_mul_const hcs))
+  rw [intervalIntegral.integral_mul_const, mul_comm] at hlim
+  refine hlim.congr' ?_
+  filter_upwards [eventually_ge_atTop (0:ℝ)] with R hR
+  rw [hswap R hR]
+
+
+/-- `sin(tc)/t = c sinc(tc)` for `t ≠ 0`. -/
+lemma sin_mul_div_eq_mul_sinc (t c : ℝ) (ht : t ≠ 0) :
+    Real.sin (t * c) / t = c * Real.sinc (t * c) := by
+  rcases eq_or_ne c 0 with rfl | hc
+  · simp
+  · rw [Real.sinc_of_ne_zero (mul_ne_zero ht hc)]; field_simp
+
+/-- `c sinc(tc) t = sin(tc)` for `t ≠ 0`. -/
+lemma mul_sinc_mul_mul (t c : ℝ) (ht : t ≠ 0) :
+    c * Real.sinc (t * c) * t = Real.sin (t * c) := by
+  rw [← sin_mul_div_eq_mul_sinc t c ht]; field_simp
+
+/-- `√π √π = π` in `ℂ`. -/
+lemma sqrt_pi_mul_sqrt_pi_complex : (Real.sqrt π : ℂ) * (Real.sqrt π : ℂ) = π := by
+  rw [← ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
+
+/-- `∫₀¹ √(1-s²) ds = π/4`. -/
+lemma integral_sqrt_one_sub_sq_unit : ∫ s in (0:ℝ)..1, √(1 - s ^ 2) = π / 4 := by
+  have h := integral_sqrt_one_sub_sq
+  have hc : Continuous fun s : ℝ => √(1 - s ^ 2) := by fun_prop
+  rw [← intervalIntegral.integral_add_adjacent_intervals (b := 0) (hc.intervalIntegrable _ _)
+    (hc.intervalIntegrable _ _)] at h
+  have hneg : ∫ s in (-1:ℝ)..0, √(1 - s ^ 2) = ∫ s in (0:ℝ)..1, √(1 - s ^ 2) := by
+    have := intervalIntegral.integral_comp_neg (a := 0) (b := 1) (fun s : ℝ => √(1 - s ^ 2))
+    simp only [neg_sq, neg_zero] at this
+    exact this.symm
+  linarith
+
 /-- struveH integral zero div. -/
 @[dlmf 11.7.E8]
 theorem struveH_integral_zero_div  :
     HasIntegralAtTop (fun t : ℝ => struveH 0 t/t) 0 (π/2) := by
-  sorry
+  -- Poisson's integral, Fubini, and Dirichlet's integral (TauCeti `tendsto_integral_sinc_atTop`)
+  have h := tendsto_integral_integral_mul_sinc (a := 0) (b := π/2) (by positivity)
+    (g := fun _ => ((2/π : ℝ) : ℂ)) (c := Real.cos) continuousOn_const
+    Real.continuous_cos.continuousOn (fun s hs => Real.cos_nonneg_of_mem_Icc
+      ⟨by linarith [hs.1, Real.pi_pos], hs.2⟩)
+    (fun s hs => Real.cos_pos_of_mem_Ioo ⟨by linarith [hs.1, Real.pi_pos], hs.2⟩)
+  rw [intervalIntegral.integral_const, sub_zero, real_smul] at h
+  have hv : (((π/2 : ℝ) : ℂ) * (((π/2 : ℝ) : ℂ) * ((2/π : ℝ) : ℂ))) = (π/2 : ℂ) := by
+    push_cast; field_simp
+  rw [hv] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_ge_atTop (0:ℝ)] with R hR
+  refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun t ht => ?_)
+  rw [uIoc_of_le hR] at ht
+  have ht0 : (0:ℝ) < t := ht.1
+  have ht' : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr ht0.ne'
+  rw [struveH_trig_integral (by norm_num) (ofReal_mem_slitPlane.mpr ht0), eq_div_iff ht',
+    ← intervalIntegral.integral_mul_const, ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun θ _ => ?_
+  have hr := mul_sinc_mul_mul t (Real.cos θ) ht0.ne'
+  have hr' : ((Real.cos θ * Real.sinc (t * Real.cos θ) : ℝ) : ℂ) * t =
+      sin ((t:ℂ) * (Real.cos θ : ℂ)) := by
+    rw [← ofReal_mul, hr, ofReal_sin, ofReal_mul]
+  simp only [cpow_zero, mul_zero, mul_one, zero_add, AAR.Confluent.Gamma_one_half_eq_sqrt]
+  rw [mul_assoc, hr', sqrt_pi_mul_sqrt_pi_complex]
+  push_cast
+  ring
+
+
 
 /-- struveH integral one div sq. -/
 @[dlmf 11.7.E8]
 theorem struveH_integral_one_div_sq  :
     HasIntegralAtTop (fun t : ℝ => struveH 1 t/t^2) 0 (π/4) := by
-  sorry
+  -- Poisson's integral, Fubini, and Dirichlet's integral
+  have h := tendsto_integral_integral_mul_sinc (a := 0) (b := 1) zero_le_one
+    (g := fun s => ((2/π * √(1 - s ^ 2) : ℝ) : ℂ)) (c := id)
+    (continuous_ofReal.comp (by fun_prop)).continuousOn continuous_id.continuousOn
+    (fun s hs => hs.1) (fun s hs => hs.1)
+  rw [intervalIntegral.integral_ofReal, intervalIntegral.integral_const_mul,
+    integral_sqrt_one_sub_sq_unit] at h
+  have hv : (((π/2 : ℝ) : ℂ) * ((2/π * (π/4) : ℝ) : ℂ)) = (π/4 : ℂ) := by
+    push_cast; field_simp
+  rw [hv] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_ge_atTop (0:ℝ)] with R hR
+  refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun t ht => ?_)
+  rw [uIoc_of_le hR] at ht
+  have ht0 : (0:ℝ) < t := ht.1
+  have ht' : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr ht0.ne'
+  rw [struveH_integral (by norm_num) (ofReal_mem_slitPlane.mpr ht0), eq_div_iff (pow_ne_zero 2 ht'),
+    ← intervalIntegral.integral_mul_const, ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun s hs => ?_
+  rw [uIcc_of_le zero_le_one] at hs
+  have hr := mul_sinc_mul_mul t s ht0.ne'
+  have hsq : (1 - (s : ℂ) ^ 2) ^ ((1:ℂ) - 1/2) = ((√(1 - s ^ 2) : ℝ) : ℂ) := by
+    rw [show (1 - (s : ℂ) ^ 2) = ((1 - s ^ 2 : ℝ) : ℂ) by push_cast; ring,
+      show ((1:ℂ) - 1/2) = ((1/2 : ℝ) : ℂ) by push_cast; ring,
+      ← ofReal_cpow (by nlinarith [hs.1, hs.2]), Real.sqrt_eq_rpow]
+  have hG : Gamma (1 + 1/2) = (Real.sqrt π : ℂ) / 2 := by
+    rw [show (1:ℂ) + 1/2 = 1/2 + 1 by ring, Complex.Gamma_add_one _ (by norm_num),
+      AAR.Confluent.Gamma_one_half_eq_sqrt]; ring
+  have hsin : sin ((t:ℂ) * (s:ℂ)) = ((Real.sin (t * s) : ℝ) : ℂ) := by push_cast; ring_nf
+  rw [hsq, hG, cpow_one, hsin, ← hr]
+  have hp : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hs0 : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  simp only [id]
+  push_cast
+  rw [← sqrt_pi_mul_sqrt_pi_complex]
+  field_simp
+
 
 /-- struveH integral plain. -/
 @[dlmf 11.7.E9]
