@@ -13,6 +13,8 @@ public import DLMF.OrthogonalPolynomials.Series
 public import DLMF.OrthogonalPolynomials.LegendreSingular
 public import DLMF.OrthogonalPolynomials.Associated
 public import DLMF.Bessel.Basic
+public import DLMF.Bessel.WeberSeries
+public import DLMF.Hypergeometric.Elementary
 public import DLMF.Gamma.IntegralRepresentations
 public import DLMF.Gamma.BetaFunction
 public import DLMF.Confluent.IntegralRepresentations
@@ -67,6 +69,18 @@ Gamma-normalized sums and scales Mathlib's Beta integral. Its Vandermonde step
 uses an additive functional on Mathlib polynomials and their binomial coefficients.
 Jacobi and Gegenbauer statements retain regularity hypotheses because the project's
 hypergeometric definitions do not implement continuation in singular parameters.
+Gegenbauer's product formula 18.17.5 is proved by induction on the degree for all `λ > 0` at
+once: one integration by parts in the angle (Mathlib's FTC API) lowers `cos φ` times the integrand
+to the derivative at parameter `λ + 1`, and the three-term recurrence together with the identity
+`(1 - x²) C_{n}^{λ+1}` (DLMF 18.9.8) closes the induction.
+The Legendre–Bessel integral 18.17.21 integrates the sine series termwise against `P_n(1 - 2x²)`,
+evaluates the moments by the substitution `s = 1 - 2x²` and the Jacobi moments, and matches the
+result with the product series of `J_{n+1/2}²` (DLMF 10.8.3, `besselJ_mul_besselJ`).
+The Dirichlet–Mehler integrals 18.10.1–18.10.2 substitute `ψ = 2 arcsin(sin(θ/2) √t)` (Mathlib's
+change-of-variables formula `integral_image_eq_integral_abs_deriv_smul`), write `cos(2(n+λ)x)/cos x`
+as a Gauss function (DLMF 15.4.14), and close with the fractional integral 15.6.8 and Euler's
+transformation 15.8.1, which turns `𝐅(n+λ+1/2, 1/2-n-λ; λ+1/2; sin²(θ/2))` into the Gegenbauer
+polynomial.
 -/
 
 @[expose] public section
@@ -882,11 +896,287 @@ theorem legendre_rodrigues (n : ℕ) {x : ℝ} (hx : x ∈ Set.Ioo (-1) 1) :
   have h1 : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
   field_simp
 
+/-- The substitution `ψ = 2 arcsin(k √t)`, `k = sin(θ/2)`, maps `(0, 1)` onto `(0, θ)`. -/
+private lemma dirM_subst {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) (F : ℝ → ℂ) :
+    (∫ ψ : ℝ in (0 : ℝ)..θ, F ψ) = ∫ t : ℝ in (0 : ℝ)..1,
+      ((Real.sin (θ / 2) / (Real.sqrt t * Real.sqrt (1 - Real.sin (θ / 2) ^ 2 * t)) : ℝ) : ℂ) *
+        F (2 * Real.arcsin (Real.sin (θ / 2) * Real.sqrt t)) := by
+  set k := Real.sin (θ / 2) with hk
+  have hk0 : 0 < k := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hk1 : k < 1 := by
+    rw [hk, ← Real.sin_pi_div_two]
+    exact Real.sin_lt_sin_of_lt_of_le_pi_div_two (by linarith) le_rfl (by linarith)
+  set g : ℝ → ℝ := fun t => 2 * Real.arcsin (k * Real.sqrt t) with hg
+  set g' : ℝ → ℝ := fun t => k / (Real.sqrt t * Real.sqrt (1 - k ^ 2 * t)) with hg'
+  have hs : ∀ t ∈ Set.Ioo (0 : ℝ) 1, 0 < k * Real.sqrt t ∧ k * Real.sqrt t < k := by
+    intro t ht
+    have h1 : 0 < Real.sqrt t := Real.sqrt_pos.mpr ht.1
+    have h2 : Real.sqrt t < 1 := by rw [Real.sqrt_lt' one_pos]; simpa using ht.2
+    exact ⟨mul_pos hk0 h1, by nlinarith⟩
+  have hderiv : ∀ t ∈ Set.Ioo (0 : ℝ) 1, HasDerivWithinAt g (g' t) (Set.Ioo 0 1) t := by
+    intro t ht
+    obtain ⟨h1, h2⟩ := hs t ht
+    have hsq := (Real.hasDerivAt_sqrt ht.1.ne').const_mul k
+    have ha := (Real.hasDerivAt_arcsin (x := k * Real.sqrt t) (by linarith)
+      (by linarith)).comp t hsq
+    have := (ha.const_mul 2).hasDerivWithinAt (s := Set.Ioo 0 1)
+    convert this using 1
+    · rfl
+    have hst : Real.sqrt t ^ 2 = t := Real.sq_sqrt ht.1.le
+    have : (k * Real.sqrt t) ^ 2 = k ^ 2 * t := by rw [mul_pow, hst]
+    rw [this]
+    have hp : 0 < Real.sqrt (1 - k ^ 2 * t) := Real.sqrt_pos.mpr (by nlinarith [ht.2])
+    have hq : 0 < Real.sqrt t := Real.sqrt_pos.mpr ht.1
+    simp only [hg']
+    field_simp
+  have hinj : Set.InjOn g (Set.Ioo 0 1) := by
+    intro t1 ht1 t2 ht2 h
+    simp only [hg] at h
+    have h' : Real.arcsin (k * Real.sqrt t1) = Real.arcsin (k * Real.sqrt t2) := by linarith
+    obtain ⟨a1, a2⟩ := hs t1 ht1
+    obtain ⟨b1, b2⟩ := hs t2 ht2
+    have := (Real.arcsin_inj (by linarith) (by linarith) (by linarith) (by linarith)).mp h'
+    have hsq : Real.sqrt t1 = Real.sqrt t2 := mul_left_cancel₀ hk0.ne' this
+    exact (Real.sqrt_inj ht1.1.le ht2.1.le).mp hsq
+  have himg : g '' Set.Ioo 0 1 = Set.Ioo 0 θ := by
+    ext ψ
+    constructor
+    · rintro ⟨t, ht, rfl⟩
+      obtain ⟨h1, h2⟩ := hs t ht
+      have hA : Real.arcsin k = θ / 2 := by
+        rw [hk]; exact Real.arcsin_sin (by linarith) (by linarith)
+      constructor
+      · simp only [hg]; have := Real.arcsin_pos.mpr h1; linarith
+      · simp only [hg]
+        have := Real.arcsin_lt_arcsin (by linarith) h2 hk1.le
+        linarith
+    · rintro ⟨h1, h2⟩
+      have hs0 : 0 < Real.sin (ψ / 2) := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+      have hsk : Real.sin (ψ / 2) < k :=
+        Real.sin_lt_sin_of_lt_of_le_pi_div_two (by linarith) (by linarith) (by linarith)
+      refine ⟨(Real.sin (ψ / 2) / k) ^ 2, ⟨by positivity, ?_⟩, ?_⟩
+      · rw [div_pow]; rw [div_lt_one (by positivity)]
+        exact pow_lt_pow_left₀ hsk hs0.le two_ne_zero
+      · simp only [hg]
+        rw [Real.sqrt_sq (by positivity), mul_div_cancel₀ _ hk0.ne',
+          Real.arcsin_sin (by linarith) (by linarith)]
+        ring
+  have he := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioo hderiv hinj F
+  rw [himg] at he
+  rw [intervalIntegral.integral_of_le hθ.le, intervalIntegral.integral_of_le zero_le_one,
+    integral_Ioc_eq_integral_Ioo, integral_Ioc_eq_integral_Ioo, he]
+  refine setIntegral_congr_fun measurableSet_Ioo fun t ht => ?_
+  have hq : 0 < Real.sqrt t := Real.sqrt_pos.mpr ht.1
+  have hp : 0 < Real.sqrt (1 - k ^ 2 * t) := Real.sqrt_pos.mpr (by nlinarith [ht.2, hk1])
+  rw [abs_of_pos (by simp only [hg']; positivity), Complex.real_smul]
+
+/-- The integrand of 18.10.1 after the substitution `ψ = 2 arcsin(k √t)`. -/
+private lemma dirM_pointwise {θ lam : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) (n : ℕ) {t : ℝ}
+    (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
+    ((Real.sin (θ / 2) / (Real.sqrt t * Real.sqrt (1 - Real.sin (θ / 2) ^ 2 * t)) : ℝ) : ℂ) *
+      ((Real.cos ((n + lam) * (2 * Real.arcsin (Real.sin (θ / 2) * Real.sqrt t))) : ℂ) *
+        (Real.cos (2 * Real.arcsin (Real.sin (θ / 2) * Real.sqrt t)) - Real.cos θ : ℂ) ^
+          (lam - 1 : ℂ)) =
+    (Real.sin (θ / 2) : ℂ) * ((2 * Real.sin (θ / 2) ^ 2 : ℝ) : ℂ) ^ (lam - 1 : ℂ) *
+      Gamma (1 / 2) * (regularizedGaussHGFun ((n : ℂ) + lam + 1 / 2) (1 - ((n : ℂ) + lam + 1 / 2))
+        (1 / 2) (((Real.sin (θ / 2) ^ 2 : ℝ) : ℂ) * t) * (t : ℂ) ^ ((1 / 2 : ℂ) - 1) *
+          (1 - (t : ℂ)) ^ ((lam : ℂ) + 1 / 2 - 1 / 2 - 1)) := by
+  set k := Real.sin (θ / 2) with hk
+  have hk0 : 0 < k := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hk1 : k < 1 := by
+    rw [hk, ← Real.sin_pi_div_two]
+    exact Real.sin_lt_sin_of_lt_of_le_pi_div_two (by linarith) le_rfl (by linarith)
+  have hq : 0 < Real.sqrt t := Real.sqrt_pos.mpr ht.1
+  have hst : Real.sqrt t ^ 2 = t := Real.sq_sqrt ht.1.le
+  have hs1 : k * Real.sqrt t < 1 := by
+    have : Real.sqrt t < 1 := by rw [Real.sqrt_lt' one_pos]; simpa using ht.2
+    nlinarith
+  have hs0 : 0 < k * Real.sqrt t := mul_pos hk0 hq
+  set x := Real.arcsin (k * Real.sqrt t) with hx
+  have hsinx : Real.sin x = k * Real.sqrt t := Real.sin_arcsin (by linarith) hs1.le
+  have hcosx : Real.cos x = Real.sqrt (1 - k ^ 2 * t) := by
+    rw [hx, Real.cos_arcsin, mul_pow, hst]
+  have hp : 0 < Real.sqrt (1 - k ^ 2 * t) := Real.sqrt_pos.mpr (by nlinarith [ht.2, hk1])
+  have hxlt : |x| < Real.pi / 2 := by
+    rw [abs_lt]; constructor
+    · have := Real.arcsin_pos.mpr hs0; linarith [Real.pi_pos]
+    · exact Real.arcsin_lt_pi_div_two.mpr hs1
+  -- the hypergeometric form of `cos(2(n+λ)x)`
+  have hF := sin_sq_cos_quotient ((n : ℂ) + lam + 1 / 2) hxlt
+  have hc : ∀ j : ℕ, (1 / 2 : ℂ) ≠ -(j : ℂ) := fun j h => by
+    have := congrArg Complex.re h; simp at this; linarith [(j.cast_nonneg : (0:ℝ) ≤ j)]
+  have hR := regularizedGaussHGFun_eq_div_Gamma hc (a := (n : ℂ) + lam + 1 / 2)
+    (b := 1 - ((n : ℂ) + lam + 1 / 2)) (((k ^ 2 : ℝ) : ℂ) * t)
+  have hz : ((Real.sin x : ℂ)) ^ 2 = ((k ^ 2 : ℝ) : ℂ) * t := by
+    rw [hsinx, ← ofReal_pow, mul_pow, hst]; push_cast; ring
+  rw [hz] at hF
+  have hg : Gamma (1 / 2 : ℂ) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by norm_num)
+  have hcx : (Real.cos x : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by rw [hcosx]; exact hp.ne')
+  have hcos : (Real.cos ((n + lam) * (2 * x)) : ℂ) = (Real.cos x : ℂ) *
+      (Gamma (1 / 2) * regularizedGaussHGFun ((n : ℂ) + lam + 1 / 2) (1 - ((n : ℂ) + lam + 1 / 2))
+        (1 / 2) (((k ^ 2 : ℝ) : ℂ) * t)) := by
+    rw [hR, hF, ofReal_cos]
+    field_simp
+    congr 1; push_cast; ring
+  have hcos2 : Real.cos (2 * x) = 1 - 2 * k ^ 2 * t := by
+    rw [Real.cos_two_mul', hsinx]; nlinarith [Real.sin_sq_add_cos_sq x, hsinx, hst]
+  have hcosθ : Real.cos θ = 1 - 2 * k ^ 2 := by
+    rw [show θ = 2 * (θ / 2) by ring, Real.cos_two_mul', ← hk]
+    nlinarith [Real.sin_sq_add_cos_sq (θ / 2)]
+  have hdiff : (Real.cos (2 * x) : ℂ) - Real.cos θ = ((2 * k ^ 2 : ℝ) : ℂ) * ((1 - t : ℝ) : ℂ) := by
+    rw [hcos2, hcosθ]; push_cast; ring
+  have ht1 : (0 : ℝ) ≤ 1 - t := by linarith [ht.2]
+  rw [hcos, hdiff, mul_cpow_ofReal_nonneg (by positivity) ht1]
+  have htp : (t : ℂ) ^ ((1 / 2 : ℂ) - 1) = ((Real.sqrt t)⁻¹ : ℝ) := by
+    rw [show (1 / 2 : ℂ) - 1 = ((-(1 / 2) : ℝ) : ℂ) by push_cast; ring, ← ofReal_cpow ht.1.le,
+      Real.rpow_neg ht.1.le, Real.sqrt_eq_rpow]
+  rw [htp, show (lam : ℂ) + 1 / 2 - 1 / 2 - 1 = lam - 1 by ring,
+    show (1 - (t : ℂ)) = ((1 - t : ℝ) : ℂ) by push_cast; ring, hcosx]
+  have hpc : ((Real.sqrt (1 - k ^ 2 * t) : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr hp.ne'
+  push_cast
+  field_simp
+
+/-- The real normalization `2^λ sin^{1-2λ} θ · k (2k²)^{λ-1} (1-k²)^{λ-1/2} = 1`, `k = sin(θ/2)`. -/
+private lemma dirM_const_real {θ lam : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
+    (2 : ℝ) ^ lam * Real.sin θ ^ (1 - 2 * lam) * (Real.sin (θ / 2) *
+      ((2 * Real.sin (θ / 2) ^ 2) ^ (lam - 1) *
+        (1 - Real.sin (θ / 2) ^ 2) ^ (lam - 1 / 2))) = 1 := by
+  set k := Real.sin (θ / 2) with hk
+  set c := Real.cos (θ / 2) with hc
+  have hk0 : 0 < k := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hc0 : 0 < c := Real.cos_pos_of_mem_Ioo ⟨by linarith, by linarith⟩
+  have hs : Real.sin θ = 2 * k * c := by
+    rw [show θ = 2 * (θ / 2) by ring, Real.sin_two_mul]
+  have h1 : 1 - k ^ 2 = c ^ 2 := by nlinarith [Real.sin_sq_add_cos_sq (θ / 2)]
+  rw [hs, h1, Real.rpow_def_of_pos (by norm_num), Real.rpow_def_of_pos (by positivity),
+    Real.rpow_def_of_pos (by positivity), Real.rpow_def_of_pos (by positivity),
+    Real.log_mul (by positivity) hc0.ne', Real.log_mul (by norm_num) hk0.ne',
+    Real.log_mul (by norm_num) (by positivity), Real.log_pow, Real.log_pow,
+    show k = Real.exp (Real.log k) from (Real.exp_log hk0).symm]
+  rw [Real.log_exp, ← Real.exp_add, ← Real.exp_add, ← Real.exp_add, ← Real.exp_add]
+  rw [Real.exp_eq_one_iff]; ring
+
+/-- Dirichlet–Mehler integral for Gegenbauer polynomials (DLMF 18.10.1), via the substitution
+`ψ = 2 arcsin(sin(θ/2) √t)`, the quotient formula 15.4.14, the fractional integral 15.6.8 and
+Euler's transformation 15.8.1. -/
+private theorem dirM_main {lam : ℝ} (hlam : 0 < lam) (n : ℕ)
+    {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
+    ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 =
+      (2 : ℂ) ^ (lam : ℂ) * Gamma (lam + 1 / 2 : ℂ) /
+        (Real.sqrt Real.pi * Gamma (lam : ℂ)) * (Real.sin θ : ℂ) ^ (1 - 2 * lam : ℂ) *
+      ∫ phi : ℝ in (0 : ℝ)..θ, (Real.cos ((n + lam) * phi) : ℂ) *
+        (Real.cos phi - Real.cos θ : ℂ) ^ (lam - 1 : ℂ) := by
+  set k := Real.sin (θ / 2) with hk
+  have hk0 : 0 < k := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hk1 : k < 1 := by
+    rw [hk, ← Real.sin_pi_div_two]
+    exact Real.sin_lt_sin_of_lt_of_le_pi_div_two (by linarith) le_rfl (by linarith)
+  set a : ℂ := (n : ℂ) + lam + 1 / 2 with ha
+  set c : ℂ := (lam : ℂ) + 1 / 2 with hc
+  set z : ℂ := ((k ^ 2 : ℝ) : ℂ) with hz
+  have hz1 : ‖z‖ < 1 := by
+    rw [hz, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+    nlinarith
+  -- the substitution and the fractional integral
+  have hI : (∫ phi : ℝ in (0 : ℝ)..θ, (Real.cos ((n + lam) * phi) : ℂ) *
+        (Real.cos phi - Real.cos θ : ℂ) ^ (lam - 1 : ℂ)) =
+      (k : ℂ) * ((2 * k ^ 2 : ℝ) : ℂ) ^ (lam - 1 : ℂ) * Gamma (1 / 2) *
+        (Gamma (c - 1 / 2) * regularizedGaussHGFun a (1 - a) c z) := by
+    rw [dirM_subst hθ hθπ]
+    rw [intervalIntegral.integral_congr_Ioo_of_le zero_le_one
+      (fun t ht => dirM_pointwise hθ hθπ n ht), intervalIntegral.integral_const_mul]
+    congr 1
+    have hfr := fractional_integral (a := a) (b := 1 - a) (c := c) (d := 1 / 2)
+      (by norm_num) (by rw [hc]; simp [hlam]) hz1
+    have hG : Gamma (c - 1 / 2) ≠ 0 := by
+      rw [hc, show (lam : ℂ) + 1 / 2 - 1 / 2 = lam by ring]
+      exact Complex.Gamma_ne_zero_of_re_pos (by simpa using hlam)
+    rw [hfr, ← mul_assoc, mul_one_div_cancel hG, one_mul]
+  rw [hI, regularizedGaussHGFun_euler a (1 - a) c hz1,
+    show c - a - (1 - a) = (lam : ℂ) - 1 / 2 by rw [hc]; ring,
+    show c - a = -(n : ℂ) by rw [hc, ha]; ring,
+    show c - (1 - a) = (n : ℂ) + 2 * lam by rw [hc, ha]; ring,
+    show c - 1 / 2 = (lam : ℂ) by rw [hc]; ring]
+  have hcc : ∀ j : ℕ, c ≠ -(j : ℂ) := fun j h => by
+    have := congrArg Complex.re h; rw [hc] at this; simp at this
+    linarith [(j.cast_nonneg : (0:ℝ) ≤ j)]
+  rw [regularizedGaussHGFun_eq_div_Gamma hcc]
+  have hcosθ : Real.cos θ = 1 - 2 * k ^ 2 := by
+    rw [show θ = 2 * (θ / 2) by ring, Real.cos_two_mul', ← hk]
+    nlinarith [Real.sin_sq_add_cos_sq (θ / 2)]
+  have hlre : -1 / 2 < (lam : ℂ).re := by simp; linarith
+  have hP : poch (2 * (lam : ℂ)) n ≠ 0 := poch_ne_zero_of_re_pos (by simp; linarith) n
+  have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  rw [ultrasphPoly_at_one hlre, ultrasphPoly,
+    show (1 - ((Real.cos θ : ℝ) : ℂ)) / 2 = z by rw [hz, hcosθ]; push_cast; ring, ← hc]
+  -- the constant
+  have hR := dirM_const_real (lam := lam) hθ hθπ
+  rw [← hk] at hR
+  have hpi : Gamma (1 / 2 : ℂ) = ((Real.sqrt Real.pi : ℝ) : ℂ) := by
+    rw [Complex.Gamma_one_half_eq, Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]
+    push_cast; ring_nf
+  have hC : (2 : ℂ) ^ (lam : ℂ) * (Real.sin θ : ℂ) ^ (1 - 2 * lam : ℂ) * ((k : ℂ) *
+      (((2 * k ^ 2 : ℝ) : ℂ) ^ (lam - 1 : ℂ) * (1 - z) ^ ((lam : ℂ) - 1 / 2))) = 1 := by
+    have e1 : (2 : ℂ) ^ (lam : ℂ) = (((2 : ℝ) ^ lam : ℝ) : ℂ) := by
+      rw [ofReal_cpow (by norm_num)]; norm_num
+    have e2 : (Real.sin θ : ℂ) ^ (1 - 2 * lam : ℂ) = ((Real.sin θ ^ (1 - 2 * lam) : ℝ) : ℂ) := by
+      rw [ofReal_cpow (Real.sin_nonneg_of_nonneg_of_le_pi hθ.le hθπ.le)]; push_cast; ring_nf
+    have e3 : ((2 * k ^ 2 : ℝ) : ℂ) ^ (lam - 1 : ℂ) = (((2 * k ^ 2) ^ (lam - 1) : ℝ) : ℂ) := by
+      rw [ofReal_cpow (by positivity)]; push_cast; ring_nf
+    have e4 : (1 - z) ^ ((lam : ℂ) - 1 / 2) = (((1 - k ^ 2) ^ (lam - 1 / 2) : ℝ) : ℂ) := by
+      rw [ofReal_cpow (by nlinarith), hz]; push_cast; ring_nf
+    rw [e1, e2, e3, e4]
+    exact_mod_cast hR
+  have hg1 : Gamma (lam : ℂ) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by simpa using hlam)
+  have hg2 : Gamma c ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by rw [hc]; simp; linarith)
+  have hsq : ((Real.sqrt Real.pi : ℝ) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  rw [hpi]
+  field_simp
+  rw [show ((2 * (lam : ℂ) - 1) / 2) = (lam : ℂ) - 1 / 2 by ring]
+  linear_combination (-(₂F₁ (-(n : ℂ)) (n + 2 * lam) c z)) * hC
+
 @[dlmf 18.10.E2]
 theorem legendre_dirichlet_mehler (n : ℕ) {θ : ℝ} (hθ : 0 < θ) (hθπ : θ < Real.pi) :
     legendrePolyP n (Real.cos θ) = (Real.sqrt 2 / Real.pi *
       ∫ phi : ℝ in (0 : ℝ)..θ, Real.cos ((n + 1 / 2) * phi) / Real.sqrt (Real.cos phi - Real.cos θ) : ℝ) := by
-  sorry
+  have h := dirM_main (lam := 1 / 2) (by norm_num) n hθ hθπ
+  have h1 : ultrasphPoly ((1 / 2 : ℝ) : ℂ) n 1 = 1 := by
+    rw [ultrasphPoly_at_one (by norm_num)]
+    rw [show 2 * ((1 / 2 : ℝ) : ℂ) = 1 by push_cast; ring, poch_nat_one]
+    exact div_self (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
+  rw [h1, div_one, show ((1 / 2 : ℝ) : ℂ) = 1 / 2 by push_cast; ring,
+    ← legendre_eq_ultrasphPoly] at h
+  rw [h]
+  have hint : (∫ phi : ℝ in (0 : ℝ)..θ, (Real.cos ((n + 1 / 2) * phi) : ℂ) *
+      (Real.cos phi - Real.cos θ : ℂ) ^ ((1 / 2 : ℂ) - 1)) =
+      ((∫ phi : ℝ in (0 : ℝ)..θ, Real.cos ((n + 1 / 2) * phi) /
+        Real.sqrt (Real.cos phi - Real.cos θ) : ℝ) : ℂ) := by
+    rw [← intervalIntegral.integral_ofReal]
+    refine intervalIntegral.integral_congr fun phi hphi => ?_
+    rw [Set.uIcc_of_le hθ.le] at hphi
+    have hd : 0 ≤ Real.cos phi - Real.cos θ := sub_nonneg.mpr
+      (Real.cos_le_cos_of_nonneg_of_le_pi hphi.1 hθπ.le hphi.2)
+    rw [show (Real.cos phi : ℂ) - Real.cos θ = ((Real.cos phi - Real.cos θ : ℝ) : ℂ) by
+        push_cast; ring,
+      show (1 / 2 : ℂ) - 1 = ((-(1 / 2) : ℝ) : ℂ) by push_cast; ring, ← ofReal_cpow hd,
+      Real.rpow_neg hd, ← Real.sqrt_eq_rpow]
+    push_cast; ring
+  rw [hint]
+  have hpi : Gamma (1 / 2 : ℂ) = ((Real.sqrt Real.pi : ℝ) : ℂ) := by
+    rw [Complex.Gamma_one_half_eq, Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]
+    push_cast; ring_nf
+  have h2 : (2 : ℂ) ^ (1 / 2 : ℂ) = ((Real.sqrt 2 : ℝ) : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow (by norm_num)]; push_cast; ring_nf
+  have hs : Real.sqrt Real.pi * Real.sqrt Real.pi = Real.pi := Real.mul_self_sqrt Real.pi_pos.le
+  rw [show (1 / 2 : ℂ) + 1 / 2 = 1 by norm_num, Complex.Gamma_one, hpi, h2,
+    show (1 : ℂ) - 2 * (1 / 2) = 0 by norm_num, cpow_zero]
+  have hsq : (Real.sqrt Real.pi : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hs2 : ((Real.sqrt Real.pi : ℝ) : ℂ) ^ 2 = (Real.pi : ℂ) := by
+    rw [sq]; exact_mod_cast hs
+  push_cast
+  field_simp
+  rw [hs2, mul_comm]
 
 section GegenbauerLaplace
 
@@ -2732,6 +3022,320 @@ theorem laguerrePolyL_unweighted_convolution (m n : ℕ) (x : ℝ) :
     | succ j ih => rw [hstep, ih]; congr 1; omega
   exact hconv m n
 
+open Set in
+/-- Integration by parts against the Gegenbauer angular weight. -/
+private lemma gegProd_ibp {lam : ℝ} (hlam : 0 < lam) (a v : ℝ) {f f' : ℂ → ℂ}
+    (hf : ∀ z, HasDerivAt f (f' z) z) (hf' : Continuous f') :
+    ∫ t : ℝ in (0 : ℝ)..π, (Real.cos t : ℂ) * f ((a + v * Real.cos t : ℝ)) *
+        ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) =
+      (v : ℂ) / (2 * lam) * ∫ t : ℝ in (0 : ℝ)..π, f' ((a + v * Real.cos t : ℝ)) *
+        ((Real.sin t ^ (2 * (lam + 1) - 1) : ℝ) : ℂ) := by
+  set ρ : ℝ → ℂ := fun t => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) with hρ
+  set w : ℝ → ℂ := fun t => ((a + v * Real.cos t : ℝ) : ℂ) with hw
+  have hfc : Continuous f := continuous_iff_continuousAt.2 fun z => (hf z).continuousAt
+  have hρi : IntervalIntegrable ρ volume 0 π := by
+    have := (integral_sin_rpow_aux hlam).1
+    exact ⟨this.1.ofReal, this.2.ofReal⟩
+  have hU : uIcc (0 : ℝ) π = Icc 0 π := uIcc_of_le Real.pi_pos.le
+  have hsplit : ∀ x : ℝ, 0 ≤ x → x ^ (2 * lam) = x * x ^ (2 * lam - 1) := by
+    intro x hx
+    rcases hx.eq_or_lt with h | h
+    · subst h; rw [Real.zero_rpow (by positivity), zero_mul]
+    · rw [← Real.rpow_one_add' h.le (by linarith)]; ring_nf
+  have hsplit2 : ∀ x : ℝ, 0 ≤ x → x ^ (2 * (lam + 1) - 1) = x ^ 2 * x ^ (2 * lam - 1) := by
+    intro x hx
+    rcases hx.eq_or_lt with h | h
+    · subst h; rw [Real.zero_rpow (by linarith)]; simp
+    · rw [show 2 * (lam + 1) - 1 = 2 + (2 * lam - 1) by ring, Real.rpow_add h]
+      norm_cast
+  have hwc : Continuous w := by fun_prop
+  set g : ℝ → ℂ := fun t => f' (w t) * (-(v : ℂ) * Real.sin t) * Real.sin t +
+    f (w t) * (2 * lam * Real.cos t) with hg
+  have hgc : Continuous g := by
+    simp only [hg]
+    have : Continuous fun t => f' (w t) := hf'.comp hwc
+    have : Continuous fun t => f (w t) := hfc.comp hwc
+    fun_prop
+  have hD : ∀ t ∈ Ioo (0 : ℝ) π, HasDerivAt (fun t : ℝ => f (w t) *
+      ((Real.sin t ^ (2 * lam) : ℝ) : ℂ)) (ρ t * g t) t := by
+    intro t ht
+    have hst : 0 < Real.sin t := Real.sin_pos_of_pos_of_lt_pi ht.1 ht.2
+    have hwd : HasDerivAt w (-(v : ℂ) * Real.sin t) t := by
+      have := (((Real.hasDerivAt_cos t).const_mul v).const_add a).ofReal_comp
+      exact this.congr_deriv (by push_cast; ring)
+    have hfw : HasDerivAt (fun t => f (w t)) (f' (w t) * (-(v : ℂ) * Real.sin t)) t :=
+      (hf (w t)).comp t hwd
+    have hr := ((Real.hasDerivAt_sin t).rpow_const (p := 2 * lam) (Or.inl hst.ne')).ofReal_comp
+    have := hfw.mul hr
+    refine this.congr_deriv ?_
+    simp only [hρ, hg]
+    rw [hsplit _ hst.le]
+    push_cast
+    ring
+  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le Real.pi_pos.le
+    ((hfc.comp hwc).continuousOn.mul
+      (Complex.continuous_ofReal.comp ((Real.continuous_rpow_const (by positivity)).comp
+        Real.continuous_sin)).continuousOn) hD (hρi.mul_continuousOn (hU ▸ hgc.continuousOn))
+  simp only [Pi.mul_apply, Function.comp_apply, Real.sin_pi, Real.sin_zero,
+    Real.zero_rpow (by positivity : 2 * lam ≠ 0), Complex.ofReal_zero, mul_zero, sub_zero] at hFTC
+  have h1 : IntervalIntegrable (fun t => ρ t * (f' (w t) * (-(v : ℂ) * Real.sin t) * Real.sin t))
+      volume 0 π := hρi.mul_continuousOn (hU ▸ (by
+        have : Continuous fun t => f' (w t) := hf'.comp hwc
+        fun_prop : Continuous fun t => f' (w t) * (-(v : ℂ) * Real.sin t) * Real.sin t).continuousOn)
+  have h2 : IntervalIntegrable (fun t => ρ t * (f (w t) * (2 * lam * Real.cos t)))
+      volume 0 π := hρi.mul_continuousOn (hU ▸ (by
+        have : Continuous fun t => f (w t) := hfc.comp hwc
+        fun_prop : Continuous fun t => f (w t) * (2 * lam * Real.cos t)).continuousOn)
+  have hsum : ∫ t in (0 : ℝ)..π, ρ t * g t =
+      (∫ t in (0 : ℝ)..π, ρ t * (f' (w t) * (-(v : ℂ) * Real.sin t) * Real.sin t)) +
+      ∫ t in (0 : ℝ)..π, ρ t * (f (w t) * (2 * lam * Real.cos t)) := by
+    rw [← intervalIntegral.integral_add h1 h2]
+    exact intervalIntegral.integral_congr fun t _ => by simp only [hg]; ring
+  have hA : (∫ t in (0 : ℝ)..π, ρ t * (f' (w t) * (-(v : ℂ) * Real.sin t) * Real.sin t)) =
+      -(v : ℂ) * ∫ t : ℝ in (0 : ℝ)..π, f' (w t) *
+        ((Real.sin t ^ (2 * (lam + 1) - 1) : ℝ) : ℂ) := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun t ht => ?_
+    rw [hU] at ht
+    have hs0 : 0 ≤ Real.sin t := Real.sin_nonneg_of_nonneg_of_le_pi ht.1 ht.2
+    simp only [hρ]
+    rw [hsplit2 _ hs0]
+    push_cast
+    ring
+  have hB : (∫ t in (0 : ℝ)..π, ρ t * (f (w t) * (2 * lam * Real.cos t))) =
+      2 * lam * ∫ t : ℝ in (0 : ℝ)..π, (Real.cos t : ℂ) * f (w t) * ρ t := by
+    rw [← intervalIntegral.integral_const_mul]
+    exact intervalIntegral.integral_congr fun t _ => by ring
+  rw [hsum, hA, hB] at hFTC
+  have hlam' : (2 * lam : ℂ) ≠ 0 := by
+    have : (2 * lam : ℝ) ≠ 0 := by positivity
+    exact_mod_cast this
+  show (∫ t in (0 : ℝ)..π, (Real.cos t : ℂ) * f (w t) * ρ t) = (v : ℂ) / (2 * lam) *
+    ∫ t in (0 : ℝ)..π, f' (w t) * ((Real.sin t ^ (2 * (lam + 1) - 1) : ℝ) : ℂ)
+  rw [div_mul_eq_mul_div, eq_div_iff hlam']
+  linear_combination hFTC
+/-- Gegenbauer polynomials are continuous. -/
+private lemma gegProd_continuous (lam : ℂ) (n : ℕ) : Continuous (ultrasphPoly lam n) :=
+  continuousOn_univ.1 (analyticOnNhd_ultrasphPoly lam n).continuousOn
+
+/-- Continuous functions are integrable against the angular weight `sin^{2λ-1}` on `[0, π]`. -/
+private lemma gegProd_intble {lam : ℝ} (hlam : 0 < lam) {h : ℝ → ℂ} (hh : Continuous h) :
+    IntervalIntegrable (fun t => h t * ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) volume 0 π := by
+  have := (integral_sin_rpow_aux hlam).1
+  have hρi : IntervalIntegrable (fun t => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) volume 0 π :=
+    ⟨this.1.ofReal, this.2.ofReal⟩
+  exact hρi.continuousOn_mul hh.continuousOn
+
+/-- Unnormalized form of Gegenbauer's product formula, by induction on the degree. -/
+private lemma gegProd_main (n : ℕ) : ∀ lam : ℝ, 0 < lam → ∀ θ ψ : ℝ,
+    ultrasphPoly lam n 1 * (∫ u : ℝ in (0 : ℝ)..π, ultrasphPoly lam n
+      ((Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos u : ℝ)) *
+        ((Real.sin u ^ (2 * lam - 1) : ℝ) : ℂ)) =
+      ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) *
+        ultrasphPoly lam n (Real.cos θ) * ultrasphPoly lam n (Real.cos ψ) := by
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro lam hlam θ ψ
+  set a : ℝ := Real.cos θ * Real.cos ψ with ha
+  set v : ℝ := Real.sin θ * Real.sin ψ with hv
+  have hm := (integral_sin_rpow_aux hlam).2
+  have hlre : -1 / 2 < (lam : ℂ).re := by simp; linarith
+  -- `∫ cos u ρ = 0`
+  have hcos0 : ∫ t : ℝ in (0 : ℝ)..π, (Real.cos t : ℂ) * ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)
+      = 0 := by
+    have := gegProd_ibp hlam a v (f := fun _ => (1 : ℂ)) (f' := fun _ => 0)
+      (fun z => hasDerivAt_const z 1) continuous_const
+    simpa using this
+  have hI0 : ∫ t : ℝ in (0 : ℝ)..π, ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) =
+      ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) := by
+    rw [intervalIntegral.integral_ofReal, hm]
+  rcases n with _ | _ | k
+  · -- degree zero
+    simp only [ultrasphPoly_zero, one_mul, mul_one]
+    exact hI0
+  · -- degree one
+    simp only [ultrasphPoly_one_eq hlre]
+    have hsplit : ∀ t : ℝ, 2 * (lam : ℂ) * ((a + v * Real.cos t : ℝ) : ℂ) *
+        ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) = 2 * lam * a * ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)
+        + 2 * lam * v * ((Real.cos t : ℂ) * ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) := by
+      intro t; push_cast; ring
+    have i1 : IntervalIntegrable (fun t : ℝ => 2 * (lam : ℂ) * a *
+        ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ)) volume 0 π := by
+      have := (gegProd_intble hlam (h := fun _ => 2 * (lam : ℂ) * a) continuous_const)
+      simpa using this
+    have i2 : IntervalIntegrable (fun t : ℝ => 2 * (lam : ℂ) * v * ((Real.cos t : ℂ) *
+        ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ))) volume 0 π :=
+      (gegProd_intble hlam (Complex.continuous_ofReal.comp Real.continuous_cos)).const_mul _
+    rw [intervalIntegral.integral_congr (fun t _ => hsplit t),
+      intervalIntegral.integral_add i1 i2,
+      intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul, hcos0, hI0]
+    simp only [ha]
+    push_cast
+    ring
+  · -- degree  from degrees ,  and the raised parameter
+    set x : ℂ := (Real.cos θ : ℂ) with hx
+    set y : ℂ := (Real.cos ψ : ℂ) with hy
+    set mR : ℝ := Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) with hmR
+    set m'R : ℝ := Real.sqrt π * Real.Gamma (lam + 1) / Real.Gamma (lam + 1 + 1 / 2) with hm'R
+    set ρ : ℝ → ℂ := fun t => ((Real.sin t ^ (2 * lam - 1) : ℝ) : ℂ) with hρ
+    set ρ' : ℝ → ℂ := fun t => ((Real.sin t ^ (2 * (lam + 1) - 1) : ℝ) : ℂ) with hρ'
+    set z : ℝ → ℂ := fun t => ((a + v * Real.cos t : ℝ) : ℂ) with hz
+    have hzc : Continuous z := by fun_prop
+    set I : ℕ → ℂ := fun j => ∫ t : ℝ in (0 : ℝ)..π, ultrasphPoly lam j (z t) * ρ t with hI
+    set J : ℂ := ∫ t : ℝ in (0 : ℝ)..π, ultrasphPoly ((lam : ℂ) + 1) k (z t) * ρ' t with hJ
+    have ih0 : ultrasphPoly lam k 1 * I k = mR * ultrasphPoly lam k x * ultrasphPoly lam k y :=
+      ih k (by omega) lam hlam θ ψ
+    have ih1 : ultrasphPoly lam (k + 1) 1 * I (k + 1) =
+        mR * ultrasphPoly lam (k + 1) x * ultrasphPoly lam (k + 1) y :=
+      ih (k + 1) (by omega) lam hlam θ ψ
+    have ihJ : ultrasphPoly ((lam : ℂ) + 1) k 1 * J =
+        m'R * ultrasphPoly ((lam : ℂ) + 1) k x * ultrasphPoly ((lam : ℂ) + 1) k y := by
+      have := ih k (by omega) (lam + 1) (by linarith) θ ψ
+      rw [show ((lam + 1 : ℝ) : ℂ) = (lam : ℂ) + 1 by push_cast; ring] at this
+      exact this
+    -- integration by parts
+    have hK : (∫ t : ℝ in (0 : ℝ)..π, (Real.cos t : ℂ) * ultrasphPoly lam (k + 1) (z t) * ρ t) =
+        v * J := by
+      have hd : ∀ w : ℂ, HasDerivAt (ultrasphPoly lam (k + 1))
+          (2 * lam * ultrasphPoly ((lam : ℂ) + 1) k w) w := by
+        intro w
+        rw [← ultrasphPoly_derivative hlre k w]
+        exact (analyticAt_ultrasphPoly _ _ w).differentiableAt.hasDerivAt
+      have := gegProd_ibp hlam a v hd
+        ((gegProd_continuous _ k).const_mul (2 * (lam : ℂ)))
+      rw [this, intervalIntegral.integral_congr (g := fun t => (2 * (lam : ℂ)) *
+        (ultrasphPoly ((lam : ℂ) + 1) k (z t) * ρ' t)) (fun t _ => by simp only [hz, hρ']; ring),
+        intervalIntegral.integral_const_mul]
+      have hl : (2 * lam : ℂ) ≠ 0 := by
+        have : (2 * lam : ℝ) ≠ 0 := by positivity
+        exact_mod_cast this
+      rw [← mul_assoc, div_mul_eq_mul_div, mul_div_assoc, div_self hl, mul_one]
+    -- the three-term recurrence under the integral
+    have hcj : ∀ j : ℕ, Continuous fun t => ultrasphPoly lam j (z t) :=
+      fun j => (gegProd_continuous _ j).comp hzc
+    have iA : IntervalIntegrable (fun t => ultrasphPoly lam (k + 1) (z t) * ρ t) volume 0 π :=
+      gegProd_intble hlam (hcj _)
+    have iB : IntervalIntegrable (fun t => (Real.cos t : ℂ) * ultrasphPoly lam (k + 1) (z t) * ρ t)
+        volume 0 π :=
+      gegProd_intble hlam ((Complex.continuous_ofReal.comp Real.continuous_cos).mul (hcj (k + 1)))
+    have iC : IntervalIntegrable (fun t => ultrasphPoly lam k (z t) * ρ t) volume 0 π :=
+      gegProd_intble hlam (hcj _)
+    have e : ∀ t : ℝ, (k + 2 : ℂ) * (ultrasphPoly lam (k + 2) (z t) * ρ t) =
+        2 * (k + lam + 1) * a * (ultrasphPoly lam (k + 1) (z t) * ρ t) +
+        2 * (k + lam + 1) * v * ((Real.cos t : ℂ) * ultrasphPoly lam (k + 1) (z t) * ρ t) -
+        (k + 2 * lam) * (ultrasphPoly lam k (z t) * ρ t) := by
+      intro t
+      have hr := ultrasphPoly_recurrence hlre k (z t)
+      have hzt : z t = a + v * Real.cos t := by simp only [hz]; push_cast; ring
+      rw [hzt] at hr ⊢
+      push_cast at hr ⊢
+      linear_combination ρ t * hr
+    have hstep : (k + 2 : ℂ) * I (k + 2) = 2 * (k + lam + 1) * a * I (k + 1) +
+        2 * (k + lam + 1) * v * (v * J) - (k + 2 * lam) * I k := by
+      rw [← hK]
+      simp only [hI]
+      rw [← intervalIntegral.integral_const_mul, intervalIntegral.integral_congr (fun t _ => e t),
+        intervalIntegral.integral_sub ((iA.const_mul _).add (iB.const_mul _)) (iC.const_mul _),
+        intervalIntegral.integral_add (iA.const_mul _) (iB.const_mul _),
+        intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul,
+        intervalIntegral.integral_const_mul]
+    -- normalizing constants
+    have hlre' : -1 / 2 < ((lam : ℂ) + 1).re := by simp; linarith
+    have hl0 : (lam : ℂ) ≠ 0 := by exact_mod_cast hlam.ne'
+    have hl1 : (2 * lam + 1 : ℂ) ≠ 0 := by
+      have : (2 * lam + 1 : ℝ) ≠ 0 := by positivity
+      exact_mod_cast this
+    have hlk : (2 * lam + k : ℂ) ≠ 0 := by
+      have : (2 * lam + k : ℝ) ≠ 0 := by positivity
+      exact_mod_cast this
+    have hlk1 : (2 * lam + k + 1 : ℂ) ≠ 0 := by
+      have : (2 * lam + k + 1 : ℝ) ≠ 0 := by positivity
+      exact_mod_cast this
+    have hkl : (k + lam + 1 : ℂ) ≠ 0 := by
+      have : (k + lam + 1 : ℝ) ≠ 0 := by positivity
+      exact_mod_cast this
+    have hk1 : (k + 1 : ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero k
+    have hk2 : (k + 2 : ℂ) ≠ 0 := by exact_mod_cast (show k + 2 ≠ 0 by omega)
+    set P : ℂ := poch (2 * (lam : ℂ)) k with hP
+    set F : ℂ := (k.factorial : ℂ) with hF
+    have hP0 : P ≠ 0 := poch_ne_zero_of_re_pos (by simp; linarith) k
+    have hF0 : F ≠ 0 := by simp [hF, Nat.factorial_ne_zero]
+    have hv0 : ultrasphPoly lam k 1 = P / F := ultrasphPoly_at_one hlre k
+    have hv1 : ultrasphPoly lam (k + 1) 1 = P * (2 * lam + k) / ((k + 1) * F) := by
+      rw [ultrasphPoly_at_one hlre, poch_succ, Nat.factorial_succ]; push_cast; ring
+    have hv2 : ultrasphPoly lam (k + 2) 1 =
+        P * (2 * lam + k) * (2 * lam + k + 1) / ((k + 2) * (k + 1) * F) := by
+      rw [ultrasphPoly_at_one hlre, poch_succ, poch_succ, Nat.factorial_succ,
+        Nat.factorial_succ]; push_cast; ring
+    have hvb : ultrasphPoly ((lam : ℂ) + 1) k 1 =
+        P * (2 * lam + k) * (2 * lam + k + 1) / (2 * lam * (2 * lam + 1) * F) := by
+      have h1 := poch_add (2 * (lam : ℂ)) 2 k
+      rw [show 2 + k = (k + 1) + 1 by omega, poch_succ, poch_succ,
+        show (2 : ℕ) = 0 + 1 + 1 from rfl, poch_succ, poch_succ, poch_zero] at h1
+      push_cast at h1
+      rw [ultrasphPoly_at_one hlre', show 2 * ((lam : ℂ) + 1) = 2 * lam + 2 by ring,
+        div_eq_div_iff hF0 (by simp [hl0, hl1, hF0])]
+      linear_combination (-F) * h1
+    have hmm : ((m'R : ℝ) : ℂ) = 2 * lam * mR / (2 * lam + 1) := by
+      have hr : m'R = 2 * lam * mR / (2 * lam + 1) := by
+        rw [hm'R, hmR, Real.Gamma_add_one hlam.ne',
+          show lam + 1 + 1 / 2 = (lam + 1 / 2) + 1 by ring,
+          Real.Gamma_add_one (by linarith : lam + 1 / 2 ≠ 0)]
+        have : Real.Gamma (lam + 1 / 2) ≠ 0 := (Real.Gamma_pos_of_pos (by linarith)).ne'
+        field_simp
+      rw [hr]; push_cast; ring
+    -- the polynomial identities at `x` and `y`
+    have recx := ultrasphPoly_recurrence hlre k x
+    have recy := ultrasphPoly_recurrence hlre k y
+    have sqx := ultrasphPoly_raise_parameter_sq hlre k x
+    have sqy := ultrasphPoly_raise_parameter_sq hlre k y
+    have hxy : (a : ℂ) = x * y := by simp only [ha, hx, hy]; push_cast; ring
+    have hvv : (v : ℂ) ^ 2 = (1 - x ^ 2) * (1 - y ^ 2) := by
+      have hr : v ^ 2 = (1 - Real.cos θ ^ 2) * (1 - Real.cos ψ ^ 2) := by
+        rw [hv, mul_pow, Real.sin_sq, Real.sin_sq]
+      simp only [hx, hy]
+      exact_mod_cast hr
+    set X0 := ultrasphPoly lam k x
+    set X1 := ultrasphPoly lam (k + 1) x
+    set X2 := ultrasphPoly lam (k + 2) x
+    set Y0 := ultrasphPoly lam k y
+    set Y1 := ultrasphPoly lam (k + 1) y
+    set Y2 := ultrasphPoly lam (k + 2) y
+    set Qx := ultrasphPoly ((lam : ℂ) + 1) k x
+    set Qy := ultrasphPoly ((lam : ℂ) + 1) k y
+    have hEx : (1 - x ^ 2) * Qx = (-(k + 1) * (2 * (k + lam + 1) * x * X1 - (k + 2 * lam) * X0) +
+        (k + 2 * lam) * (k + 2 * lam + 1) * X0) / (4 * lam * (k + lam + 1)) := by
+      rw [eq_div_iff (by simp [hl0, hkl])]
+      linear_combination sqx - (k + 1) * recx
+    have hEy : (1 - y ^ 2) * Qy = (-(k + 1) * (2 * (k + lam + 1) * y * Y1 - (k + 2 * lam) * Y0) +
+        (k + 2 * lam) * (k + 2 * lam + 1) * Y0) / (4 * lam * (k + lam + 1)) := by
+      rw [eq_div_iff (by simp [hl0, hkl])]
+      linear_combination sqy - (k + 1) * recy
+    have hX2 : X2 = (2 * (k + lam + 1) * x * X1 - (k + 2 * lam) * X0) / (k + 2) := by
+      rw [eq_div_iff hk2]; linear_combination recx
+    have hY2 : Y2 = (2 * (k + lam + 1) * y * Y1 - (k + 2 * lam) * Y0) / (k + 2) := by
+      rw [eq_div_iff hk2]; linear_combination recy
+    have eI0 : I k = mR * X0 * Y0 / (P / F) := by
+      rw [eq_div_iff (div_ne_zero hP0 hF0), ← hv0]; linear_combination ih0
+    have eI1 : I (k + 1) = mR * X1 * Y1 / (P * (2 * lam + k) / ((k + 1) * F)) := by
+      rw [eq_div_iff (by simp [hP0, hF0, hk1, hlk, -one_div]), ← hv1]; linear_combination ih1
+    have eJ : J = m'R * Qx * Qy / (P * (2 * lam + k) * (2 * lam + k + 1) /
+        (2 * lam * (2 * lam + 1) * F)) := by
+      rw [eq_div_iff (by simp [hP0, hF0, hl0, hl1, hlk, hlk1, -one_div]), ← hvb]
+      linear_combination ihJ
+    have hvJ : (v : ℂ) * ((v : ℂ) * J) = m'R * ((1 - x ^ 2) * Qx) * ((1 - y ^ 2) * Qy) /
+        (P * (2 * lam + k) * (2 * lam + k + 1) / (2 * lam * (2 * lam + 1) * F)) := by
+      rw [eJ]; linear_combination (m'R * Qx * Qy / (P * (2 * lam + k) * (2 * lam + k + 1) /
+        (2 * lam * (2 * lam + 1) * F))) * hvv
+    rw [hEx, hEy, hmm] at hvJ
+    have eI2 : I (k + 2) = (2 * (k + lam + 1) * a * I (k + 1) +
+        2 * (k + lam + 1) * (v * (v * J)) - (k + 2 * lam) * I k) / (k + 2) := by
+      rw [eq_div_iff hk2]; linear_combination hstep
+    show ultrasphPoly lam (k + 2) 1 * I (k + 2) = mR * X2 * Y2
+    rw [eI2, hvJ, eI1, eI0, hxy, hv2, hX2, hY2]
+    field_simp
+    ring
+
 @[dlmf 18.17.E5]
 theorem ultrasphPoly_product_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ ψ : ℝ) :
     ultrasphPoly lam n (Real.cos θ) / ultrasphPoly lam n 1 *
@@ -2740,7 +3344,43 @@ theorem ultrasphPoly_product_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ) (θ
       ∫ phi : ℝ in (0 : ℝ)..Real.pi, ultrasphPoly lam n
         (Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi) / ultrasphPoly lam n 1 *
           (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ) := by
-  sorry
+  have hmain := gegProd_main n lam hlam θ ψ
+  have hlre : -1 / 2 < (lam : ℂ).re := by simp; linarith
+  have h1 : ultrasphPoly lam n 1 ≠ 0 := by
+    rw [ultrasphPoly_at_one hlre]
+    exact div_ne_zero (poch_ne_zero_of_re_pos (by simp; linarith) n)
+      (by exact_mod_cast n.factorial_ne_zero)
+  have hG1 : 0 < Real.Gamma (lam + 1 / 2) := Real.Gamma_pos_of_pos (by linarith)
+  have hG2 : 0 < Real.Gamma lam := Real.Gamma_pos_of_pos hlam
+  have hsq : 0 < Real.sqrt π := Real.sqrt_pos.mpr Real.pi_pos
+  have hGG : Gamma (lam + 1 / 2 : ℂ) / (Real.sqrt Real.pi * Gamma (lam : ℂ)) =
+      ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ)⁻¹ := by
+    rw [show (lam + 1 / 2 : ℂ) = ((lam + 1 / 2 : ℝ) : ℂ) by push_cast; ring,
+      Complex.Gamma_ofReal, Complex.Gamma_ofReal]
+    push_cast
+    field_simp
+  have hint : (∫ phi : ℝ in (0 : ℝ)..Real.pi, ultrasphPoly lam n
+        (Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi) / ultrasphPoly lam n 1 *
+          (Real.rpow (Real.sin phi) (2 * lam - 1) : ℂ)) =
+      (ultrasphPoly lam n 1)⁻¹ * ∫ phi : ℝ in (0 : ℝ)..π, ultrasphPoly lam n
+        ((Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi : ℝ)) *
+          ((Real.sin phi ^ (2 * lam - 1) : ℝ) : ℂ) := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    simp only [Real.rpow_eq_pow]
+    push_cast
+    ring
+  have hm0 : ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) ≠ 0 := by
+    exact_mod_cast (by positivity : Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) ≠ 0)
+  have hI : (∫ phi : ℝ in (0 : ℝ)..π, ultrasphPoly lam n
+        ((Real.cos θ * Real.cos ψ + Real.sin θ * Real.sin ψ * Real.cos phi : ℝ)) *
+          ((Real.sin phi ^ (2 * lam - 1) : ℝ) : ℂ)) =
+      ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) *
+        ultrasphPoly lam n (Real.cos θ) * ultrasphPoly lam n (Real.cos ψ) / ultrasphPoly lam n 1 := by
+    rw [eq_div_iff h1, mul_comm]; exact hmain
+  rw [hGG, hint, hI]
+  generalize ((Real.sqrt π * Real.Gamma lam / Real.Gamma (lam + 1 / 2) : ℝ) : ℂ) = M at hm0 ⊢
+  field_simp
 
 @[dlmf 18.17.E9]
 theorem jacobi_fractional_integral {α β μ : ℝ} (hα : -1 < α) (hβ : -1 < β) (hμ : 0 < μ)
@@ -3128,11 +3768,205 @@ theorem ultrasphPoly_fourier_transform {lam : ℝ} (hlam : 0 < lam) (n : ℕ) {y
   set Gp := poch (2 * (lam : ℂ)) n with hGp
   field_simp
 
+/-- Moments of `P_n(1 - 2x²)` on `[0, 1]`, from the substitution `s = 1 - 2x²` and the
+Jacobi moments: `∫₀¹ x^{2k+1} P_n(1-2x²) dx = k! (-k)_n / (2 (k+n+1)!)`. -/
+private lemma lbsq_moment (n k : ℕ) :
+    ∫ x : ℝ in (0 : ℝ)..1, (x : ℂ) ^ (2 * k + 1) * legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) =
+      (1 / 2 : ℂ) * k ! * poch (-(k : ℂ)) n / ((k + n + 1) ! : ℂ) := by
+  set F : ℝ → ℂ := fun s => legendrePolyP n (s : ℂ) * ((1 - (s : ℂ)) / 2) ^ k with hF
+  have h1 : (∫ x : ℝ in (0 : ℝ)..1, (x : ℂ) ^ (2 * k + 1) *
+      legendrePolyP n (1 - 2 * (x : ℂ) ^ 2)) =
+        ∫ x : ℝ in (0 : ℝ)..1, (x : ℂ) * F (1 - 2 * x ^ 2) := by
+    refine intervalIntegral.integral_congr fun x _ => ?_
+    simp only [hF]; push_cast
+    rw [show ((1 : ℂ) - (1 - 2 * (x : ℂ) ^ 2)) / 2 = (x : ℂ) ^ 2 by ring, ← pow_mul]
+    ring
+  have hJ := jacobi_moment (α := 0) (β := 0) (by norm_num) (by norm_num) n k
+  have hneg := intervalIntegral.integral_comp_neg (a := (-1 : ℝ)) (b := 1) F
+  norm_num only [neg_neg] at hneg
+  have h2 : (∫ s : ℝ in (-1 : ℝ)..1, F s) = (2 : ℂ)⁻¹ ^ k * (-1 : ℂ) ^ n *
+      ∫ x : ℝ in (-1 : ℝ)..1, ((x : ℂ) + 1) ^ k *
+        (jacobiPolyP ((0:ℝ):ℂ) ((0:ℝ):ℂ) n x * (1 - (x : ℂ)) ^ ((0:ℝ) : ℂ) *
+          (1 + (x : ℂ)) ^ ((0:ℝ) : ℂ)) := by
+    rw [← hneg, ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun s _ => ?_
+    simp only [hF, ofReal_zero, cpow_zero, mul_one]
+    push_cast
+    rw [legendrePolyP, jacobi_reflection (by norm_num) (by norm_num)]
+    rw [show ((1 : ℂ) - -(s : ℂ)) / 2 = 2⁻¹ * ((s : ℂ) + 1) by ring, mul_pow]
+    ring
+  rw [h1, integral_mul_comp_one_sub_two_sq, h2, hJ]
+  have hG1 : Gamma ((0:ℝ) + k + 1 : ℂ) = k ! := by
+    rw [show ((0:ℝ) : ℂ) + k + 1 = (k : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
+  have hG2 : Gamma (1 + ((0:ℝ):ℂ) + n) = n ! := by
+    rw [show 1 + ((0:ℝ) : ℂ) + n = (n : ℂ) + 1 by push_cast; ring, Gamma_nat_eq_factorial]
+  have hG3 : Gamma (1 + ((0:ℝ):ℂ) + (((0:ℝ):ℂ) + k + 1) + n) = (k + n + 1) ! := by
+    rw [show 1 + ((0:ℝ) : ℂ) + (((0:ℝ):ℂ) + k + 1) + n = ((k + n + 1 : ℕ) : ℂ) + 1 by
+      push_cast; ring, Gamma_nat_eq_factorial]
+  have hP : (2 : ℂ) ^ (((0:ℝ):ℂ) + (((0:ℝ):ℂ) + k + 1)) = 2 ^ (k + 1) := by
+    rw [show ((0:ℝ) : ℂ) + (((0:ℝ):ℂ) + k + 1) = ((k + 1 : ℕ) : ℂ) by push_cast; ring,
+      cpow_natCast]
+  rw [hG1, hG2, hG3, hP]
+  have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hkn : ((k + n + 1) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hs : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+  rw [inv_pow, pow_succ]
+  field_simp
+  ring_nf
+  rw [pow_mul]
+  norm_num
+  rw [sq, hs, mul_one]
+
+/-- `x ↦ P_n(1 - 2x²)` is continuous. -/
+private lemma lbsq_continuous (n : ℕ) :
+    Continuous fun x : ℝ => legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) := by
+  simp_rw [legendre_eq_ultrasphPoly]
+  exact (continuousOn_univ.1 (analyticOnNhd_ultrasphPoly _ n).continuousOn).comp (by fun_prop)
+
+/-- Termwise integration of the sine series against `P_n(1 - 2x²)` on `[0, 1]`. -/
+private lemma lbsq_hasSum_integral (n : ℕ) (y : ℝ) :
+    HasSum (fun k : ℕ => (-1 : ℂ) ^ k * (y : ℂ) ^ (2 * k + 1) / ((2 * k + 1) ! : ℂ) *
+        ∫ x : ℝ in (0 : ℝ)..1, (x : ℂ) ^ (2 * k + 1) * legendrePolyP n (1 - 2 * (x : ℂ) ^ 2))
+      (∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y)) := by
+  obtain ⟨B, hB⟩ := isCompact_Icc.exists_bound_of_continuousOn
+    (lbsq_continuous n).continuousOn (s := Set.Icc (0 : ℝ) 1)
+  set F : ℕ → ℝ → ℂ := fun k x => (-1 : ℂ) ^ k * (y : ℂ) ^ (2 * k + 1) / ((2 * k + 1) ! : ℂ) *
+    ((x : ℂ) ^ (2 * k + 1) * legendrePolyP n (1 - 2 * (x : ℂ) ^ 2)) with hF
+  have hc : ∀ k, Continuous (F k) := fun k => by
+    simp only [hF]; exact continuous_const.mul ((by fun_prop : Continuous fun x : ℝ =>
+      (x : ℂ) ^ (2 * k + 1)).mul (lbsq_continuous n))
+  have h := intervalIntegral.hasSum_integral_of_dominated_convergence
+    (F := F) (a := 0) (b := 1) (μ := volume)
+    (f := fun x => legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y))
+    (fun k _ => |y| ^ (2 * k + 1) / ((2 * k + 1) ! : ℝ) * B)
+    (fun k => (hc k).aestronglyMeasurable)
+    (fun k => ae_of_all _ fun x hx => by
+      rw [Set.uIoc_of_le zero_le_one] at hx
+      have hx1 : x ∈ Set.Icc (0 : ℝ) 1 := ⟨hx.1.le, hx.2⟩
+      simp only [hF, norm_mul, norm_div, norm_pow, norm_neg, norm_one, one_pow, one_mul,
+        Complex.norm_real, Real.norm_eq_abs, Complex.norm_natCast]
+      have hxa : |x| ≤ 1 := by rw [abs_le]; constructor <;> linarith [hx1.1, hx1.2]
+      have h1 : |x| ^ (2 * k + 1) ≤ 1 := pow_le_one₀ (abs_nonneg x) hxa
+      have h2 := hB x hx1
+      have hf : (0 : ℝ) < ((2 * k + 1) ! : ℝ) := by positivity
+      rw [div_mul_eq_mul_div, div_mul_eq_mul_div, div_le_div_iff_of_pos_right hf]
+      calc |y| ^ (2 * k + 1) * (|x| ^ (2 * k + 1) * ‖legendrePolyP n (1 - 2 * (x : ℂ) ^ 2)‖)
+          ≤ |y| ^ (2 * k + 1) * (1 * B) := by
+            gcongr
+      _ = _ := by ring)
+    (ae_of_all _ fun x _ => ((Real.hasSum_sinh |y|).summable.mul_right B))
+    intervalIntegrable_const
+    (ae_of_all _ fun x _ => by
+      have hs := (Complex.hasSum_ofReal.mpr (Real.hasSum_sin (x * y))).mul_left
+        (legendrePolyP n (1 - 2 * (x : ℂ) ^ 2))
+      refine hs.congr_fun fun k => ?_
+      simp only [hF]; push_cast; ring)
+  refine h.congr_fun fun k => ?_
+  simp only [hF]
+  rw [intervalIntegral.integral_const_mul]
+
+/-- Coefficient identity matching the moment series with the series of `J_{n+1/2}²`
+(DLMF 10.8.3). -/
+private lemma lbsq_coeff (n m : ℕ) (y : ℝ) :
+    (-1 : ℂ) ^ (m + n) * (y : ℂ) ^ (2 * (m + n) + 1) / ((2 * (m + n) + 1) ! : ℂ) *
+      ((1 / 2 : ℂ) * (m + n) ! * poch (-((m + n : ℕ) : ℂ)) n / ((m + n + n + 1) ! : ℂ)) =
+    (Real.pi : ℂ) / 2 * ((y : ℂ) / 2 / 2) ^ ((n + 1 / 2 : ℂ) + (n + 1 / 2 : ℂ)) *
+      (poch ((n + 1 / 2 : ℂ) + (n + 1 / 2 : ℂ) + m + 1) m * (-(((y : ℂ) / 2) ^ 2 / 4)) ^ m /
+        (m ! : ℂ) * (Gamma ((n + 1 / 2 : ℂ) + m + 1))⁻¹ * (Gamma ((n + 1 / 2 : ℂ) + m + 1))⁻¹) := by
+  set k := m + n with hk
+  have hexp : (n + 1 / 2 : ℂ) + (n + 1 / 2 : ℂ) = ((2 * n + 1 : ℕ) : ℂ) := by push_cast; ring
+  rw [hexp, cpow_natCast]
+  have hP : poch (-((k : ℕ) : ℂ)) n * (m ! : ℂ) = (-1) ^ n * (k ! : ℂ) := by
+    rw [poch_neg_coe_nat]
+    have h := Nat.factorial_mul_descFactorial (show n ≤ k by omega)
+    rw [show k - n = m by omega] at h
+    have h' : (m ! : ℂ) * (k.descFactorial n : ℂ) = k ! := by exact_mod_cast h
+    linear_combination (-1 : ℂ) ^ n * h'
+  have hQ : poch (((2 * n + 1 : ℕ) : ℂ) + m + 1) m * ((2 * n + m + 1) ! : ℂ) = (2 * k + 1) ! := by
+    have h := poch_nat_succ_eq_choose_mul_factorial (2 * n + m + 1) m
+    push_cast at h ⊢
+    rw [show (2 * (n : ℂ) + 1 + m + 1) = 2 * n + m + 1 + 1 by ring, h]
+    have hc := Nat.choose_mul_factorial_mul_factorial
+      (show 2 * n + m + 1 ≤ 2 * n + m + 1 + m by omega)
+    rw [show 2 * n + m + 1 + m - (2 * n + m + 1) = m by omega,
+      show 2 * n + m + 1 + m = 2 * k + 1 by omega] at hc
+    rw [show 2 * n + m + 1 + m = 2 * k + 1 by omega]
+    have hc' : ((2 * k + 1).choose (2 * n + m + 1) : ℂ) * ((2 * n + m + 1) ! : ℂ) * (m ! : ℂ) =
+      ((2 * k + 1) ! : ℂ) := by exact_mod_cast hc
+    linear_combination hc'
+  have hG : Gamma ((n + 1 / 2 : ℂ) + m + 1) =
+      ((2 * k + 2) * (2 * k + 1) ! : ℂ) / (4 ^ (k + 1) * ((k + 1) * k ! : ℂ)) * Gamma (1 / 2) := by
+    rw [show (n + 1 / 2 : ℂ) + m + 1 = 1 / 2 + ((k + 1 : ℕ) : ℂ) by rw [hk]; push_cast; ring,
+      Gamma_nat_add_half, show 2 * (k + 1) = (2 * k + 1) + 1 by ring,
+      Nat.factorial_succ (2 * k + 1),
+      Nat.factorial_succ k]
+    push_cast; ring
+  have hpi : Gamma (1 / 2 : ℂ) ^ 2 = Real.pi := by
+    rw [Complex.Gamma_one_half_eq, ← cpow_nat_mul]; norm_num
+  have hk' : m + n + n + 1 = 2 * n + m + 1 := by omega
+  rw [hk', hG]
+  have hg : Gamma (1 / 2 : ℂ) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by norm_num)
+  have hf1 : ((2 * k + 1) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hf2 : ((k) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hf3 : ((m) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hf4 : ((2 * n + m + 1) ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  have hk1 : ((k : ℂ) + 1) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero k
+  have hk2 : (2 * (k : ℂ) + 2) ≠ 0 := by
+    have h : ((2 * k + 2 : ℕ) : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (by omega)
+    push_cast at h; exact h
+  rw [← hpi]
+  have hs : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+  rw [eq_div_of_mul_eq hf3 hP, eq_div_of_mul_eq hf4 hQ]
+  field_simp
+  ring_nf
+  rw [hk, show (-1 / 16 : ℂ) = -1 * 4⁻¹ ^ 2 by norm_num, mul_pow, ← pow_mul, one_div, inv_pow,
+    inv_pow]
+  field_simp
+  ring_nf
+  rw [show ((-1 : ℂ)) ^ (n * 2) = 1 by rw [mul_comm, pow_mul]; simp, mul_one]
+
+/-- DLMF 18.17.21 for `y > 0`. -/
+private lemma lbsq_pos (n : ℕ) {y : ℝ} (hy : 0 < y) :
+    ∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y) =
+      Real.pi / 2 * besselJ (n + 1 / 2 : ℂ) ((y : ℂ) / 2) ^ 2 := by
+  have hL := lbsq_hasSum_integral n y
+  simp_rw [lbsq_moment] at hL
+  rw [← hasSum_nat_add_iff' n] at hL
+  rw [Finset.sum_eq_zero (fun k hk => by
+    rw [poch_neg_nat_eq_zero (Finset.mem_range.mp hk)]; simp), sub_zero] at hL
+  have hz : ((y : ℂ) / 2) ∈ slitPlane := by
+    rw [mem_slitPlane_iff]; left; simp; linarith
+  rw [sq, besselJ_mul_besselJ _ _ hz]
+  have hR := hL.congr_fun (fun m => (lbsq_coeff n m y).symm)
+  rw [← hR.tsum_eq, tsum_mul_left, mul_assoc]
+
+/-- `J_{n+1/2}(w)² = (w/2)^{2n+1} 𝐅(;n+3/2;-w²/4)²` for all `w`, without a branch condition. -/
+private lemma lbsq_bessel_sq (n : ℕ) (w : ℂ) :
+    besselJ (n + 1 / 2 : ℂ) w ^ 2 = (w / 2) ^ (2 * n + 1) *
+      regularizedHGFun (∅ : Multiset ℂ) {(n + 1 / 2 : ℂ) + 1} (-(w ^ 2 / 4)) ^ 2 := by
+  rw [besselJ_eq_regularized, mul_pow, ← cpow_nat_mul,
+    show ((2 : ℕ) : ℂ) * (n + 1 / 2 : ℂ) = ((2 * n + 1 : ℕ) : ℂ) by push_cast; ring, cpow_natCast]
+
 @[dlmf 18.17.E21]
 theorem legendre_bessel_square_integral (n : ℕ) (y : ℝ) :
     ∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y) =
       Real.pi / 2 * besselJ (n + 1 / 2 : ℂ) ((y : ℂ) / 2) ^ 2 := by
-  sorry
+  rcases lt_trichotomy y 0 with hy | rfl | hy
+  · have h := lbsq_pos n (neg_pos.mpr hy)
+    rw [lbsq_bessel_sq] at h ⊢
+    have hl : (∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * y)) =
+        -∫ x : ℝ in (0 : ℝ)..1, legendrePolyP n (1 - 2 * (x : ℂ) ^ 2) * Real.sin (x * -y) := by
+      rw [← intervalIntegral.integral_neg]
+      refine intervalIntegral.integral_congr fun x _ => ?_
+      simp only [mul_neg, Real.sin_neg]; push_cast; ring
+    rw [hl, h]
+    push_cast
+    rw [show -(y : ℂ) / 2 / 2 = -((y : ℂ) / 2 / 2) by ring, Odd.neg_pow (by exact ⟨n, rfl⟩),
+      neg_div, neg_sq]
+    ring
+  · simp only [mul_zero, Real.sin_zero, ofReal_zero, zero_div, intervalIntegral.integral_zero]
+    rw [lbsq_bessel_sq]; simp
+  · exact lbsq_pos n hy
 
 @[dlmf 18.17.E22]
 theorem hermite_fourier_eigenfunction (n : ℕ) (y : ℝ) :
@@ -3880,7 +4714,7 @@ theorem ultrasphPoly_dirichlet_integral {lam : ℝ} (hlam : 0 < lam) (n : ℕ)
         (Real.sqrt Real.pi * Gamma (lam : ℂ)) * (Real.sin θ : ℂ) ^ (1 - 2 * lam : ℂ) *
       ∫ phi : ℝ in (0 : ℝ)..θ, (Real.cos ((n + lam) * phi) : ℂ) *
         (Real.cos phi - Real.cos θ : ℂ) ^ (lam - 1 : ℂ) := by
-  sorry
+  exact dirM_main hlam n hθ hθπ
 
 section DoubleLaplaceIntegrals
 

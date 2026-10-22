@@ -11,6 +11,7 @@ public import DLMF.ErrorFunctions.ZeroTools
 public import DLMF.ErrorFunctions.Zeros
 public import DLMF.ErrorFunctions.Integrals
 public import DLMF.ErrorFunctions.BoundsAsymptotics
+public import DLMF.ErrorFunctions.ZeroClassification
 
 /-!
 # Error, Dawson and Fresnel functions: DLMF Chapter 7

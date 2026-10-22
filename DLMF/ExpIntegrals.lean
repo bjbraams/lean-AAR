@@ -6,6 +6,7 @@ public import DLMF.ExpIntegrals.Representations
 public import DLMF.ExpIntegrals.Expansions
 public import DLMF.ExpIntegrals.Asymptotics
 public import DLMF.ExpIntegrals.ZerosIntegrals
+public import DLMF.ExpIntegrals.TransformTools
 
 /-!
 # Exponential, logarithmic, sine and cosine integrals: DLMF Chapter 6

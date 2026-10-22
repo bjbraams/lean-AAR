@@ -23,6 +23,13 @@ Our concern is with results in DLMF and AAR that are not yet in Mathlib. We do n
 on a faithful sequential reproduction of either source. Instead, we use them to identify
 gaps in the special functions coverage of Mathlib and then we attempt to fill in those gaps.
 
+DLMF has the focus of our attention. Results that come only from AAR or the other
+supporting sources and have no DLMF counterpart (for example Apéry's theorem, the
+Hasse–Davenport relation, the finite-field Selberg integral, Siegel's inequality, the
+Ramanujan partition congruences, Vietoris's inequality, the Askey–Gasper inequalities and
+Favard's theorem) are retained, admissions included, but have lower priority: plan proof
+rounds and new development around DLMF statements first.
+
 ## Dependencies and import layers
 
 - `ToMathlib/` holds general results that are not specific to special functions

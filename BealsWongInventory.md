@@ -325,8 +325,8 @@ interlacing, and reality of J zeros are already represented in
   The proved `hasSum_besselJ_add` is Neumann's addition theorem for an
   additive argument; it does not supply Graf's arbitrary-order geometric
   addition formula with its phases and convergence domain.
-- **Admitted — Gegenbauer's Bessel addition theorem**, (9.6.4), p. 241:
-  `besselJ_addition` in [Theorems.lean](DLMF/Bessel/Theorems.lean).
+- **Proved — Gegenbauer's Bessel addition theorem**, (9.6.4), p. 241:
+  `besselJ_addition` in [BesselAddition.lean](DLMF/SphericalHarmonics/BesselAddition.lean) (moved from DLMF/Bessel/Theorems.lean on 2026-10-22; proved).
 - **Absent — the Hankel transform and its inversion**, §9.7,
   pp. 241–243. Missing are the Bessel-kernel transform, its identification
   with a Fourier angular mode in polar coordinates, and its involution

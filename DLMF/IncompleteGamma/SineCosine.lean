@@ -8,6 +8,7 @@ module
 public import DLMF.IncompleteGamma.ExponentialIntegral
 public import DLMF.IncompleteGamma.SeriesRecurrences
 public import DLMF.IncompleteGamma.ExpIntegralAsymptotics
+public import DLMF.Bessel.SphericalSeriesTools
 
 /-!
 # Generalized sine and cosine integrals, DLMF §8.21
@@ -970,17 +971,400 @@ theorem genCosInt_segment_integral {a : ℂ} (ha : 0 < a.re) {z : ℂ} (hz : z �
   field_simp
   ring
 
+/-- The entire part of the generalized sine integral, `∑ (-1)^k z^{2k+1}/((2k+1+a)(2k+1)!)`:
+its Euler image `z H' + a H` is `sin z`. -/
+lemma gsSph_sin_part {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) :
+    let h : ℕ → ℂ → ℂ := fun k w => (-1 : ℂ)^k*w^(2*k+1)/((2*k+a+1)*(2*k+1).factorial)
+    Differentiable ℂ (fun w => ∑' k, h k w) ∧
+      ∀ w, w * deriv (fun w => ∑' k, h k w) w + a * ∑' k, h k w = sin w := by
+  intro h
+  have hne : ∀ k : ℕ, (2*k+a+1 : ℂ) ≠ 0 := fun k e => ha k (by linear_combination e)
+  have hf : ∀ k w, HasDerivAt (h k) ((-1 : ℂ)^k*((2*k+1:ℕ) * w^(2*k))/
+      ((2*k+a+1)*(2*k+1).factorial)) w := fun k w => by
+    have := ((hasDerivAt_pow (2*k+1) w).const_mul ((-1:ℂ)^k)).div_const
+      ((2*k+a+1)*(2*k+1).factorial)
+    simpa using this
+  have hb : ∀ R : ℝ, ∃ u : ℕ → ℝ, Summable u ∧ ∀ n w, ‖w‖ < R → ‖h n w‖ ≤ u n := by
+    intro R
+    refine ⟨fun k => ‖(2*k+a+1 : ℂ)⁻¹‖ * (|R|^(2*k+1)/(2*k+1).factorial), ?_, fun k w hw => ?_⟩
+    · have hd : Function.Injective (fun n : ℕ => 2*n+1) := by intro n m e; dsimp at e; omega
+      refine Summable.of_norm_bounded_eventually_nat
+        ((Real.summable_pow_div_factorial |R|).comp_injective hd) ?_
+      filter_upwards [eventually_ge_atTop ⌈‖a‖⌉₊] with k hk
+      have hk' : ‖a‖ ≤ k := (Nat.le_ceil _).trans (by exact_mod_cast hk)
+      have h1 : 1 ≤ ‖(2*k+a+1 : ℂ)‖ := by
+        have := norm_sub_norm_le ((2*k+1 : ℂ)) (-a)
+        rw [show (2*k+1:ℂ) - -a = 2*k+a+1 by ring, norm_neg,
+          show (2*k+1:ℂ) = ((2*k+1:ℕ):ℂ) by push_cast; ring, Complex.norm_natCast] at this
+        push_cast at this; linarith
+      have hp : 0 ≤ |R|^(2*k+1)/((2*k+1).factorial : ℝ) := by positivity
+      rw [Real.norm_of_nonneg (by positivity), norm_inv]
+      simp only [Function.comp_apply]
+      calc ‖(2*k+a+1 : ℂ)‖⁻¹ * (|R|^(2*k+1)/((2*k+1).factorial : ℝ))
+          ≤ 1 * (|R|^(2*k+1)/((2*k+1).factorial : ℝ)) := by
+            gcongr; exact inv_le_one_of_one_le₀ h1
+        _ = _ := one_mul _
+    · have hw' : ‖w‖ ≤ |R| := hw.le.trans (le_abs_self R)
+      simp only [h, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul,
+        Complex.norm_natCast]
+      rw [div_eq_mul_inv, mul_inv, norm_inv]
+      calc ‖w‖^(2*k+1) * (‖(2*k+a+1 : ℂ)‖⁻¹ * ((2*k+1).factorial : ℝ)⁻¹)
+          ≤ |R|^(2*k+1) * (‖(2*k+a+1 : ℂ)‖⁻¹ * ((2*k+1).factorial : ℝ)⁻¹) := by gcongr
+        _ = _ := by ring
+  obtain ⟨hD, hS⟩ := sphSeries_euler_hasSum a hf hb
+  refine ⟨hD, fun w => (hS w).unique ?_⟩
+  refine (Complex.hasSum_sin w).congr_fun fun k => ?_
+  have hf' : ((2*k+1).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  simp only [h]
+  field_simp [hne k]
+  push_cast
+  ring
+
+/-- The entire part of the generalized cosine integral, `∑ (-1)^k z^{2k}/((2k+a)(2k)!)`:
+its Euler image `z H' + a H` is `cos z`. -/
+lemma gsSph_cos_part {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) :
+    let h : ℕ → ℂ → ℂ := fun k w => (-1 : ℂ)^k*w^(2*k)/((2*k+a)*(2*k).factorial)
+    Differentiable ℂ (fun w => ∑' k, h k w) ∧
+      ∀ w, w * deriv (fun w => ∑' k, h k w) w + a * ∑' k, h k w = cos w := by
+  intro h
+  have hne : ∀ k : ℕ, (2*k+a : ℂ) ≠ 0 := fun k e => ha k (by linear_combination e)
+  have hf : ∀ k w, HasDerivAt (h k) ((-1 : ℂ)^k*((2*k:ℕ) * w^(2*k-1))/
+      ((2*k+a)*(2*k).factorial)) w := fun k w => by
+    have := ((hasDerivAt_pow (2*k) w).const_mul ((-1:ℂ)^k)).div_const
+      ((2*k+a)*(2*k).factorial)
+    simpa using this
+  have hb : ∀ R : ℝ, ∃ u : ℕ → ℝ, Summable u ∧ ∀ n w, ‖w‖ < R → ‖h n w‖ ≤ u n := by
+    intro R
+    refine ⟨fun k => ‖(2*k+a : ℂ)⁻¹‖ * (|R|^(2*k)/(2*k).factorial), ?_, fun k w hw => ?_⟩
+    · have hd : Function.Injective (fun n : ℕ => 2*n) := by intro n m e; dsimp at e; omega
+      refine Summable.of_norm_bounded_eventually_nat
+        ((Real.summable_pow_div_factorial |R|).comp_injective hd) ?_
+      filter_upwards [eventually_ge_atTop (⌈‖a‖⌉₊+1)] with k hk
+      have hk' : ‖a‖ + 1 ≤ 2*k := by
+        have := (Nat.le_ceil ‖a‖).trans (by exact_mod_cast (Nat.le_of_succ_le hk) : (⌈‖a‖⌉₊:ℝ) ≤ k)
+        have h1 : (1:ℝ) ≤ k := by exact_mod_cast (Nat.one_le_of_lt hk)
+        linarith
+      have h1 : 1 ≤ ‖(2*k+a : ℂ)‖ := by
+        have := norm_sub_norm_le ((2*k : ℂ)) (-a)
+        rw [show (2*k:ℂ) - -a = 2*k+a by ring, norm_neg,
+          show (2*k:ℂ) = ((2*k:ℕ):ℂ) by push_cast; ring, Complex.norm_natCast] at this
+        push_cast at this; linarith
+      rw [Real.norm_of_nonneg (by positivity), norm_inv]
+      simp only [Function.comp_apply]
+      calc ‖(2*k+a : ℂ)‖⁻¹ * (|R|^(2*k)/((2*k).factorial : ℝ))
+          ≤ 1 * (|R|^(2*k)/((2*k).factorial : ℝ)) := by
+            gcongr; exact inv_le_one_of_one_le₀ h1
+        _ = _ := one_mul _
+    · have hw' : ‖w‖ ≤ |R| := hw.le.trans (le_abs_self R)
+      simp only [h, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul,
+        Complex.norm_natCast]
+      rw [div_eq_mul_inv, mul_inv, norm_inv]
+      calc ‖w‖^(2*k) * (‖(2*k+a : ℂ)‖⁻¹ * ((2*k).factorial : ℝ)⁻¹)
+          ≤ |R|^(2*k) * (‖(2*k+a : ℂ)‖⁻¹ * ((2*k).factorial : ℝ)⁻¹) := by gcongr
+        _ = _ := by ring
+  obtain ⟨hD, hS⟩ := sphSeries_euler_hasSum a hf hb
+  refine ⟨hD, fun w => (hS w).unique ?_⟩
+  refine (Complex.hasSum_cos w).congr_fun fun k => ?_
+  have hf' : ((2*k).factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
+  simp only [h]
+  rcases k with _ | k
+  · have ha0 : a ≠ 0 := by simpa using hne 0
+    simp; field_simp [ha0]
+  · have hp : w * w^(2*(k+1)-1) = w^(2*(k+1)) := by
+      rw [show 2*(k+1)-1 = 2*k+1 by omega, show 2*(k+1) = 2*k+1+1 by ring, pow_succ]; ring
+    field_simp [hne (k+1)]
+    rw [div_eq_iff (hne (k+1))]
+    push_cast at hp ⊢
+    linear_combination (2*((k:ℂ)+1)) * hp
+
 /-- genSinInt spherical series. -/
 @[dlmf 8.21.E16]
 theorem genSinInt_spherical_series {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n+1)) {z : ℂ} (hz : z ≠ 0) :
     HasSum (fun k : ℕ => z^a*(2*k+3/2 : ℂ)*poch (1-a/2) k/poch (1/2+a/2) (k+1)*sphericalJ (2*k+1) z) (genSinInt a z) := by
-  sorry
+  obtain ⟨hHd, hHL⟩ := gsSph_sin_part ha
+  set H : ℂ → ℂ := fun w => ∑' k : ℕ, (-1 : ℂ)^k*w^(2*k+1)/((2*k+a+1)*(2*k+1).factorial) with hH
+  have hQ : ∀ k : ℕ, (1/2+a/2+k : ℂ) ≠ 0 := fun k e => ha k (by linear_combination 2*e)
+  have hQk : ∀ k : ℕ, poch (1/2+a/2) k ≠ 0 := by
+    intro k; induction k with
+    | zero => simp
+    | succ k ih => rw [poch_succ]; exact mul_ne_zero ih (hQ k)
+  set c : ℕ → ℂ := fun k => (2*k+3/2 : ℂ)*poch (1-a/2) k/poch (1/2+a/2) (k+1) with hc
+  set e : ℕ → ℂ := fun k => poch (1-a/2) k/poch (1/2+a/2) k with he
+  clear_value c e
+  have hratio := sphSeries_eventually_norm_add_le (1-a/2) (1/2+a/2)
+  have hratio2 := sphSeries_eventually_norm_add_le (1-a/2) (1/2+a/2+1)
+  have he_r : ∀ᶠ k in atTop, ‖e (k+1)‖ ≤ 2 * ‖e k‖ := by
+    filter_upwards [hratio] with k hk
+    simp only [he, poch_succ]
+    rw [mul_div_mul_comm, norm_mul, norm_div]
+    have hq := norm_pos_iff.mpr (hQ k)
+    rw [mul_comm, show (1/2+a/2+k : ℂ) = 1/2+a/2+(k:ℂ) from rfl]
+    have hb : ‖(1-a/2+k : ℂ)‖/‖(1/2+a/2+k : ℂ)‖ ≤ 2 := by rw [div_le_iff₀ hq]; linarith
+    exact mul_le_mul_of_nonneg_right (by rw [norm_div]; exact hb) (by positivity)
+  have hc_r : ∀ᶠ k in atTop, ‖c (k+1)‖ ≤ 6 * ‖c k‖ := by
+    filter_upwards [hratio2] with k hk
+    have hq := norm_pos_iff.mpr (hQ (k+1))
+    have e1 : c (k+1) = c k * ((2*k+7/2)/(2*k+3/2)) * ((1-a/2+k)/(1/2+a/2+(k+1:ℕ))) := by
+      have h32 : (2*(k:ℂ)+3/2) ≠ 0 := by
+        have : (0:ℝ) < 2*k+3/2 := by positivity
+        have h' : ((2*k+3/2 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast this.ne'
+        push_cast at h'; exact h'
+      have hQ1 : (1/2+a/2+((k:ℂ)+1)) ≠ 0 := by have := hQ (k+1); push_cast at this; exact this
+      have hQ0 := hQ k
+      simp only [hc, poch_succ]
+      push_cast
+      generalize poch (1-a/2) k = P
+      have hQk' := hQk k
+      generalize poch (1/2+a/2) k = Q at hQk' ⊢
+      generalize (1/2+a/2+(k:ℂ)) = u at hQ0 ⊢
+      generalize (1/2+a/2+((k:ℂ)+1)) = v at hQ1 ⊢
+      generalize (2*(k:ℂ)+3/2) = t at h32 ⊢
+      field_simp
+      ring
+    rw [e1, norm_mul, norm_mul, norm_div, norm_div]
+    have h1 : ‖(2*k+7/2 : ℂ)‖ ≤ 3 * ‖(2*k+3/2 : ℂ)‖ := by
+      rw [show (2*k+7/2 : ℂ) = ((2*k+7/2 : ℝ) : ℂ) by push_cast; ring,
+        show (2*k+3/2 : ℂ) = ((2*k+3/2 : ℝ) : ℂ) by push_cast; ring,
+        Complex.norm_real, Complex.norm_real, Real.norm_of_nonneg (by positivity),
+        Real.norm_of_nonneg (by positivity)]
+      linarith
+    have h2 : ‖(1-a/2+k : ℂ)‖ ≤ 2 * ‖(1/2+a/2+(k+1:ℕ) : ℂ)‖ := by
+      push_cast; rw [show (1/2+a/2+((k:ℂ)+1)) = 1/2+a/2+1+(k:ℂ) by ring]; exact hk
+    have hp1 : 0 < ‖(2*k+3/2 : ℂ)‖ := by
+      rw [show (2*k+3/2 : ℂ) = ((2*k+3/2 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+        Real.norm_of_nonneg (by positivity)]
+      positivity
+    have hq' : 0 < ‖(1/2+a/2+(k+1:ℕ) : ℂ)‖ := by push_cast at hq ⊢; exact hq
+    calc ‖c k‖ * (‖(2*k+7/2 : ℂ)‖/‖(2*k+3/2 : ℂ)‖) *
+          (‖(1-a/2+k : ℂ)‖/‖(1/2+a/2+(k+1:ℕ) : ℂ)‖) ≤ ‖c k‖ * 3 * 2 := by
+          gcongr
+          · rw [div_le_iff₀ hp1]; linarith
+          · rw [div_le_iff₀ hq']; linarith
+      _ = 6 * ‖c k‖ := by ring
+  have hL : ∀ k w, w * (c k * (((((2*k:ℕ):ℂ)+1) * sphericalJ (2*k) w - (((2*k:ℕ):ℂ)+2) *
+      sphericalJ (2*k+2) w) / (2*((2*k:ℕ):ℂ)+3))) + a * (c k * sphericalJ (2*k+1) w) =
+      w * (e k * sphericalJ (2*k) w) - w * (e (k+1) * sphericalJ (2*(k+1)) w) := by
+    intro k w
+    have hr := sphSeries_sphericalJ_recurrence (2*k) w
+    have h3 : (2*((2*k:ℕ):ℂ)+3) ≠ 0 := by
+      have : (0:ℝ) < 2*((2*k:ℕ):ℝ)+3 := by positivity
+      have h' : ((2*((2*k:ℕ):ℝ)+3 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast this.ne'
+      push_cast at h' ⊢; exact h'
+    have hJ : sphericalJ (2*k+1) w = w * (sphericalJ (2*k) w + sphericalJ (2*k+2) w) /
+        (2*((2*k:ℕ):ℂ)+3) := by rw [eq_div_iff h3]; linear_combination -hr
+    simp only [hc, he, poch_succ]
+    rw [hJ, show 2*(k+1) = 2*k+2 by ring]
+    have hQk' := hQk k
+    have hQ' := hQ k
+    push_cast at h3 ⊢
+    generalize poch (1-a/2) k = P
+    generalize poch (1/2+a/2) k = Q at hQk' ⊢
+    generalize hu : (1/2+a/2+(k:ℂ)) = u at hQ' ⊢
+    generalize ht : (2*(2*(k:ℂ))+3) = t at h3 ⊢
+    field_simp
+    subst hu ht
+    ring
+  have hpar : ∀ m : ℕ, a + m = 0 → iteratedDeriv m
+      (fun w => ∑' n, c n * sphericalJ (2*n+1) w - H w) 0 = 0 := by
+    intro m hm
+    have hodd : ∀ w, (∑' n, c n * sphericalJ (2*n+1) (-w) - H (-w)) =
+        (-1) * (∑' n, c n * sphericalJ (2*n+1) w - H w) := by
+      intro w
+      have h1 : ∑' n, c n * sphericalJ (2*n+1) (-w) = -∑' n, c n * sphericalJ (2*n+1) w := by
+        rw [← tsum_neg]; congr 1; funext n
+        rw [sphSeries_sphericalJ_neg, pow_succ, pow_mul]; simp
+      have h2 : H (-w) = -H w := by
+        simp only [hH]; rw [← tsum_neg]; congr 1; funext k
+        rw [neg_pow w, pow_succ (-1:ℂ) (2*k), pow_mul]; simp; ring
+      rw [h1, h2]; ring
+    have hp := sphSeries_iteratedDeriv_parity
+      (D := fun w => ∑' n, c n * sphericalJ (2*n+1) w - H w) hodd m
+    rcases Nat.even_or_odd m with ⟨r, hr⟩ | ⟨r, hr⟩
+    · subst hr
+      rw [← two_mul, pow_mul, neg_one_sq, one_pow] at hp
+      rw [← two_mul]
+      have : (1 - (-1) : ℂ) ≠ 0 := by norm_num
+      exact (mul_eq_zero.mp hp).resolve_left this
+    · exact absurd (by rw [hr] at hm; push_cast at hm; linear_combination hm) (ha r)
+  have key := sphSeries_hasSum_of_euler (f := fun k w => c k * sphericalJ (2*k+1) w)
+    (f' := fun k w => c k * (((((2*k:ℕ):ℂ)+1) * sphericalJ (2*k) w - (((2*k:ℕ):ℂ)+2) *
+      sphericalJ (2*k+2) w) / (2*((2*k:ℕ):ℂ)+3)))
+    (g := fun k w => w * (e k * sphericalJ (2*k) w)) (F := H) a
+    (fun k w => (sphSeries_hasDerivAt_sphericalJ_succ (2*k) w).const_mul (c k))
+    hL
+    (fun w => by simpa using (sphSeries_tendsto_coeff_mul_sphericalJ e he_r 0 w).const_mul w)
+    (sphSeries_bound_coeff_mul_sphericalJ c hc_r 1)
+    hHd (fun w => by
+      rw [hHL w]; simp [he, poch_zero, ← sphSeries_mul_sphericalJ_zero])
+    hpar z
+  -- conclude
+  have hG := genSinInt_hasSum ha hz
+  have hval : genSinInt a z = z^a * H z := by
+    rw [hH, ← tsum_mul_left]
+    refine hG.tsum_eq.symm.trans ?_
+    exact tsum_congr (fun k => by ring)
+  rw [hval]
+  convert key.mul_left (z^a) using 1
+  funext k; simp only [hc]; ring
 
 /-- genCosInt spherical series. -/
 @[dlmf 8.21.E17]
 theorem genCosInt_spherical_series {a : ℂ} (ha : ∀ n : ℕ, a ≠ -(2*n : ℂ)) {z : ℂ} (hz : z ≠ 0) :
     HasSum (fun k : ℕ => z^a*(2*k+1/2 : ℂ)*poch (1/2-a/2) k/poch (a/2) (k+1)*sphericalJ (2*k) z) (genCosInt a z) := by
-  sorry
+  obtain ⟨hHd, hHL⟩ := gsSph_cos_part ha
+  set H : ℂ → ℂ := fun w => ∑' k : ℕ, (-1 : ℂ)^k*w^(2*k)/((2*k+a)*(2*k).factorial) with hH
+  have hQ : ∀ k : ℕ, (a/2+k : ℂ) ≠ 0 := fun k e => ha k (by linear_combination 2*e)
+  have hQk : ∀ k : ℕ, poch (a/2) k ≠ 0 := by
+    intro k; induction k with
+    | zero => simp
+    | succ k ih => rw [poch_succ]; exact mul_ne_zero ih (hQ k)
+  set c : ℕ → ℂ := fun k => (2*k+1/2 : ℂ)*poch (1/2-a/2) k/poch (a/2) (k+1) with hc
+  set e : ℕ → ℂ := fun k => poch (1/2-a/2) k/poch (a/2) k with he
+  clear_value c e
+  have hratio := sphSeries_eventually_norm_add_le (1/2-a/2) (a/2)
+  have hratio2 := sphSeries_eventually_norm_add_le (1/2-a/2) (a/2+1)
+  have he_r : ∀ᶠ k in atTop, ‖e (k+1)‖ ≤ 2 * ‖e k‖ := by
+    filter_upwards [hratio] with k hk
+    simp only [he, poch_succ]
+    rw [mul_div_mul_comm, norm_mul, norm_div]
+    have hq := norm_pos_iff.mpr (hQ k)
+    rw [mul_comm]
+    have hb : ‖(1/2-a/2+k : ℂ)‖/‖(a/2+k : ℂ)‖ ≤ 2 := by rw [div_le_iff₀ hq]; linarith
+    exact mul_le_mul_of_nonneg_right (by rw [norm_div]; exact hb) (by positivity)
+  have hc_r : ∀ᶠ k in atTop, ‖c (k+1)‖ ≤ 10 * ‖c k‖ := by
+    filter_upwards [hratio2] with k hk
+    have hq := norm_pos_iff.mpr (hQ (k+1))
+    have e1 : c (k+1) = c k * ((2*k+5/2)/(2*k+1/2)) * ((1/2-a/2+k)/(a/2+(k+1:ℕ))) := by
+      have h32 : (2*(k:ℂ)+1/2) ≠ 0 := by
+        have : (0:ℝ) < 2*k+1/2 := by positivity
+        have h' : ((2*k+1/2 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast this.ne'
+        push_cast at h'; exact h'
+      have hQ1 : (a/2+((k:ℂ)+1)) ≠ 0 := by have := hQ (k+1); push_cast at this; exact this
+      have hQ0 := hQ k
+      simp only [hc, poch_succ]
+      push_cast
+      generalize poch (1/2-a/2) k = P
+      have hQk' := hQk k
+      generalize poch (a/2) k = Q at hQk' ⊢
+      generalize (a/2+(k:ℂ)) = u at hQ0 ⊢
+      generalize (a/2+((k:ℂ)+1)) = v at hQ1 ⊢
+      generalize (2*(k:ℂ)+1/2) = t at h32 ⊢
+      field_simp
+      ring
+    rw [e1, norm_mul, norm_mul, norm_div, norm_div]
+    have h1 : ‖(2*k+5/2 : ℂ)‖ ≤ 5 * ‖(2*k+1/2 : ℂ)‖ := by
+      rw [show (2*k+5/2 : ℂ) = ((2*k+5/2 : ℝ) : ℂ) by push_cast; ring,
+        show (2*k+1/2 : ℂ) = ((2*k+1/2 : ℝ) : ℂ) by push_cast; ring,
+        Complex.norm_real, Complex.norm_real, Real.norm_of_nonneg (by positivity),
+        Real.norm_of_nonneg (by positivity)]
+      linarith
+    have h2 : ‖(1/2-a/2+k : ℂ)‖ ≤ 2 * ‖(a/2+(k+1:ℕ) : ℂ)‖ := by
+      push_cast; rw [show (a/2+((k:ℂ)+1)) = a/2+1+(k:ℂ) by ring]; exact hk
+    have hp1 : 0 < ‖(2*k+1/2 : ℂ)‖ := by
+      rw [show (2*k+1/2 : ℂ) = ((2*k+1/2 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+        Real.norm_of_nonneg (by positivity)]
+      positivity
+    have hq' : 0 < ‖(a/2+(k+1:ℕ) : ℂ)‖ := by push_cast at hq ⊢; exact hq
+    calc ‖c k‖ * (‖(2*k+5/2 : ℂ)‖/‖(2*k+1/2 : ℂ)‖) *
+          (‖(1/2-a/2+k : ℂ)‖/‖(a/2+(k+1:ℕ) : ℂ)‖) ≤ ‖c k‖ * 5 * 2 := by
+          gcongr
+          · rw [div_le_iff₀ hp1]; linarith
+          · rw [div_le_iff₀ hq']; linarith
+      _ = 10 * ‖c k‖ := by ring
+  set f' : ℕ → ℂ → ℂ := fun k w => c k * deriv (sphericalJ (2*k)) w with hf'
+  have hdj0 := sphSeries_hasDerivAt_sphericalJ_zero
+  have hdj : ∀ k w, HasDerivAt (sphericalJ (2*k)) (deriv (sphericalJ (2*k)) w) w := by
+    intro k w
+    rcases k with _ | k
+    · exact (hdj0 w).differentiableAt.hasDerivAt
+    · rw [show 2*(k+1) = (2*k+1)+1 by ring]
+      exact (sphSeries_hasDerivAt_sphericalJ_succ (2*k+1) w).differentiableAt.hasDerivAt
+  have hL : ∀ k w, w * f' k w + a * (c k * sphericalJ (2*k) w) =
+      (if k = 0 then cos w else w * (e k * sphericalJ (2*k-1) w)) -
+      (if k+1 = 0 then cos w else w * (e (k+1) * sphericalJ (2*(k+1)-1) w)) := by
+    intro k w
+    simp only [hf']
+    rcases k with _ | k
+    · rw [(hdj0 w).deriv]
+      simp only [ite_true, one_ne_zero, ite_false,
+        mul_zero, zero_add, show 2*(0+1)-1 = 1 by rfl]
+      rw [← sphSeries_sphericalJ_zero_sub]
+      have hQ0 := hQ 0
+      have ha0 : a ≠ 0 := by have := ha 0; simpa using this
+      simp only [hc, he, poch_succ, poch_zero]
+      push_cast
+      field_simp
+      have hinv := mul_inv_cancel₀ ha0
+      linear_combination (sphericalJ 0 w - w * sphericalJ 1 w) * hinv
+    · rw [show 2*(k+1) = (2*k+1)+1 by ring, (sphSeries_hasDerivAt_sphericalJ_succ (2*k+1) w).deriv]
+      simp only [Nat.add_eq_zero_iff, one_ne_zero, and_false, ite_false]
+      rw [show 2*k+1+1-1 = 2*k+1 by omega, show 2*(k+1+1)-1 = 2*k+1+2 by omega]
+      have hr := sphSeries_sphericalJ_recurrence (2*k+1) w
+      have h3 : (2*((2*k+1:ℕ):ℂ)+3) ≠ 0 := by
+        have : (0:ℝ) < 2*((2*k+1:ℕ):ℝ)+3 := by positivity
+        have h' : ((2*((2*k+1:ℕ):ℝ)+3 : ℝ) : ℂ) ≠ 0 := by exact_mod_cast this.ne'
+        push_cast at h' ⊢; exact h'
+      have hJ : sphericalJ (2*k+1+1) w = w * (sphericalJ (2*k+1) w + sphericalJ (2*k+1+2) w) /
+          (2*((2*k+1:ℕ):ℂ)+3) := by rw [eq_div_iff h3]; linear_combination -hr
+      simp only [hc, he, poch_succ]
+      rw [hJ]
+      have hQk' := hQk k
+      have hQ' := hQ k
+      have hQ'' : (a/2+((k:ℂ)+1)) ≠ 0 := by have := hQ (k+1); push_cast at this; exact this
+      push_cast at h3 ⊢
+      generalize poch (1/2-a/2) k = P
+      generalize poch (a/2) k = Q at hQk' ⊢
+      generalize hu : (a/2+(k:ℂ)) = u at hQ' ⊢
+      generalize hv : (a/2+((k:ℂ)+1)) = v at hQ'' ⊢
+      generalize ht : (2*(2*(k:ℂ)+1)+3) = t at h3 ⊢
+      field_simp
+      subst hu hv ht
+      ring
+  have hpar : ∀ m : ℕ, a + m = 0 → iteratedDeriv m
+      (fun w => ∑' n, c n * sphericalJ (2*n) w - H w) 0 = 0 := by
+    intro m hm
+    have hev : ∀ w, (∑' n, c n * sphericalJ (2*n) (-w) - H (-w)) =
+        1 * (∑' n, c n * sphericalJ (2*n) w - H w) := by
+      intro w
+      have h1 : ∑' n, c n * sphericalJ (2*n) (-w) = ∑' n, c n * sphericalJ (2*n) w := by
+        congr 1; funext n
+        rw [sphSeries_sphericalJ_neg, pow_mul]; simp
+      have h2 : H (-w) = H w := by
+        simp only [hH]; congr 1; funext k
+        rw [neg_pow w, pow_mul (-1:ℂ)]; simp
+      rw [h1, h2]; ring
+    have hp := sphSeries_iteratedDeriv_parity
+      (D := fun w => ∑' n, c n * sphericalJ (2*n) w - H w) hev m
+    rcases Nat.even_or_odd m with ⟨r, hr⟩ | ⟨r, hr⟩
+    · exact absurd (by rw [hr] at hm; push_cast at hm; linear_combination hm) (ha r)
+    · subst hr
+      rw [pow_succ, pow_mul, neg_one_sq, one_pow] at hp
+      have : ((1:ℂ) * (-1) - 1) ≠ 0 := by norm_num
+      exact (mul_eq_zero.mp hp).resolve_left this
+  have hg : ∀ w, Tendsto (fun k => if k = 0 then cos w else
+      w * (e k * sphericalJ (2*k-1) w)) atTop (𝓝 0) := by
+    intro w
+    rw [← tendsto_add_atTop_iff_nat 1]
+    have he_r' : ∀ᶠ k in atTop, ‖e (k+1+1)‖ ≤ 2 * ‖e (k+1)‖ :=
+      (tendsto_add_atTop_nat 1).eventually he_r
+    have := (sphSeries_tendsto_coeff_mul_sphericalJ (fun k => e (k+1)) he_r' 1 w).const_mul w
+    simp only [mul_zero] at this
+    refine this.congr fun k => ?_
+    simp [show 2*(k+1)-1 = 2*k+1 by omega]
+  have key := sphSeries_hasSum_of_euler (f := fun k w => c k * sphericalJ (2*k) w)
+    (f' := f') (F := H) a
+    (fun k w => (hdj k w).const_mul (c k)) hL hg
+    (sphSeries_bound_coeff_mul_sphericalJ c hc_r 0)
+    hHd (fun w => by rw [hHL w]; simp)
+    hpar z
+  have hG := genCosInt_hasSum ha hz
+  have hval : genCosInt a z = z^a * H z := by
+    rw [hH, ← tsum_mul_left]
+    refine hG.tsum_eq.symm.trans ?_
+    exact tsum_congr (fun k => by ring)
+  rw [hval]
+  convert key.mul_left (z^a) using 1
+  funext k; simp only [hc]; ring
 
 /-- Generalized auxiliary f. -/
 @[dlmf 8.21.E18]

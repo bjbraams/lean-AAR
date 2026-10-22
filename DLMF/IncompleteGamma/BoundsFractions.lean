@@ -8,6 +8,7 @@ module
 public import DLMF.IncompleteGamma.SpecialValues
 public import DLMF.IncompleteGamma.RealIntegrals
 public import DLMF.IncompleteGamma.FractionTools
+public import DLMF.IncompleteGamma.BoundTools
 
 /-!
 # Continued fractions and inequalities, DLMF §§8.9–8.10
@@ -447,7 +448,39 @@ def Real.upperGammaDa (a : ℝ) : ℝ :=
 @[dlmf 8.10.E10]
 theorem upperIncGamma_power_bounds {a x : ℝ} (ha : 0 < a) (ha1 : a < 1) (hx : 0 < x) :
     x/(2*a)*((1+2/x)^a-1) < x^(1-a)*Real.exp x*(upperIncGamma a x).re ∧ x^(1-a)*Real.exp x*(upperIncGamma a x).re ≤ x/(a*Real.upperGammaCa a)*((1+Real.upperGammaCa a/x)^a-1) := by
-  sorry
+  have hnp : ∀ k : ℕ, (a:ℂ) ≠ -k := by
+    intro k h
+    have := congrArg Complex.re h
+    simp at this
+    linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+  have hx' : (x:ℂ) ≠ 0 := ofReal_ne_zero.mpr (ne_of_gt hx)
+  have h := lowerIncGamma_add_upperIncGamma hnp hx'
+  rw [lowerIncGamma_ofReal ha hx] at h
+  have hu : (upperIncGamma a x).re = Real.Gamma a - TauCeti.lowerIncompleteGamma a x := by
+    have : upperIncGamma a x = ((Real.Gamma a - TauCeti.lowerIncompleteGamma a x : ℝ) : ℂ) := by
+      rw [ofReal_sub, ← Complex.Gamma_ofReal]; linear_combination h
+    rw [this, ofReal_re]
+  have key : ∀ l : ℝ, 0 < l → x/(a*l)*((1+l/x)^a-1) =
+      x^(1-a)*Real.exp x*(Real.exp (-x)*(((x+l)^a - x^a)/(a*l))) := by
+    intro l hl
+    have hxl : 0 < x + l := by linarith
+    have h1 : 1 + l/x = (x+l)/x := by field_simp
+    have h2 : x^(1-a) = x / x^a := by rw [Real.rpow_sub hx, Real.rpow_one]
+    have h3 : Real.exp x * Real.exp (-x) = 1 := by rw [← Real.exp_add]; simp
+    have : 0 < x^a := Real.rpow_pos_of_pos hx _
+    rw [h1, Real.div_rpow hxl.le hx.le, h2, mul_assoc (x / x^a), ← mul_assoc (Real.exp x), h3,
+      one_mul]
+    field_simp
+  have hP : 0 < x^(1-a)*Real.exp x := by positivity
+  rw [hu]
+  constructor
+  · rw [mul_comm 2 a, key 2 two_pos]
+    exact mul_lt_mul_of_pos_left (igBd_upper_gt ha ha1 hx) hP
+  · rw [Real.upperGammaCa]
+    have hc : 0 < Real.Gamma (1+a)^(1/(a-1)) :=
+      Real.rpow_pos_of_pos (Real.Gamma_pos_of_pos (by linarith)) _
+    rw [key _ hc]
+    exact (mul_lt_mul_of_pos_left (igBd_upper_lt ha ha1 hx) hP).le
 
 /-- upperIncGamma power bounds zero limit. -/
 @[dlmf 8.10.E10]
@@ -484,22 +517,62 @@ def Real.gammaPAlpha (a : ℝ) : ℝ :=
 def Real.gammaPBeta (a : ℝ) : ℝ :=
   if a < 1 then Real.upperGammaDa a else 1
 
+/-- Alzer's strict bounds behind DLMF 8.10.11 (helper for the two tagged statements). -/
+theorem igBd_exponential_bounds_strict {a x : ℝ} (ha : 0 < a) (ha1 : a ≠ 1) (hx : 0 < x) :
+    (1-Real.exp (-Real.gammaPAlpha a*x))^a < (normIncGammaPContinued a x).re ∧ (normIncGammaPContinued a x).re < (1-Real.exp (-Real.gammaPBeta a*x))^a := by
+  rw [igBd_normIncGammaP_re ha hx.le]
+  have hγ : 0 < Real.Gamma (1+a)^(-1/a) :=
+    Real.rpow_pos_of_pos (Real.Gamma_pos_of_pos (by linarith)) _
+  rcases lt_or_gt_of_ne ha1 with h | h
+  · simp only [Real.gammaPAlpha, Real.gammaPBeta, h, ↓reduceIte, Real.upperGammaDa, neg_mul]
+    refine ⟨?_, igBd_regGamma_lt_pow ha hγ (igBd_prop_da_lt_one ha h) hx⟩
+    simpa using igBd_pow_lt_regGamma ha one_pos (igBd_prop_one_lt_one h) hx
+  · simp only [Real.gammaPAlpha, Real.gammaPBeta, not_lt.mpr h.le, ↓reduceIte, Real.upperGammaDa,
+      neg_mul]
+    refine ⟨igBd_pow_lt_regGamma ha hγ (igBd_prop_da_gt_one h) hx, ?_⟩
+    simpa using igBd_regGamma_lt_pow ha one_pos (igBd_prop_one_gt_one h) hx
+
 /-- normIncGammaP exponential bounds. -/
 @[dlmf 8.10.E11]
 theorem normIncGammaP_exponential_bounds {a x : ℝ} (ha : 0 < a) (hx : 0 ≤ x) :
     (1-Real.exp (-Real.gammaPAlpha a*x))^a ≤ (normIncGammaPContinued a x).re ∧ (normIncGammaPContinued a x).re ≤ (1-Real.exp (-Real.gammaPBeta a*x))^a := by
-  sorry
+  rcases hx.eq_or_lt with h0 | h0
+  · subst h0
+    rw [igBd_normIncGammaP_re ha le_rfl]
+    simp [Real.zero_rpow ha.ne']
+  by_cases ha1 : a = 1
+  · subst ha1
+    rw [igBd_normIncGammaP_re ha hx, TauCeti.regularizedGamma_one hx]
+    simp [Real.gammaPAlpha, Real.gammaPBeta, Real.upperGammaDa, one_add_one_eq_two]
+  · have := igBd_exponential_bounds_strict ha ha1 h0
+    exact ⟨this.1.le, this.2.le⟩
 
 /-- The source equality condition excludes the automatic equality at x=0. -/
 @[dlmf 8.10.E11]
 theorem normIncGammaP_exponential_bounds_strict {a x : ℝ} (ha : 0 < a) (ha1 : a ≠ 1) (hx : 0 < x) :
-    (1-Real.exp (-Real.gammaPAlpha a*x))^a < (normIncGammaPContinued a x).re ∧ (normIncGammaPContinued a x).re < (1-Real.exp (-Real.gammaPBeta a*x))^a := by
-  sorry
+    (1-Real.exp (-Real.gammaPAlpha a*x))^a < (normIncGammaPContinued a x).re ∧ (normIncGammaPContinued a x).re < (1-Real.exp (-Real.gammaPBeta a*x))^a :=
+  igBd_exponential_bounds_strict ha ha1 hx
 
 /-- normIncGammaQ diagonal bounds. -/
 @[dlmf 8.10.E13]
 theorem normIncGammaQ_diagonal_bounds {n : ℕ} (hn : 1 ≤ n) :
     (normIncGammaQContinued n n).re < 1/2 ∧ 1/2 < (normIncGammaQContinued n (n-1 : ℕ)).re := by
-  sorry
+  have hn0 : (0:ℝ) < n := by exact_mod_cast hn
+  have hG := Real.Gamma_pos_of_pos hn0
+  have e1 : (n:ℂ) = ((n:ℝ):ℂ) := (ofReal_natCast n).symm
+  have e2 : ((n-1:ℕ):ℂ) = (((n-1:ℕ):ℝ):ℂ) := (ofReal_natCast _).symm
+  rw [e1, e2, igBd_normIncGammaQ_re hn0 hn0.le, igBd_normIncGammaQ_re hn0 (Nat.cast_nonneg _)]
+  constructor
+  · have := igBd_Gamma_lt_two_lower_self hn0
+    rw [sub_lt_iff_lt_add, ← sub_lt_iff_lt_add', lt_div_iff₀ hG]; linarith
+  · rw [lt_sub_iff_add_lt, ← lt_sub_iff_add_lt', div_lt_iff₀ hG]
+    rcases Nat.lt_or_ge 1 n with h | h
+    · have h1 : (1:ℝ) < n := by exact_mod_cast h
+      have := igBd_two_lower_mode_lt_Gamma h1
+      rw [Nat.cast_sub hn, Nat.cast_one]; linarith
+    · have : n = 1 := le_antisymm h hn
+      subst this
+      simp only [Nat.sub_self, Nat.cast_zero, TauCeti.lowerIncompleteGamma_eq_zero_of_nonpos_right _ le_rfl]
+      norm_num [Real.Gamma_one]
 
 end DLMF.Confluent

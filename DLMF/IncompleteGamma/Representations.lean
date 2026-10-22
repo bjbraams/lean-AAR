@@ -10,6 +10,7 @@ public import DLMF.IncompleteGamma.SeriesRecurrences
 public import DLMF.Confluent.Integrals
 public import DLMF.Bessel.Elementary
 public import ToMathlib.Analysis.Complex.BarnesResidue
+public import ToMathlib.Analysis.Integral.PrincipalValue
 
 /-!
 # Real, contour and Mellin–Barnes representations, DLMF §8.6
@@ -124,11 +125,154 @@ theorem lowerIncGamma_trigonometric_integral {a : ℂ} (ha : ∀ n : ℤ, a ≠ 
   set T := ∑' k : ℕ, (-z)^k/((k.factorial : ℂ)*(a+k))
   field_simp
 
+/-- `(t z)^w = t^w z^w` for real `t > 0` and `z ≠ 0`. -/
+lemma lgJ_ofReal_mul_cpow {t : ℝ} (ht : 0 < t) {z : ℂ} (hz : z ≠ 0) (w : ℂ) :
+    ((t : ℂ) * z) ^ w = (t : ℂ) ^ w * z ^ w := by
+  have htz : (t : ℂ) * z ≠ 0 := mul_ne_zero (by exact_mod_cast ht.ne') hz
+  rw [cpow_def_of_ne_zero htz, cpow_def_of_ne_zero (by exact_mod_cast ht.ne'),
+    cpow_def_of_ne_zero hz, log_ofReal_mul ht hz, ← Complex.exp_add, ofReal_log ht.le]
+  ring_nf
+
+/-- `‖Γ(a+1)‖ Γ(σ+1+k) ≤ ‖Γ(a+1+k)‖ Γ(σ+1)` for `σ = Re a > 0`. -/
+lemma lgJ_norm_Gamma_ge {a : ℂ} (ha : 0 < a.re) (k : ℕ) :
+    ‖Gamma (a + 1)‖ * Real.Gamma (a.re + 1 + k) ≤ ‖Gamma (a + 1 + k)‖ * Real.Gamma (a.re + 1) := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    have hne : a + 1 + k ≠ 0 := by
+      intro h; have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+    have hpos : 0 < a.re + 1 + k := by positivity
+    rw [show a + 1 + ((k + 1 : ℕ) : ℂ) = (a + 1 + k) + 1 by push_cast; ring, Gamma_add_one _ hne,
+      show a.re + 1 + ((k + 1 : ℕ) : ℝ) = (a.re + 1 + k) + 1 by push_cast; ring,
+      Real.Gamma_add_one hpos.ne', norm_mul]
+    have hre : a.re + 1 + k ≤ ‖a + 1 + k‖ := by
+      have := re_le_norm (a + 1 + k); simpa using this
+    have hG : 0 ≤ Real.Gamma (a.re + 1) := (Real.Gamma_pos_of_pos (by linarith)).le
+    calc ‖Gamma (a + 1)‖ * ((a.re + 1 + k) * Real.Gamma (a.re + 1 + k))
+        = (a.re + 1 + k) * (‖Gamma (a + 1)‖ * Real.Gamma (a.re + 1 + k)) := by ring
+      _ ≤ (a.re + 1 + k) * (‖Gamma (a + 1 + k)‖ * Real.Gamma (a.re + 1)) :=
+          mul_le_mul_of_nonneg_left ih hpos.le
+      _ ≤ ‖a + 1 + k‖ * (‖Gamma (a + 1 + k)‖ * Real.Gamma (a.re + 1)) :=
+          mul_le_mul_of_nonneg_right hre (by positivity)
+      _ = _ := by ring
+
 /-- lowerIncGamma besselJ integral. -/
 @[dlmf 8.6.E2]
 theorem lowerIncGamma_besselJ_integral {a : ℂ} (ha : 0 < a.re) {z : ℂ} (hz : z ∈ slitPlane) :
     lowerIncGamma a z=z^(a/2)*(∫ t : ℝ in Ioi 0, exp (-t : ℂ)*(t : ℂ)^(a/2-1)*besselJ a (2*(z*t)^(1/2 : ℂ))) := by
-  sorry
+  have hz0 : z ≠ 0 := slitPlane_ne_zero hz
+  have ha' : ∀ n : ℕ, a ≠ -n := fun n h => by
+    have := congrArg re h; simp at this; linarith [(Nat.cast_nonneg n : (0:ℝ) ≤ n)]
+  set c : ℕ → ℂ := fun k => regularizedHGFunCoeff 0 {a + 1} k with hc
+  have hck : ∀ k : ℕ, c k = 1 / (k ! * Gamma (a + 1 + k)) := fun k => by
+    simp [hc, regularizedHGFunCoeff]
+  set F : ℕ → ℝ → ℂ := fun k t => z ^ (a / 2) * (c k * (-z) ^ k) *
+    (((Real.exp (-t) : ℝ) : ℂ) * (t : ℂ) ^ (a + k - 1)) with hF
+  -- pointwise expansion
+  have hpt : ∀ t : ℝ, 0 < t → exp (-t : ℂ)*(t : ℂ)^(a/2-1)*besselJ a (2*(z*t)^(1/2 : ℂ)) =
+      ∑' k : ℕ, F k t := by
+    intro t ht
+    have ht0 : (t : ℂ) ≠ 0 := by exact_mod_cast ht.ne'
+    set u : ℂ := (z * t) ^ (1 / 2 : ℂ) with hu
+    have hu2 : u ^ 2 = z * t := by
+      rw [hu, show (1 / 2 : ℂ) = ((2 : ℕ) : ℂ)⁻¹ by norm_num]
+      exact cpow_nat_inv_pow _ (by norm_num)
+    have hzt : z * t ≠ 0 := mul_ne_zero hz0 ht0
+    have hua : u ^ a = (t : ℂ) ^ (a / 2) * z ^ (a / 2) := by
+      have harg1 := neg_pi_lt_arg (z * t)
+      have harg2 := arg_le_pi (z * t)
+      have him : (log (z * t) * (1 / 2 : ℂ)).im = arg (z * t) / 2 := by
+        simp [log_im]; ring
+      rw [hu, ← cpow_mul _ (by rw [him]; linarith [Real.pi_pos])
+        (by rw [him]; linarith [Real.pi_pos]), mul_comm z, lgJ_ofReal_mul_cpow ht hz0]
+      ring_nf
+    have hJ : besselJ a (2 * u) = u ^ a * ∑' k : ℕ, c k * (-(z * t)) ^ k := by
+      rw [besselJ, show 2 * u / 2 = u by ring, regularizedHGFun_eq_tsum, hu2]
+    have hpow : (t : ℂ) ^ (a / 2 - 1) * (t : ℂ) ^ (a / 2) = (t : ℂ) ^ (a - 1) := by
+      rw [← cpow_add _ _ ht0]; ring_nf
+    have hpowk : ∀ k : ℕ, (t : ℂ) ^ (a + k - 1) = (t : ℂ) ^ (a - 1) * (t : ℂ) ^ k := by
+      intro k
+      rw [show a + k - 1 = (a - 1) + k by ring, cpow_add _ _ ht0, cpow_natCast]
+    rw [hJ, hua, ← tsum_mul_left, ← tsum_mul_left]
+    refine tsum_congr fun k => ?_
+    simp only [hF, hpowk, Complex.ofReal_exp, Complex.ofReal_neg]
+    rw [← hpow]
+    ring
+  set σ : ℝ := a.re
+  have hre : ∀ k : ℕ, 0 < (a + k).re := fun k => by
+    simp only [add_re, natCast_re]; positivity
+  have hint : ∀ k : ℕ, Integrable (F k) (volume.restrict (Ioi 0)) := fun k => by
+    have := (GammaIntegral_convergent (hre k)).const_mul (z ^ (a / 2) * (c k * (-z) ^ k))
+    simpa [hF] using this
+  have hnorm : ∀ k : ℕ, (∫ t in Ioi 0, ‖F k t‖) =
+      ‖z ^ (a / 2) * (c k * (-z) ^ k)‖ * Real.Gamma (σ + k) := by
+    intro k
+    have hσk : 0 < σ + k := by have := hre k; simpa using this
+    rw [Real.Gamma_eq_integral hσk, ← integral_const_mul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+    have ht0 : 0 < t := ht
+    simp only [hF, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+      abs_of_pos (Real.exp_pos _), Complex.norm_cpow_eq_rpow_re_of_pos ht0]
+    simp [σ]
+  have hGa : 0 < ‖Gamma (a + 1)‖ := norm_pos_iff.mpr (Complex.Gamma_ne_zero_of_re_pos (by
+    simp only [add_re, one_re]; linarith))
+  set M : ℝ := ‖z ^ (a / 2)‖ * Real.Gamma (σ + 1) / (‖Gamma (a + 1)‖ * σ)
+  have hbound : ∀ k : ℕ, ‖z ^ (a / 2) * (c k * (-z) ^ k)‖ * Real.Gamma (σ + k) ≤
+      M * (‖z‖ ^ k / k !) := by
+    intro k
+    have hGk : 0 < ‖Gamma (a + 1 + k)‖ := norm_pos_iff.mpr (Complex.Gamma_ne_zero_of_re_pos (by
+      simp only [add_re, one_re, natCast_re]; positivity))
+    have hσk : 0 < σ + k := by have := hre k; simpa using this
+    have hGσ : 0 < Real.Gamma (σ + k) := Real.Gamma_pos_of_pos hσk
+    have h1 := lgJ_norm_Gamma_ge ha k
+    rw [show σ + 1 + (k : ℝ) = (σ + k) + 1 by ring, Real.Gamma_add_one hσk.ne'] at h1
+    have h2 : ‖Gamma (a + 1)‖ * σ * Real.Gamma (σ + k) ≤
+        ‖Gamma (a + 1 + k)‖ * Real.Gamma (σ + 1) := by
+      refine le_trans ?_ h1
+      have : σ ≤ σ + k := by linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+      have := mul_le_mul_of_nonneg_left this (le_of_lt hGa)
+      nlinarith
+    rw [norm_mul, norm_mul, hck, norm_div, norm_one, norm_mul, norm_pow, norm_neg,
+      Complex.norm_natCast]
+    have hf : (0 : ℝ) < k ! := by exact_mod_cast Nat.factorial_pos k
+    simp only [M]
+    rw [div_mul_div_comm, mul_comm (‖Gamma (a + 1)‖ * σ)]
+    rw [show ‖z ^ (a / 2)‖ * (1 / (↑k ! * ‖Gamma (a + 1 + ↑k)‖) * ‖z‖ ^ k) * Real.Gamma (σ + k)
+        = ‖z ^ (a / 2)‖ * ‖z‖ ^ k * Real.Gamma (σ + k) / (↑k ! * ‖Gamma (a + 1 + ↑k)‖) by
+      field_simp]
+    rw [div_le_div_iff₀ (by positivity) (by positivity)]
+    have hzn : 0 ≤ ‖z ^ (a / 2)‖ * ‖z‖ ^ k := by positivity
+    calc ‖z ^ (a / 2)‖ * ‖z‖ ^ k * Real.Gamma (σ + k) * (↑k ! * (‖Gamma (a + 1)‖ * σ))
+        = ‖z ^ (a / 2)‖ * ‖z‖ ^ k * ↑k ! * (‖Gamma (a + 1)‖ * σ * Real.Gamma (σ + k)) := by ring
+      _ ≤ ‖z ^ (a / 2)‖ * ‖z‖ ^ k * ↑k ! * (‖Gamma (a + 1 + k)‖ * Real.Gamma (σ + 1)) :=
+          mul_le_mul_of_nonneg_left h2 (by positivity)
+      _ = _ := by ring
+  have hsum : Summable fun k : ℕ => ∫ t in Ioi 0, ‖F k t‖ := by
+    refine Summable.of_nonneg_of_le (fun k => integral_nonneg fun t => norm_nonneg _)
+      (fun k => (hnorm k).trans_le (hbound k)) ((Real.summable_pow_div_factorial ‖z‖).mul_left M)
+  have key := integral_tsum_of_summable_integral_norm hint hsum
+  have hFk : ∀ k : ℕ, (∫ t in Ioi 0, F k t) = z ^ (a / 2) * ((-z) ^ k / (k ! * (a + k))) := by
+    intro k
+    have hne : a + k ≠ 0 := fun h => by have := hre k; rw [h] at this; simp at this
+    simp only [hF]
+    rw [integral_const_mul, ← GammaIntegral, ← Gamma_eq_integral (hre k), hck,
+      show a + 1 + (k : ℂ) = (a + k) + 1 by ring, Gamma_add_one _ hne]
+    have hG := Complex.Gamma_ne_zero_of_re_pos (hre k)
+    have hf : ((k ! : ℕ) : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero k)
+    field_simp
+  have hI : (∫ t : ℝ in Ioi 0, exp (-t : ℂ)*(t : ℂ)^(a/2-1)*besselJ a (2*(z*t)^(1/2 : ℂ))) =
+      ∫ t : ℝ in Ioi 0, ∑' k : ℕ, F k t :=
+    setIntegral_congr_fun measurableSet_Ioi fun t ht => hpt t ht
+  rw [hI, ← key, tsum_congr hFk, tsum_mul_left, ← mul_assoc, ← cpow_add _ _ hz0, add_halves,
+    lowerIncGamma_eq_regularized ha', regularizedConfluent_self_succ_neg,
+    ← (scIncGamma_hasSum_alternating ha' z).tsum_eq]
+  have hG := Gamma_ne_zero ha'
+  have hT : (∑' k : ℕ, (-z)^k/(Gamma a*(k ! : ℂ)*(a+k))) =
+      (∑' k : ℕ, (-z)^k/((k ! : ℂ)*(a+k)))/Gamma a := by
+    rw [← tsum_div_const]
+    congr 1; funext k; field_simp
+  rw [hT]
+  field_simp
 
 /-- `(e^x)^w = e^{xw}` for real `x`. -/
 lemma ofReal_exp_cpow_eq_exp_mul (x : ℝ) (w : ℂ) : ((Real.exp x : ℝ) : ℂ)^w = exp (x*w) := by
@@ -267,11 +411,86 @@ theorem lowerIncGamma_circle_integral {a : ℂ} (ha : ∀ n : ℤ, a ≠ n) {z :
 def upperGammaIndentPV (a z : ℂ) : ℂ :=
   limUnder (𝓝[>] (0 : ℝ)) (fun ε => (∫ t : ℝ in 0..(1-ε), (t : ℂ)^a*exp (-z*t)/(t-1)) + improperAtTop (fun t : ℝ => (t : ℂ)^a*exp (-z*t)/(t-1)) (1+ε))
 
+/-- A symmetric principal value on `[a, ∞)` at `c` exists when `f t - A/(t - c)` is integrable
+near `c` and `f` is integrable on every half-line `(d, ∞)`, `d > c`. -/
+lemma ugPV_hasPrincipalValueIoi {f : ℝ → ℂ} {a b c : ℝ} (A : ℂ) (hac : a < c) (hcb : c < b)
+    (hsub : IntegrableOn (fun t => f t - A / (t - c)) (Icc a b))
+    (htail : ∀ d : ℝ, c < d → IntegrableOn f (Ioi d)) :
+    HasPrincipalValueIoi f a c
+      ((∫ t in a..b, (f t - A / (t - c))) + A * Real.log ((b - c) / (c - a)) +
+        ∫ t in Ioi b, f t) := by
+  have hI : ∀ d : ℝ, c < d → HasIntegralAtTop f d (∫ t in Ioi d, f t) := fun d hd =>
+    intervalIntegral_tendsto_integral_Ioi d (htail d hd) tendsto_id
+  have himp : ∀ d : ℝ, c < d → improperAtTop f d = ∫ t in Ioi d, f t := fun d hd =>
+    (hI d hd).limUnder_eq
+  refine ⟨hac, fun ε hε => ?_, ?_⟩
+  · rw [himp _ (by linarith)]; exact hI _ (by linarith)
+  have hev : ∀ᶠ ε in 𝓝[>] (0 : ℝ), (∫ t in a..c - ε, f t) + improperAtTop f (c + ε) =
+      ((∫ t in a..c - ε, f t) + ∫ t in c + ε..b, f t) + ∫ t in Ioi b, f t := by
+    filter_upwards [Ioo_mem_nhdsGT (sub_pos.mpr hcb)] with ε hε
+    have hd : c < c + ε := by linarith [hε.1]
+    have hdb : c + ε ≤ b := by linarith [hε.2]
+    have hfi : IntervalIntegrable f volume (c + ε) b :=
+      (intervalIntegrable_iff_integrableOn_Ioc_of_le hdb).mpr
+        ((htail _ hd).mono_set Ioc_subset_Ioi_self)
+    have hloc : ∀ R, b ≤ R → IntervalIntegrable f volume b R := fun R hR =>
+      (intervalIntegrable_iff_integrableOn_Ioc_of_le hR).mpr
+        ((htail _ (by linarith)).mono_set Ioc_subset_Ioi_self)
+    have h := pv_tendsto_intervalIntegral_atTop_of_le (hI b hcb) hfi hloc
+    rw [himp _ hd, tendsto_nhds_unique
+      (intervalIntegral_tendsto_integral_Ioi _ (htail _ hd) tendsto_id) h]
+    ring
+  exact ((pv_tendsto_of_integrableOn_sub A hac hcb hsub).add_const _).congr'
+    (EventuallyEq.symm hev)
+
 /-- upperGammaIndentPV converges. -/
 @[dlmf 8.6.E9]
 theorem upperGammaIndentPV_converges {a z : ℂ} (ha : -1 < a.re) (hz : 0 < z.re) :
     HasPrincipalValueIoi (fun t : ℝ => (t : ℂ)^a*exp (-z*t)/(t-1)) 0 1 (upperGammaIndentPV a z) := by
-  sorry
+  set g : ℝ → ℂ := fun t => (t : ℂ)^a*exp (-z*t)
+  have hgi : IntegrableOn g (Icc 0 2) := by
+    have h1 := intervalIntegral.intervalIntegrable_cpow' (a := 0) (b := 2) ha
+    have h2 : IntervalIntegrable g volume 0 2 :=
+      h1.mul_continuousOn (Continuous.continuousOn (by fun_prop))
+    exact (intervalIntegrable_iff_integrableOn_Icc_of_le (by norm_num)).mp h2
+  have hgd : DifferentiableAt ℝ g 1 := by
+    have h1 : DifferentiableAt ℝ (fun t : ℝ => (t : ℂ)^a) 1 := by
+      have h := (hasDerivAt_id ((1 : ℝ) : ℂ)).cpow_const (c := a) (by simp)
+      exact (h.comp_ofReal (z := 1)).differentiableAt
+    exact h1.mul (by fun_prop)
+  have hsub : IntegrableOn (fun t : ℝ => (t : ℂ)^a*exp (-z*t)/(t-1) - g 1 / (t - 1))
+      (Icc 0 2) := pv_integrableOn_sub_of_differentiableAt (c := 1) hgi hgd
+  have htail : ∀ d : ℝ, 1 < d → IntegrableOn (fun t : ℝ => (t : ℂ)^a*exp (-z*t)/(t-1)) (Ioi d) := by
+    intro d hd
+    have hb := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) ha (by norm_num) hz
+    have hb' : IntegrableOn (fun t : ℝ => t ^ a.re * Real.exp (-z.re * t) / (d - 1)) (Ioi d) :=
+      IntegrableOn.congr_fun ((hb.mono_set (Ioi_subset_Ioi (by linarith))).div_const (d - 1))
+        (fun t _ => by simp [Real.rpow_one]) measurableSet_Ioi
+    refine hb'.mono' ?_ ?_
+    · refine ContinuousOn.aestronglyMeasurable (fun t ht => ?_) measurableSet_Ioi
+      have ht0 : 0 < t := by linarith [mem_Ioi.mp ht]
+      refine ContinuousAt.continuousWithinAt (ContinuousAt.div ?_ (by fun_prop) ?_)
+      · refine ContinuousAt.mul ?_ (by fun_prop)
+        exact (continuousAt_ofReal_cpow_const _ _ (Or.inr ht0.ne'))
+      · intro h; have := congrArg re h; simp at this; linarith [mem_Ioi.mp ht]
+    · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun t ht => ?_)
+      have ht0 : 0 < t := by linarith [mem_Ioi.mp ht]
+      have ht1 : d - 1 ≤ t - 1 := by linarith [mem_Ioi.mp ht]
+      rw [norm_div, norm_mul, Complex.norm_cpow_eq_rpow_re_of_pos ht0, Complex.norm_exp,
+        show ((t : ℂ) - 1) = ((t - 1 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+        Real.norm_eq_abs, abs_of_pos (by linarith)]
+      simp only [neg_mul, Complex.neg_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
+        mul_zero, sub_zero]
+      exact div_le_div_of_nonneg_left (by positivity) (by linarith) ht1
+  have h := ugPV_hasPrincipalValueIoi (g 1) (by norm_num : (0:ℝ) < 1) (by norm_num : (1:ℝ) < 2)
+    hsub htail
+  refine ⟨h.1, h.2.1, ?_⟩
+  have hl := h.2.2
+  have hv : upperGammaIndentPV a z = limUnder (𝓝[>] (0:ℝ)) (fun ε =>
+      (∫ t in (0:ℝ)..1-ε, (t : ℂ)^a*exp (-z*t)/(t-1)) +
+        improperAtTop (fun t : ℝ => (t : ℂ)^a*exp (-z*t)/(t-1)) (1+ε)) := rfl
+  rw [hv, hl.limUnder_eq]
+  exact hl
 
 /-- upperIncGamma indented integral. -/
 @[dlmf 8.6.E9]

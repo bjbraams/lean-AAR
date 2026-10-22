@@ -6,6 +6,9 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.SphericalHarmonics.Basic
+public import DLMF.SphericalHarmonics.AdditionTools
+public import DLMF.SphericalHarmonics.ZonalTools
+public import DLMF.SphericalHarmonics.BesselAddition
 public import DLMF.SphericalHarmonics.Theorems
 
 /-!

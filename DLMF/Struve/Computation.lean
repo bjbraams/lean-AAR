@@ -38,29 +38,13 @@ theorem struveH_nat_ofReal_im (n : ℕ) (x : ℝ) : (struveH n x).im = 0 := by
     rw [show (n:ℂ)+1 = ((n+1:ℕ):ℂ) by push_cast; ring, cpow_natCast]; push_cast; ring
   rw [struveH, hpow, mul_im, ofReal_im, ofReal_re, hcore]; ring
 
-/-- DLMF 11.15(ii): existence and stated uniform error, without inventing unpublished coefficients or a degree bound. -/
-theorem struveH_polynomial_approximation (n : ℕ) (hn : n ≤ 1) :
-    ∃ p : Polynomial ℝ, ∀ x ∈ Icc (0:ℝ) 3, ‖struveH n x-((p.eval x:ℝ):ℂ)‖ ≤ 12/10^9 := by
-  have _ := hn
-  have hc : Continuous fun x : ℝ => (struveH n x).re :=
-    Complex.continuous_re.comp ((struveH_nat_entire n).continuous.comp continuous_ofReal)
-  obtain ⟨p, hp⟩ := exists_polynomial_near_of_continuousOn 0 3 _ hc.continuousOn (12/10^9)
-    (by norm_num)
-  refine ⟨p, fun x hx => ?_⟩
-  have he : struveH n x = ((struveH n x).re : ℂ) :=
-    Complex.ext (by simp) (by simp [struveH_nat_ofReal_im])
-  rw [he, ← ofReal_sub, norm_real, Real.norm_eq_abs, abs_sub_comm]
-  exact (hp x hx).le
-
-/-- DLMF 11.15(ii): the denominator has no poles on the approximation interval. -/
-theorem struveK_rational_approximation (n : ℕ) (hn : n ≤ 1) :
-    ∃ p q : Polynomial ℝ, ∀ x : ℝ, 3 ≤ x → q.eval x ≠ 0 ∧ ‖struveK n x-((p.eval x/q.eval x:ℝ):ℂ)‖ ≤ 25/10^9 := by
-  sorry
-
 /- DLMF 11.8, 11.13–16 contain bibliographic guidance and numerical
 method recommendations. The convergence statements in 11.13(ii) are covered by
 the HasSum declarations. No running-time, cancellation, or numerical-stability
 bound is inferred from qualitative computational recommendations. Tables in
-11.14 are bibliographies of external tables, not numeric tables reproduced in DLMF. -/
+11.14 are bibliographies of external tables, not numeric tables reproduced in DLMF.
+The approximations in 11.15(ii), a polynomial approximation of 𝐇₀, 𝐇₁ on [0, 3] with
+error 12·10⁻⁹ and a rational approximation of 𝐊₀, 𝐊₁ on [3, ∞) with error 25·10⁻⁹, are
+numerical accuracy claims and are excluded: numerical (removed 2026-10-21). -/
 
 end DLMF.Struve

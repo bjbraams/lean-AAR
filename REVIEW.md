@@ -5293,3 +5293,384 @@ principle, with AAR, Temme, Beals–Wong and Duverney as supporting sources.
 - The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
   `Analysis/Complex/Carlson.lean` still match `../lean-codes`.
 - No commit was made.
+
+## Round 8 (2026-10-21)
+
+Before the round, at the user's request, the two numerical accuracy claims of DLMF 11.15(ii) were
+removed as excluded: numerical: `struveK_rational_approximation` (admitted) and
+`struveH_polynomial_approximation` (proved, by the Weierstrass theorem). AGENTS.md now records
+that DLMF statements have priority over AAR-only results, which are kept at lower priority.
+`struveH_barnes` (11.5.8) keeps its uncertain status, now also noted in its docstring.
+
+Six parallel agents with file-level ownership, four of them sent back for a second pass;
+390 → 332 (58 admissions proved, none added). No statement was changed except the user-approved
+9.7.17 correction below.
+
+Removals by area: Legendre −20 (89 → 69), error functions −11, Airy −9, incomplete Gamma −6,
+parabolic cylinder −6, spherical harmonics −2, exponential integrals −3, orthogonal
+polynomials −1.
+
+New modules:
+
+- `ToMathlib/Analysis/Calculus/DoubleZeroSqrt.lean`: the Airy-type turning-point coordinate ζ
+  ((2/3)ζ^{3/2} = ∫√p on each side of a simple zero of p): closed forms, analyticity,
+  continuity, ζ'(x₀) = p'(x₀)^{1/3}, analytic inverse; signed square roots at a double zero.
+- `ToMathlib/Analysis/Complex/MellinBarnesSeries.lean`: closing a vertical contour across
+  infinitely many simple poles (`mbSeries_tendsto`, partial-sum limit; `mbSeries_hasSum`), with the
+  Gamma residue factorization.
+- `ToMathlib/Analysis/Integral/PrincipalValue.lean`: symmetric-excision principal values,
+  existence for f/(t−c) with f differentiable at c, and the log-term formula.
+- `ToMathlib/Analysis/ODE/SturmCount.lean`: maximum principles (also for inhomogeneous equations),
+  oscillation at ±∞, Rolle for infinitely many zeros, interlacing from a signed Wronskian, zero
+  counts over a partition.
+- `ToMathlib/Analysis/ODE/SturmDeformation.lean`: with simple zeros and nonvanishing endpoints the
+  zero count is locally constant, hence constant on preconnected parameter sets; half-line version
+  with a uniform zero-free region.
+- DLMF: `Airy/ErrorBoundTools.lean` (uniform bounds for Ai, Ai′ on the closed plane, well
+  conditioning), `Bessel/SphericalSeriesTools.lean` (telescoping principle for spherical-Bessel
+  series, with Euler-operator variant and coefficient bounds), `SphericalHarmonics/AdditionTools.lean`.
+- Import change: `Airy/Asymptotics.lean` no longer imports `Airy/Equation.lean` (9.2.14–15 are
+  re-proved privately); `Equation.lean` imports `ErrorBoundTools.lean`.
+
+Main results proved:
+
+- Uniform-asymptotics coordinates: `pcfInverseZeta_spec`, `pcfZeta_analytic_at_one`,
+  `pcfAiryChi_formula` (12.10), `conicalRho_mapping`, `conicalEta_spec`, `conicalEta_mapping`
+  (14.20), `legendreOrderEta_spec`, `legendreOrderEta_bijective`, `legendreCylinderZeta_spec` (14.15).
+- Airy: the four well-conditioned pairs of Table 9.2.1 (`Airy/Equation.lean` now admission-free).
+- Zeros: Scorer 9.12(xi) (Gi has no zeros on [0, ∞), Gi′ exactly one; infinitely many negative
+  zeros of Gi and Gi′), 12.11(i) `pcfU_positive_zero_count` by parameter deformation from the
+  Hermite case, `pcfU_hermite_zero_count`, `pcfV_no_positive_zero`, `ferrersPQ_interlace`,
+  `ferrersQ_nat_zero_count`.
+- Principal values and integrals: 6.2.8, 8.6.2, 8.6.9 (convergence), 9.10.19 (convergence).
+- Series: 6.10.4, 6.10.8, 7.6.8, 7.6.10, 7.6.11, 8.7.4, 8.7.5 (all a, by continuity at a ∈ −ℕ),
+  8.21.16, 8.21.17, and the absolute/non-absolute convergence statements of 14.13.
+- Error-function bounds 7.8.2–7.8.8 and the monotonicity of the normalized Dawson integral
+  (`ErrorFunctions/BoundsAsymptotics.lean` now admission-free).
+- Spherical harmonics and addition: the Gegenbauer addition theorem `ultrasphPoly_addition`
+  (18.18.8; induction on n with varying λ), the product integral 18.17.5,
+  `harmonicHomogeneous_orthogonal` (Gaussian weight and integration by parts), the spherical
+  harmonic Rodrigues formula, orthonormality, Herglotz generating function, `scaledOblate_real`,
+  and 14.5.22–24, 14.5.26 (`Legendre/SpecialValues.lean` and `Legendre/Harmonics.lean` now
+  admission-free).
+
+### Statement correction (9.7.17, user-approved 2026-10-21)
+
+`airyErrorMultiplier` (`DLMF/Airy/Asymptotics.lean`) wrote DLMF's min(|csc(ph ζ)|, χ(n+σ)+1)
+as `min |(sin (3 arg z/2))⁻¹| (χ+1)`. On the ray |arg z| = 2π/3, sin(ph ζ) = 0 and Lean's
+`0⁻¹ = 0` made the multiplier 0, so `airy_ai_complex_error` and `airy_aiDeriv_complex_error`
+asserted ‖R_N(z)‖ ≤ 0 (refuted in Lean at z = e^{2πi/3}, and numerically). Transcription defect,
+not a DLMF erratum. The case sin = 0 now gives χ(n+σ)+1. The endpoint |arg z| = π, where
+cos(ph ζ) = 0, is excluded by the existing hypothesis `z ∈ slitPlane`, as in DLMF (|ph z| < π).
+The two counterexample theorems were removed; both statements remain admitted.
+
+### Statements found false (corrected 2026-10-22, user-approved; still admitted)
+
+- `legendreDegreeY_spec` (14.15.21–22, `DLMF/Legendre/UniformCoordinates.lean`): for
+  x ≥ √(1−α²) the relation `LegendreYRelation` asks only y ≤ α², but the equation has a root in
+  (0, α²) and one in (−∞, 0) whenever its right side is negative (α = 0.6: x = 0.9 gives
+  y = 0.177237 and y = −0.116411; x = 0.81 gives 0.341463 and −0.157066; checked with mpmath).
+  DLMF's y decreases through 0 at x = 1, so the intended root has y > 0 for x < 1 and y < 0 for
+  x > 1. Corrected: the relation now has (x < 1 → 0 < y) ∧ (1 < x → y < 0) in that case.
+  Transcription defect, not a DLMF erratum. `legendreDegreeY_monotone` depends on it.
+- `incompleteGamma_increment_series` (8.7.2, `DLMF/IncompleteGamma/SeriesRecurrences.lean`): the
+  hypotheses x, x+y ∈ slitPlane and |y| < |x| allow the segment [x, x+y] to cross the cut of the
+  principal (x+y)^a. At a = 0.3, x = −1+0.1i, y = −0.2i the left side is −6.7644i and the
+  series −0.43925+0.31913i; the identity holds to 30 digits when the segment stays in the cut
+  plane (x = −1+0.1i, y = 0.05i; x = 1+0.5i, y = 0.3+0.2i). Corrected: the hypothesis
+  x + y ∈ slitPlane is replaced by x + t y ∈ slitPlane for all t ∈ [0, 1] (the series is the
+  continuation of γ(a, ·) from x along the segment). A branch-convention defect of the
+  formalization: DLMF states 8.7.2 for multivalued functions with |y| < |x|.
+
+### Remaining blockers identified by the agents
+
+- Legendre 14.16 zero counts: the deformation tool applies; missing joint continuity of the
+  Ferrers functions in (ν, x), control near ±1, and base counts. Kummer U counts: continuity in
+  a. Scorer interlacing: a certified bound on the first negative hump of Gi.
+- Airy 9.7.16 needs the corrected 9.7.17 (Laplace remainder on ph ζ = ±π); 9.7.23 needs
+  exponentially improved bounds; modulus–phase error bounds need signed bounds for 1/M², x/N²;
+  generalized Airy needs K_ν asymptotics in sectors wider than π/2.
+- Mellin–Barnes: Stirling-type ratio bounds uniform along shifted lines; the Mellin transform of
+  K_ν (10.43.19); Plemelj boundary limits for the Stieltjes targets.
+- Uniform-expansion coefficients: explicit Taylor coefficients of inverse coordinates, removable
+  singularities of Olver's coefficients at ζ = 0, a global inverse for the incomplete-Gamma η.
+- Legendre/Ferrers addition theorems for complex degree need continuation in ν; spherical-harmonic
+  addition and Funk–Hecke need the dimension and spanning theory; 14.13 values need ₂F₁ on
+  |ζ| = 1; Jacobi generating functions need growth bounds for complex α, β.
+
+### Validation
+
+- The ordinary build passes (9,979 jobs) with no errors; the source census finds 332 admissions.
+- A compiled audit of 11,322 `DLMF`/`ToMathlib` theorems finds exactly 332 depending on `sorryAx`
+  and no other non-standard axiom.
+- The DLMF dump has 3,070 records (2,767 proved, 303 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
+  `Analysis/Complex/Carlson.lean` still match `../lean-codes`; `git diff --check` is clean.
+- No commit was made.
+
+## Round 9 statement correction (2026-10-22, user-approved)
+
+- `cylinderEnvelopeCross_spec` (14.15.23, `DLMF/Legendre/UniformCoordinates.lean`): DLMF defines
+  X_c as the largest positive root of U(−c, x) = Ū(−c, x) for c ≥ 0. At c = 0 the only root is
+  x = 0 (U(0,0) = Ū(0,0); mpmath gives U − Ū = −0.0233, −0.349, −1.177 at x = 0.02, 0.3, 1 and no
+  sign change on (0, 6]), so the asserted `0 < cylinderEnvelopeCross 0` was false; the project's
+  definition (supremum of the positive roots) gives X₀ = 0, for which the envelope formula still
+  makes sense. For c > 0 a positive root exists (≈ 0.034 at c = 0.01, ≈ 0.288 at c = 0.1).
+  Corrected: the first conjunct is now `0 < c → 0 < cylinderEnvelopeCross c`; the root equation and
+  the absence of roots beyond X_c are kept for all c ≥ 0. A degenerate case of DLMF's definition.
+  Still admitted.
+
+## Round 9 DLMF errata in §14.16 (2026-10-22, user-approved)
+
+Notation 14.16.1: μ = m + δμ, ν = n + δν. All three statements matched DLMF as printed; checked
+with mpmath (`legenp`/`legenq`, sign changes on a fine grid) by the round-9 agent and independently.
+All three remain admitted.
+
+- 14.16(ii), zeros of 𝖯^μ_ν (`ferrersPExtraZero`, used by `ferrersP_zero_count`): DLMF lists
+  max(⌈ν−|μ|⌉, 0) zeros for μ > 0, n ≥ m, δν > δμ and one extra zero for μ > 0, n > m, δν ≤ δμ,
+  so the case n = m, δν ≤ δμ is not covered. It has the extra zero: (ν, μ) = (1/4, 3/4),
+  (0.452, 0.939), (1.2, 1.7), (2.1, 2.9), (0.3, 0.3), (1.6, 1.6) each give one zero against a
+  base count 0; the neighbouring cases (2.6, 1.3), (2.3, 1.6), (0.4, 2.7), (0.4, 1.7) agree with
+  DLMF. Corrected: the first extra-zero case reads n ≥ m (`⌊μ⌋ ≤ ⌊ν⌋`).
+- 14.16(ii), zeros of 𝖰^μ_ν (`ferrersQ_zero_count_range`): the parity rule (even when cos νπ and
+  cos μπ have opposite signs, odd when the same) fails for μ < 0: at ν = −0.369, μ = −0.206 both
+  cosines are positive, but 𝖰^μ_ν > 0 on (−1, 1) (values 2.63 to 7.99); also (0.443, −1.707) and
+  (0.156, −2.609). No failure in 40 samples with μ > 0. Corrected: the parity clauses are asserted
+  for 0 ≤ μ; the count range max(⌈ν−|μ|⌉, 0) + k, k ∈ {−1, 0, 1, 2}, is kept for all μ.
+- 14.16(iii), zeros of P^μ_ν on (1, ∞) (`associatedPOneZero`, used by `associatedP_zero_count`):
+  case (b) (μ ≤ ν, μ non-integer, ⌊μ⌋ odd) fails for μ < 0. Near x = 1, P^μ_ν behaves like
+  ((x+1)/(x−1))^{μ/2}/Γ(1−μ), and the leading term at ∞ has the factor 1/Γ(ν−μ+1); both are
+  positive for μ < 0 ≤ ν + 1/2, and P^μ_ν > 0 on (1, ∞) at ν = 0.184, μ = −0.088 (0.676 just
+  above 1, 150.6 at x = 1 + 10¹²); 12 failures in 50 samples, all with μ < 0. Corrected: case (b)
+  requires μ > 0.
+
+## Round 9 (2026-10-22)
+
+Six parallel agents with file-level ownership, four of them sent back for a second pass;
+332 → 306 (26 admissions proved, none added). Statement changes were limited to the
+user-approved corrections recorded above (14.15.23 and the three §14.16 errata) and in round 8
+(14.15.21–22, 8.7.2).
+
+Removals by area: Legendre −8, Airy −4, error functions −3, exponential integrals −3, orthogonal
+polynomials −3, spherical harmonics −2, incomplete Gamma −1, parabolic cylinder −1, Struve −1.
+
+New modules:
+
+- `ToMathlib/Analysis/Asymptotics/StieltjesRemainder.lean`: Stieltjes transforms
+  ∫φ(τ)/(1+τ/S) dτ with nonnegative density: exact remainder, bounds by the first neglected term
+  with factor 1 (Re S ≥ 0) and |csc arg S|, signed enclosures on the imaginary axis, and the
+  χ-type bounds needed beyond |ph S| = π/2.
+- `ToMathlib/Analysis/Calculus/InverseSeries.lean`: checking a candidate inverse expansion by
+  substitution (left inverses with a strict derivative), roots of algebraic relations in big-O form.
+- DLMF: `Airy/StieltjesForm.lean` (ray-Laplace model of the Airy remainder, the χ integral
+  Γ(m+1)∫(W²+ρ²)^{−(m+1)/2} = Γ(m)χ(m)W^{−m}), `Bessel/KMellin.lean` (10.43.19, new tag),
+  `Bessel/SphericalProductTools.lean` (Σ(2n+1)jₙ² = 1, Σ(−1)ⁿ(2n+1)jₙ(x)jₙ(y) = j₀(x+y)),
+  `Gamma/ShiftedLineBounds.lean` (Gamma bounds uniform along shifted vertical lines),
+  `Legendre/ZeroTools.lean` (Sturm comparison on (−1, 1) with endpoint control; zero count of
+  𝖯^{−m}_ν), `SphericalHarmonics/ZonalTools.lean` (harmonic polynomials as `HarmonicOnNhd`, the
+  Poisson-kernel expansion, the reproducing property of zonal polynomials).
+
+Main results proved:
+
+- Airy: 9.7.17 for Ai in all four sectors (`airy_ai_complex_error`, with a sharp Gamma inequality
+  (N/(2e))^N ≤ √(2π(N+1/6))·u_N), and 9.7.16 for Bi (`airy_bi_real_error`, `airy_bi_bound`);
+  9.10.17 (`airyAi_mellin`).
+- Legendre: the 14.16 zero counts `ferrersP_nonpositive_order_zero_count`,
+  `ferrersP_nat_degree_zero_count`, `ferrersP_positive_integer_order_zero_count`; 14.15.21–22
+  (`legendreDegreeY_spec`, `legendreDegreeY_monotone`); `besselEnvelopeCross_spec`; the Heine series
+  14.28.2 (`legendre_heine_series`, `legendre_heine_uniform`).
+- Spherical harmonics: the addition theorem and Funk–Hecke (`spherical_addition`, `funk_hecke`);
+  `SphericalHarmonics/Theorems.lean` is admission-free.
+- Orthogonal polynomials: 18.10.1, 18.10.2, 18.17.21 (`OrthogonalPolynomials/Integrals.lean`
+  admission-free).
+- Series: 8.7.2 (corrected), 7.6.9 (stronger than DLMF: all complex b), 6.10.1, 6.10.5, 6.10.6
+  (`ExpIntegrals/Expansions.lean` and `ErrorFunctions/Series.lean` admission-free).
+- Mellin–Barnes: 7.7.13, 7.7.14 (`ErrorFunctions/Integrals.lean` admission-free), 11.5.9.
+- Parabolic cylinder: 12.10.41 (`pcfInverseZeta_taylor`).
+
+### Remaining blockers identified by the agents
+
+- Airy: a Stieltjes form for Ai′ with σ = 0 (9.7.17 for Ai′, 9.7.16 for Bi′); the negative-axis
+  bound 9.7.13–14 has a worked-out route (about 250 lines) for the Ai half; 9.7.23 and the
+  modulus–phase bounds not attempted.
+- Legendre: addition theorems and Legendre series for non-integer degree; 14.13 closed form in
+  e^{iθ}; 14.14 continued fractions (large-order behaviour); `ferrersP_zero_count`,
+  `ferrersQ_zero_count_range`, `associatedP_zero_count` (corrected) need the non-integer-order
+  counts.
+- Kummer U zero counts: the Legendre comparison tools on (0, ∞) with weight x^b e^{−x}, bounds on U.
+- Bessel addition 10.23.8: the Gegenbauer plane-wave expansion for complex ν and a product formula.
+- Jacobi generating functions 18.12.1–3: Lagrange–Bürmann inversion at the coefficient level and a
+  growth bound for complex parameters; 8.7.6: Fejér's Laguerre bound for complex a.
+- Uniform coefficients: Olver's vanishing orders at the turning point (`pcfAiry*_limit`), a global
+  inverse for the incomplete-Gamma η on |η| < 2√π.
+- Mellin–Barnes: the Mellin transform of K_ν² (9.11.15), two pole families with coincidences
+  (15.6.7).
+
+### Validation
+
+- The ordinary build passes (9,995 jobs) with no errors; the source census finds 306 admissions.
+- A compiled audit of 11,709 `DLMF`/`ToMathlib` theorems finds exactly 306 depending on `sorryAx`
+  and no other non-standard axiom.
+- The DLMF dump has 3,072 records (2,788 proved, 284 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- `Analysis/Integral/Laplace.lean` still matches `../lean-codes`. `Analysis/Complex/Carlson.lean`
+  no longer does: the `../lean-codes` copy was changed on 2026-10-22 outside these sessions (it adds
+  a complex-valued form of Carlson's theorem). Resynchronized at the user's request on 2026-10-22;
+  the full build still passes with 306 admissions.
+- `git diff --check` is clean. No commit was made.
+
+## Round 10 (2026-10-22)
+
+Before the round, `ToMathlib/Analysis/Complex/Carlson.lean` was resynchronized from `../lean-codes`
+at the user's request (it adds a complex-valued Carlson theorem, used below). Six parallel agents
+with file-level ownership, three of them sent back for a second pass; 306 → 293 (13 admissions
+proved, none added). No statement was changed. One declaration was moved verbatim (rule agreed for
+this round): `besselJ_addition` from `DLMF/Bessel/Theorems.lean` to the new
+`DLMF/SphericalHarmonics/BesselAddition.lean`, because the Gegenbauer theory it needs lies
+downstream of `Bessel/Theorems.lean`; no file used it.
+
+Removals by area: Legendre −5, Confluent −3, orthogonal polynomials −3, Bessel −1, Airy −1.
+
+New modules:
+
+- `ToMathlib/Analysis/Complex/LagrangeBurmann.lean`: the Lagrange–Bürmann formula at the
+  coefficient level, Σ zⁿ (FΦⁿ)⁽ⁿ⁾(0)/n! = F(w)/g(w) when t − zΦ(t) = (t − w)g(t) on a circle
+  (Cauchy formula, no argument principle), and extension of a power-series identity from a small
+  disc to the disc of holomorphy.
+- DLMF: `Confluent/ZeroTools.lean` (Sturm comparison on (0, ∞) with a general weight; U real and
+  in self-adjoint form; the exact count of positive zeros of U(a, b, ·); U on the negative axis:
+  connection formula, Wronskian, no common zeros with 𝐌), `Legendre/ZeroCounts.lean` (count bounds
+  and parity by Sturm separation; reflection Wronskians W{𝖯^{−μ}_ν(−x), 𝖯^μ_ν} and
+  W{𝖯^{−μ}_ν(−x), 𝖰^μ_ν}), `Legendre/AdditionTools.lean` (cosine series of even C² periodic
+  functions, a Carlson wrapper on ℂ, Laplace-type growth bounds in ν, the sharp bound
+  |𝖯_ν(cos θ)| ≤ e^{θ|Im ν|}/cos(θ/2) for all complex ν), `Hypergeometric/AppellF4.lean` (Appell F4,
+  tagged 16.13.4, and Bailey's product formula ₂F₁(a,b;c;X)₂F₁(a,b;c′;Y) = F4(a,b;c,c′;X(1−Y),Y(1−X))
+  for c + c′ = a + b + 1, near 0), `SphericalHarmonics/BesselAddition.lean`.
+
+Main results proved:
+
+- Bessel: Gegenbauer's addition theorem 10.23.8 for complex ν, Re ν > 0, by a direct power-series
+  argument (Taylor shift of ₀F̃₁, the monomial expansion 18.18.17, a ₀F₁ product formula).
+- Kummer: 13.9.13 (no zeros of U on the negative axis, all cases), 13.9.14 (positive zeros), and
+  the parabolic zero-free regions of M (AAR Cor. 4.16.4, Saff–Varga; `Confluent/Basic.lean`
+  admission-free).
+- Legendre: the corrected 14.16 counts `ferrersP_zero_count`, `ferrersQ_zero_count_range`,
+  `associatedP_zero_count` (`Legendre/Zeros.lean` admission-free; mpmath re-check of the round-9
+  errata: 87 samples, no failure); the addition theorems 14.18.1 and 14.18.4 for complex degree
+  (Fourier coefficients in φ, Carlson's theorem from integer degree, identity theorem).
+- Jacobi: the generating functions 18.12.1, 18.12.3 and Brafman's formula
+  (`OrthogonalPolynomials/Series.lean` admission-free).
+- Airy: the signed negative-axis bounds of §9.7(iii) (`airy_oscillatory_real_error`, all four
+  cases), via rotated Laplace forms of Ai (b = 1/6) and Ai′ (b = 7/6).
+
+### Remaining blockers identified by the agents
+
+- Airy 9.7.16–17 for Ai′/Bi′: the b = 7/6 form gives χ(N + 7/6) + 1, not χ(N) + 1; a positive
+  exponential-mixture form of t^{1/2}K_{2/3}(t) or Nemes's 2017 resurgence form is needed (the
+  statements hold numerically). Modulus–phase bounds 9.8(iv): no Laplace form for the phases.
+- Kummer: zeros in a (13.9.10, 13.9.16) need large-a asymptotics with error bounds and Rouché; the
+  sector counts 13.9.11–12 need the argument principle on |ph z| < π.
+- Legendre: 14.18.3 and 14.18.5 need the integer-degree Q addition theorem and growth bounds for
+  Q in ν; 14.28.1 needs the combined argument to avoid (−∞, −1] for all φ; 14.18.8–9 need
+  Legendre-series convergence for non-integer degree.
+- 8.7.6: Fejér's Laguerre bound for complex a.
+
+### Validation
+
+- The ordinary build passes (10,007 jobs) with no errors; the source census finds 293 admissions.
+- A compiled audit of 11,988 `DLMF`/`ToMathlib` theorems finds exactly 293 depending on `sorryAx`
+  and no other non-standard axiom.
+- The DLMF dump has 3,073 records (2,796 proved, 277 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it. `DLMF/Bessel/DLMFCoverage.md` and
+  `BealsWongInventory.md` were updated for the move of `besselJ_addition`.
+- The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
+  `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
+- No commit was made.
+
+## `struveH_barnes` (11.5.8) numerical check (2026-10-22)
+
+The round-7 discrepancy was quadrature truncation. A 30-digit mpmath check of the statement as
+written (whole-line integral in y of the integrand at s = c + iy against −2π(x/2)^{−ν−1}H_ν(x)),
+integrating over [−Y, Y] with unit subintervals, gives:
+
+- ν = 3, x = 1.5, c = −0.3 (decay |y|^{−4.4}): Y = 800 agrees to 4·10⁻¹⁴.
+- ν = 2.5 + 0.7i, x = 2, c = −0.4 (decay |y|^{−3.7}): Y = 800 agrees to 4·10⁻¹².
+- ν = 1 − i, x = 0.8, c = −0.2 (decay |y|^{−2.6}): error 5·10⁻⁷ at Y = 200, 1.3·10⁻⁸ at Y = 800.
+- ν = 0.5, x = 3, c = −0.5 (decay |y|^{−1.5}): error 4.6·10⁻⁵ at Y = 200, 4.4·10⁻⁶ at Y = 800.
+
+The errors shrink with Y as the algebraic tails predict. The sign and normalization also follow
+from the residues (−1)^k of π/sin(πs) at s = k ≥ 0 and the clockwise closing of the contour to the
+right. The statement is judged correct and is released for proof in round 11.
+
+## Round 11 (2026-10-22)
+
+Six parallel agents with file-level ownership, two of them sent back for a second pass. The source
+census went from 293 to 261 admissions; the compiled audit from 293 to 267 theorems depending on
+`sorryAx`. The difference of six: in `ErrorFunctions/Zeros.lean` six statements (ordering and
+zero classifications of erf, erfc, w and the Fresnel integrals) are now proved from the two
+remaining admissions `errorFunctionZero_spec` and `fresnelFunctionZero_spec`. No statement was
+changed. `struveH_barnes` (11.5.8), released after the numerical check above, was moved within
+`Struve/Representations.lean` (unchanged) to follow `struveL_barnes_loop`, which its proof uses.
+
+Removals by area (audit): exponential integrals −11, Legendre −10, incomplete Gamma −4,
+Struve −1.
+
+New modules:
+
+- `ToMathlib/Analysis/SpecificLimits/Pincherle.lean`: partial sums with term ratio tending to ρ,
+  |ρ| > 1, diverge; a continued fraction converges to h + a₀w₁/w₀ when a backward solution w has
+  −w_k/(a_{k+1}w_{k+2}) → ρ with |ρ| > 1.
+- DLMF: `Core/ZeroCounting.lean` (finitely many zeros in bounded sets, well-definedness of ordered
+  zero enumerations, exactly one zero per disc via TauCeti's Rouché theorem),
+  `ErrorFunctions/ZeroClassification.lean` (erfc zeros in π/2 < |ph z| < 3π/4, DLMF §7.13(ii);
+  erfc ≠ 0 for Re z ≥ 0; C(x), S(x) ≠ 0 for real x ≠ 0; octant reduction),
+  `ExpIntegrals/TransformTools.lean`, `IncompleteGamma/BoundTools.lean`,
+  `Legendre/QAdditionTools.lean` (the combined argument of 14.28.1 stays in the slit plane),
+  `Legendre/FourierTools.lean` (𝑸^μ_ν as a ₂F₁ in ζ = z − (z²−1)^{1/2} on ℂ∖(−∞,1]; Tannery limit
+  Γ(c+k)𝐅(a, b+k; c+k; z) → (1−z)^{−a}; terminating continued fractions),
+  `Struve/BarnesTools.lean` (1/Γ growth on vertical lines, integrability from O(|y|^p) tails).
+
+Main results proved:
+
+- Struve: the Barnes integral 11.5.8 (`hν` is implied by the other hypotheses).
+- Exponential integrals: 6.14.1–6.14.7 (Laplace transforms and integrals of squares and products
+  of E₁, Ci, Si) and the sums 6.15.1–6.15.4 (via Binet's formulas 5.9.10, 5.9.15).
+- Incomplete Gamma: 8.10.10 (upper bound strict), 8.10.11 (Alzer's bounds, both forms), 8.10.13.
+- Legendre: 14.13.1–14.13.4 and the unnumbered hypergeometric form of 14.13; the continued
+  fractions 14.14.1 (erratum form, now confirmed) and 14.14.3; 14.18.3 (via 14.9.10 and continuity
+  in ν); 14.28.1 for all φ; 14.19.6. Several proofs need fewer hypotheses than stated (14.18.3:
+  `hhalf`, `h2`; 14.28.1: `harg`; 14.14.1/14.14.3: `hr`, `hterm`); the statements are unchanged and
+  the docstrings say "stronger than DLMF" where the agent noted it. `Legendre/Series.lean` is
+  admission-free.
+
+### Remaining blockers identified by the agents
+
+- 8.9.2 (complex a) and 8.19.17: the backward solution is w_{2m} = z^m U(m, a, z),
+  w_{2m+1} = z^{m+1}U(m+1, a+1, z) (checked to 30 digits), but the ratio tends to −1, so the
+  Pincherle criterion does not apply under any normalization. Needed: a divergence criterion for
+  ratios −1 + c/√k with large-m asymptotics of U, or the parabola theorem with uniform
+  convergence, or Padé error formulas with Perron/Fejér asymptotics for complex a.
+- 8.7.6: Fejér's bound for complex a (the series converges only barely absolutely).
+- 7.13 zero specs: distinct moduli of the erf/erfc/Fresnel zeros need zero-free bounds near the
+  imaginary axis and annulus localization; the expansions 7.13.1/3/5 also need all-order inversion.
+- 13.9.11–12: argument principle on a keyhole contour with uniform U asymptotics (numerical
+  keyhole counts agree with DLMF at five (a, b)); 13.9.10/16: large complex a asymptotics.
+- 14.18.5: integer-degree hyperbolic Q addition, or the Laplace–Beltrami argument on the
+  hyperboloid (statement checked to 1e-22); 14.18.8–9: pointwise convergence of Legendre series with
+  logarithmic endpoint singularities; 14.19.4: a quadratic ₂F₁ transformation; 14.19.5 depends on
+  `olverQ_real_integral` (14.12.6).
+- 11.7.12: two-variable Dirichlet-kernel limit, and continuation to −3/2 < Re μ, Re ν.
+- 6.13.2: enveloping property of the inverted zero expansion of Ci and si (coefficients and signed
+  bounds confirmed numerically for k ≤ 5, N ≤ 11).
+
+### Validation
+
+- The ordinary build passes (10,023 jobs) with no errors; the source census finds 261 admissions.
+- A compiled audit of 12,335 `DLMF`/`ToMathlib` theorems finds 267 depending on `sorryAx` and no
+  other non-standard axiom.
+- The DLMF dump has 3,073 records (2,821 proved, 252 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
+  `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
+- No commit was made.

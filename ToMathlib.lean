@@ -26,6 +26,7 @@ public import ToMathlib.Analysis.Complex.StarPrimitive
 public import ToMathlib.Analysis.Complex.BarnesResidue
 public import ToMathlib.Analysis.Complex.ZeroLocalization
 public import ToMathlib.Analysis.ContinuedFraction.Convergence
+public import ToMathlib.Analysis.SpecificLimits.Pincherle
 public import ToMathlib.Analysis.ODE.SturmComparison
 public import ToMathlib.Analysis.ODE.PowerSeriesUniqueness
 public import ToMathlib.Analysis.ODE.SoninePolya
@@ -37,6 +38,14 @@ public import ToMathlib.Analysis.ODE.LiouvilleGreenExpansion
 public import ToMathlib.Analysis.ODE.LiouvilleGreenComparison
 public import ToMathlib.Analysis.ODE.LiouvilleGreenFinite
 public import ToMathlib.Topology.Order.ZeroEnumeration
+public import ToMathlib.Analysis.Calculus.DoubleZeroSqrt
+public import ToMathlib.Analysis.Complex.MellinBarnesSeries
+public import ToMathlib.Analysis.Complex.LagrangeBurmann
+public import ToMathlib.Analysis.Integral.PrincipalValue
+public import ToMathlib.Analysis.ODE.SturmCount
+public import ToMathlib.Analysis.ODE.SturmDeformation
+public import ToMathlib.Analysis.Asymptotics.StieltjesRemainder
+public import ToMathlib.Analysis.Calculus.InverseSeries
 
 /-!
 # Supporting results for Mathlib
@@ -53,6 +62,8 @@ the namespaces of the Mathlib APIs they extend. These modules import Mathlib onl
   approximate zero (contraction form of Newton–Kantorovich), with a filter version.
 * `ToMathlib.Analysis.ContinuedFraction.Convergence`: convergence of generalized continued fractions
   through three-term recurrences (Pincherle, a ratio criterion, bracketing for positive elements).
+* `ToMathlib.Analysis.SpecificLimits.Pincherle`: divergence of sums with ratio limit outside the unit
+  disc, and convergence of a continued fraction from a backward solution with such a ratio limit.
 * `ToMathlib.Analysis.Complex.FactorialSeries`: convergence and entireness of sparse factorial series.
 * `ToMathlib.Analysis.Complex.ParametricHolomorphy`: holomorphy of dominated parametric series and
   integrals in finite-dimensional complex parameters, and the continuous Osgood lemma.

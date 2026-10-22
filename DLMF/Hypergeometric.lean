@@ -31,6 +31,7 @@ public import DLMF.Hypergeometric.BarnesAux
 public import DLMF.Hypergeometric.Generalized
 public import DLMF.Hypergeometric.LoopIntegral
 public import DLMF.Hypergeometric.Saalschutz
+public import DLMF.Hypergeometric.AppellF4
 public import DLMF.Hypergeometric.FiniteConvolution
 public import DLMF.Hypergeometric.GeneralizedCalculus
 public import DLMF.Hypergeometric.GeneralizedIntegral

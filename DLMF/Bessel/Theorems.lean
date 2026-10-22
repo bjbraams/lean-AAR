@@ -123,18 +123,8 @@ theorem besselJ_generating_function (z t : ℂ) (ht : t ≠ 0) :
     exp (z / 2 * (t - t⁻¹)) = ∑' n : ℤ, besselJ n z * t ^ n := by
   exact (hasSum_besselJ_generating_function z t ht).tsum_eq.symm
 
-/-- Gegenbauer's addition theorem, AAR (4.10.5), for positive radii and nonzero distance.
-DLMF's radius-ordering restriction is unnecessary for `J`. -/
-@[dlmf 10.23.E8]
-theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
-    (hr : 0 < r) (hrho : 0 < rho)
-    (hR : 0 < r ^ 2 + rho ^ 2 - 2 * r * rho * Real.cos phi) :
-    besselJ ν (Real.sqrt (r ^ 2 + rho ^ 2 - 2 * r * rho * Real.cos phi) : ℂ) /
-        (Real.sqrt (r ^ 2 + rho ^ 2 - 2 * r * rho * Real.cos phi) : ℂ) ^ ν =
-      (2 ^ ν * Gamma ν / (r * rho : ℂ) ^ ν) *
-        ∑' n : ℕ, (ν + n) * besselJ (ν + n) r * besselJ (ν + n) rho *
-          ultrasphPoly ν n (Real.cos phi) := by
-  sorry
+-- Gegenbauer's addition theorem `besselJ_addition` (DLMF 10.23.8) is proved in
+-- `DLMF/SphericalHarmonics/BesselAddition.lean`, which can import the Gegenbauer polynomial API.
 
 /-- At a nonzero point, a zero of regularized `₀F₁` has nonzero derivative.
 The contiguous relation propagates a hypothetical double zero to every derivative. -/

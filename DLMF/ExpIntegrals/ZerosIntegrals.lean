@@ -8,6 +8,7 @@ module
 public import DLMF.ExpIntegrals.Asymptotics
 public import DLMF.ExpIntegrals.Representations
 public import ToMathlib.Topology.Order.ZeroEnumeration
+public import DLMF.ExpIntegrals.TransformTools
 
 /-!
 # Zeros, transforms, sums and computational recurrences, DLMF §§6.13–6.18
@@ -15,6 +16,10 @@ public import ToMathlib.Topology.Order.ZeroEnumeration
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
 New theorem statements are initially admitted and are not completed proofs.
+
+The transforms, integrals and sums of §§6.14–6.15 are proved with the helpers in
+`DLMF/ExpIntegrals/TransformTools.lean`; the sums use Binet's formulas DLMF 5.9.10 and
+5.9.15 from `DLMF/Gamma`.
 -/
 
 @[expose] public noncomputable section
@@ -417,68 +422,220 @@ theorem Real.trigonometric_integral_zero_asymptotics  :
 /-- expIntE1 laplace. -/
 @[dlmf 6.14.E1]
 theorem expIntE1_laplace {a : ℂ} (ha : -1 < a.re) :
-    (∫ t : ℝ in Ioi 0, exp (-a*t)*genExpIntE 1 t) = if a=0 then 1 else log (1+a)/a := by
-  sorry
+    (∫ t : ℝ in Ioi 0, exp (-a*t)*genExpIntE 1 t) = if a=0 then 1 else log (1+a)/a :=
+  (eiTr_laplace_E1 ha).2
 
 /-- cosInt laplace. -/
 @[dlmf 6.14.E2]
 theorem cosInt_laplace {a : ℂ} (ha : 0 < a.re) :
     (∫ t : ℝ in Ioi 0, exp (-a*t)*cosInt t) = -log (1+a^2)/(2*a) := by
-  sorry
+  have ha0 : a ≠ 0 := fun h => by rw [h] at ha; simp at ha
+  obtain ⟨hE, hEv⟩ := eiTr_laplace_E1 (a := a) (by linarith)
+  rw [ite_eq_right_iff.2 (fun h => absurd h ha0)] at hEv
+  set F : ℝ → ℝ → ℂ := fun t u => (((Real.cos (t * u) - Real.exp (-(t * u))) / u : ℝ) : ℂ)
+  have hFm : Measurable (Function.uncurry F) := by
+    simp only [F]; unfold Function.uncurry; fun_prop
+  have hFb : ∀ t u : ℝ, 0 < t → u ∈ Ioc (0:ℝ) 1 → ‖F t u‖ ≤ 1 * (1 + t ^ 2) :=
+    fun t u ht hu => eiTr_ein_cin_bound ht hu
+  have hrep : ∀ t ∈ Ioi (0:ℝ), exp (-a*t)*cosInt t =
+      (cexp (-a * t) * ∫ u in (0:ℝ)..1, F t u) - cexp (-a * t) * genExpIntE 1 t := by
+    intro t ht
+    have ht0 : (0:ℝ) < t := ht
+    simp only [F]
+    rw [cosInt_ofReal ht0, genExpIntE_one_eq_Ein ht0, intervalIntegral.integral_ofReal,
+      ← eiTr_ein_sub_cin_eq ht0.le, Real.cosInt]
+    push_cast; ring
+  rw [setIntegral_congr_fun measurableSet_Ioi hrep, integral_sub (eiTr_integrable01 ha hFm hFb) hE,
+    hEv, eiTr_swap01 ha hFm hFb]
+  have hin : ∫ u in (0:ℝ)..1, ∫ t in Ioi (0:ℝ), cexp (-a * t) * F t u =
+      ∫ u in (0:ℝ)..1, (a / (a ^ 2 + (u:ℂ) ^ 2) - 1 / (a + u)) / u := by
+    refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun u hu => ?_)
+    rw [uIoc_of_le zero_le_one] at hu
+    have hu0 : (u:ℂ) ≠ 0 := by exact_mod_cast hu.1.ne'
+    have hc : 0 < (a + u).re := by simp; linarith [hu.1]
+    have he : ∀ t : ℝ, cexp (-a * t) * F t u =
+        (cexp (-a * t) * ((Real.cos (t * u) : ℝ) : ℂ) - cexp (-(a + u) * t)) * (u:ℂ)⁻¹ := by
+      intro t
+      simp only [F]
+      push_cast
+      rw [show -(a + u) * (t:ℂ) = -a * t + -(t * u) by ring, Complex.exp_add]
+      ring
+    simp_rw [he]
+    have hcos : IntegrableOn (fun t : ℝ => cexp (-a * t) * ((Real.cos (t * u) : ℝ) : ℂ)) (Ioi 0) := by
+      refine (eiTr_integrableOn_exp_neg ha).norm.mono' (by fun_prop) (Eventually.of_forall fun t => ?_)
+      rw [norm_mul, Complex.norm_real, Real.norm_eq_abs]
+      exact mul_le_of_le_one_right (norm_nonneg _) (Real.abs_cos_le_one _)
+    rw [integral_mul_const, integral_sub hcos (eiTr_integrableOn_exp_neg hc), eiTr_laplace_cos ha,
+      eiTr_integral_exp_neg hc]
+    field_simp
+  rw [hin, eiTr_integral_ci_kernel ha]
+  field_simp
+  ring
 
 /-- sinIntTail laplace. -/
 @[dlmf 6.14.E3]
 theorem sinIntTail_laplace {a : ℂ} (ha : 0 < a.re) :
     (∫ t : ℝ in Ioi 0, exp (-a*t)*sinIntTail t) = -arctan a/a := by
-  sorry
+  obtain ⟨hi, hv⟩ := eiTr_laplace_sinInt ha
+  have he : ∀ t : ℝ, exp (-a*t)*sinIntTail t =
+      cexp (-a * t) * (Real.sinInt t : ℂ) - (π / 2 : ℂ) * cexp (-a * t) := fun t => by
+    rw [sinIntTail, sinInt_ofReal]; ring
+  simp_rw [he]
+  rw [integral_sub hi ((eiTr_integrableOn_exp_neg ha).const_mul _), integral_const_mul, hv,
+    eiTr_integral_exp_neg ha]
+  have : a ≠ 0 := fun h => by rw [h] at ha; simp at ha
+  field_simp
+  ring
 
 /-- expIntE1 squared integral. -/
 @[dlmf 6.14.E4]
 theorem expIntE1_squared_integral  :
     (∫ t : ℝ in Ioi 0, genExpIntE 1 t^2) = 2*Real.log 2 := by
-  sorry
+  rw [setIntegral_congr_fun measurableSet_Ioi (g := fun t : ℝ => ((eiTr_e t ^ 2 : ℝ) : ℂ))
+    (fun t ht => by rw [eiTr_E1_ofReal (show (0:ℝ) < t from ht)]; push_cast; rfl),
+    integral_complex_ofReal, eiTr_integral_e_sq]
+  push_cast; ring
 
 /-- cosInt fourier integral. -/
 @[dlmf 6.14.E5]
 theorem cosInt_fourier_integral  :
     HasIntegralAtTop (fun t : ℝ => cos t*cosInt t) 0 (-π/4) ∧ HasIntegralAtTop (fun t : ℝ => sin t*sinIntTail t) 0 (-π/4) := by
-  sorry
+  constructor
+  · have h := (continuous_ofReal.tendsto _).comp eiTr_tendsto_integral_cos_mul_cosInt
+    unfold HasIntegralAtTop
+    rw [show (-π/4 : ℂ) = ((-(π/4) : ℝ) : ℂ) by push_cast; ring]
+    refine h.congr' ?_
+    filter_upwards [eventually_ge_atTop 0] with R hR
+    rw [Function.comp_apply, ← intervalIntegral.integral_ofReal]
+    refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun t ht => ?_)
+    rw [uIoc_of_le hR] at ht
+    rw [cosInt_ofReal ht.1]; push_cast; ring
+  · have h := (continuous_ofReal.tendsto _).comp eiTr_tendsto_integral_sin_mul_sinIntTail
+    unfold HasIntegralAtTop
+    rw [show (-π/4 : ℂ) = ((-(π/4) : ℝ) : ℂ) by push_cast; ring]
+    refine h.congr' (Eventually.of_forall fun R => ?_)
+    rw [Function.comp_apply, ← intervalIntegral.integral_ofReal]
+    refine intervalIntegral.integral_congr (fun t _ => ?_)
+    simp only [sinIntTail, sinInt_ofReal]; push_cast; ring
 
 /-- trigIntegral squared integrals. -/
 @[dlmf 6.14.E6]
 theorem trigIntegral_squared_integrals  :
     (∫ t : ℝ in Ioi 0, cosInt t^2) = π/2 ∧ (∫ t : ℝ in Ioi 0, sinIntTail t^2) = π/2 := by
-  sorry
+  constructor
+  · rw [setIntegral_congr_fun measurableSet_Ioi (g := fun t : ℝ => ((Real.cosInt t ^ 2 : ℝ) : ℂ))
+      (fun t ht => by simp only [cosInt_ofReal (show (0:ℝ) < t from ht)]; push_cast; rfl),
+      integral_complex_ofReal, eiTr_integral_cosInt_sq]
+    push_cast; ring
+  · rw [setIntegral_congr_fun measurableSet_Ioi
+      (g := fun t : ℝ => (((Real.sinInt t - π / 2) ^ 2 : ℝ) : ℂ))
+      (fun t _ => by simp only [sinIntTail, sinInt_ofReal]; push_cast; ring),
+      integral_complex_ofReal, eiTr_integral_sinIntTail_sq]
+    push_cast; ring
 
 /-- trigIntegral product integral. -/
 @[dlmf 6.14.E7]
 theorem trigIntegral_product_integral  :
     (∫ t : ℝ in Ioi 0, cosInt t*sinIntTail t) = Real.log 2 := by
-  sorry
+  rw [setIntegral_congr_fun measurableSet_Ioi
+      (g := fun t : ℝ => ((Real.cosInt t * (Real.sinInt t - π / 2) : ℝ) : ℂ))
+      (fun t ht => by
+        simp only [cosInt_ofReal (show (0:ℝ) < t from ht), sinIntTail, sinInt_ofReal]; push_cast; ring),
+      integral_complex_ofReal, eiTr_integral_cosInt_mul_sinIntTail]
 
 /-- trigIntegral hasSum 1. -/
 @[dlmf 6.15.E1]
 theorem trigIntegral_hasSum_1  :
     HasSum (fun n : ℕ => cosInt (π*(n+1 : ℂ))) ((Real.log 2-Real.eulerMascheroniConstant)/2) := by
-  sorry
+  have h := eiTr_hasSum_g Real.pi_pos
+  rw [eiTr_integral_fermi Real.pi_pos, eiTr_K_eq Real.pi_pos one_pos,
+    eiTr_K_eq (by positivity : 0 < 2 * π) one_pos,
+    show 1 * π / (2 * π) = 1 / 2 by field_simp, show 1 * (2 * π) / (2 * π) = 1 by field_simp,
+    Real.digamma_one_div_two, Real.digamma_one, Real.log_one,
+    show Real.log (1 / 2) = -Real.log 2 by rw [one_div, Real.log_inv]] at h
+  have h' := Complex.hasSum_ofReal.2 h
+  convert h' using 1
+  · funext n
+    have hx : 0 < π * ((n:ℝ) + 1) := by positivity
+    rw [show (π : ℂ) * ((n:ℂ) + 1) = ((π * ((n:ℝ) + 1) : ℝ) : ℂ) by push_cast; ring,
+      cosInt_ofReal hx, eiTr_cosInt_of_sin_eq_zero hx (by
+        rw [mul_comm, show ((n:ℝ) + 1) = ((n + 1 : ℕ) : ℝ) by push_cast; ring]
+        exact Real.sin_nat_mul_pi _),
+      mul_comm π, show ((n:ℝ) + 1) = ((n + 1 : ℕ) : ℝ) by push_cast; ring, Real.cos_nat_mul_pi]
+    push_cast; ring
+  · push_cast; ring
 
 /-- trigIntegral hasSum 2. -/
 @[dlmf 6.15.E2]
 theorem trigIntegral_hasSum_2  :
     HasSum (fun n : ℕ => sinIntTail (π*(n+1 : ℂ))/(n+1 : ℂ)) (π/2*(Real.log π-1)) := by
-  sorry
+  have h := eiTr_hasSum_f Real.pi_pos
+  rw [eiTr_integral_log_eq' Real.pi_pos, eiTr_arctanK_eq Real.pi_pos,
+    eiTr_arctanK_eq (by positivity : 0 < 2 * π),
+    show π / (2 * π) = 1 / 2 by field_simp, show 2 * π / (2 * π) = 1 by field_simp,
+    Real.Gamma_one_half_eq, Real.Gamma_one, Real.log_one, Real.log_sqrt Real.pi_pos.le,
+    show Real.log (1 / 2) = -Real.log 2 by rw [one_div, Real.log_inv],
+    Real.log_mul (by norm_num) Real.pi_pos.ne'] at h
+  have h' := Complex.hasSum_ofReal.2 h
+  convert h' using 1
+  · funext n
+    have hx : 0 < π * ((n:ℝ) + 1) := by positivity
+    have hn : π * ((n:ℝ) + 1) = ((n + 1 : ℕ) : ℝ) * π := by push_cast; ring
+    rw [show (π : ℂ) * ((n:ℂ) + 1) = ((π * ((n:ℝ) + 1) : ℝ) : ℂ) by push_cast; ring,
+      sinIntTail, sinInt_ofReal,
+      show ((Real.sinInt (π * ((n:ℝ) + 1)) : ℂ) - π / 2) =
+        ((Real.sinInt (π * ((n:ℝ) + 1)) - π / 2 : ℝ) : ℂ) by push_cast; ring,
+      eiTr_sinIntTail_of_sin_eq_zero hx (by rw [hn]; exact Real.sin_nat_mul_pi _),
+      hn, Real.cos_nat_mul_pi]
+    push_cast; ring
+  · field_simp
+    push_cast; ring
 
 /-- trigIntegral hasSum 3. -/
 @[dlmf 6.15.E3]
 theorem trigIntegral_hasSum_3  :
     HasSum (fun n : ℕ => (-1 : ℂ)^(n+1)*cosInt (2*π*(n+1 : ℂ))) (1-Real.log 2-Real.eulerMascheroniConstant/2) := by
-  sorry
+  have hc : 0 < 2 * π := by positivity
+  have h := eiTr_hasSum_g hc
+  rw [eiTr_integral_fermi hc, eiTr_K_eq hc one_pos,
+    eiTr_K_eq (by positivity : 0 < 2 * (2 * π)) one_pos,
+    show 1 * (2 * π) / (2 * π) = 1 by field_simp, show 1 * (2 * (2 * π)) / (2 * π) = 2 by field_simp,
+    eiTr_digamma_two, Real.digamma_one, Real.log_one] at h
+  have h' := Complex.hasSum_ofReal.2 h
+  convert h' using 1
+  · funext n
+    have hx : 0 < 2 * π * ((n:ℝ) + 1) := by positivity
+    have hn : 2 * π * ((n:ℝ) + 1) = ((2 * (n + 1) : ℕ) : ℝ) * π := by push_cast; ring
+    rw [show (2 : ℂ) * π * ((n:ℂ) + 1) = ((2 * π * ((n:ℝ) + 1) : ℝ) : ℂ) by push_cast; ring,
+      cosInt_ofReal hx, eiTr_cosInt_of_sin_eq_zero hx (by rw [hn]; exact Real.sin_nat_mul_pi _),
+      hn, Real.cos_nat_mul_pi, pow_mul]
+    push_cast; ring
+  · push_cast; ring
 
 /-- trigIntegral hasSum 4. -/
 @[dlmf 6.15.E4]
 theorem trigIntegral_hasSum_4  :
     HasSum (fun n : ℕ => (-1 : ℂ)^(n+1)*sinIntTail (2*π*(n+1 : ℂ))/(n+1 : ℂ)) (π*(3/2*Real.log 2-1)) := by
-  sorry
+  have hc : 0 < 2 * π := by positivity
+  have h := eiTr_hasSum_f hc
+  rw [eiTr_integral_log_eq' hc, eiTr_arctanK_eq hc,
+    eiTr_arctanK_eq (by positivity : 0 < 2 * (2 * π)),
+    show 2 * π / (2 * π) = 1 by field_simp, show 2 * (2 * π) / (2 * π) = 2 by field_simp,
+    Real.Gamma_two, Real.Gamma_one, Real.log_one] at h
+  have h' := Complex.hasSum_ofReal.2 h
+  convert h' using 1
+  · funext n
+    have hx : 0 < 2 * π * ((n:ℝ) + 1) := by positivity
+    have hn : 2 * π * ((n:ℝ) + 1) = ((2 * (n + 1) : ℕ) : ℝ) * π := by push_cast; ring
+    rw [show (2 : ℂ) * π * ((n:ℂ) + 1) = ((2 * π * ((n:ℝ) + 1) : ℝ) : ℂ) by push_cast; ring,
+      sinIntTail, sinInt_ofReal,
+      show ((Real.sinInt (2 * π * ((n:ℝ) + 1)) : ℂ) - π / 2) =
+        ((Real.sinInt (2 * π * ((n:ℝ) + 1)) - π / 2 : ℝ) : ℂ) by push_cast; ring,
+      eiTr_sinIntTail_of_sin_eq_zero hx (by rw [hn]; exact Real.sin_nat_mul_pi _),
+      hn, Real.cos_nat_mul_pi, pow_mul]
+    push_cast; ring
+  · field_simp
+    push_cast; ring
 
 /-- Acton auxiliary integral. -/
 @[dlmf 6.18.E1]

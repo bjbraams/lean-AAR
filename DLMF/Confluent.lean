@@ -29,6 +29,7 @@ public import DLMF.Confluent.FresnelAsymptotics
 public import DLMF.Confluent.Coulomb
 public import DLMF.Confluent.CoulombAsymptotics
 public import DLMF.Confluent.CoulombIrregular
+public import DLMF.Confluent.ZeroTools
 public import DLMF.Confluent.Zeros
 public import DLMF.Confluent.KummerDecay
 public import DLMF.Confluent.Integrals

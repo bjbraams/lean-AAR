@@ -16,6 +16,7 @@ public import DLMF.IncompleteGamma.SeriesRecurrences
 public import DLMF.IncompleteGamma.BoundsFractions
 public import DLMF.IncompleteGamma.RealIntegrals
 public import DLMF.IncompleteGamma.FractionTools
+public import DLMF.IncompleteGamma.BoundTools
 
 /-!
 # Incomplete Gamma and related functions: DLMF Chapter 8

@@ -6,10 +6,10 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.Airy.Framework
-public import DLMF.Airy.Equation
 public import DLMF.Airy.Relations
 public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import Mathlib.MeasureTheory.Integral.Gamma
+public import DLMF.Airy.StieltjesForm
 
 /-!
 # Airy asymptotic expansions and error bounds, DLMF §9.7
@@ -90,11 +90,17 @@ def airyRotatedBiApprox (derivative : Bool) (ε : ℝ) (N M : ℕ) (z : ℂ) : �
   else
     (2 / π : ℂ) ^ (1 / 2 : ℂ) * exp (ε * (π * I / 6)) * z ^ (-1 / 4 : ℂ) *
       (cos θ * airyOscSum false 0 N z + sin θ * airyOscSum false 1 M z)
-/-- The piecewise complex error multiplier in 9.7.17; the phase of ζ is inherited from z. -/
+/-- The piecewise complex error multiplier in 9.7.17; the phase of ζ is inherited from z.
+On the ray `|arg z| = 2π/3` we have `sin(ph ζ) = 0`, and DLMF's `min(|csc(ph ζ)|, χ + 1)` is
+`χ + 1`; the case is written out because Lean's `0⁻¹ = 0` would give `0` (corrected 2026-10-21).
+The last case is used only for `2π/3 < |arg z| < π`: the 9.7.17 statements assume
+`z ∈ slitPlane`, which excludes `|arg z| = π`, where `cos(ph ζ) = 0` and DLMF gives no bound. -/
 @[dlmf 9.7.E17]
 def airyErrorMultiplier (n : ℕ) (σ : ℝ) (z : ℂ) : ℝ :=
   if |arg z| ≤ π / 3 then 1 else
-  if |arg z| ≤ 2 * π / 3 then min |(Real.sin (3 * arg z / 2))⁻¹| (airyChi (n + σ) + 1) else
+  if |arg z| ≤ 2 * π / 3 then
+    (if Real.sin (3 * arg z / 2) = 0 then airyChi (n + σ) + 1
+      else min |(Real.sin (3 * arg z / 2))⁻¹| (airyChi (n + σ) + 1)) else
     Real.sqrt (2 * π * (n + σ)) / |Real.cos (3 * arg z / 2)| ^ ((n : ℝ) + σ) + airyChi (n + σ) + 1
 /-- The terminant, with an explicit logarithmic argument to retain the Gamma branch. -/
 @[dlmf 9.7.E22]
@@ -1321,18 +1327,49 @@ lemma airyRot_third_data {z : ℂ} (hz0 : z ≠ 0) (hz : |arg z| < 2 * π / 3) :
   · rw [Complex.cpow_mul_exp_ofReal_mul_I hz0 a1 a2]; congr 2; push_cast; ring
   · rw [Complex.cpow_mul_exp_ofReal_mul_I hz0 b1 b2, ← exp_neg]; congr 2; push_cast; ring
 
+/-- DLMF 9.2.14, restated here so that this module does not import `DLMF.Airy.Equation`
+(which uses the asymptotics of this file for the numerically satisfactory pairs). -/
+private lemma airyRot_neg_connection_ai (z : ℂ) :
+    airyAi (-z) = exp (π * I / 3) * airyAi (z * exp (π * I / 3)) +
+      exp (-π * I / 3) * airyAi (z * exp (-π * I / 3)) := by
+  have h := airyAi_add_omega (-z)
+  have e1 : -exp (-(2 * π * I / 3)) = exp (π * I / 3) := by
+    rw [exp_neg_two_pi_I_div_three, exp_pi_I_div_three]
+    push_cast; ring
+  have e2 : -exp (2 * π * I / 3) = exp (-π * I / 3) := by
+    rw [show -π * I / 3 = -(π * I / 3) by ring, exp_two_pi_I_div_three, exp_neg_pi_I_div_three]
+    push_cast; ring
+  rw [show -z * exp (-(2 * π * I / 3)) = z * exp (π * I / 3) by rw [← e1]; ring,
+    show -z * exp (2 * π * I / 3) = z * exp (-π * I / 3) by rw [← e2]; ring] at h
+  linear_combination h + airyAi (z * exp (π * I / 3)) * e1 +
+    airyAi (z * exp (-π * I / 3)) * e2
+
+/-- DLMF 9.2.15, restated here for the same reason. -/
+private lemma airyRot_neg_connection_bi (z : ℂ) :
+    airyBi (-z) = exp (-π * I / 6) * airyAi (z * exp (π * I / 3)) +
+      exp (π * I / 6) * airyAi (z * exp (-π * I / 3)) := by
+  have h := airyBi_eq_airyAi_omega (-z)
+  have e1 : -exp (-(2 * π * I / 3)) = exp (π * I / 3) := by
+    rw [exp_neg_two_pi_I_div_three, exp_pi_I_div_three]
+    push_cast; ring
+  have e2 : -exp (2 * π * I / 3) = exp (-π * I / 3) := by
+    rw [show -π * I / 3 = -(π * I / 3) by ring, exp_two_pi_I_div_three, exp_neg_pi_I_div_three]
+    push_cast; ring
+  simpa only [neg_mul, neg_div, show -z * exp (-(2 * π * I / 3)) = z * exp (π * I / 3) by
+    rw [← e1]; ring, show -z * exp (2 * π * I / 3) = z * exp (-π * I / 3) by rw [← e2]; ring] using h
+
 /-- The connection formula for `Ai(-z)` with the rotations written as `e^{iα}`. -/
 lemma airyRot_airyAi_neg (z : ℂ) :
     airyAi (-z) = exp (π * I / 3) * airyAi (z * exp ((π / 3 : ℝ) * I)) +
       exp (-π * I / 3) * airyAi (z * exp ((-(π / 3) : ℝ) * I)) := by
-  rw [airyAi_neg_connection z]
+  rw [airyRot_neg_connection_ai z]
   congr 4 <;> push_cast <;> ring_nf
 
 /-- `Bi(-z)` with the rotations written as `e^{iα}`. -/
 lemma airyRot_airyBi_neg (z : ℂ) :
     airyBi (-z) = exp (-π * I / 6) * airyAi (z * exp ((π / 3 : ℝ) * I)) +
       exp (π * I / 6) * airyAi (z * exp ((-(π / 3) : ℝ) * I)) := by
-  rw [airyBi_neg_connection z]
+  rw [airyRot_neg_connection_bi z]
   congr 4 <;> push_cast <;> ring_nf
 
 /-- The twelfth root of `-1`, `u = e^{iπ/12}`, and the exponentials used below. -/
@@ -2646,11 +2683,906 @@ theorem airy_aiDeriv_real_error {x : ℝ} (hx : 0 < x) {N : ℕ} (hN : 1 ≤ N) 
     (f := fun z => airyAiDeriv z / airyPrefactor .aiDeriv z) (airyReal_aiDeriv_repr hx)
     airyRot_coeff_aiDeriv
 
+/-! ### The σ = 1/6 Stieltjes form of `Ai` and Olver's error bounds
+
+Via the Kummer transformation, `Ai` is a Laplace integral of `t^{-5/6}(1+t)^{-5/6}`. Rotating to
+the ray `θ = -(3/2) arg z` makes the damping `|2ζ|` real; the Stieltjes–Euler form of
+`(1+t)^{-5/6}` (`DLMF.Airy.StieltjesForm`) then bounds the remainder by `M_θ` and by `χ + 1`
+times the first neglected term (DLMF 9.7.17 for `|arg z| < 2π/3`). -/
+
+/-- `s^{-2/3} = exp(-(2/3)(log 2 + L))` for `|arg z| < 2π/3`. -/
+lemma airySt_two_zeta_cpow {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < 2 * π / 3) (c : ℂ) :
+    (2 * airyZetaComplex z) ^ c = exp (c * (log 2 + airyLogZeta z)) := by
+  rw [← exp_log_two_add_airyLogZeta hz, cpow_def_of_ne_zero (exp_ne_zero _), log_exp, mul_comm]
+  · rw [im_log_two_add_airyLogZeta]; linarith [abs_lt.mp harg, Real.pi_pos]
+  · rw [im_log_two_add_airyLogZeta]; linarith [abs_lt.mp harg, Real.pi_pos]
+
+/-- The σ = 1/6 anchor: Tricomi's integral for `U(1/6, 1/3, 2ζ)` on `|arg z| < π/3`. -/
+lemma airySt_airyAi_anchor {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < π / 3) :
+    airyAi z = ((3 : ℂ) ^ (-1 / 6 : ℂ) * exp (-(2 / 3) * log 2) / Real.sqrt π) *
+      exp (0 * airyLogZeta z - airyZetaComplex z) * (1 / Gamma ((1 / 6 : ℝ) : ℂ) *
+        ∫ t in Ioi (0 : ℝ), Complex.exp (-(2 * airyZetaComplex z * t)) *
+          airyRot_kernel (1 / 6) (-5 / 6) t) := by
+  have hs0 : 2 * airyZetaComplex z ≠ 0 := by
+    rw [← exp_log_two_add_airyLogZeta hz]; exact exp_ne_zero _
+  rw [airyAi_eq_kummerU hz (harg.trans (by linarith [Real.pi_pos])),
+    kummerU_kummer_transform_all _ _ hs0,
+    kummerU_laplace (by norm_num) (airyRot_re_two_zeta_pos hz harg),
+    airySt_two_zeta_cpow hz (harg.trans (by linarith [Real.pi_pos]))]
+  have hG : Gamma ((1 / 6 : ℝ) : ℂ) = Gamma (5 / 6 - 5 / 3 + 1) := by push_cast; ring_nf
+  have hI : ∀ t : ℝ, Complex.exp (-(2 * airyZetaComplex z) * t) *
+      (t : ℂ) ^ ((5 / 6 : ℂ) - 5 / 3 + 1 - 1) * (1 + (t : ℂ)) ^ ((2 - 5 / 3 : ℂ) -
+        (5 / 6 - 5 / 3 + 1) - 1) = Complex.exp (-(2 * airyZetaComplex z * t)) *
+        airyRot_kernel (1 / 6) (-5 / 6) t := by
+    intro t
+    simp only [airyRot_kernel]
+    rw [show (((1 / 6 : ℝ) : ℂ) - 1) = 5 / 6 - 5 / 3 + 1 - 1 by push_cast; ring,
+      show (((-5 / 6 : ℝ)) : ℂ) = (2 - 5 / 3 : ℂ) - (5 / 6 - 5 / 3 + 1) - 1 by push_cast; ring]
+    ring_nf
+  simp_rw [hI, hG]
+  have hE : exp (2 / 3 * airyLogZeta z - airyZetaComplex z) *
+      exp ((1 - 5 / 3) * (log 2 + airyLogZeta z)) =
+      exp (-(2 / 3) * log 2) * exp (0 * airyLogZeta z - airyZetaComplex z) := by
+    rw [← exp_add, ← exp_add]; congr 1; ring
+  linear_combination ((3 : ℂ) ^ (-1 / 6 : ℂ) / Real.sqrt π * (1 / Gamma (5 / 6 - 5 / 3 + 1) *
+    ∫ t in Ioi (0 : ℝ), Complex.exp (-(2 * airyZetaComplex z * t)) *
+      airyRot_kernel (1 / 6) (-5 / 6) t)) * hE
+
+/-- `2 · 3^{-1/6} 2^{-2/3} z^{1/4} = exp((1/6)(log 2 + L))`. -/
+lemma airySt_norm_const {z : ℂ} (hz : z ≠ 0) :
+    2 * ((3 : ℂ) ^ (-1 / 6 : ℂ) * exp (-(2 / 3) * log 2)) * z ^ (1 / 4 : ℂ) =
+      exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) := by
+  rw [cpow_def_of_ne_zero hz, cpow_def_of_ne_zero (by norm_num : (3 : ℂ) ≠ 0), airyLogZeta,
+    log_two_thirds]
+  calc 2 * (exp (log 3 * (-1 / 6)) * exp (-(2 / 3) * log 2)) * exp (log z * (1 / 4))
+      = exp (log 2) * (exp (log 3 * (-1 / 6)) * exp (-(2 / 3) * log 2)) *
+          exp (log z * (1 / 4)) := by rw [exp_log two_ne_zero]
+    _ = _ := by simp only [← exp_add]; congr 1; ring
+
+/-- **The normalized `Ai` as a rotated σ = 1/6 Laplace integral**, for `|θ| < π` and
+`|(3/2) arg z + θ| < π/2`. -/
+lemma airySt_F_eq {z : ℂ} (hz : z ≠ 0) {θ : ℝ} (hθ : |θ| < π)
+    (hzθ : |3 / 2 * arg z + θ| < π / 2) :
+    airyAi z / airyPrefactor .ai z = exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+      (1 / Gamma ((1 / 6 : ℝ) : ℂ) * (exp (θ * I) *
+        airyRot_lap (1 / 6) (-5 / 6) θ (exp (log 2 + airyLogZeta z + θ * I)))) := by
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz)
+  rw [airyRot_eq_of_anchor differentiable_airyAi _ _ (1 / 6) (-5 / 6) (by norm_num)
+    (fun w hw harg => airySt_airyAi_anchor hw harg) hθ hz hzθ, ← airySt_norm_const hz]
+  simp only [airyPrefactor]
+  generalize airyRot_lap (1 / 6) (-5 / 6) θ (exp (log 2 + airyLogZeta z + θ * I)) = K
+  generalize (3 : ℂ) ^ (-1 / 6 : ℂ) * exp (-(2 / 3) * log 2) = A
+  have hG : Gamma ((1 / 6 : ℝ) : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp)
+  rw [exp_sub, zero_mul, Complex.exp_zero]
+  have hE : exp (airyZetaComplex z) * exp (-airyZetaComplex z) = 1 := by
+    rw [← exp_add]; simp
+  field_simp
+  linear_combination (-(A * K)) * hE
+
+/-- Real Gamma ratio as a rising factorial. -/
+lemma airySt_gamma_ratio_real (n : ℕ) {x : ℝ} (hx : 0 < x) :
+    Real.Gamma (x + n) / Real.Gamma x = (ascPochhammer ℝ n).eval x := by
+  have h := airyRot_gamma_ratio n hx
+  rw [← ofReal_natCast, ← ofReal_add, Complex.Gamma_ofReal, Complex.Gamma_ofReal,
+    ← ofReal_div] at h
+  rw [add_comm]; exact_mod_cast h
+
+/-- The σ = 1/6 coefficients: `c_k(5/6) Γ(k+1/6)/Γ(1/6) = (-1)^k u_k 2^k`. -/
+lemma airySt_coef_ai (k : ℕ) :
+    airySt_coef (5 / 6) k * Real.Gamma (1 / 6 + k) / Real.Gamma (1 / 6) =
+      (-1) ^ k * airyU k * 2 ^ k := by
+  have h1 := airySt_gamma_ratio_real k (x := 5 / 6) (by norm_num)
+  have h2 := airySt_gamma_ratio_real k (x := 1 / 6) (by norm_num)
+  have g1 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+  have g2 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 / 6 by norm_num)
+  rw [div_eq_iff g1.ne'] at h1
+  rw [div_eq_iff g2.ne'] at h2
+  simp only [airySt_coef, airyU]
+  rw [h1, mul_div_assoc, h2, Real.Gamma_nat_eq_factorial]
+  have hf : (k.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  field_simp
+
+/-- On `θ = -(3/2) arg z` the damping `2ζ e^{iθ}` is the real number `|2ζ|`. -/
+lemma airySt_W_real (z : ℂ) :
+    exp (log 2 + airyLogZeta z + ((-(3 / 2 * arg z) : ℝ) : ℂ) * I) =
+      ((Real.exp (log 2 + airyLogZeta z).re : ℝ) : ℂ) := by
+  rw [ofReal_exp]
+  congr 1
+  have h := im_log_two_add_airyLogZeta z
+  simp only [add_im] at h
+  apply Complex.ext
+  · simp
+  · simp [h]
+
+lemma airySt_lap_eq (θ W : ℝ) :
+    airyRot_lap (1 / 6) (-5 / 6) θ (W : ℂ) = airySt_L (1 / 6) (5 / 6) θ W := by
+  unfold airyRot_lap airySt_L airyRot_kernel
+  congr 1; funext r
+  rw [smul_eq_mul]; push_cast; ring_nf
+
+lemma airySt_hint {θ W : ℝ} (hθ : |θ| < π) (hW : 0 < W) :
+    IntegrableOn (fun r : ℝ => Complex.exp (-(W * r)) *
+      (((r : ℂ) * exp (θ * I)) ^ (((1 / 6 : ℝ) : ℂ) - 1) *
+        (1 + (r : ℂ) * exp (θ * I)) ^ (-((5 / 6 : ℝ) : ℂ)))) (Ioi 0) := by
+  have h := airyRot_integrableOn (1 / 6) (-5 / 6) (by norm_num) hθ hW
+  refine h.congr_fun (fun r _ => ?_) measurableSet_Ioi
+  simp only [airyRot_kernel, Complex.real_smul, ofReal_exp]
+  push_cast; ring_nf
+
+/-- **Ai remainder as a ray remainder.** -/
+lemma airySt_ai_remainder {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < 2 * π / 3) (N : ℕ) :
+    airyRemainder .ai N z = exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+        (1 / Gamma ((1 / 6 : ℝ) : ℂ)) * exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) *
+      (airySt_L (1 / 6) (5 / 6) (-(3 / 2 * arg z)) (Real.exp (log 2 + airyLogZeta z).re) -
+        ∑ k ∈ Finset.range N, airySt_T (1 / 6) (5 / 6) (-(3 / 2 * arg z))
+          (Real.exp (log 2 + airyLogZeta z).re) k) ∧
+    ∀ k : ℕ, airyExpansionCoeff .ai k / airyZetaComplex z ^ k =
+      exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+        (1 / Gamma ((1 / 6 : ℝ) : ℂ)) * exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) *
+      airySt_T (1 / 6) (5 / 6) (-(3 / 2 * arg z)) (Real.exp (log 2 + airyLogZeta z).re) k := by
+  set θ : ℝ := -(3 / 2 * arg z) with hθdef
+  set ℓ := log 2 + airyLogZeta z with hℓdef
+  set W : ℝ := Real.exp ℓ.re with hWdef
+  have hθ : |θ| < π := by
+    rw [hθdef, abs_neg, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3 / 2)]; linarith
+  have hzθ : |3 / 2 * arg z + θ| < π / 2 := by
+    rw [hθdef, add_neg_cancel, abs_zero]; positivity
+  have hF := airySt_F_eq hz hθ hzθ
+  rw [airySt_W_real, airySt_lap_eq] at hF
+  have hG : Gamma ((1 / 6 : ℝ) : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp)
+  have hcT : ∀ k : ℕ, airyExpansionCoeff .ai k / airyZetaComplex z ^ k =
+      exp ((1 / 6 : ℂ) * ℓ) * (1 / Gamma ((1 / 6 : ℝ) : ℂ)) * exp (θ * I) *
+        airySt_T (1 / 6) (5 / 6) θ W k := by
+    intro k
+    have hℓ : ℓ = (ℓ.re : ℂ) + ((-θ : ℝ) : ℂ) * I := by
+      have h := im_log_two_add_airyLogZeta z
+      simp only [add_im] at h
+      apply Complex.ext
+      · simp
+      · simp [hℓdef, hθdef, h]
+    have hWc : (W : ℂ) ^ (-(((1 / 6 : ℝ) : ℂ) + k)) =
+        exp (-(((1 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) := by
+      rw [hWdef, ofReal_exp, cpow_def_of_ne_zero (exp_ne_zero _), log_exp (by simp [Real.pi_pos])
+        (by simp [Real.pi_pos.le]), mul_comm]
+    have hζ : airyZetaComplex z = exp ℓ / 2 := by
+      rw [hℓdef, exp_log_two_add_airyLogZeta hz]; ring
+    have hc := airySt_coef_ai k
+    have hgk : Gamma (((1 / 6 : ℝ) : ℂ) + k) = ((Real.Gamma (1 / 6 + k) : ℝ) : ℂ) := by
+      rw [← Complex.Gamma_ofReal]; push_cast; rfl
+    have hg0 : Gamma ((1 / 6 : ℝ) : ℂ) = ((Real.Gamma (1 / 6) : ℝ) : ℂ) := by
+      rw [← Complex.Gamma_ofReal]
+    have hc' : ((-1 : ℂ) ^ k * (airyU k : ℂ)) = (airySt_coef (5 / 6) k : ℂ) *
+        Gamma (((1 / 6 : ℝ) : ℂ) + k) / Gamma ((1 / 6 : ℝ) : ℂ) / 2 ^ k := by
+      rw [hgk, hg0]
+      have : ((airySt_coef (5 / 6) k * Real.Gamma (1 / 6 + k) / Real.Gamma (1 / 6) : ℝ) : ℂ) =
+          (((-1) ^ k * airyU k * 2 ^ k : ℝ) : ℂ) := by rw [hc]
+      push_cast at this
+      rw [this]; field_simp
+    have key : exp ((1 / 6 : ℂ) * ℓ) * exp (θ * I) * exp (θ * I * (((1 / 6 : ℝ) : ℂ) - 1 + k)) *
+        exp (-(((1 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) * exp (k * ℓ) = 1 := by
+      rw [← exp_add, ← exp_add, ← exp_add, ← exp_add]
+      convert exp_zero using 2
+      generalize ℓ.re = R at hℓ ⊢
+      rw [hℓ]; push_cast; ring
+    simp only [airyExpansionCoeff, airySt_T]
+    rw [hc', hWc, hζ, div_pow, ← Complex.exp_nat_mul]
+    generalize exp ((1 / 6 : ℂ) * ℓ) = E1 at key ⊢
+    generalize exp (θ * I) = E2 at key ⊢
+    generalize exp (θ * I * (((1 / 6 : ℝ) : ℂ) - 1 + k)) = E3 at key ⊢
+    generalize exp (-(((1 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) = E4 at key ⊢
+    have hE5 : exp (k * ℓ) ≠ 0 := exp_ne_zero _
+    generalize exp (k * ℓ) = E5 at key hE5 ⊢
+    field_simp
+    linear_combination (-((airySt_coef (5 / 6) k : ℂ) * Gamma (((1 / 6 : ℝ) : ℂ) + k))) * key
+  refine ⟨?_, hcT⟩
+  rw [airyRemainder, airyFunction, hF, airyExponentialSum]
+  simp_rw [hcT]
+  rw [← Finset.mul_sum]
+  ring
+
+lemma airySt_theta_lt {z : ℂ} (harg : |arg z| < 2 * π / 3) : |-(3 / 2 * arg z)| < π := by
+  rw [abs_neg, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3 / 2)]; linarith
+
+/-- The `M_θ` bound for Ai on `|arg z| < 2π/3`. -/
+lemma airySt_ai_le_M {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < 2 * π / 3) (N : ℕ) :
+    ‖airyRemainder .ai N z‖ ≤ airySt_M (-(3 / 2 * arg z)) *
+      ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
+  obtain ⟨h1, h2⟩ := airySt_ai_remainder hz harg N
+  rw [h1, h2]
+  generalize exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) * (1 / Gamma ((1 / 6 : ℝ) : ℂ)) *
+    exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) = c
+  rw [norm_mul, norm_mul]
+  have hW : 0 < Real.exp (log 2 + airyLogZeta z).re := Real.exp_pos _
+  have hb := airySt_rem_le_M (a := 5 / 6) (b := 1 / 6) (by norm_num) (by norm_num) (by norm_num)
+    hW (airySt_theta_lt harg) N (airySt_hint (airySt_theta_lt harg) hW)
+  calc _ ≤ ‖_‖ * (airySt_M (-(3 / 2 * arg z)) * ‖airySt_T (1 / 6) (5 / 6) (-(3 / 2 * arg z))
+        (Real.exp (log 2 + airyLogZeta z).re) N‖) := mul_le_mul_of_nonneg_left hb (norm_nonneg _)
+    _ = _ := by ring
+
+/-- The `χ + 1` bound for Ai on `|arg z| < 2π/3`, `arg z ≠ 0`. -/
+lemma airySt_ai_le_chi {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < 2 * π / 3)
+    (hsin : Real.sin (3 * arg z / 2) ≠ 0) (N : ℕ) :
+    ‖airyRemainder .ai N z‖ ≤ (airyChi (N + 1 / 6) + 1) *
+      ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
+  obtain ⟨h1, h2⟩ := airySt_ai_remainder hz harg N
+  rw [h1, h2]
+  generalize exp ((1 / 6 : ℂ) * (log 2 + airyLogZeta z)) * (1 / Gamma ((1 / 6 : ℝ) : ℂ)) *
+    exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) = c
+  rw [norm_mul, norm_mul]
+  have hW : 0 < Real.exp (log 2 + airyLogZeta z).re := Real.exp_pos _
+  have hs : Real.sin (-(3 / 2 * arg z)) ≠ 0 := by
+    rw [Real.sin_neg, neg_ne_zero, show 3 / 2 * arg z = 3 * arg z / 2 by ring]; exact hsin
+  have hb := airySt_rem_le_chi (a := 5 / 6) (b := 1 / 6) (by norm_num) (by norm_num) (by norm_num)
+    hW (airySt_theta_lt harg) hs N (airySt_hint (airySt_theta_lt harg) hW)
+  rw [show airySt_chi (1 / 6 + N) = airyChi (N + 1 / 6) by rw [add_comm]; rfl] at hb
+  calc _ ≤ ‖_‖ * ((airyChi (N + 1 / 6) + 1) * ‖airySt_T (1 / 6) (5 / 6) (-(3 / 2 * arg z))
+        (Real.exp (log 2 + airyLogZeta z).re) N‖) := mul_le_mul_of_nonneg_left hb (norm_nonneg _)
+    _ = _ := by ring
+
+/-! ### A sharp Gamma inequality for the last sector of 9.7.17
+
+`(N/(2e))^N ≤ √(2π(N+1/6)) u_N` for all `N`. With `q_N` the logarithm of the ratio, `q_N → 0` by
+Binet's formula and `q_{N+1} ≤ q_N` for `N ≥ 6` by a fourth-order bound for `log(1+x)`; the
+cases `N ≤ 5` are checked from `e > 2.7182818283` and `π > 3.141592`. -/
+
+/-- `p_N = (1/6)_N (5/6)_N`. -/
+def airySt_p (N : ℕ) : ℝ := (ascPochhammer ℝ N).eval (1 / 6) * (ascPochhammer ℝ N).eval (5 / 6)
+
+lemma airySt_p_pos (N : ℕ) : 0 < airySt_p N :=
+  mul_pos (ascPochhammer_pos N _ (by norm_num)) (ascPochhammer_pos N _ (by norm_num))
+
+lemma airySt_p_succ (N : ℕ) : airySt_p (N + 1) = airySt_p N * ((N + 1 / 6) * (N + 5 / 6)) := by
+  simp only [airySt_p, ascPochhammer_succ_eval]; ring
+
+/-- `log(√(2π(N+1/6)) p_N e^N / (N^N N!))`. -/
+def airySt_q (N : ℕ) : ℝ :=
+  Real.log (2 * π * (N + 1 / 6)) / 2 + Real.log (airySt_p N) - N * Real.log N + N -
+    Real.log N.factorial
+
+/-- `log(1+x) ≥ x - x²/2 + x³/3 - x⁴/4` for `0 ≤ x ≤ 1/6`. -/
+lemma airySt_log_lower {x : ℝ} (hx0 : 0 ≤ x) (hx : x ≤ 1 / 6) :
+    x - x ^ 2 / 2 + x ^ 3 / 3 - x ^ 4 / 4 ≤ Real.log (1 + x) := by
+  have h := Real.abs_log_sub_add_sum_range_le (x := -x) (by rw [abs_neg, abs_of_nonneg hx0]; linarith) 5
+  rw [abs_neg, abs_of_nonneg hx0, sub_neg_eq_add] at h
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero] at h
+  have h1 := (abs_le.mp h).1
+  have h2 : x ^ 6 / (1 - x) ≤ x ^ 5 / 5 := by
+    rw [div_le_div_iff₀ (by linarith) (by norm_num)]
+    have : 0 ≤ x ^ 5 := pow_nonneg hx0 5
+    nlinarith
+  norm_num at h1
+  nlinarith
+
+/-- The polynomial inequality behind the monotonicity of `q`. -/
+lemma airySt_poly {N : ℝ} (hN : 4 ≤ N) :
+    (N + 7 / 6) * (N + 1 / 6) * (N + 5 / 6) ^ 2 ≤
+      N * (N + 1) ^ 3 * (1 + (1 / (6 * N ^ 2) - 1 / (6 * N ^ 3) - 1 / (4 * N ^ 4))) := by
+  have hN0 : 0 < N := by linarith
+  have key : 0 ≤ 72 * N ^ 5 + 108 * N ^ 4 - 499 * N ^ 3 - 1404 * N ^ 2 - 1188 * N - 324 := by
+    obtain ⟨t, rfl⟩ : ∃ t, N = t + 4 := ⟨N - 4, by ring⟩
+    have ht : 0 ≤ t := by linarith
+    nlinarith [pow_nonneg ht 2, pow_nonneg ht 3, pow_nonneg ht 4, pow_nonneg ht 5]
+  rw [← sub_nonneg]
+  have : N * (N + 1) ^ 3 * (1 + (1 / (6 * N ^ 2) - 1 / (6 * N ^ 3) - 1 / (4 * N ^ 4))) -
+      (N + 7 / 6) * (N + 1 / 6) * (N + 5 / 6) ^ 2 =
+      (72 * N ^ 5 + 108 * N ^ 4 - 499 * N ^ 3 - 1404 * N ^ 2 - 1188 * N - 324) /
+        (1296 * N ^ 3) := by
+    field_simp; ring
+  rw [this]; positivity
+
+/-- `q_{N+1} ≤ q_N` for `N ≥ 6`. -/
+lemma airySt_q_succ_le {N : ℕ} (hN : 6 ≤ N) : airySt_q (N + 1) ≤ airySt_q N := by
+  have hN' : (6 : ℝ) ≤ N := by exact_mod_cast hN
+  have hN0 : (0 : ℝ) < N := by linarith
+  set x : ℝ := 1 / N with hx
+  have hx0 : 0 ≤ x := by positivity
+  have hx6 : x ≤ 1 / 6 := by rw [hx]; exact div_le_div_of_nonneg_left (by norm_num) (by norm_num) hN'
+  have hL := airySt_log_lower hx0 hx6
+  have hlog1 : Real.log (N + 1) = Real.log N + Real.log (1 + x) := by
+    rw [← Real.log_mul hN0.ne' (by positivity)]; congr 1; rw [hx]; field_simp
+  set δ : ℝ := 1 / (6 * (N : ℝ) ^ 2) - 1 / (6 * (N : ℝ) ^ 3) - 1 / (4 * (N : ℝ) ^ 4) with hδ
+  have hδL : 2 + δ ≤ (2 * N + 1) * Real.log (1 + x) := by
+    have : (2 * N + 1) * (x - x ^ 2 / 2 + x ^ 3 / 3 - x ^ 4 / 4) = 2 + δ := by
+      rw [hx, hδ]; field_simp; ring
+    rw [← this]; exact mul_le_mul_of_nonneg_left hL (by positivity)
+  have hδ1 : 0 < 1 + δ := by
+    have := airySt_poly (by linarith : (4 : ℝ) ≤ N)
+    have hp : (0 : ℝ) < ((N : ℝ) + 7 / 6) * ((N : ℝ) + 1 / 6) * ((N : ℝ) + 5 / 6) ^ 2 := by
+      positivity
+    by_contra hc
+    replace hc := not_lt.mp hc
+    have : N * (N + 1) ^ 3 * (1 + δ) ≤ 0 :=
+      mul_nonpos_of_nonneg_of_nonpos (by positivity) hc
+    linarith
+  have hP : Real.log ((N + 7 / 6) * (N + 1 / 6) * (N + 5 / 6) ^ 2) ≤
+      4 * Real.log N + 3 * Real.log (1 + x) + δ := by
+    calc _ ≤ Real.log (N * (N + 1) ^ 3 * (1 + δ)) :=
+          Real.log_le_log (by positivity) (airySt_poly (by linarith))
+      _ = Real.log N + 3 * Real.log (N + 1) + Real.log (1 + δ) := by
+          rw [Real.log_mul (by positivity) hδ1.ne', Real.log_mul hN0.ne' (by positivity),
+            Real.log_pow]; push_cast; ring
+      _ ≤ Real.log N + 3 * Real.log (N + 1) + δ := by
+          have := Real.log_le_sub_one_of_pos hδ1; linarith
+      _ = _ := by rw [hlog1]; ring
+  have hexp : Real.log ((N + 7 / 6) * (N + 1 / 6) * (N + 5 / 6) ^ 2) =
+      Real.log (N + 7 / 6) + Real.log (N + 1 / 6) + 2 * Real.log (N + 5 / 6) := by
+    rw [Real.log_mul (by positivity) (by positivity), Real.log_mul (by positivity) (by positivity),
+      Real.log_pow]; push_cast; ring
+  have e1 : Real.log (2 * π * (((N + 1 : ℕ) : ℝ) + 1 / 6)) =
+      Real.log (2 * π) + Real.log ((N : ℝ) + 7 / 6) := by
+    rw [Real.log_mul (by positivity) (by positivity)]; push_cast; ring_nf
+  have e1' : Real.log (2 * π * ((N : ℝ) + 1 / 6)) =
+      Real.log (2 * π) + Real.log ((N : ℝ) + 1 / 6) :=
+    Real.log_mul (by positivity) (by positivity)
+  have e2 : Real.log (airySt_p (N + 1)) =
+      Real.log (airySt_p N) + Real.log ((N : ℝ) + 1 / 6) + Real.log ((N : ℝ) + 5 / 6) := by
+    rw [airySt_p_succ, Real.log_mul (airySt_p_pos N).ne' (by positivity),
+      Real.log_mul (by positivity) (by positivity)]; ring
+  have e3 : Real.log ((N + 1).factorial : ℝ) = Real.log ((N : ℝ) + 1) + Real.log N.factorial := by
+    rw [Nat.factorial_succ, Nat.cast_mul, Real.log_mul (by positivity) (by positivity)]; push_cast
+    ring
+  simp only [airySt_q]
+  rw [e1, e1', e2, e3]
+  push_cast
+  rw [hlog1]
+  nlinarith [hP, hexp, hδL]
+
+
+/-- `(1/6)_N (5/6)_N · 2π = Γ(N+1/6) Γ(N+5/6)`. -/
+lemma airySt_p_gamma (N : ℕ) :
+    airySt_p N * (2 * π) = Real.Gamma (N + 1 / 6) * Real.Gamma (N + 5 / 6) := by
+  have h1 := airySt_gamma_ratio_real N (x := 1 / 6) (by norm_num)
+  have h2 := airySt_gamma_ratio_real N (x := 5 / 6) (by norm_num)
+  have hr := Real.Gamma_mul_Gamma_one_sub (1 / 6)
+  rw [show π * (1 / 6 : ℝ) = π / 6 by ring, Real.sin_pi_div_six,
+    show (1 : ℝ) - 1 / 6 = 5 / 6 by norm_num] at hr
+  have g1 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 / 6 by norm_num)
+  have g2 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+  simp only [airySt_p, ← h1, ← h2]
+  rw [add_comm (N : ℝ), add_comm (N : ℝ)]
+  field_simp
+  rw [hr]; ring
+
+lemma airySt_log_add {N : ℕ} (hN : 1 ≤ N) {a : ℝ} (ha : 0 < a) :
+    Real.log (N + a) = Real.log N + Real.log (1 + a / N) := by
+  have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
+  rw [← Real.log_mul hN0.ne' (by positivity)]; congr 1; field_simp
+
+/-- The Binet form of `q_N`. -/
+lemma airySt_q_eq {N : ℕ} (hN : 1 ≤ N) :
+    airySt_q N = (N + 1 / 6) * Real.log (1 + (1 / 6) / N) +
+      (N + 1 / 3) * Real.log (1 + (5 / 6) / N) - (N + 1 / 2) * Real.log (1 + 1 / N) +
+      DLMF.Gamma.binetIntegral (N + 1 / 6) + DLMF.Gamma.binetIntegral (N + 5 / 6) -
+      DLMF.Gamma.binetIntegral (N + 1) := by
+  have hp : Real.log (airySt_p N) = Real.log (Real.Gamma (N + 1 / 6)) +
+      Real.log (Real.Gamma (N + 5 / 6)) - Real.log (2 * π) := by
+    have h := congrArg Real.log (airySt_p_gamma N)
+    rw [Real.log_mul (airySt_p_pos N).ne' (by positivity),
+      Real.log_mul (Real.Gamma_pos_of_pos (by positivity)).ne'
+        (Real.Gamma_pos_of_pos (by positivity)).ne'] at h
+    linarith
+  have hf : Real.log (N.factorial : ℝ) = Real.log (Real.Gamma (N + 1)) := by
+    rw [Real.Gamma_nat_eq_factorial]
+  have b1 := DLMF.Gamma.log_Gamma_eq_add_binetIntegral (x := (N : ℝ) + 1 / 6) (by positivity)
+  have b2 := DLMF.Gamma.log_Gamma_eq_add_binetIntegral (x := (N : ℝ) + 5 / 6) (by positivity)
+  have b3 := DLMF.Gamma.log_Gamma_eq_add_binetIntegral (x := (N : ℝ) + 1) (by positivity)
+  have l1 := airySt_log_add hN (a := 1 / 6) (by norm_num)
+  have l2 := airySt_log_add hN (a := 5 / 6) (by norm_num)
+  have l3 := airySt_log_add hN (a := 1) (by norm_num)
+  have e1 : Real.log (2 * π * ((N : ℝ) + 1 / 6)) =
+      Real.log (2 * π) + Real.log ((N : ℝ) + 1 / 6) :=
+    Real.log_mul (by positivity) (by positivity)
+  have e2 : Real.log (2 * π) = Real.log 2 + Real.log π := Real.log_mul (by norm_num) (by positivity)
+  simp only [airySt_q]
+  rw [hp, hf, b1, b2, b3, e1, l1, l2, l3, e2]
+  ring
+
+lemma airySt_tendsto_q : Tendsto airySt_q atTop (𝓝 0) := by
+  have hn := tendsto_natCast_atTop_atTop (R := ℝ)
+  have hA : ∀ t : ℝ, Tendsto (fun N : ℕ => (N : ℝ) * Real.log (1 + t / N)) atTop (𝓝 t) :=
+    fun t => (Real.tendsto_mul_log_one_add_div_atTop t).comp hn
+  have hB : ∀ t : ℝ, Tendsto (fun N : ℕ => Real.log (1 + t / N)) atTop (𝓝 0) := by
+    intro t
+    have h : Tendsto (fun N : ℕ => 1 + t / (N : ℝ)) atTop (𝓝 1) := by
+      simpa using tendsto_const_nhds.add (tendsto_const_nhds.div_atTop hn)
+    have := ((Real.continuousAt_log one_ne_zero).tendsto).comp h
+    simpa [Function.comp_def] using this
+  have hC : ∀ a : ℝ, 0 < a →
+      Tendsto (fun N : ℕ => DLMF.Gamma.binetIntegral (N + a)) atTop (𝓝 0) := by
+    intro a ha
+    have hu : Tendsto (fun N : ℕ => 1 / (12 * ((N : ℝ) + a))) atTop (𝓝 0) :=
+      tendsto_const_nhds.div_atTop
+        (Tendsto.const_mul_atTop (by norm_num) (tendsto_atTop_add_const_right _ a hn))
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hu (fun N => ?_) (fun N => ?_)
+    · exact (DLMF.Gamma.binetIntegral_mem (by positivity)).1
+    · exact (DLMF.Gamma.binetIntegral_mem (by positivity)).2
+  have hD : ∀ a t : ℝ, Tendsto (fun N : ℕ => ((N : ℝ) + a) * Real.log (1 + t / N)) atTop (𝓝 t) := by
+    intro a t
+    have := (hA t).add ((hB t).const_mul a)
+    simp only [mul_zero, add_zero] at this
+    refine this.congr fun N => ?_
+    ring
+  have hall := ((((hD (1 / 6) (1 / 6)).add (hD (1 / 3) (5 / 6))).sub (hD (1 / 2) 1)).add
+    (hC (1 / 6) (by norm_num))).add (hC (5 / 6) (by norm_num)) |>.sub (hC 1 one_pos)
+  rw [show (1 / 6 + 5 / 6 - 1 + 0 + 0 - 0 : ℝ) = 0 by norm_num] at hall
+  refine hall.congr' ?_
+  filter_upwards [eventually_ge_atTop 1] with N hN
+  rw [airySt_q_eq hN]
+
+lemma airySt_q_nonneg {N : ℕ} (hN : 6 ≤ N) : 0 ≤ airySt_q N := by
+  have hmono : ∀ n, N ≤ n → airySt_q n ≤ airySt_q N := by
+    intro n hn
+    induction n, hn using Nat.le_induction with
+    | base => exact le_rfl
+    | succ n hn ih => exact (airySt_q_succ_le (hN.trans hn)).trans ih
+  exact le_of_tendsto airySt_tendsto_q (eventually_atTop.mpr ⟨N, hmono⟩)
+
+
+lemma airySt_airyU_eq (N : ℕ) : airyU N = airySt_p N / (2 ^ N * N.factorial) := rfl
+
+lemma airySt_airyU_pos (N : ℕ) : 0 < airyU N := by
+  rw [airySt_airyU_eq]; have := airySt_p_pos N; positivity
+
+lemma airySt_gamma_ineq_small {N : ℕ} (hN : N ≤ 5) :
+    ((N : ℝ) / (2 * Real.exp 1)) ^ N ≤ Real.sqrt (2 * π * (N + 1 / 6)) * airyU N := by
+  have he := Real.exp_one_gt_d9
+  have hπ := Real.pi_gt_d6
+  have hu := airySt_airyU_pos N
+  have h1 : ((N : ℝ) / (2 * Real.exp 1)) ^ N ≤ ((N : ℝ) / (2 * 2.7182818283)) ^ N :=
+    pow_le_pow_left₀ (by positivity)
+      (div_le_div_of_nonneg_left (by positivity) (by norm_num) (by linarith)) N
+  have h2 : Real.sqrt (2 * 3.141592 * (N + 1 / 6)) * airyU N ≤
+      Real.sqrt (2 * π * (N + 1 / 6)) * airyU N :=
+    mul_le_mul_of_nonneg_right (Real.sqrt_le_sqrt (by gcongr)) hu.le
+  refine h1.trans (le_trans ?_ h2)
+  rw [← Real.sqrt_sq hu.le, ← Real.sqrt_mul (by positivity)]
+  apply Real.le_sqrt_of_sq_le
+  interval_cases N <;> norm_num [airyU, ascPochhammer_succ_eval, Nat.factorial]
+
+lemma airySt_gamma_ineq_large {N : ℕ} (hN : 6 ≤ N) :
+    ((N : ℝ) / (2 * Real.exp 1)) ^ N ≤ Real.sqrt (2 * π * (N + 1 / 6)) * airyU N := by
+  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr (by omega)
+  have hq := airySt_q_nonneg hN
+  have hp := airySt_p_pos N
+  rw [← Real.log_le_log_iff (by positivity) (by have := airySt_airyU_pos N; positivity),
+    Real.log_pow, Real.log_div hN0.ne' (by positivity), Real.log_mul (by norm_num) (by positivity),
+    Real.log_exp, Real.log_mul (by positivity) (airySt_airyU_pos N).ne',
+    Real.log_sqrt (by positivity), airySt_airyU_eq, Real.log_div hp.ne' (by positivity),
+    Real.log_mul (x := (2 : ℝ) ^ N) (by positivity) (by positivity), Real.log_pow]
+  have e1 : Real.log (2 * π * ((N : ℝ) + 1 / 6)) =
+      Real.log (2 * π) + Real.log ((N : ℝ) + 1 / 6) :=
+    Real.log_mul (by positivity) (by positivity)
+  simp only [airySt_q] at hq
+  linarith
+
+/-- **The sharp Gamma inequality** `(N/(2e))^N ≤ √(2π(N+1/6)) u_N` behind the last sector of
+DLMF 9.7.17 (`max_Y Y^N e^{-2Y} = (N/(2e))^N`). -/
+lemma airySt_gamma_ineq (N : ℕ) :
+    ((N : ℝ) / (2 * Real.exp 1)) ^ N ≤ Real.sqrt (2 * π * (N + 1 / 6)) * airyU N := by
+  rcases le_or_gt N 5 with h | h
+  · exact airySt_gamma_ineq_small h
+  · exact airySt_gamma_ineq_large h
+
+/-! ### DLMF 9.7.17 for `Ai` on the closed rays and in the last sector
+
+On `|arg z| = 2π/3` the `χ + 1` bound follows by continuity. For `2π/3 < |arg z| < π` the
+connection formula 9.2.12 gives `R_N(z) = R_N(z₂) + κ e^{-2ζ(u)} F(u)` with `z = u e^{±2πi/3}`,
+`z₂ = u e^{∓2πi/3}` and `|arg u| < π/3`; the last term is bounded through
+`‖F(u)‖ ≤ cos(3/2 arg u)^{-1/6}` and the sharp Gamma inequality `airySt_gamma_ineq`. -/
+
+
+/-- `‖F(u)‖ ≤ cos(3/2 arg u)^{-1/6}` for the normalized Ai on `|arg u| < π/3`. -/
+lemma airySt_F_norm_le {u : ℂ} (hu : u ≠ 0) (harg : |arg u| < π / 3) :
+    ‖airyAi u / airyPrefactor .ai u‖ ≤ Real.cos (3 / 2 * arg u) ^ (-(1 / 6 : ℝ)) := by
+  have h0 : |(0 : ℝ)| < π := by simp [Real.pi_pos]
+  have hab := abs_lt.mp harg
+  have hzθ : |3 / 2 * arg u + 0| < π / 2 := by
+    rw [add_zero, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3 / 2)]; linarith
+  rw [airySt_F_eq hu h0 hzθ]
+  set ℓ := log 2 + airyLogZeta u with hℓ
+  set V := exp (ℓ + ((0 : ℝ) : ℂ) * I) with hVdef
+  have hc : 0 < Real.cos (3 / 2 * arg u) := Real.cos_pos_of_mem_Ioo ⟨by linarith, by linarith⟩
+  have hVre : V.re = Real.exp ℓ.re * Real.cos (3 / 2 * arg u) := by
+    rw [hVdef, airyRot_re_W]; simp [hℓ]
+  have hV : 0 < V.re := by rw [hVre]; positivity
+  have hL : ‖airyRot_lap (1 / 6) (-5 / 6) 0 V‖ ≤ Real.Gamma (1 / 6) * V.re ^ (-(1 / 6 : ℝ)) := by
+    unfold airyRot_lap
+    calc _ ≤ ∫ r in Ioi (0 : ℝ), r ^ ((1 / 6 : ℝ) - 1) * Real.exp (-(V.re * r)) := by
+          refine norm_integral_le_of_norm_le (stRem_integrableOn_rpow_exp (by norm_num) hV) ?_
+          refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun r hr => ?_)
+          have hr : (0 : ℝ) < r := hr
+          simp only [airyRot_kernel, ofReal_zero, zero_mul, Complex.exp_zero, mul_one]
+          rw [norm_smul, norm_mul, norm_exp, show (1 : ℂ) + r = ((1 + r : ℝ) : ℂ) by push_cast; ring,
+            norm_cpow_eq_rpow_re_of_pos hr, norm_cpow_eq_rpow_re_of_pos (by linarith)]
+          have h1 : (1 + r) ^ (((-5 / 6 : ℝ) : ℂ)).re ≤ 1 := by
+            simp only [ofReal_re]
+            exact Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by norm_num)
+          have hre : (-(V * r)).re = -(V.re * r) := by simp
+          rw [hre]
+          simp only [sub_re, ofReal_re, one_re]
+          have := Real.rpow_nonneg hr.le ((1 / 6 : ℝ) - 1)
+          calc Real.exp (-(V.re * r)) * (r ^ ((1 / 6 : ℝ) - 1) * (1 + r) ^ (-5 / 6 : ℝ))
+              ≤ Real.exp (-(V.re * r)) * (r ^ ((1 / 6 : ℝ) - 1) * 1) := by
+                gcongr; simpa using h1
+            _ = _ := by ring
+      _ = _ := airySt_gamma_int (by norm_num) hV
+  have hG : ‖Gamma ((1 / 6 : ℝ) : ℂ)‖ = Real.Gamma (1 / 6) := by
+    rw [Complex.Gamma_ofReal, Complex.norm_real,
+      Real.norm_of_nonneg (Real.Gamma_pos_of_pos (by norm_num)).le]
+  have hGp := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 / 6 by norm_num)
+  rw [norm_mul, norm_mul, norm_mul, norm_div, norm_one, hG, ofReal_zero, zero_mul,
+    Complex.exp_zero, norm_one, one_mul, norm_exp]
+  have hre : ((1 / 6 : ℂ) * ℓ).re = ℓ.re / 6 := by simp; ring
+  rw [hre]
+  calc Real.exp (ℓ.re / 6) * (1 / Real.Gamma (1 / 6) * ‖airyRot_lap (1 / 6) (-5 / 6) 0 V‖)
+      ≤ Real.exp (ℓ.re / 6) * (1 / Real.Gamma (1 / 6) *
+          (Real.Gamma (1 / 6) * V.re ^ (-(1 / 6 : ℝ)))) := by gcongr
+    _ = Real.exp (ℓ.re / 6) * V.re ^ (-(1 / 6 : ℝ)) := by field_simp
+    _ = _ := by
+      rw [hVre, Real.mul_rpow (Real.exp_pos _).le hc.le, ← Real.exp_mul, ← mul_assoc,
+        ← Real.exp_add]
+      ring_nf; simp
+
+lemma airySt_conn {u : ℂ} {ε : ℝ} (hε : ε = 1 ∨ ε = -1) :
+    airyAi u + exp (((ε * (2 * π / 3)) : ℝ) * I) * airyAi (u * exp (((ε * (2 * π / 3)) : ℝ) * I)) +
+      exp ((((-ε) * (2 * π / 3)) : ℝ) * I) *
+        airyAi (u * exp ((((-ε) * (2 * π / 3)) : ℝ) * I)) = 0 := by
+  have h := airyAi_add_omega u
+  have e1 : exp (((1 * (2 * π / 3)) : ℝ) * I) = exp (2 * π * I / 3) := by congr 1; push_cast; ring
+  have e2 : exp ((((-1) * (2 * π / 3)) : ℝ) * I) = exp (-(2 * π * I / 3)) := by
+    congr 1; push_cast; ring
+  rcases hε with rfl | rfl
+  · rw [e1, show (-(1 : ℝ)) = -1 by norm_num, e2]; linear_combination h
+  · rw [e2, show (-(-1 : ℝ)) = 1 by norm_num, e1]; linear_combination h
+
+/-- **The connection formula for the remainder** at `z = u e^{±2πi/3}`. -/
+lemma airySt_third_rel {u : ℂ} (hu : u ≠ 0) (harg : |arg u| < π / 3) {ε : ℝ}
+    (hε : ε = 1 ∨ ε = -1) (N : ℕ) :
+    airyRemainder .ai N (u * exp (((ε * (2 * π / 3)) : ℝ) * I)) =
+      airyRemainder .ai N (u * exp ((((-ε) * (2 * π / 3)) : ℝ) * I)) +
+        (-exp ((((-ε) * (π / 2)) : ℝ) * I)) * exp (-(2 * airyZetaComplex u)) *
+          (airyAi u / airyPrefactor .ai u) := by
+  have hε' : -ε = 1 ∨ -ε = -1 := by rcases hε with rfl | rfl <;> norm_num
+  have hz1 := airyRot_zeta_rot hu harg hε
+  have hz2 := airyRot_zeta_rot hu harg hε'
+  have hq1 := airyRot_quarter_rot hu harg hε
+  have hq2 := airyRot_quarter_rot hu harg hε'
+  have conn := airySt_conn (u := u) hε
+  set E := exp (((ε * (π / 6)) : ℝ) * I) with hE
+  have hE0 : E ≠ 0 := exp_ne_zero _
+  have hpow : ∀ (c : ℝ) (n : ℕ), c = n * (ε * (π / 6)) → exp ((c : ℂ) * I) = E ^ n := by
+    intro c n hc; rw [hE, ← exp_nat_mul]; congr 1; rw [hc]; push_cast; ring
+  have hpowi : ∀ (c : ℝ) (n : ℕ), c = -(n * (ε * (π / 6))) → exp ((c : ℂ) * I) = (E ^ n)⁻¹ := by
+    intro c n hc; rw [hE, ← exp_nat_mul, ← exp_neg]; congr 1; rw [hc]; push_cast; ring
+  have hE6 : E ^ 6 = -1 := by
+    rw [← hpow (ε * π) 6 (by push_cast; ring)]
+    rcases hε with rfl | rfl
+    · simp
+    · rw [show (((-1 : ℝ) * π : ℝ) : ℂ) * I = -(π * I) by push_cast; ring, exp_neg, exp_pi_mul_I]
+      norm_num
+  simp only [airyRemainder, airyFunction, airyPrefactor, airyExponentialSum, hz1, hz2, hq1, hq2]
+  generalize airyAi u = A0 at conn ⊢
+  generalize airyAi (u * exp (((ε * (2 * π / 3)) : ℝ) * I)) = A1 at conn ⊢
+  generalize airyAi (u * exp ((((-ε) * (2 * π / 3)) : ℝ) * I)) = A2 at conn ⊢
+  rw [hpow (ε * (2 * π / 3)) 4 (by push_cast; ring),
+    hpowi ((-ε) * (2 * π / 3)) 4 (by push_cast; ring)] at conn
+  rw [hpowi ((-ε) * (π / 6)) 1 (by push_cast; ring), hpowi ((-ε) * (π / 2)) 3 (by push_cast; ring),
+    pow_one]
+  have hX0 : exp (airyZetaComplex u) ≠ 0 := exp_ne_zero _
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : u ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hu)
+  rw [neg_neg, show -(2 * airyZetaComplex u) = -airyZetaComplex u + -airyZetaComplex u by ring,
+    exp_add, exp_neg]
+  generalize exp (airyZetaComplex u) = X at *
+  field_simp
+  have hF : E ^ 4 * (E ^ 4)⁻¹ = 1 := mul_inv_cancel₀ (pow_ne_zero _ hE0)
+  generalize (E ^ 4)⁻¹ = F at conn hF
+  linear_combination (2 * (Real.sqrt π : ℂ) * u ^ (1 / 4 : ℂ)) * conn +
+    (-(2 * (Real.sqrt π : ℂ) * u ^ (1 / 4 : ℂ)) * A2 * F) * hE6 +
+    (2 * (Real.sqrt π : ℂ) * u ^ (1 / 4 : ℂ) * A2 * E ^ 2) * hF
+
+/-- `Y^N e^{-2Y} ≤ (N/(2e))^N` for `Y ≥ 0`. -/
+lemma airySt_pow_exp_le {Y : ℝ} (hY : 0 ≤ Y) (N : ℕ) :
+    Y ^ N * Real.exp (-(2 * Y)) ≤ ((N : ℝ) / (2 * Real.exp 1)) ^ N := by
+  rcases Nat.eq_zero_or_pos N with rfl | hN
+  · simp only [pow_zero, one_mul, Real.exp_le_one_iff]; linarith
+  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+  set x := 2 * Y / N with hx
+  have hx0 : 0 ≤ x := by positivity
+  have h1 : x * Real.exp (-x) ≤ Real.exp (-1) := by
+    have := Real.add_one_le_exp (x - 1)
+    have hx' : x ≤ Real.exp (x - 1) := by linarith
+    calc x * Real.exp (-x) ≤ Real.exp (x - 1) * Real.exp (-x) :=
+          mul_le_mul_of_nonneg_right hx' (Real.exp_pos _).le
+      _ = _ := by rw [← Real.exp_add]; ring_nf
+  have h2 : Y * Real.exp (-(2 * Y) / N) ≤ N / (2 * Real.exp 1) := by
+    have hY' : Y = N / 2 * x := by rw [hx]; field_simp
+    have : -(2 * Y) / N = -x := by rw [hx]; ring
+    rw [this, hY', mul_assoc]
+    calc (N : ℝ) / 2 * (x * Real.exp (-x)) ≤ N / 2 * Real.exp (-1) := by gcongr
+      _ = _ := by rw [Real.exp_neg]; field_simp
+  calc Y ^ N * Real.exp (-(2 * Y)) = (Y * Real.exp (-(2 * Y) / N)) ^ N := by
+        rw [mul_pow, ← Real.exp_nat_mul]; congr 2; field_simp
+    _ ≤ _ := pow_le_pow_left₀ (by positivity) h2 N
+
+/-- The last term of 9.7.17: `e^{-2ρc} c^{-1/6} ≤ √(2π m) c^{-m} u_N ρ^{-N}`, `m = N + 1/6`. -/
+lemma airySt_third_term {ρ c : ℝ} (hρ : 0 < ρ) (hc : 0 < c) (N : ℕ) :
+    Real.exp (-(2 * (ρ * c))) * c ^ (-(1 / 6 : ℝ)) ≤
+      Real.sqrt (2 * π * (N + 1 / 6)) / c ^ ((N : ℝ) + 1 / 6) * (airyU N / ρ ^ N) := by
+  have hK := (airySt_pow_exp_le (mul_pos hρ hc).le N).trans (airySt_gamma_ineq N)
+  have hcm : c ^ ((N : ℝ) + 1 / 6) = c ^ N * c ^ (1 / 6 : ℝ) := by
+    rw [Real.rpow_add hc, Real.rpow_natCast]
+  rw [hcm, Real.rpow_neg hc.le, mul_pow] at *
+  have h16 : 0 < c ^ (1 / 6 : ℝ) := Real.rpow_pos_of_pos hc _
+  rw [div_mul_div_comm, le_div_iff₀ (by positivity)]
+  calc Real.exp (-(2 * (ρ * c))) * (c ^ (1 / 6 : ℝ))⁻¹ * (c ^ N * c ^ (1 / 6 : ℝ) * ρ ^ N)
+      = ρ ^ N * c ^ N * Real.exp (-(2 * (ρ * c))) := by field_simp
+    _ ≤ _ := by linarith [hK]
+
+/-- **The third sector of 9.7.17**, `2π/3 < |arg z| < π`. -/
+lemma airySt_ai_third {z : ℂ} (hz : z ≠ 0) (h1 : 2 * π / 3 < |arg z|) (h2 : |arg z| < π)
+    (N : ℕ) :
+    ‖airyRemainder .ai N z‖ ≤ (Real.sqrt (2 * π * (N + 1 / 6)) /
+      |Real.cos (3 * arg z / 2)| ^ ((N : ℝ) + 1 / 6) + airyChi (N + 1 / 6) + 1) *
+      ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
+  have hπ := Real.pi_pos
+  obtain ⟨ε, hε, hεarg⟩ : ∃ ε : ℝ, (ε = 1 ∨ ε = -1) ∧ arg z = |arg z| * ε := by
+    rcases le_or_gt 0 (arg z) with h | h
+    · exact ⟨1, Or.inl rfl, by rw [abs_of_nonneg h, mul_one]⟩
+    · exact ⟨-1, Or.inr rfl, by rw [abs_of_neg h]; ring⟩
+  have hε' : -ε = 1 ∨ -ε = -1 := by rcases hε with rfl | rfl <;> norm_num
+  set u := z * exp ((((-ε) * (2 * π / 3)) : ℝ) * I) with hudef
+  have hu0 : u ≠ 0 := mul_ne_zero hz (exp_ne_zero _)
+  have hargu : arg u = arg z + (-ε) * (2 * π / 3) := by
+    rw [hudef]
+    apply airyRot_arg_mul_exp hz <;> rcases hε with rfl | rfl <;> rw [hεarg] <;> nlinarith
+  have hu : |arg u| < π / 3 := by
+    rw [hargu, hεarg]; rcases hε with rfl | rfl <;> rw [abs_lt] <;> constructor <;> nlinarith
+  have hzu : z = u * exp (((ε * (2 * π / 3)) : ℝ) * I) := by
+    rw [hudef, mul_assoc, ← exp_add]
+    rw [show (((-ε) * (2 * π / 3) : ℝ) : ℂ) * I + ((ε * (2 * π / 3) : ℝ) : ℂ) * I = 0 by
+      push_cast; ring, exp_zero, mul_one]
+  set z₂ := u * exp ((((-ε) * (2 * π / 3)) : ℝ) * I) with hz₂
+  obtain ⟨b1, b2⟩ := airyRot_arg_rot_bounds hu hε'
+  have hz₂0 : z₂ ≠ 0 := mul_ne_zero hu0 (exp_ne_zero _)
+  have harg₂ : arg z₂ = arg u + (-ε) * (2 * π / 3) := airyRot_arg_mul_exp hu0 b1 b2
+  have hc : 0 < Real.cos (3 / 2 * arg u) := by
+    have := abs_lt.mp hu
+    exact Real.cos_pos_of_mem_Ioo ⟨by linarith, by linarith⟩
+  have hcz : |Real.cos (3 * arg z / 2)| = Real.cos (3 / 2 * arg u) := by
+    have : 3 * arg z / 2 = 3 / 2 * arg u + ε * π := by rw [hargu]; ring
+    rw [this]
+    rcases hε with rfl | rfl
+    · rw [one_mul, Real.cos_add_pi, abs_neg, abs_of_pos hc]
+    · rw [neg_one_mul, ← sub_eq_add_neg, Real.cos_sub_pi, abs_neg, abs_of_pos hc]
+  have hζ1 := airyRot_zeta_rot hu0 hu hε
+  have hζ2 := airyRot_zeta_rot hu0 hu hε'
+  have hT : ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ =
+      airyU N / ‖airyZetaComplex u‖ ^ N := by
+    rw [hzu, hζ1]
+    simp only [airyExpansionCoeff, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow,
+      one_mul, Complex.norm_real, Real.norm_of_nonneg (airySt_airyU_pos N).le]
+  have hR₂ : ‖airyRemainder .ai N z₂‖ ≤ (airyChi (N + 1 / 6) + 1) *
+      ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
+    have hz2a : |arg z₂| < 2 * π / 3 := by
+      rw [harg₂]; have := abs_lt.mp hu
+      rcases hε with rfl | rfl <;> rw [abs_lt] <;> constructor <;> nlinarith
+    have hsin : Real.sin (3 * arg z₂ / 2) ≠ 0 := by
+      rw [harg₂, show 3 * (arg u + (-ε) * (2 * π / 3)) / 2 = 3 / 2 * arg u - ε * π by ring]
+      rcases hε with rfl | rfl
+      · rw [one_mul, Real.sin_sub_pi]
+        exact neg_ne_zero.mpr (by
+          intro h0; have := abs_lt.mp hu
+          rcases Real.sin_eq_zero_iff_of_lt_of_lt (by linarith) (by linarith) |>.mp h0 with h'
+          have hargu0 : arg u = 0 := by linarith
+          have := hargu; rw [hargu0, hεarg] at this
+          nlinarith)
+      · rw [neg_one_mul, sub_neg_eq_add, Real.sin_add_pi]
+        exact neg_ne_zero.mpr (by
+          intro h0; have := abs_lt.mp hu
+          rcases Real.sin_eq_zero_iff_of_lt_of_lt (by linarith) (by linarith) |>.mp h0 with h'
+          have hargu0 : arg u = 0 := by linarith
+          have := hargu; rw [hargu0, hεarg] at this
+          nlinarith)
+    have := airySt_ai_le_chi hz₂0 hz2a hsin N
+    rwa [hz₂, hζ2, ← hζ1, ← hzu] at this
+  have hrel := airySt_third_rel hu0 hu hε N
+  rw [← hzu, ← hz₂] at hrel
+  rw [hrel]
+  have hκ : ‖-exp ((((-ε) * (π / 2)) : ℝ) * I)‖ = 1 := by rw [norm_neg, norm_exp_ofReal_mul_I]
+  have hF := airySt_F_norm_le hu0 hu
+  have hre : (2 * airyZetaComplex u).re = 2 * (‖airyZetaComplex u‖ * Real.cos (3 / 2 * arg u)) := by
+    have h := airyRot_re_W u 0
+    simp only [ofReal_zero, zero_mul, add_zero] at h
+    rw [exp_log_two_add_airyLogZeta hu0] at h
+    have hn : Real.exp (log 2 + airyLogZeta u).re = ‖2 * airyZetaComplex u‖ := by
+      rw [← Complex.norm_exp, exp_log_two_add_airyLogZeta hu0]
+    rw [h, hn, norm_mul]; simp; ring
+  have hρ : 0 < ‖airyZetaComplex u‖ := by
+    rw [norm_pos_iff]; intro h0
+    have := exp_log_two_add_airyLogZeta hu0; rw [h0, mul_zero] at this
+    exact exp_ne_zero _ this
+  have h3 := airySt_third_term hρ hc N
+  rw [hcz, hT]
+  calc ‖airyRemainder .ai N z₂ + -exp ((((-ε) * (π / 2)) : ℝ) * I) *
+        exp (-(2 * airyZetaComplex u)) * (airyAi u / airyPrefactor .ai u)‖
+      ≤ ‖airyRemainder .ai N z₂‖ + Real.exp (-(2 * (‖airyZetaComplex u‖ *
+          Real.cos (3 / 2 * arg u)))) * Real.cos (3 / 2 * arg u) ^ (-(1 / 6 : ℝ)) := by
+        refine (norm_add_le _ _).trans (add_le_add le_rfl ?_)
+        rw [norm_mul, norm_mul, hκ, one_mul, norm_exp, neg_re, hre]
+        exact mul_le_mul_of_nonneg_left hF (Real.exp_pos _).le
+    _ ≤ (airyChi (N + 1 / 6) + 1) * (airyU N / ‖airyZetaComplex u‖ ^ N) +
+        Real.sqrt (2 * π * (N + 1 / 6)) / Real.cos (3 / 2 * arg u) ^ ((N : ℝ) + 1 / 6) *
+          (airyU N / ‖airyZetaComplex u‖ ^ N) := by
+        rw [hT] at hR₂; exact add_le_add hR₂ h3
+    _ = _ := by ring
+
+lemma airySt_zeta_ne_zero {w : ℂ} (hw : w ≠ 0) : airyZetaComplex w ≠ 0 := by
+  intro h0
+  have := exp_log_two_add_airyLogZeta hw
+  rw [h0, mul_zero] at this
+  exact exp_ne_zero _ this
+
+lemma airySt_continuousAt_T {w : ℂ} (hw : w ∈ slitPlane) (N : ℕ) :
+    ContinuousAt (fun w => airyExpansionCoeff .ai N / airyZetaComplex w ^ N) w :=
+  continuousAt_const.div ((airyRot_differentiableAt_zeta hw).continuousAt.pow N)
+    (pow_ne_zero _ (airySt_zeta_ne_zero (slitPlane_ne_zero hw)))
+
+lemma airySt_continuousAt_rem {w : ℂ} (hw : w ∈ slitPlane) (N : ℕ) :
+    ContinuousAt (airyRemainder .ai N) w := by
+  have hw0 := slitPlane_ne_zero hw
+  have hz := (airyRot_differentiableAt_zeta hw).continuousAt
+  have hq : ContinuousAt (fun w : ℂ => w ^ (1 / 4 : ℂ)) w := continuousAt_cpow_const hw
+  have hp : ContinuousAt (airyPrefactor .ai) w := by
+    have he : airyPrefactor .ai =
+        fun w => exp (-airyZetaComplex w) / (2 * Real.sqrt π * w ^ (1 / 4 : ℂ)) := by
+      funext w; rfl
+    rw [he]
+    exact (hz.neg.cexp).div (continuousAt_const.mul hq)
+      (mul_ne_zero (mul_ne_zero two_ne_zero
+        (ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'))
+        (cpow_ne_zero_iff.mpr (Or.inl hw0)))
+  have hs : ContinuousAt (airyExponentialSum .ai N) w := by
+    unfold airyExponentialSum
+    exact tendsto_finsetSum _ fun k _ => airySt_continuousAt_T hw k
+  unfold airyRemainder airyFunction
+  exact (differentiable_airyAi.continuous.continuousAt.div hp
+    (airyRot_prefactor_ne_zero .ai hw0)).sub hs
+
+lemma airySt_sin_ne_zero {a : ℝ} (h1 : π / 3 < |a|) (h2 : |a| < 2 * π / 3) :
+    Real.sin (3 * a / 2) ≠ 0 := by
+  have hp : 0 < Real.sin (3 * |a| / 2) := Real.sin_pos_of_pos_of_lt_pi (by
+    linarith [Real.pi_pos]) (by linarith)
+  rcases le_or_gt 0 a with h | h
+  · rw [abs_of_nonneg h] at hp; exact hp.ne'
+  · rw [abs_of_neg h, show 3 * -a / 2 = -(3 * a / 2) by ring, Real.sin_neg] at hp; linarith
+
+lemma airySt_cos_neg {a : ℝ} (h1 : π / 3 < |a|) (h2 : |a| < 2 * π / 3) :
+    Real.cos (3 / 2 * a) < 0 := by
+  have hp : Real.cos (3 / 2 * |a|) < 0 :=
+    Real.cos_neg_of_pi_div_two_lt_of_lt (by linarith) (by linarith [Real.pi_pos])
+  rcases le_or_gt 0 a with h | h
+  · rwa [abs_of_nonneg h] at hp
+  · rwa [abs_of_neg h, mul_neg, Real.cos_neg] at hp
+
+/-- The `χ + 1` bound on the rays `|arg z| = 2π/3`, by continuity. -/
+lemma airySt_ai_boundary {z : ℂ} (hz : z ≠ 0) (harg : |arg z| = 2 * π / 3) (N : ℕ) :
+    ‖airyRemainder .ai N z‖ ≤ (airyChi (N + 1 / 6) + 1) *
+      ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
+  have hπ := Real.pi_pos
+  set p : ℝ → ℂ := fun φ => (‖z‖ : ℂ) * exp (φ * I) with hp
+  have hpz : p (arg z) = z := norm_mul_exp_arg_mul_I z
+  have hr : 0 < ‖z‖ := norm_pos_iff.mpr hz
+  have hpc : Continuous p := by fun_prop
+  have hzs : z ∈ slitPlane := by
+    rw [mem_slitPlane_iff_arg]; refine ⟨fun h => ?_, hz⟩; rw [h, abs_of_pos hπ] at harg; linarith
+  have hg := ((airySt_continuousAt_rem (hpz ▸ hzs) N).comp hpc.continuousAt).norm
+  have hh := (((airySt_continuousAt_T (hpz ▸ hzs) N).comp hpc.continuousAt).norm).const_mul
+    (airyChi (N + 1 / 6) + 1)
+  have hb : ∀ φ : ℝ, π / 3 < |φ| → |φ| < 2 * π / 3 →
+      ‖airyRemainder .ai N (p φ)‖ ≤ (airyChi (N + 1 / 6) + 1) *
+        ‖airyExpansionCoeff .ai N / airyZetaComplex (p φ) ^ N‖ := by
+    intro φ h1 h2
+    have hφ : arg (p φ) = φ := airyRot_arg hr (by linarith [neg_abs_le φ])
+      (by linarith [le_abs_self φ])
+    have hp0 : p φ ≠ 0 := airyRot_ofReal_mul_exp_ne_zero hr φ
+    exact airySt_ai_le_chi hp0 (by rw [hφ]; exact h2) (by rw [hφ]; exact airySt_sin_ne_zero h1 h2) N
+  rw [← hpz]
+  rcases le_or_gt 0 (arg z) with h0 | h0
+  · rw [abs_of_nonneg h0] at harg
+    have hev : ∀ᶠ φ in 𝓝[<] (arg z), φ ∈ Ioo (π / 3) (2 * π / 3) := by
+      rw [harg]; exact Ioo_mem_nhdsLT (by linarith)
+    refine le_of_tendsto_of_tendsto (hg.tendsto.mono_left nhdsWithin_le_nhds)
+      (hh.tendsto.mono_left nhdsWithin_le_nhds) (hev.mono fun φ hφ => ?_)
+    have : 0 < φ := by linarith [hφ.1]
+    exact hb φ (by rw [abs_of_pos this]; exact hφ.1) (by rw [abs_of_pos this]; exact hφ.2)
+  · rw [abs_of_neg h0] at harg
+    have hev : ∀ᶠ φ in 𝓝[>] (arg z), φ ∈ Ioo (-(2 * π / 3)) (-(π / 3)) := by
+      rw [show arg z = -(2 * π / 3) by linarith]; exact Ioo_mem_nhdsGT (by linarith)
+    refine le_of_tendsto_of_tendsto (hg.tendsto.mono_left nhdsWithin_le_nhds)
+      (hh.tendsto.mono_left nhdsWithin_le_nhds) (hev.mono fun φ hφ => ?_)
+    have : φ < 0 := by linarith [hφ.2]
+    exact hb φ (by rw [abs_of_neg this]; linarith [hφ.2]) (by rw [abs_of_neg this]; linarith [hφ.1])
+
+/-- **The Bi remainder through 9.2.11**: `R^{Bi}_N(x) = (R_N(x e^{2πi/3}) + R_N(x e^{-2πi/3}))/2`. -/
+lemma airySt_bi_rem {x : ℝ} (hx : 0 < x) (N : ℕ) :
+    airyRemainder .bi N x =
+      (airyRemainder .ai N ((x : ℂ) * exp (((1 * (2 * π / 3)) : ℝ) * I)) +
+        airyRemainder .ai N ((x : ℂ) * exp ((((-1) * (2 * π / 3)) : ℝ) * I))) / 2 := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  have hz1 := airyRot_zeta_rot hx0 harg (Or.inl rfl)
+  have hz2 := airyRot_zeta_rot hx0 harg (Or.inr rfl)
+  have hq1 := airyRot_quarter_rot hx0 harg (Or.inl rfl)
+  have hq2 := airyRot_quarter_rot hx0 harg (Or.inr rfl)
+  have hB := airyBi_eq_airyAi_omega (x : ℂ)
+  have e1 : exp (2 * π * I / 3) = exp (((1 * (2 * π / 3)) : ℝ) * I) := by congr 1; push_cast; ring
+  have e2 : exp (-(2 * π * I / 3)) = exp ((((-1) * (2 * π / 3)) : ℝ) * I) := by
+    congr 1; push_cast; ring
+  set E := exp (((1 * (π / 6)) : ℝ) * I) with hE
+  have e3 : exp (π * I / 6) = E := by rw [hE]; congr 1; push_cast; ring
+  have e4 : exp (-(π * I / 6)) = E⁻¹ := by rw [hE, ← exp_neg]; congr 1; push_cast; ring
+  have e5 : exp ((((-1) * (π / 6)) : ℝ) * I) = E⁻¹ := by rw [hE, ← exp_neg]; congr 1; push_cast; ring
+  rw [e1, e2, e3, e4] at hB
+  rw [e5] at hq2
+  have hE0 : E ≠ 0 := exp_ne_zero _
+  have hS : ∀ w : ℂ, airyZetaComplex w = -airyZetaComplex (x : ℂ) →
+      airyExponentialSum .ai N w = airyExponentialSum .bi N x := by
+    intro w hw
+    unfold airyExponentialSum
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [hw, airyExpansionCoeff, airyExpansionCoeff, neg_eq_neg_one_mul (airyZetaComplex (x : ℂ)),
+      mul_pow]
+    have : ((-1 : ℂ) ^ k) ≠ 0 := pow_ne_zero _ (by norm_num)
+    have h2 : airyZetaComplex (x : ℂ) ^ k ≠ 0 := pow_ne_zero _ (airySt_zeta_ne_zero hx0)
+    field_simp
+  simp only [airyRemainder, airyFunction]
+  rw [hS _ hz1, hS _ hz2, hB]
+  simp only [airyPrefactor, hz1, hz2, hq1, hq2, neg_neg]
+  have hX0 : exp (airyZetaComplex (x : ℂ)) ≠ 0 := exp_ne_zero _
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : (x : ℂ) ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+  field_simp
+  ring
+
+lemma airySt_norm_prefactor_bi {x : ℝ} (hx : 0 < x) :
+    ‖airyPrefactor .bi x‖ = Real.exp (airyZeta x) / (Real.sqrt π * x ^ (1 / 4 : ℝ)) := by
+  have hq : ‖(x : ℂ) ^ (1 / 4 : ℂ)‖ = x ^ (1 / 4 : ℝ) := by
+    rw [show (1 / 4 : ℂ) = ((1 / 4 : ℝ) : ℂ) by push_cast; ring, ← ofReal_cpow hx.le,
+      Complex.norm_real, Real.norm_of_nonneg (by positivity)]
+  rw [airyPrefactor, norm_div, norm_mul, hq, Complex.norm_exp, airyReal_zeta_ofReal hx, ofReal_re,
+    Complex.norm_real, Real.norm_of_nonneg (Real.sqrt_nonneg _)]
+
 /-- First-neglected-term remainder bound and its sign, DLMF §9.7(iii). -/
 theorem airy_bi_real_error {x : ℝ} (hx : 0 < x) {N : ℕ} (hN : 0 ≤ N) :
     ‖airyRemainder .bi N x‖ ≤ (airyChi (N + 1 / 6) + 1) * 
       ‖airyExpansionCoeff .bi N / airyZetaComplex x ^ N‖ := by
-  sorry
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  have hT : ∀ ε : ℝ, (ε = 1 ∨ ε = -1) →
+      ‖airyRemainder .ai N ((x : ℂ) * exp (((ε * (2 * π / 3)) : ℝ) * I))‖ ≤
+        (airyChi (N + 1 / 6) + 1) * ‖airyExpansionCoeff .bi N / airyZetaComplex x ^ N‖ := by
+    intro ε hε
+    have hw0 : (x : ℂ) * exp (((ε * (2 * π / 3)) : ℝ) * I) ≠ 0 :=
+      airyRot_ofReal_mul_exp_ne_zero hx _
+    have hwa : |arg ((x : ℂ) * exp (((ε * (2 * π / 3)) : ℝ) * I))| = 2 * π / 3 := by
+      have hπ := Real.pi_pos
+      rcases hε with rfl | rfl
+      · rw [airyRot_arg hx (by linarith) (by linarith), one_mul, abs_of_pos (by positivity)]
+      · rw [airyRot_arg hx (by linarith) (by linarith), abs_of_neg (by linarith)]; ring
+    have h := airySt_ai_boundary hw0 hwa N
+    rw [airyRot_zeta_rot hx0 harg hε] at h
+    convert h using 2
+    simp only [airyExpansionCoeff, norm_div, norm_mul, norm_pow, norm_neg, norm_one, one_pow,
+      one_mul]
+  rw [airySt_bi_rem hx N]
+  calc _ ≤ (‖airyRemainder .ai N ((x : ℂ) * exp (((1 * (2 * π / 3)) : ℝ) * I))‖ +
+        ‖airyRemainder .ai N ((x : ℂ) * exp ((((-1) * (2 * π / 3)) : ℝ) * I))‖) / 2 := by
+        rw [norm_div, Complex.norm_two]; gcongr; exact norm_add_le _ _
+    _ ≤ _ := by linarith [hT 1 (Or.inl rfl), hT (-1) (Or.inr rfl)]
 
 /-- First-neglected-term remainder bound and its sign, DLMF §9.7(iii). -/
 theorem airy_biDeriv_real_error {x : ℝ} (hx : 0 < x) {N : ℕ} (hN : 1 ≤ N) :
@@ -2708,7 +3640,30 @@ theorem airy_aiDeriv_bound {x : ℝ} (hx : 0 < x) :
 @[dlmf 9.7.E16]
 theorem airy_bi_bound {x : ℝ} (hx : 0 < x) :
     airyBiReal x ≤ Real.exp (airyZeta x) / (Real.sqrt π * x ^ (1 / 4 : ℝ)) * (1 + (airyChi (7 / 6) + 1) * 5 / (72 * airyZeta x)) := by
-  sorry
+  have h := airy_bi_real_error hx (N := 1) (Nat.zero_le _)
+  have hz := airyZeta_pos hx
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hp : airyPrefactor .bi x ≠ 0 := airyRot_prefactor_ne_zero .bi hx0
+  have hT : ‖airyExpansionCoeff .bi 1 / airyZetaComplex x ^ 1‖ = 5 / (72 * airyZeta x) := by
+    rw [airyExpansionCoeff, airyReal_airyU_one, pow_one, airyReal_zeta_ofReal hx, norm_div,
+      Complex.norm_real, Complex.norm_real, Real.norm_of_nonneg (by norm_num),
+      Real.norm_of_nonneg hz.le]
+    ring
+  rw [hT, show ((1 : ℕ) : ℝ) + 1 / 6 = 7 / 6 by norm_num] at h
+  have hS : airyExponentialSum .bi 1 x = 1 := by
+    simp [airyExponentialSum, airyExpansionCoeff, airyReal_airyU_zero]
+  have h1 : ‖airyBi x / airyPrefactor .bi x‖ ≤ 1 + (airyChi (7 / 6) + 1) * 5 / (72 * airyZeta x) := by
+    have he : airyBi x / airyPrefactor .bi x = 1 + airyRemainder .bi 1 x := by
+      rw [airyRemainder, airyFunction, hS]; ring
+    rw [he]
+    calc ‖1 + airyRemainder .bi 1 x‖ ≤ ‖(1 : ℂ)‖ + ‖airyRemainder .bi 1 x‖ := norm_add_le _ _
+      _ ≤ 1 + (airyChi (7 / 6) + 1) * (5 / (72 * airyZeta x)) := by rw [norm_one]; gcongr
+      _ = _ := by ring
+  calc airyBiReal x ≤ ‖airyBi x‖ := Complex.re_le_norm _
+    _ = ‖airyPrefactor .bi x‖ * ‖airyBi x / airyPrefactor .bi x‖ := by
+      rw [← norm_mul, mul_div_cancel₀ _ hp]
+    _ ≤ ‖airyPrefactor .bi x‖ * (1 + (airyChi (7 / 6) + 1) * 5 / (72 * airyZeta x)) := by gcongr
+    _ = _ := by rw [airySt_norm_prefactor_bi hx]
 
 /-- airy biDeriv bound (DLMF 9.7.16). -/
 @[dlmf 9.7.E16]
@@ -2721,7 +3676,47 @@ theorem airy_biDeriv_bound {x : ℝ} (hx : 0 < x) :
 theorem airy_ai_complex_error {z : ℂ} (hz : z ∈ slitPlane) {N : ℕ} (hN : 0 ≤ N) :
     ‖airyRemainder .ai N z‖ ≤ airyErrorMultiplier N (1 / 6) z *
       ‖airyExpansionCoeff .ai N / airyZetaComplex z ^ N‖ := by
-  sorry
+  have hπ := Real.pi_pos
+  have hz0 := slitPlane_ne_zero hz
+  have hlt : |arg z| < π := by
+    rw [mem_slitPlane_iff_arg] at hz
+    exact lt_of_le_of_ne (abs_le.mpr ⟨(neg_pi_lt_arg z).le, arg_le_pi z⟩) (fun h => by
+      rcases abs_eq hπ.le |>.mp h with h' | h'
+      · exact hz.1 h'
+      · linarith [neg_pi_lt_arg z])
+  unfold airyErrorMultiplier
+  split_ifs with h1 h2 h3
+  · have hM : airySt_M (-(3 / 2 * arg z)) = 1 := by
+      unfold airySt_M
+      rw [Real.cos_neg]
+      split_ifs with hc
+      · rfl
+      · exact absurd (Real.cos_nonneg_of_mem_Icc ⟨by linarith [abs_le.mp h1],
+          by linarith [abs_le.mp h1]⟩) hc
+    have := airySt_ai_le_M hz0 (by linarith) N
+    rwa [hM] at this
+  · rcases lt_or_eq_of_le h2 with h | h
+    · exact absurd h3 (airySt_sin_ne_zero (lt_of_not_ge h1) h)
+    · exact airySt_ai_boundary hz0 h N
+  · rcases lt_or_eq_of_le h2 with h | h
+    · have hM : airySt_M (-(3 / 2 * arg z)) = |(Real.sin (3 * arg z / 2))⁻¹| := by
+        unfold airySt_M
+        rw [Real.cos_neg]
+        split_ifs with hc
+        · exact absurd hc (not_le.mpr (airySt_cos_neg (lt_of_not_ge h1) h))
+        · rw [Real.sin_neg, abs_neg, abs_inv, show 3 / 2 * arg z = 3 * arg z / 2 by ring]
+      have hA := airySt_ai_le_M hz0 h N
+      have hB := airySt_ai_le_chi hz0 h h3 N
+      rw [hM] at hA
+      rw [min_mul_of_nonneg _ _ (norm_nonneg _)]
+      exact le_min hA hB
+    · exfalso; apply h3
+      rcases le_or_gt 0 (arg z) with h0 | h0
+      · rw [abs_of_nonneg h0] at h; rw [h, show 3 * (2 * π / 3) / 2 = π by ring, Real.sin_pi]
+      · rw [abs_of_neg h0] at h
+        rw [show arg z = -(2 * π / 3) by linarith, show 3 * -(2 * π / 3) / 2 = -π by ring,
+          Real.sin_neg, Real.sin_pi, neg_zero]
+  · exact airySt_ai_third hz0 (lt_of_not_ge h2) hlt N
 
 /-- airy aiDeriv complex error (DLMF 9.7.17). -/
 @[dlmf 9.7.E17]
@@ -2805,6 +3800,1276 @@ def airyOscComponent (derivative : Bool) (parity : Fin 2) (x : ℝ) : ℂ :=
     if parity.val = 0 then (cos θ * airyAi (-x) - sin θ * airyBi (-x)) / pref
     else (sin θ * airyAi (-x) + cos θ * airyBi (-x)) / pref
 
+/-! ### Signed bounds for the oscillatory subseries on the negative axis (DLMF §9.7(iii))
+
+On the rays `arg w = ±π/3` the Stieltjes ray of the normalized `Ai` (σ = 1/6 form) and of the
+normalized `Ai'` (kernel `t^{1/6}(1+t)^{1/6}`, whose binomial remainder is again a Stieltjes
+transform with a nonnegative weight) is `θ = ∓π/2`, where `Re (1 + s e^{iθ})⁻¹ ∈ [0, 1]`. Hence the
+remainder after `M` terms is `(A + iB)` times the first neglected term with `0 ≤ A ≤ 1`
+(`airyDer_ray_ratio`). The even and odd parts `(F₊ ± F₋)/2`, `(F₊ - F₋)/(2i)` of the normalized
+function at `x e^{±iπ/3}` are the real components of 9.7.9–9.7.12 (`airyDer_comp_false`,
+`airyDer_comp_true`); their truncation errors are real and equal to `Ā` times the first
+neglected term, which gives the bound together with its sign. Helper names carry the prefix
+`airyDer_`. -/
+lemma airyDer_re_inv_mem {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
+    0 ≤ ((1 + (s : ℂ) * exp (θ * I))⁻¹).re ∧ ((1 + (s : ℂ) * exp (θ * I))⁻¹).re ≤ 1 := by
+  set w := 1 + (s : ℂ) * exp (θ * I) with hw
+  have hre : w.re = 1 + s * Real.cos θ := by simp [hw, exp_ofReal_mul_I_re]
+  have h1 : 1 ≤ w.re := by rw [hre]; nlinarith
+  have hns : 0 < normSq w := by rw [normSq_apply]; nlinarith [mul_self_nonneg w.im]
+  rw [inv_re]
+  refine ⟨div_nonneg (by linarith) hns.le, (div_le_one hns).mpr ?_⟩
+  rw [normSq_apply]; nlinarith [mul_self_nonneg w.im]
+
+lemma airyDer_norm_inv_le {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
+    ‖(1 + (s : ℂ) * exp (θ * I))⁻¹‖ ≤ 1 := by
+  rw [norm_inv]; exact inv_le_one_of_one_le₀ (Complex.one_le_norm_one_add_ofReal_mul_exp hs hθ)
+
+lemma airyDer_one_add_eq (θ r τ : ℝ) :
+    1 + ((r : ℂ) * exp (θ * I)) * τ = 1 + ((r * τ : ℝ) : ℂ) * exp (θ * I) := by
+  push_cast; ring
+
+lemma airyDer_integrableOn_inner {g : ℝ → ℝ} (hgm : Measurable g) (hgi : IntegrableOn g (Ioo 0 1))
+    {θ : ℝ} (hcos : 0 ≤ Real.cos θ) {r : ℝ} (hr : 0 ≤ r) :
+    IntegrableOn (fun τ : ℝ => (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹) (Ioo 0 1) := by
+  refine Integrable.mono' hgi.norm ?_ ?_
+  · exact (by fun_prop : Measurable fun τ : ℝ =>
+      (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹).aestronglyMeasurable
+  · refine (ae_restrict_iff' measurableSet_Ioo).mpr (Eventually.of_forall fun τ hτ => ?_)
+    rw [norm_mul, Complex.norm_real, airyDer_one_add_eq]
+    calc ‖g τ‖ * ‖(1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹‖ ≤ ‖g τ‖ * 1 :=
+          mul_le_mul_of_nonneg_left (airyDer_norm_inv_le hcos (mul_nonneg hr hτ.1.le))
+            (norm_nonneg _)
+      _ = ‖g τ‖ := mul_one _
+
+/-- **The ray remainder as a damped multiple of the first neglected term.** For `cos θ ≥ 0` and a
+nonnegative weight `g` on `(0,1)`, the ray Stieltjes integral equals `(A + iB)` times its value
+with the Stieltjes denominator replaced by `1`, with `0 ≤ A ≤ 1`. -/
+theorem airyDer_ray_ratio {b W θ : ℝ} (hb : 0 < b) (hW : 0 < W) (hθ : |θ| < π)
+    (hcos : 0 ≤ Real.cos θ) (N : ℕ) {g : ℝ → ℝ} (hgm : Measurable g)
+    (hg0 : ∀ τ ∈ Ioo (0 : ℝ) 1, 0 ≤ g τ) (hgi : IntegrableOn g (Ioo 0 1)) :
+    ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧
+      ∫ r in Ioi (0 : ℝ), Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ ((b : ℂ) - 1) *
+        ((-((r : ℂ) * exp (θ * I))) ^ N * ∫ τ in Ioo (0 : ℝ) 1,
+          (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹)) =
+      (A + B * I) * ((((-1) ^ N * ∫ τ in Ioo (0 : ℝ) 1, g τ : ℝ) : ℂ) *
+        exp (θ * I * ((b : ℂ) - 1 + N)) * (Gamma ((b : ℂ) + N) * (W : ℂ) ^ (-((b : ℂ) + N)))) := by
+  set q : ℝ → ℂ := fun r => ∫ τ in Ioo (0 : ℝ) 1,
+    (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹ with hq
+  set C : ℝ := ∫ τ in Ioo (0 : ℝ) 1, g τ with hC
+  set ρ : ℝ → ℝ := fun r => r ^ ((b + N) - 1) * Real.exp (-(W * r)) with hρ
+  set ph : ℂ := exp (θ * I * ((b : ℂ) - 1 + N)) with hph
+  set K : ℝ := Real.Gamma (b + N) * W ^ (-(b + N)) with hK
+  have hbN : 0 < b + N := by positivity
+  have hKpos : 0 < K := mul_pos (Real.Gamma_pos_of_pos hbN) (Real.rpow_pos_of_pos hW _)
+  have hKc : Gamma ((b : ℂ) + N) * (W : ℂ) ^ (-((b : ℂ) + N)) = (K : ℂ) := by
+    have hg : Gamma ((b : ℂ) + N) = ((Real.Gamma (b + N) : ℝ) : ℂ) := by
+      rw [← Complex.Gamma_ofReal]; push_cast; rfl
+    have hw : (W : ℂ) ^ (-((b : ℂ) + N)) = ((W ^ (-(b + N)) : ℝ) : ℂ) := by
+      rw [ofReal_cpow hW.le]; push_cast; rfl
+    rw [hg, hw, hK]; push_cast; ring
+  rw [hKc]
+  have hC0 : 0 ≤ C := setIntegral_nonneg measurableSet_Ioo hg0
+  -- pointwise form
+  have hpt : ∀ r ∈ Ioi (0 : ℝ), Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ ((b : ℂ) - 1) *
+      ((-((r : ℂ) * exp (θ * I))) ^ N * q r)) = ((-1) ^ N * ph) * ((ρ r : ℂ) * q r) := by
+    intro r hr
+    have h := airySt_term_eq (b := b) (W := W) hθ N hr
+    rw [neg_pow ((r : ℂ) * exp (θ * I)) N]
+    rw [show Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ ((b : ℂ) - 1) *
+      ((-1) ^ N * ((r : ℂ) * exp (θ * I)) ^ N * q r)) = (-1) ^ N * q r *
+      (Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ ((b : ℂ) - 1) *
+      ((r : ℂ) * exp (θ * I)) ^ N)) by ring, h, hρ, hph]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi hpt, integral_const_mul]
+  -- bounds on q
+  have hqn : ∀ r : ℝ, 0 ≤ r → ‖q r‖ ≤ C := by
+    intro r hr
+    refine (norm_integral_le_of_norm_le hgi ?_).trans le_rfl
+    refine (ae_restrict_iff' measurableSet_Ioo).mpr (Eventually.of_forall fun τ hτ => ?_)
+    rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg (hg0 τ hτ), airyDer_one_add_eq]
+    calc g τ * ‖(1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹‖ ≤ g τ * 1 :=
+          mul_le_mul_of_nonneg_left (airyDer_norm_inv_le hcos (mul_nonneg hr hτ.1.le)) (hg0 τ hτ)
+      _ = g τ := mul_one _
+  have hqre : ∀ r : ℝ, 0 ≤ r → 0 ≤ (q r).re ∧ (q r).re ≤ C := by
+    intro r hr
+    have hi := airyDer_integrableOn_inner hgm hgi hcos hr
+    have he : (q r).re = ∫ τ in Ioo (0 : ℝ) 1, g τ * ((1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹).re := by
+      show (∫ τ in Ioo (0 : ℝ) 1, (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹).re = _
+      rw [← RCLike.re_to_complex, ← integral_re hi]
+      refine setIntegral_congr_fun measurableSet_Ioo fun τ _ => ?_
+      simp only [RCLike.re_to_complex]
+      rw [airyDer_one_add_eq, re_ofReal_mul]
+    rw [he]
+    have hi' : IntegrableOn (fun τ => g τ * ((1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹).re)
+        (Ioo 0 1) := by
+      refine (hi.re).congr_fun (fun τ _ => ?_) measurableSet_Ioo
+      simp only [RCLike.re_to_complex]
+      rw [airyDer_one_add_eq, re_ofReal_mul]
+    constructor
+    · exact setIntegral_nonneg measurableSet_Ioo fun τ hτ =>
+        mul_nonneg (hg0 τ hτ) (airyDer_re_inv_mem hcos (mul_nonneg hr hτ.1.le)).1
+    · refine setIntegral_mono_on hi' hgi measurableSet_Ioo fun τ hτ => ?_
+      calc g τ * ((1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹).re ≤ g τ * 1 :=
+            mul_le_mul_of_nonneg_left (airyDer_re_inv_mem hcos (mul_nonneg hr hτ.1.le)).2
+              (hg0 τ hτ)
+        _ = g τ := mul_one _
+  -- integrability of ρ q
+  have hρi : IntegrableOn ρ (Ioi 0) := stRem_integrableOn_rpow_exp (by linarith) hW
+  have hqm : AEStronglyMeasurable q (volume.restrict (Ioi 0)) := by
+    have hG : StronglyMeasurable (Function.uncurry fun (r τ : ℝ) =>
+        (g τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹) := by
+      refine Measurable.stronglyMeasurable ?_
+      fun_prop
+    exact (hG.integral_prod_right (ν := volume.restrict (Ioo 0 1))).aestronglyMeasurable
+  have hJi : IntegrableOn (fun r => (ρ r : ℂ) * q r) (Ioi 0) := by
+    refine Integrable.mono' (hρi.mul_const C) ((hρi.ofReal (𝕜 := ℂ)).aestronglyMeasurable.mul hqm) ?_
+    refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun r hr => ?_)
+    have hr : (0 : ℝ) < r := hr
+    rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg (by positivity)]
+    exact mul_le_mul_of_nonneg_left (hqn r hr.le) (by positivity)
+  set J : ℂ := ∫ r in Ioi (0 : ℝ), (ρ r : ℂ) * q r with hJ
+  have hJre : J.re = ∫ r in Ioi (0 : ℝ), ρ r * (q r).re := by
+    rw [hJ, ← RCLike.re_to_complex, ← integral_re hJi]
+    refine setIntegral_congr_fun measurableSet_Ioi fun r _ => ?_
+    simp only [RCLike.re_to_complex]; rw [re_ofReal_mul]
+  have hρq : IntegrableOn (fun r => ρ r * (q r).re) (Ioi 0) := by
+    refine (hJi.re).congr_fun (fun r _ => ?_) measurableSet_Ioi
+    simp only [RCLike.re_to_complex]; rw [re_ofReal_mul]
+  have hρ0 : ∀ r ∈ Ioi (0 : ℝ), 0 ≤ ρ r := fun r hr => by
+    have hr : (0 : ℝ) < r := hr
+    simp only [hρ]; positivity
+  have hJ0 : 0 ≤ J.re := by
+    rw [hJre]; exact setIntegral_nonneg measurableSet_Ioi fun r hr =>
+      mul_nonneg (hρ0 r hr) (hqre r (le_of_lt hr)).1
+  have hJ1 : J.re ≤ C * K := by
+    rw [hJre]
+    calc ∫ r in Ioi (0 : ℝ), ρ r * (q r).re ≤ ∫ r in Ioi (0 : ℝ), ρ r * C :=
+          setIntegral_mono_on hρq (hρi.mul_const C) measurableSet_Ioi fun r hr =>
+            mul_le_mul_of_nonneg_left (hqre r (le_of_lt hr)).2 (hρ0 r hr)
+      _ = C * K := by
+          rw [integral_mul_const, hρ, airySt_gamma_int hbN hW, hK]; ring
+  rcases eq_or_lt_of_le hC0 with hC0' | hCpos
+  · -- degenerate weight
+    have hJz : J = 0 := by
+      have : ‖J‖ ≤ 0 := by
+        rw [hJ]
+        refine norm_integral_le_of_norm_le (g := fun _ => (0 : ℝ)) (integrable_zero _ _ _) ?_
+          |>.trans (by simp)
+        refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun r hr => ?_)
+        have hr : (0 : ℝ) < r := hr
+        rw [norm_mul]
+        have := hqn r hr.le
+        rw [← hC0'] at this
+        nlinarith [norm_nonneg (q r), norm_nonneg ((ρ r : ℂ))]
+      exact norm_le_zero_iff.mp this
+    refine ⟨0, 0, le_rfl, zero_le_one, ?_⟩
+    rw [hJz, ← hC0']; simp
+  · refine ⟨J.re / (C * K), J.im / (C * K), div_nonneg hJ0 (by positivity),
+      (div_le_one (by positivity)).mpr hJ1, ?_⟩
+    have hCK : ((C * K : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+    have hAB : (((J.re / (C * K) : ℝ) : ℂ) + ((J.im / (C * K) : ℝ) : ℂ) * I) =
+        J / ((C * K : ℝ) : ℂ) := by
+      apply Complex.ext
+      · rw [add_re, ofReal_re, mul_re, ofReal_re, ofReal_im, I_re, I_im, div_ofReal_re]; ring
+      · rw [add_im, ofReal_im, mul_im, ofReal_re, ofReal_im, I_re, I_im, div_ofReal_im]; ring
+    rw [hAB, div_mul_eq_mul_div, eq_div_iff hCK]
+    push_cast; ring
+
+
+lemma airyDer_measurable_w (a : ℝ) (N : ℕ) (c : ℝ) :
+    Measurable fun τ : ℝ => c * (τ ^ N * airySt_w a τ) := by
+  unfold airySt_w; fun_prop
+
+/-- **The Ai remainder on `|arg z| ≤ π/3`** is `(A + iB)` times the first neglected term,
+`0 ≤ A ≤ 1`. -/
+lemma airyDer_ai_ratio {z : ℂ} (hz : z ≠ 0) (harg : |arg z| ≤ π / 3) (N : ℕ) :
+    ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧
+      airyRemainder .ai N z = (A + B * I) * (airyExpansionCoeff .ai N / airyZetaComplex z ^ N) := by
+  have hπ := Real.pi_pos
+  have harg' : |arg z| < 2 * π / 3 := by linarith
+  obtain ⟨h1, h2⟩ := airySt_ai_remainder hz harg' N
+  have hθ := airySt_theta_lt harg'
+  have hcos : 0 ≤ Real.cos (-(3 / 2 * arg z)) := by
+    rw [Real.cos_neg]
+    exact Real.cos_nonneg_of_mem_Icc ⟨by linarith [(abs_le.mp harg).1],
+      by linarith [(abs_le.mp harg).2]⟩
+  have hW : 0 < Real.exp (log 2 + airyLogZeta z).re := Real.exp_pos _
+  rw [h1, h2, airySt_rem_repr (a := 5 / 6) (b := 1 / 6) (by norm_num) (by norm_num) (by norm_num)
+    hW hθ N (airySt_hint hθ hW)]
+  set c : ℝ := 1 / (Real.Gamma (5 / 6) * Real.Gamma (1 - 5 / 6)) with hc
+  have hQ : ∀ t : ℂ, airySt_Q (5 / 6) N t = ∫ τ in Ioo (0 : ℝ) 1,
+      ((c * (τ ^ N * airySt_w (5 / 6) τ) : ℝ) : ℂ) * (1 + t * τ)⁻¹ := by
+    intro t; unfold airySt_Q; rw [← hc, ← integral_const_mul]
+    refine integral_congr_ae (Eventually.of_forall fun τ => ?_)
+    push_cast; ring
+  simp_rw [hQ]
+  have hc0 : 0 < c := by
+    have := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+    have := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 - 5 / 6 by norm_num)
+    positivity
+  obtain ⟨A, B, hA0, hA1, hE⟩ := airyDer_ray_ratio (b := 1 / 6) (by norm_num) hW hθ hcos N
+    (airyDer_measurable_w (5 / 6) N c)
+    (fun τ hτ => mul_nonneg hc0.le (mul_nonneg (pow_nonneg hτ.1.le _) (airySt_w_nonneg _ hτ)))
+    ((airySt_integrableOn_w (by norm_num) (by norm_num) N).const_mul c)
+  refine ⟨A, B, hA0, hA1, ?_⟩
+  rw [hE]
+  have hcoef : ((-1) ^ N * ∫ τ in Ioo (0 : ℝ) 1, c * (τ ^ N * airySt_w (5 / 6) τ) : ℝ) =
+      airySt_coef (5 / 6) N := by
+    rw [integral_const_mul, airySt_moment (by norm_num) (by norm_num) N, airySt_coef, hc]
+    have h1 : Real.Gamma (1 - 5 / 6) ≠ 0 := (Real.Gamma_pos_of_pos (by norm_num)).ne'
+    have h2 : Real.Gamma (5 / 6) ≠ 0 := (Real.Gamma_pos_of_pos (by norm_num)).ne'
+    field_simp
+  rw [hcoef]; unfold airySt_T; ring
+
+/-- `cos (w - π/4)` and `sin (w - π/4)` through `e^{∓iw}`. -/
+lemma airyDer_cos_sin (w : ℂ) :
+    cos (w - π / 4) = exp (π * I / 4) / 2 * exp (-(w * I)) + exp (-(π * I / 4)) / 2 * exp (w * I) ∧
+    sin (w - π / 4) =
+      I * (exp (π * I / 4) / 2 * exp (-(w * I)) - exp (-(π * I / 4)) / 2 * exp (w * I)) := by
+  have e1 : exp ((w - π / 4) * I) = exp (-(π * I / 4)) * exp (w * I) := by
+    rw [← exp_add]; congr 1; ring
+  have e2 : exp (-(w - π / 4) * I) = exp (π * I / 4) * exp (-(w * I)) := by
+    rw [← exp_add]; congr 1; ring
+  constructor
+  · rw [Complex.cos, e1, e2]; ring
+  · rw [Complex.sin, e1, e2]
+    field_simp
+
+
+/-- `Ai(-z)` through the even and odd parts of the normalized `Ai`, exactly (DLMF 9.7.9). -/
+lemma airyDer_airyAi_neg {z : ℂ} (hz0 : z ≠ 0) (hz3 : |arg z| < 2 * π / 3) :
+    airyAi (-z) = airyOscPrefactor .ai z *
+      (cos (airyZetaComplex z - π / 4) * airyRot_even (fun w => airyAi w / airyPrefactor .ai w) z +
+        sin (airyZetaComplex z - π / 4) *
+          airyRot_odd (fun w => airyAi w / airyPrefactor .ai w) z) := by
+  obtain ⟨u4, um4, u3, um3, u2, um2, u12⟩ := airyRot_u_powers
+  set u := exp (π * I / 12) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  obtain ⟨d1, d2, d3, d4⟩ := airyRot_third_data hz0 hz3
+  have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz0)
+  have hp1 := airyRot_prefactor_ne_zero .ai (mul_ne_zero hz0 (exp_ne_zero ((π / 3 : ℝ) * I)))
+  have hp2 := airyRot_prefactor_ne_zero .ai
+    (mul_ne_zero hz0 (exp_ne_zero ((-(π / 3) : ℝ) * I)))
+  obtain ⟨hc, hs⟩ := airyDer_cos_sin (airyZetaComplex z)
+  rw [hc, hs]
+  rw [airyRot_airyAi_neg z]
+  rw [show airyAi (z * exp ((π / 3 : ℝ) * I)) = airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I)) *
+      (airyAi (z * exp ((π / 3 : ℝ) * I)) / airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I))) by
+      field_simp,
+    show airyAi (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I)) *
+      (airyAi (z * exp ((-(π / 3) : ℝ) * I)) /
+        airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I))) by field_simp]
+  rw [← mul_assoc, ← mul_assoc]
+  rw [airyRot_decomp (fun w => airyAi w / airyPrefactor .ai w)]
+  have ep : exp (π * I / 3) * airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I)) =
+      airyOscPrefactor .ai z * (exp (π * I / 4) / 2 * exp (-(airyZetaComplex z * I))) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d1, d3, u4, u3]
+    field_simp
+    rw [hu]; ring_nf
+  have em : exp (-π * I / 3) * airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyOscPrefactor .ai z * (exp (-(π * I / 4)) / 2 * exp (airyZetaComplex z * I)) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d2, d4, um4, um3, neg_neg]
+    field_simp
+    rw [hu]; ring_nf
+  rw [ep, em]
+  ring
+
+/-- `Bi(-z)` through the even and odd parts of the normalized `Ai`, exactly (DLMF 9.7.11). -/
+lemma airyDer_airyBi_neg {z : ℂ} (hz0 : z ≠ 0) (hz3 : |arg z| < 2 * π / 3) :
+    airyBi (-z) = airyOscPrefactor .ai z *
+      (-sin (airyZetaComplex z - π / 4) *
+          airyRot_even (fun w => airyAi w / airyPrefactor .ai w) z +
+        cos (airyZetaComplex z - π / 4) *
+          airyRot_odd (fun w => airyAi w / airyPrefactor .ai w) z) := by
+  obtain ⟨u4, um4, u3, um3, u2, um2, u12⟩ := airyRot_u_powers
+  set u := exp (π * I / 12) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  obtain ⟨d1, d2, d3, d4⟩ := airyRot_third_data hz0 hz3
+  have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz0)
+  have hp1 := airyRot_prefactor_ne_zero .ai
+    (mul_ne_zero hz0 (exp_ne_zero ((π / 3 : ℝ) * I)))
+  have hp2 := airyRot_prefactor_ne_zero .ai
+    (mul_ne_zero hz0 (exp_ne_zero ((-(π / 3) : ℝ) * I)))
+  have hcs : cos (airyZetaComplex z - π / 4) =
+      I * (exp (-(π * I / 4)) / 2 * exp (-(airyZetaComplex z * I)) -
+        exp (π * I / 4) / 2 * exp (airyZetaComplex z * I)) ∧
+      -sin (airyZetaComplex z - π / 4) = exp (-(π * I / 4)) / 2 * exp (-(airyZetaComplex z * I)) +
+        exp (π * I / 4) / 2 * exp (airyZetaComplex z * I) := by
+    rw [show cos (airyZetaComplex z - π / 4) = sin (airyZetaComplex z - π / 4 + π / 2) from
+        (Complex.sin_add_pi_div_two _).symm,
+      show sin (airyZetaComplex z - π / 4) = -cos (airyZetaComplex z - π / 4 + π / 2) by
+        rw [Complex.cos_add_pi_div_two]; ring]
+    simp only [Complex.cos, Complex.sin]
+    have e1 : exp ((airyZetaComplex z - π / 4 + π / 2) * I) =
+        exp (π * I / 4) * exp (airyZetaComplex z * I) := by
+      rw [← exp_add]; congr 1; ring
+    have e2 : exp (-(airyZetaComplex z - π / 4 + π / 2) * I) =
+        exp (-(π * I / 4)) * exp (-(airyZetaComplex z * I)) := by
+      rw [← exp_add]; congr 1; ring
+    rw [e1, e2]
+    constructor
+    · field_simp
+    · ring
+  rw [hcs.1, hcs.2]
+  rw [airyRot_airyBi_neg z]
+  rw [show airyAi (z * exp ((π / 3 : ℝ) * I)) =
+      airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I)) *
+      (airyAi (z * exp ((π / 3 : ℝ) * I)) /
+        airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I))) by field_simp,
+    show airyAi (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I)) *
+      (airyAi (z * exp ((-(π / 3) : ℝ) * I)) /
+        airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I))) by field_simp]
+  rw [← mul_assoc, ← mul_assoc]
+  rw [airyRot_decomp (fun w => airyAi w / airyPrefactor .ai w)]
+  have ep : exp (-π * I / 6) * airyPrefactor .ai (z * exp ((π / 3 : ℝ) * I)) =
+      airyOscPrefactor .ai z *
+        (exp (-(π * I / 4)) / 2 * exp (-(airyZetaComplex z * I))) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d1, d3, ← hu, um2, um3]
+    field_simp
+  have em : exp (π * I / 6) * airyPrefactor .ai (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyOscPrefactor .ai z * (exp (π * I / 4) / 2 * exp (airyZetaComplex z * I)) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d2, d4, ← hu, u2, u3, neg_neg]
+    field_simp
+  rw [ep, em]
+  ring
+
+
+/-- The even part of `(Σ_{k<2N} c_k (iZ)^{-k} + Σ_{k<2N} c_k (-iZ)^{-k})/2`. -/
+lemma airyDer_sum_even (c : ℕ → ℂ) {Z : ℂ} (hZ : Z ≠ 0) (N : ℕ) :
+    (∑ k ∈ Finset.range (2 * N), c k / (Z * I) ^ k +
+        ∑ k ∈ Finset.range (2 * N), c k / (-(Z * I)) ^ k) / 2 =
+      ∑ j ∈ Finset.range N, (-1 : ℂ) ^ j * c (2 * j) / Z ^ (2 * j) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    have hm : ((-1 : ℂ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+    have hm0 : ((-1 : ℂ) ^ N) ≠ 0 := pow_ne_zero _ (by norm_num)
+    have p1 : (Z * I) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+      rw [mul_pow, pow_mul I, I_sq]; ring
+    have p2 : (-(Z * I)) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+      rw [pow_mul, neg_sq, ← pow_mul, p1]
+    have p3 : (Z * I) ^ (2 * N + 1) = (-1) ^ N * Z ^ (2 * N) * (Z * I) := by
+      rw [pow_succ, p1]
+    have p4 : (-(Z * I)) ^ (2 * N + 1) = -((-1) ^ N * Z ^ (2 * N) * (Z * I)) := by
+      rw [pow_succ, p2]; ring
+    have hZ2 : Z ^ (2 * N) ≠ 0 := pow_ne_zero _ hZ
+    have hs : ∀ f : ℕ → ℂ, ∑ k ∈ Finset.range (2 * (N + 1)), f k =
+        ∑ k ∈ Finset.range (2 * N), f k + f (2 * N) + f (2 * N + 1) := fun f => by
+      rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ]
+    have key : (c (2 * N) / (Z * I) ^ (2 * N) + c (2 * N + 1) / (Z * I) ^ (2 * N + 1) +
+        (c (2 * N) / (-(Z * I)) ^ (2 * N) + c (2 * N + 1) / (-(Z * I)) ^ (2 * N + 1))) / 2 =
+        (-1) ^ N * c (2 * N) / Z ^ (2 * N) := by
+      rw [p1, p2, p3, p4]
+      have hI : I ≠ 0 := I_ne_zero
+      field_simp
+      linear_combination (-(2 * c (2 * N) * Z * I)) * hm
+    rw [hs, hs, Finset.sum_range_succ]
+    linear_combination ih + key
+
+/-- The odd part of `(Σ_{k≤2N} c_k (iZ)^{-k} - Σ_{k≤2N} c_k (-iZ)^{-k})/(2i)`. -/
+lemma airyDer_sum_odd (c : ℕ → ℂ) {Z : ℂ} (hZ : Z ≠ 0) (N : ℕ) :
+    (∑ k ∈ Finset.range (2 * N + 1), c k / (Z * I) ^ k -
+        ∑ k ∈ Finset.range (2 * N + 1), c k / (-(Z * I)) ^ k) / (2 * I) =
+      ∑ j ∈ Finset.range N, -((-1 : ℂ) ^ j * c (2 * j + 1)) / Z ^ (2 * j + 1) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    have hm : ((-1 : ℂ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+    have hm0 : ((-1 : ℂ) ^ N) ≠ 0 := pow_ne_zero _ (by norm_num)
+    have p1 : (Z * I) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+      rw [mul_pow, pow_mul I, I_sq]; ring
+    have p3 : (Z * I) ^ (2 * N + 1) = (-1) ^ N * Z ^ (2 * N) * (Z * I) := by
+      rw [pow_succ, p1]
+    have p4 : (-(Z * I)) ^ (2 * N + 1) = -((-1) ^ N * Z ^ (2 * N) * (Z * I)) := by
+      rw [pow_succ, pow_mul, neg_sq, ← pow_mul, p1]; ring
+    have p5 : (Z * I) ^ (2 * N + 2) = -((-1) ^ N * Z ^ (2 * N) * Z ^ 2) := by
+      rw [pow_succ, pow_succ, p1]; ring_nf; rw [I_sq]; ring
+    have p6 : (-(Z * I)) ^ (2 * N + 2) = -((-1) ^ N * Z ^ (2 * N) * Z ^ 2) := by
+      rw [pow_succ, pow_succ, pow_mul, neg_sq, ← pow_mul, p1]; ring_nf; rw [I_sq]; ring
+    have hZ2 : Z ^ (2 * N) ≠ 0 := pow_ne_zero _ hZ
+    have hs : ∀ f : ℕ → ℂ, ∑ k ∈ Finset.range (2 * (N + 1) + 1), f k =
+        ∑ k ∈ Finset.range (2 * N + 1), f k + f (2 * N + 1) + f (2 * N + 2) := fun f => by
+      rw [show 2 * (N + 1) + 1 = 2 * N + 1 + 1 + 1 by ring, Finset.sum_range_succ,
+        Finset.sum_range_succ]
+    have key : (c (2 * N + 1) / (Z * I) ^ (2 * N + 1) + c (2 * N + 2) / (Z * I) ^ (2 * N + 2) -
+        (c (2 * N + 1) / (-(Z * I)) ^ (2 * N + 1) + c (2 * N + 2) / (-(Z * I)) ^ (2 * N + 2))) /
+          (2 * I) = -((-1) ^ N * c (2 * N + 1)) / Z ^ (2 * N + 1) := by
+      rw [p3, p4, p5, p6]
+      have hI : I ≠ 0 := I_ne_zero
+      field_simp
+      linear_combination (-(2 * c (2 * N + 1) * Z ^ 2 * Z ^ (2 * N))) * hm +
+        (2 * c (2 * N + 1) * Z ^ 2 * Z ^ (2 * N) * (-1) ^ N * (-1) ^ N) * I_sq
+    rw [hs, hs, Finset.sum_range_succ (fun j => -((-1 : ℂ) ^ j * c (2 * j + 1)) / Z ^ (2 * j + 1)) N]
+    linear_combination ih + key
+
+
+/-- The normalized `Ai`. -/
+lemma airyDer_comp_false {x : ℝ} (hx : 0 < x) :
+    airyOscComponent false 0 x = airyRot_even (fun w => airyAi w / airyPrefactor .ai w) x ∧
+    airyOscComponent false 1 x = airyRot_odd (fun w => airyAi w / airyPrefactor .ai w) x := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < 2 * π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  have hA := airyDer_airyAi_neg hx0 harg
+  have hB := airyDer_airyBi_neg hx0 harg
+  rw [airyReal_zeta_ofReal hx] at hA hB
+  have hP : airyOscPrefactor .ai (x : ℂ) ≠ 0 := by
+    simp only [airyOscPrefactor]
+    have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+      ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    have hq : (x : ℂ) ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+    exact one_div_ne_zero (mul_ne_zero hπs hq)
+  have hcs := Complex.cos_sq_add_sin_sq (((airyZeta x : ℝ) : ℂ) - π / 4)
+  simp only [airyOscComponent, Bool.false_eq_true, ite_false, Fin.val_zero, Fin.val_one,
+    ite_true, one_ne_zero]
+  rw [hA, hB]
+  constructor
+  · rw [div_eq_iff hP]
+    linear_combination (airyOscPrefactor .ai (x : ℂ) *
+      airyRot_even (fun w => airyAi w / airyPrefactor .ai w) x) * hcs
+  · rw [div_eq_iff hP]
+    linear_combination (airyOscPrefactor .ai (x : ℂ) *
+      airyRot_odd (fun w => airyAi w / airyPrefactor .ai w) x) * hcs
+
+
+/-- `Ai'` is real on the real axis (as in `DLMF.Airy.ModulusPhase`, which this file does not
+import). -/
+lemma airyDer_aiDeriv_ofReal_im (x : ℝ) : (airyAiDeriv x).im = 0 := by
+  have h := ((hasDerivAt_airyAi x).comp_ofReal).hasFDerivAt.restrictScalars ℝ
+  have h1 : HasDerivAt (fun t : ℝ => (airyAi t).im) (airyAiDeriv x).im x := by
+    have := (Complex.imCLM.hasFDerivAt.comp x h).hasDerivAt
+    simpa [Function.comp_def] using this
+  have h0 : (fun t : ℝ => (airyAi t).im) = fun _ => 0 := funext airyAi_ofReal_im
+  rw [h0] at h1
+  exact (h1.unique (hasDerivAt_const x 0))
+
+/-- `Bi'` is real on the real axis. -/
+lemma airyDer_biDeriv_ofReal_im (x : ℝ) : (airyBiDeriv x).im = 0 := by
+  have h := ((hasDerivAt_airyBi x).comp_ofReal).hasFDerivAt.restrictScalars ℝ
+  have h1 : HasDerivAt (fun t : ℝ => (airyBi t).im) (airyBiDeriv x).im x := by
+    have := (Complex.imCLM.hasFDerivAt.comp x h).hasDerivAt
+    simpa [Function.comp_def] using this
+  have h0 : (fun t : ℝ => (airyBi t).im) = fun _ => 0 := funext airyBi_ofReal_im
+  rw [h0] at h1
+  exact (h1.unique (hasDerivAt_const x 0))
+
+lemma airyDer_eq_ofReal {w : ℂ} (h : w.im = 0) : w = (w.re : ℂ) :=
+  Complex.ext (by simp) (by simp [h])
+
+/-- The oscillatory components are real on the positive axis. -/
+lemma airyDer_comp_im (derivative : Bool) (parity : Fin 2) {x : ℝ} (hx : 0 < x) :
+    (airyOscComponent derivative parity x).im = 0 := by
+  have hneg : (-(x : ℂ)) = ((-x : ℝ) : ℂ) := by push_cast; ring
+  have hA := airyDer_eq_ofReal (w := airyAi (-(x : ℂ))) (by rw [hneg]; exact airyAi_ofReal_im _)
+  have hB := airyDer_eq_ofReal (w := airyBi (-(x : ℂ))) (by rw [hneg]; exact airyBi_ofReal_im _)
+  have hA' := airyDer_eq_ofReal (w := airyAiDeriv (-(x : ℂ)))
+    (by rw [hneg]; exact airyDer_aiDeriv_ofReal_im _)
+  have hB' := airyDer_eq_ofReal (w := airyBiDeriv (-(x : ℂ)))
+    (by rw [hneg]; exact airyDer_biDeriv_ofReal_im _)
+  have hq : (x : ℂ) ^ (1 / 4 : ℂ) = ((x ^ (1 / 4 : ℝ) : ℝ) : ℂ) := by
+    rw [ofReal_cpow hx.le]; push_cast; rfl
+  have hc : cos (((airyZeta x : ℝ) : ℂ) - π / 4) = ((Real.cos (airyZeta x - π / 4) : ℝ) : ℂ) := by
+    push_cast; rfl
+  have hs : sin (((airyZeta x : ℝ) : ℂ) - π / 4) = ((Real.sin (airyZeta x - π / 4) : ℝ) : ℂ) := by
+    push_cast; rfl
+  cases derivative <;> simp only [airyOscComponent, Bool.false_eq_true, ite_false, ite_true,
+    airyOscPrefactor, hq, hc, hs] <;> split_ifs <;>
+    first
+    | rw [hA, hB]; norm_cast
+    | rw [hA', hB']; norm_cast
+
+/-- The truncated oscillatory sums are real on the positive axis. -/
+lemma airyDer_oscSum_im (derivative : Bool) (parity N : ℕ) {x : ℝ} (hx : 0 < x) :
+    (airyOscSum derivative parity N x).im = 0 := by
+  unfold airyOscSum
+  rw [airyReal_zeta_ofReal hx, Complex.im_sum]
+  refine Finset.sum_eq_zero fun k _ => ?_
+  rw [show (-1 : ℂ) ^ k * ((if derivative then airyV (2 * k + parity) else airyU (2 * k + parity) : ℝ) : ℂ)
+      / ((airyZeta x : ℝ) : ℂ) ^ (2 * k + parity) = (((-1) ^ k *
+        (if derivative then airyV (2 * k + parity) else airyU (2 * k + parity)) /
+          airyZeta x ^ (2 * k + parity) : ℝ) : ℂ) by push_cast; rfl]
+  exact ofReal_im _
+
+
+/-- A real number written as `(A + iB) τ` with `τ` real and `0 ≤ A ≤ 1`. -/
+lemma airyDer_assemble {D τ : ℂ} {A B τr : ℝ} (hA0 : 0 ≤ A) (hA1 : A ≤ 1) (hτ : τ = τr)
+    (hD : D = (A + B * I) * τ) (hDim : D.im = 0) : ‖D‖ ≤ ‖τ‖ ∧ D.re = A * τr := by
+  have hre : D.re = A * τr := by rw [hD, hτ]; simp
+  refine ⟨?_, hre⟩
+  rw [airyDer_eq_ofReal hDim, hre, hτ, Complex.norm_real, Complex.norm_real, Real.norm_eq_abs,
+    Real.norm_eq_abs, abs_mul, abs_of_nonneg hA0]
+  exact mul_le_of_le_one_left (abs_nonneg _) hA1
+
+lemma airyDer_coeff_ai (j : ℕ) :
+    airyExpansionCoeff .ai (2 * j) = airyU (2 * j) ∧
+      airyExpansionCoeff .ai (2 * j + 1) = -(airyU (2 * j + 1) : ℂ) := by
+  have h := airyRot_coeff_parity .ai (Or.inl rfl) j
+  simpa using h
+
+/-- Rotating `x > 0` by `±π/3`. -/
+lemma airyDer_rot_data {x : ℝ} (hx : 0 < x) :
+    (x : ℂ) * exp ((π / 3 : ℝ) * I) ≠ 0 ∧ |arg ((x : ℂ) * exp ((π / 3 : ℝ) * I))| ≤ π / 3 ∧
+    (x : ℂ) * exp ((-(π / 3) : ℝ) * I) ≠ 0 ∧ |arg ((x : ℂ) * exp ((-(π / 3) : ℝ) * I))| ≤ π / 3 := by
+  have hπ := Real.pi_pos
+  refine ⟨airyRot_ofReal_mul_exp_ne_zero hx _, ?_, airyRot_ofReal_mul_exp_ne_zero hx _, ?_⟩
+  · rw [airyRot_arg hx (by linarith) (by linarith), abs_of_pos (by positivity)]
+  · rw [airyRot_arg hx (by linarith) (by linarith), abs_neg, abs_of_pos (by positivity)]
+
+/-- **Signed even bound, abstract form.** If the remainders of `Φ` after `2N` terms at
+`x e^{±iπ/3}` are `(A + iB)` times the first neglected term with `0 ≤ A ≤ 1`, and the even part
+minus its truncated series is real, then that difference is enclosed by its first neglected term,
+with the same sign. -/
+lemma airyDer_even_bound (Φ : ℂ → ℂ) (c : ℕ → ℂ) (u : ℕ → ℝ) (hc : ∀ j, c (2 * j) = u (2 * j))
+    {x : ℝ} (hx : 0 < x) (N : ℕ)
+    (hp : ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ Φ ((x : ℂ) * exp ((π / 3 : ℝ) * I)) -
+      ∑ k ∈ Finset.range (2 * N), c k / airyZetaComplex ((x : ℂ) * exp ((π / 3 : ℝ) * I)) ^ k =
+        (A + B * I) * (c (2 * N) / airyZetaComplex ((x : ℂ) * exp ((π / 3 : ℝ) * I)) ^ (2 * N)))
+    (hm : ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ Φ ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) -
+      ∑ k ∈ Finset.range (2 * N), c k / airyZetaComplex ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) ^ k =
+        (A + B * I) * (c (2 * N) / airyZetaComplex ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) ^ (2 * N)))
+    (hre : (airyRot_even Φ x - ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (u (2 * j) : ℂ) / airyZetaComplex x ^ (2 * j)).im = 0) :
+    ‖airyRot_even Φ x - ∑ j ∈ Finset.range N,
+        (-1 : ℂ) ^ j * (u (2 * j) : ℂ) / airyZetaComplex x ^ (2 * j)‖ ≤
+        ‖(-1 : ℂ) ^ N * (u (2 * N) : ℂ) / airyZetaComplex x ^ (2 * N)‖ ∧
+      0 ≤ (airyRot_even Φ x - ∑ j ∈ Finset.range N,
+        (-1 : ℂ) ^ j * (u (2 * j) : ℂ) / airyZetaComplex x ^ (2 * j)).re *
+        ((-1 : ℝ) ^ N * u (2 * N)) := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < 2 * π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  obtain ⟨d1, d2, -, -⟩ := airyRot_third_data hx0 harg
+  obtain ⟨Ap, Bp, hAp0, hAp1, hp⟩ := hp
+  obtain ⟨Am, Bm, hAm0, hAm1, hm⟩ := hm
+  set Z := airyZetaComplex (x : ℂ) with hZ
+  have hZ0 : Z ≠ 0 := airySt_zeta_ne_zero hx0
+  set τr : ℝ := (-1) ^ N * u (2 * N) / airyZeta x ^ (2 * N) with hτr
+  have hτ : (-1 : ℂ) ^ N * (u (2 * N) : ℂ) / Z ^ (2 * N) = (τr : ℂ) := by
+    rw [hZ, airyReal_zeta_ofReal hx, hτr]; push_cast; ring
+  have p1 : (Z * I) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+    rw [mul_pow, pow_mul I, I_sq]; ring
+  have p2 : (-(Z * I)) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+    rw [pow_mul, neg_sq, ← pow_mul, p1]
+  have hm2 : ((-1 : ℂ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+  have hZN : Z ^ (2 * N) ≠ 0 := pow_ne_zero _ hZ0
+  have ht : ∀ W : ℂ, W ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) →
+      c (2 * N) / W ^ (2 * N) = (τr : ℂ) := by
+    intro W hW
+    rw [hW, hc N, ← hτ]
+    field_simp
+    linear_combination (-(u (2 * N) : ℂ)) * hm2
+  rw [d1, ht _ p1] at hp
+  rw [d2, ht _ p2] at hm
+  have hE : airyRot_even Φ x - ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (u (2 * j) : ℂ) / Z ^ (2 * j) =
+      (((Ap + Am) / 2 : ℝ) + ((Bp + Bm) / 2 : ℝ) * I) * (τr : ℂ) := by
+    have hS := airyDer_sum_even c hZ0 N
+    simp only [hc] at hS
+    rw [← hS, airyRot_even]
+    push_cast at hp hm ⊢
+    linear_combination (1 / 2 : ℂ) * hp + (1 / 2 : ℂ) * hm
+  obtain ⟨h1, h2⟩ := airyDer_assemble (by linarith) (by linarith) rfl hE hre
+  refine ⟨by rwa [hτ], ?_⟩
+  rw [h2, hτr]
+  have hz : 0 < airyZeta x := airyZeta_pos hx
+  have : 0 ≤ ((-1 : ℝ) ^ N * u (2 * N)) ^ 2 / airyZeta x ^ (2 * N) := by positivity
+  calc (0 : ℝ) ≤ (Ap + Am) / 2 * (((-1 : ℝ) ^ N * u (2 * N)) ^ 2 / airyZeta x ^ (2 * N)) :=
+        mul_nonneg (by linarith) this
+    _ = _ := by ring
+
+/-- **Signed odd bound, abstract form.** -/
+lemma airyDer_odd_bound (Φ : ℂ → ℂ) (c : ℕ → ℂ) (u : ℕ → ℝ)
+    (hc : ∀ j, c (2 * j + 1) = -(u (2 * j + 1) : ℂ)) {x : ℝ} (hx : 0 < x) (N : ℕ)
+    (hp : ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ Φ ((x : ℂ) * exp ((π / 3 : ℝ) * I)) -
+      ∑ k ∈ Finset.range (2 * N + 1), c k / airyZetaComplex ((x : ℂ) * exp ((π / 3 : ℝ) * I)) ^ k =
+        (A + B * I) * (c (2 * N + 1) /
+          airyZetaComplex ((x : ℂ) * exp ((π / 3 : ℝ) * I)) ^ (2 * N + 1)))
+    (hm : ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ Φ ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) -
+      ∑ k ∈ Finset.range (2 * N + 1), c k /
+        airyZetaComplex ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) ^ k =
+        (A + B * I) * (c (2 * N + 1) /
+          airyZetaComplex ((x : ℂ) * exp ((-(π / 3) : ℝ) * I)) ^ (2 * N + 1)))
+    (hre : (airyRot_odd Φ x - ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (u (2 * j + 1) : ℂ) / airyZetaComplex x ^ (2 * j + 1)).im = 0) :
+    ‖airyRot_odd Φ x - ∑ j ∈ Finset.range N,
+        (-1 : ℂ) ^ j * (u (2 * j + 1) : ℂ) / airyZetaComplex x ^ (2 * j + 1)‖ ≤
+        ‖(-1 : ℂ) ^ N * (u (2 * N + 1) : ℂ) / airyZetaComplex x ^ (2 * N + 1)‖ ∧
+      0 ≤ (airyRot_odd Φ x - ∑ j ∈ Finset.range N,
+        (-1 : ℂ) ^ j * (u (2 * j + 1) : ℂ) / airyZetaComplex x ^ (2 * j + 1)).re *
+        ((-1 : ℝ) ^ N * u (2 * N + 1)) := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < 2 * π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  obtain ⟨d1, d2, -, -⟩ := airyRot_third_data hx0 harg
+  obtain ⟨Ap, Bp, hAp0, hAp1, hp⟩ := hp
+  obtain ⟨Am, Bm, hAm0, hAm1, hm⟩ := hm
+  set Z := airyZetaComplex (x : ℂ) with hZ
+  have hZ0 : Z ≠ 0 := airySt_zeta_ne_zero hx0
+  set τr : ℝ := (-1) ^ N * u (2 * N + 1) / airyZeta x ^ (2 * N + 1) with hτr
+  have hτ : (-1 : ℂ) ^ N * (u (2 * N + 1) : ℂ) / Z ^ (2 * N + 1) = (τr : ℂ) := by
+    rw [hZ, airyReal_zeta_ofReal hx, hτr]; push_cast; ring
+  have p1 : (Z * I) ^ (2 * N) = (-1) ^ N * Z ^ (2 * N) := by
+    rw [mul_pow, pow_mul I, I_sq]; ring
+  have p3 : (Z * I) ^ (2 * N + 1) = (-1) ^ N * Z ^ (2 * N) * (Z * I) := by
+    rw [pow_succ, p1]
+  have p4 : (-(Z * I)) ^ (2 * N + 1) = -((-1) ^ N * Z ^ (2 * N) * (Z * I)) := by
+    rw [pow_succ, pow_mul, neg_sq, ← pow_mul, p1]; ring
+  have hm2 : ((-1 : ℂ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+  have hZN : Z ^ (2 * N) ≠ 0 := pow_ne_zero _ hZ0
+  have hI : I ≠ 0 := I_ne_zero
+  have htp : c (2 * N + 1) / (Z * I) ^ (2 * N + 1) = I * (τr : ℂ) := by
+    rw [p3, hc N, ← hτ, pow_succ]
+    field_simp
+    linear_combination (u (2 * N + 1) : ℂ) * hm2 +
+      (-((u (2 * N + 1) : ℂ) * (-1) ^ N * (-1) ^ N)) * I_sq
+  have htm : c (2 * N + 1) / (-(Z * I)) ^ (2 * N + 1) = -(I * (τr : ℂ)) := by
+    rw [p4, div_neg, ← p3, htp]
+  rw [d1, htp] at hp
+  rw [d2, htm] at hm
+  have hE : airyRot_odd Φ x - ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (u (2 * j + 1) : ℂ) / Z ^ (2 * j + 1) =
+      (((Ap + Am) / 2 : ℝ) + ((Bp + Bm) / 2 : ℝ) * I) * (τr : ℂ) := by
+    have hS := airyDer_sum_odd c hZ0 N
+    have hS' : ∑ j ∈ Finset.range N, (-1 : ℂ) ^ j * (u (2 * j + 1) : ℂ) / Z ^ (2 * j + 1) =
+        ∑ j ∈ Finset.range N, -((-1 : ℂ) ^ j * c (2 * j + 1)) / Z ^ (2 * j + 1) :=
+      Finset.sum_congr rfl fun j _ => by rw [hc j]; ring
+    rw [hS', ← hS, airyRot_odd]
+    rw [div_sub_div_same, div_eq_iff (mul_ne_zero two_ne_zero hI)]
+    push_cast at hp hm ⊢
+    linear_combination hp - hm
+  obtain ⟨h1, h2⟩ := airyDer_assemble (by linarith) (by linarith) rfl hE hre
+  refine ⟨by rwa [hτ], ?_⟩
+  rw [h2, hτr]
+  have hz : 0 < airyZeta x := airyZeta_pos hx
+  have : 0 ≤ ((-1 : ℝ) ^ N * u (2 * N + 1)) ^ 2 / airyZeta x ^ (2 * N + 1) := by positivity
+  calc (0 : ℝ) ≤ (Ap + Am) / 2 *
+        (((-1 : ℝ) ^ N * u (2 * N + 1)) ^ 2 / airyZeta x ^ (2 * N + 1)) :=
+        mul_nonneg (by linarith) this
+    _ = _ := by ring
+
+/-- The remainder of the normalized `Ai` in the form used by the abstract bounds. -/
+lemma airyDer_ai_ratio' {w : ℂ} (hw : w ≠ 0) (harg : |arg w| ≤ π / 3) (M : ℕ) :
+    ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ airyAi w / airyPrefactor .ai w -
+      ∑ k ∈ Finset.range M, airyExpansionCoeff .ai k / airyZetaComplex w ^ k =
+        (A + B * I) * (airyExpansionCoeff .ai M / airyZetaComplex w ^ M) := by
+  obtain ⟨A, B, h0, h1, h⟩ := airyDer_ai_ratio hw harg M
+  exact ⟨A, B, h0, h1, by rw [← h]; rfl⟩
+
+/-- DLMF §9.7(iii) for the even subseries of the `Ai`, `Bi` oscillatory expansions. -/
+lemma airyDer_osc_even {x : ℝ} (hx : 0 < x) (N : ℕ) :
+    ‖airyOscComponent false 0 x - airyOscSum false 0 N x‖ ≤
+        ‖(-1 : ℂ) ^ N * (airyU (2 * N) : ℂ) / airyZetaComplex x ^ (2 * N)‖ ∧
+      0 ≤ (airyOscComponent false 0 x - airyOscSum false 0 N x).re *
+        ((-1 : ℝ) ^ N * airyU (2 * N)) := by
+  obtain ⟨hp0, hpa, hm0, hma⟩ := airyDer_rot_data hx
+  have hS : airyOscSum false 0 N x = ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (airyU (2 * j) : ℂ) / airyZetaComplex x ^ (2 * j) := by
+    simp [airyOscSum]
+  have hre := (airyDer_comp_im false 0 hx)
+  have hre' := airyDer_oscSum_im false 0 N hx
+  rw [hS] at hre'
+  rw [(airyDer_comp_false hx).1] at hre ⊢
+  rw [hS]
+  exact airyDer_even_bound _ (airyExpansionCoeff .ai) airyU (fun j => (airyDer_coeff_ai j).1) hx N
+    (airyDer_ai_ratio' hp0 hpa _) (airyDer_ai_ratio' hm0 hma _)
+    (by rw [sub_im, hre, hre', sub_zero])
+
+/-- DLMF §9.7(iii) for the odd subseries of the `Ai`, `Bi` oscillatory expansions. -/
+lemma airyDer_osc_odd {x : ℝ} (hx : 0 < x) (N : ℕ) :
+    ‖airyOscComponent false 1 x - airyOscSum false 1 N x‖ ≤
+        ‖(-1 : ℂ) ^ N * (airyU (2 * N + 1) : ℂ) / airyZetaComplex x ^ (2 * N + 1)‖ ∧
+      0 ≤ (airyOscComponent false 1 x - airyOscSum false 1 N x).re *
+        ((-1 : ℝ) ^ N * airyU (2 * N + 1)) := by
+  obtain ⟨hp0, hpa, hm0, hma⟩ := airyDer_rot_data hx
+  have hS : airyOscSum false 1 N x = ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (airyU (2 * j + 1) : ℂ) / airyZetaComplex x ^ (2 * j + 1) := by
+    simp [airyOscSum]
+  have hre := (airyDer_comp_im false 1 hx)
+  have hre' := airyDer_oscSum_im false 1 N hx
+  rw [hS] at hre'
+  rw [(airyDer_comp_false hx).2] at hre ⊢
+  rw [hS]
+  exact airyDer_odd_bound _ (airyExpansionCoeff .ai) airyU (fun j => (airyDer_coeff_ai j).2) hx N
+    (airyDer_ai_ratio' hp0 hpa _) (airyDer_ai_ratio' hm0 hma _)
+    (by rw [sub_im, hre, hre', sub_zero])
+
+
+
+/-- The binomial coefficients of `(1+t)^{1/6}`: `d_k = (-1)^k (-1/6)_k / k!`. -/
+def airyDer_d (k : ℕ) : ℝ :=
+  (-1) ^ k * (ascPochhammer ℝ k).eval (-1 / 6) / k.factorial
+
+lemma airyDer_c_eq (k : ℕ) :
+    airySt_coef (5 / 6) k = (-1) ^ k * (ascPochhammer ℝ k).eval (5 / 6) / k.factorial := by
+  have h := airySt_gamma_ratio_real k (x := 5 / 6) (by norm_num)
+  have g := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+  unfold airySt_coef
+  rw [Real.Gamma_nat_eq_factorial, ← h]
+  have hf : (k.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  field_simp
+
+lemma airyDer_d_zero : airyDer_d 0 = 1 := by simp [airyDer_d]
+
+lemma airyDer_c_zero : airySt_coef (5 / 6) 0 = 1 := by simp [airyDer_c_eq]
+
+lemma airyDer_d_succ (k : ℕ) :
+    airyDer_d (k + 1) = airySt_coef (5 / 6) (k + 1) + airySt_coef (5 / 6) k := by
+  rw [airyDer_c_eq, airyDer_c_eq]
+  unfold airyDer_d
+  have h1 : (ascPochhammer ℝ (k + 1)).eval (-1 / 6) = (-1 / 6) * (ascPochhammer ℝ k).eval (5 / 6) := by
+    rw [ascPochhammer_succ_left, Polynomial.eval_mul, Polynomial.eval_X, Polynomial.eval_comp,
+      Polynomial.eval_add, Polynomial.eval_X, Polynomial.eval_one]
+    norm_num
+  rw [h1, ascPochhammer_succ_eval, Nat.factorial_succ]
+  have hf : (k.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  push_cast
+  field_simp
+  ring
+
+/-- `Σ_{k≤N} d_k t^k = (1+t) Σ_{k≤N} c_k t^k - c_N t^{N+1}`. -/
+lemma airyDer_sum_id (t : ℂ) (N : ℕ) :
+    ∑ k ∈ Finset.range (N + 1), (airyDer_d k : ℂ) * t ^ k =
+      (1 + t) * ∑ k ∈ Finset.range (N + 1), (airySt_coef (5 / 6) k : ℂ) * t ^ k -
+        (airySt_coef (5 / 6) N : ℂ) * t ^ (N + 1) := by
+  induction N with
+  | zero => simp [airyDer_d_zero, airyDer_c_zero]
+  | succ N ih =>
+    rw [Finset.sum_range_succ, ih, Finset.sum_range_succ (fun k => (airySt_coef (5 / 6) k : ℂ) * t ^ k)
+      (N + 1), airyDer_d_succ]
+    push_cast; ring
+
+
+/-- The weight `τ^N (1-τ) τ^{-1/6} (1-τ)^{-5/6}` of the `(1+t)^{1/6}` remainder, normalized. -/
+def airyDer_g (N : ℕ) (τ : ℝ) : ℝ :=
+  1 / (Real.Gamma (5 / 6) * Real.Gamma (1 - 5 / 6)) * (τ ^ N * (1 - τ) * airySt_w (5 / 6) τ)
+
+lemma airyDer_g_nonneg (N : ℕ) {τ : ℝ} (hτ : τ ∈ Ioo (0 : ℝ) 1) : 0 ≤ airyDer_g N τ := by
+  have := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+  have := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 - 5 / 6 by norm_num)
+  unfold airyDer_g
+  exact mul_nonneg (by positivity) (mul_nonneg (mul_nonneg (pow_nonneg hτ.1.le _)
+    (by linarith [hτ.2])) (airySt_w_nonneg _ hτ))
+
+lemma airyDer_g_measurable (N : ℕ) : Measurable (airyDer_g N) := by
+  unfold airyDer_g airySt_w; fun_prop
+
+lemma airyDer_g_eq (N : ℕ) {τ : ℝ} :
+    τ ^ N * (1 - τ) * airySt_w (5 / 6) τ = τ ^ N * airySt_w (5 / 6) τ -
+      τ ^ (N + 1) * airySt_w (5 / 6) τ := by ring
+
+lemma airyDer_integrableOn_g0 (N : ℕ) :
+    IntegrableOn (fun τ : ℝ => τ ^ N * (1 - τ) * airySt_w (5 / 6) τ) (Ioo 0 1) := by
+  have h := (airySt_integrableOn_w (a := 5 / 6) (by norm_num) (by norm_num) N).sub
+    (airySt_integrableOn_w (a := 5 / 6) (by norm_num) (by norm_num) (N + 1))
+  exact h.congr_fun (fun τ _ => (airyDer_g_eq N).symm) measurableSet_Ioo
+
+lemma airyDer_integrableOn_g (N : ℕ) : IntegrableOn (airyDer_g N) (Ioo 0 1) :=
+  (airyDer_integrableOn_g0 N).const_mul _
+
+/-- **The `(1+t)^{1/6}` binomial remainder in Stieltjes form**: after `N+1` terms it is
+`-(-t)^{N+1} ∫₀¹ g_N(τ) (1+tτ)⁻¹ dτ` with the nonnegative weight `g_N`. -/
+lemma airyDer_binom_rem {t : ℂ} (ht : 1 + t ∈ slitPlane) (N : ℕ) :
+    (1 + t) ^ (((1 / 6 : ℝ)) : ℂ) - ∑ k ∈ Finset.range (N + 1), (airyDer_d k : ℂ) * t ^ k =
+      -((-t) ^ (N + 1) * ∫ τ in Ioo (0 : ℝ) 1, (airyDer_g N τ : ℂ) * (1 + t * τ)⁻¹) := by
+  have h1t : 1 + t ≠ 0 := slitPlane_ne_zero ht
+  have hpow : (1 + t) ^ (((1 / 6 : ℝ)) : ℂ) = (1 + t) * (1 + t) ^ (-(((5 / 6 : ℝ)) : ℂ)) := by
+    rw [show (((1 / 6 : ℝ)) : ℂ) = 1 + -(((5 / 6 : ℝ)) : ℂ) by push_cast; ring, cpow_add _ _ h1t,
+      cpow_one]
+  have hb := airySt_binom_rem (a := 5 / 6) (by norm_num) (by norm_num) ht (N + 1)
+  set c' : ℝ := 1 / (Real.Gamma (5 / 6) * Real.Gamma (1 - 5 / 6)) with hc'
+  have hne : ∀ τ ∈ Ioo (0 : ℝ) 1, 1 + t * τ ≠ 0 := fun τ hτ =>
+    slitPlane_ne_zero (airySt_one_add_mul_mem ht (Ioo_subset_Icc_self hτ))
+  have hcont : ContinuousOn (fun τ : ℝ => (1 + t * τ)⁻¹) (Icc 0 1) :=
+    ContinuousOn.inv₀ (by fun_prop) fun τ hτ => slitPlane_ne_zero (airySt_one_add_mul_mem ht hτ)
+  have hi1 : IntegrableOn (fun τ : ℝ => ((τ ^ N * airySt_w (5 / 6) τ : ℝ) : ℂ)) (Ioo 0 1) :=
+    (airySt_integrableOn_w (by norm_num) (by norm_num) N).ofReal
+  have hi2 : IntegrableOn (fun τ : ℝ => ((τ ^ N * (1 - τ) * airySt_w (5 / 6) τ : ℝ) : ℂ) *
+      (1 + t * τ)⁻¹) (Ioo 0 1) :=
+    ((airyDer_integrableOn_g0 N).ofReal).mul_continuousOn_of_subset hcont measurableSet_Ioo
+      isCompact_Icc Ioo_subset_Icc_self
+  have hkey : (1 + t) * ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ (N + 1) * airySt_w (5 / 6) τ : ℝ) : ℂ) *
+      (1 + t * τ)⁻¹ = (∫ τ in Ioo (0 : ℝ) 1, ((τ ^ N * airySt_w (5 / 6) τ : ℝ) : ℂ)) -
+        ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ N * (1 - τ) * airySt_w (5 / 6) τ : ℝ) : ℂ) *
+          (1 + t * τ)⁻¹ := by
+    rw [← integral_const_mul, ← integral_sub hi1 hi2]
+    refine setIntegral_congr_fun measurableSet_Ioo fun τ hτ => ?_
+    have h := hne τ hτ
+    push_cast
+    field_simp
+    ring
+  have hmom : (c' : ℂ) * ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ N * airySt_w (5 / 6) τ : ℝ) : ℂ) =
+      (-1) ^ N * (airySt_coef (5 / 6) N : ℂ) := by
+    have h1 : Real.Gamma (1 - 5 / 6) ≠ 0 := (Real.Gamma_pos_of_pos (by norm_num)).ne'
+    have h2 : Real.Gamma (5 / 6) ≠ 0 := (Real.Gamma_pos_of_pos (by norm_num)).ne'
+    have h3 : Real.Gamma (N + 1) ≠ 0 := (Real.Gamma_pos_of_pos (by positivity)).ne'
+    have hr : c' * (Real.Gamma (5 / 6 + N) * Real.Gamma (1 - 5 / 6) / Real.Gamma (N + 1)) =
+        (-1) ^ N * airySt_coef (5 / 6) N := by
+      rw [airySt_coef, show (-1 : ℝ) ^ N * ((-1) ^ N * Real.Gamma (5 / 6 + N) /
+          (Real.Gamma (5 / 6) * Real.Gamma (N + 1))) = ((-1) ^ N * (-1) ^ N) *
+            Real.Gamma (5 / 6 + N) / (Real.Gamma (5 / 6) * Real.Gamma (N + 1)) by ring,
+        ← mul_pow, hc']
+      norm_num
+      field_simp
+    rw [integral_complex_ofReal, airySt_moment (by norm_num) (by norm_num) N]
+    exact_mod_cast hr
+  have hg : ∫ τ in Ioo (0 : ℝ) 1, (airyDer_g N τ : ℂ) * (1 + t * τ)⁻¹ = (c' : ℂ) *
+      ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ N * (1 - τ) * airySt_w (5 / 6) τ : ℝ) : ℂ) * (1 + t * τ)⁻¹ := by
+    rw [← integral_const_mul]
+    refine integral_congr_ae (Eventually.of_forall fun τ => ?_)
+    simp only [airyDer_g, hc']; push_cast; ring
+  rw [hpow, airyDer_sum_id, hg]
+  have hb' : (1 + t) ^ (-(((5 / 6 : ℝ)) : ℂ)) = ∑ k ∈ Finset.range (N + 1),
+      (airySt_coef (5 / 6) k : ℂ) * t ^ k + (-t) ^ (N + 1) * ((c' : ℂ) *
+        ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ (N + 1) * airySt_w (5 / 6) τ : ℝ) : ℂ) * (1 + t * τ)⁻¹) := by
+    rw [← hb]; ring
+  rw [hb']
+  have e : (1 + t) * ((-t) ^ (N + 1) * ((c' : ℂ) * ∫ τ in Ioo (0 : ℝ) 1,
+      ((τ ^ (N + 1) * airySt_w (5 / 6) τ : ℝ) : ℂ) * (1 + t * τ)⁻¹)) =
+      (-t) ^ (N + 1) * ((c' : ℂ) * ∫ τ in Ioo (0 : ℝ) 1, ((τ ^ N * airySt_w (5 / 6) τ : ℝ) : ℂ)) -
+      (-t) ^ (N + 1) * ((c' : ℂ) * ∫ τ in Ioo (0 : ℝ) 1,
+        ((τ ^ N * (1 - τ) * airySt_w (5 / 6) τ : ℝ) : ℂ) * (1 + t * τ)⁻¹) := by
+    rw [← mul_sub, ← mul_sub, ← hkey]; ring
+  have hm : ((-1 : ℂ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+  rw [mul_add, e, hmom, neg_pow t (N + 1)]
+  linear_combination (-(airySt_coef (5 / 6) N : ℂ) * t ^ (N + 1)) * hm
+
+
+/-- `2 · 3^{1/6} e^{(4/3)L} = e^{(7/6)(log 2 + L)} z^{1/4}`. -/
+lemma airyDer_norm_const {z : ℂ} (hz : z ≠ 0) :
+    2 * (3 : ℂ) ^ (1 / 6 : ℂ) * exp (4 / 3 * airyLogZeta z) =
+      exp ((7 / 6 : ℂ) * (log 2 + airyLogZeta z)) * z ^ (1 / 4 : ℂ) := by
+  rw [cpow_def_of_ne_zero hz, cpow_def_of_ne_zero (by norm_num : (3 : ℂ) ≠ 0), airyLogZeta,
+    log_two_thirds]
+  calc 2 * exp (log 3 * (1 / 6)) * exp (4 / 3 * (log 2 - log 3 + 3 / 2 * log z))
+      = exp (log 2) * exp (log 3 * (1 / 6)) * exp (4 / 3 * (log 2 - log 3 + 3 / 2 * log z)) := by
+        rw [exp_log two_ne_zero]
+    _ = _ := by simp only [← exp_add]; congr 1; ring
+
+/-- **The normalized `Ai'` as a rotated Laplace integral** of `t^{1/6}(1+t)^{1/6}`. -/
+lemma airyDer_G_eq {z : ℂ} (hz : z ≠ 0) {θ : ℝ} (hθ : |θ| < π)
+    (hzθ : |3 / 2 * arg z + θ| < π / 2) :
+    airyAiDeriv z / airyPrefactor .aiDeriv z = exp ((7 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+      (1 / Gamma ((7 / 6 : ℝ) : ℂ) * (exp (θ * I) *
+        airyRot_lap (7 / 6) (1 / 6) θ (exp (log 2 + airyLogZeta z + θ * I)))) := by
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz)
+  rw [airyRot_eq_of_anchor (hf := fun w => (hasDerivAt_airyAiDeriv w).differentiableAt) _ _
+    (7 / 6) (1 / 6) (by norm_num) (fun w hw harg => airyRot_airyAiDeriv_anchor hw harg) hθ hz hzθ]
+  have hN : exp ((7 / 6 : ℂ) * (log 2 + airyLogZeta z)) =
+      2 * (3 : ℂ) ^ (1 / 6 : ℂ) * exp (4 / 3 * airyLogZeta z) / z ^ (1 / 4 : ℂ) :=
+    (eq_div_iff hq).mpr (airyDer_norm_const hz).symm
+  rw [hN]
+  simp only [airyPrefactor]
+  generalize airyRot_lap (7 / 6) (1 / 6) θ (exp (log 2 + airyLogZeta z + θ * I)) = K
+  have hG : Gamma ((7 / 6 : ℝ) : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp)
+  rw [exp_sub, exp_neg]
+  have hE : exp (airyZetaComplex z) ≠ 0 := exp_ne_zero _
+  field_simp
+
+/-- The `Ai'` coefficients: `d_k Γ(7/6+k)/Γ(7/6) = (-1)^k v_k 2^k`. -/
+lemma airyDer_coef_aiDeriv (k : ℕ) :
+    airyDer_d k * Real.Gamma (7 / 6 + k) / Real.Gamma (7 / 6) = (-1) ^ k * airyV k * 2 ^ k := by
+  have h1 := airySt_gamma_ratio_real k (x := 7 / 6) (by norm_num)
+  rw [mul_div_assoc, h1, airyRot_poch_seven_sixths]
+  unfold airyDer_d airyV airyU
+  rw [← airyRot_poch_neg_sixth]
+  have hf : (k.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  have h6 : (1 - 6 * (k : ℝ)) ≠ 0 := by
+    intro h
+    have h' : (6 * k : ℝ) = 1 := by linarith
+    have : (6 * k : ℕ) = 1 := by exact_mod_cast h'
+    omega
+  field_simp
+
+/-- The terms of the `Ai'` ray expansion. -/
+def airyDer_T (θ W : ℝ) (k : ℕ) : ℂ :=
+  (airyDer_d k : ℂ) * exp (θ * I * (((7 / 6 : ℝ) : ℂ) - 1 + k)) *
+    (Gamma (((7 / 6 : ℝ) : ℂ) + k) * (W : ℂ) ^ (-(((7 / 6 : ℝ) : ℂ) + k)))
+
+/-- The `Ai'` ray Laplace integral of `t^{1/6}(1+t)^{1/6}`. -/
+def airyDer_L (θ W : ℝ) : ℂ :=
+  ∫ r in Ioi (0 : ℝ), Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) *
+    (1 + (r : ℂ) * exp (θ * I)) ^ (((1 / 6 : ℝ)) : ℂ))
+
+lemma airyDer_lap_eq (θ W : ℝ) :
+    airyRot_lap (7 / 6) (1 / 6) θ (W : ℂ) = airyDer_L θ W := by
+  unfold airyRot_lap airyDer_L airyRot_kernel
+  rfl
+
+lemma airyDer_hint {θ W : ℝ} (hθ : |θ| < π) (hW : 0 < W) :
+    IntegrableOn (fun r : ℝ => Complex.exp (-(W * r)) *
+      (((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) *
+        (1 + (r : ℂ) * exp (θ * I)) ^ (((1 / 6 : ℝ)) : ℂ))) (Ioi 0) := by
+  have h := airyRot_integrableOn (7 / 6) (1 / 6) (by norm_num) hθ hW
+  refine h.congr_fun (fun r _ => ?_) measurableSet_Ioi
+  simp only [airyRot_kernel, Complex.real_smul, ofReal_exp]
+  push_cast; ring_nf
+
+/-- **Exact remainder of the `Ai'` ray expansion** after `N+1` terms. -/
+lemma airyDer_rem_repr {W θ : ℝ} (hW : 0 < W) (hθ : |θ| < π) (N : ℕ) :
+    airyDer_L θ W - ∑ k ∈ Finset.range (N + 1), airyDer_T θ W k =
+      -∫ r in Ioi (0 : ℝ), Complex.exp (-(W * r)) *
+        (((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) *
+        ((-((r : ℂ) * exp (θ * I))) ^ (N + 1) * ∫ τ in Ioo (0 : ℝ) 1,
+          (airyDer_g N τ : ℂ) * (1 + ((r : ℂ) * exp (θ * I)) * τ)⁻¹)) := by
+  have hb : (0 : ℝ) < 7 / 6 := by norm_num
+  have hT : ∀ k, airyDer_T θ W k = ∫ r in Ioi (0 : ℝ), (airyDer_d k : ℂ) *
+      (Complex.exp (-(W * r)) * (((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) *
+        ((r : ℂ) * exp (θ * I)) ^ k)) := by
+    intro k
+    rw [integral_const_mul, airySt_term_integral hb hW hθ k, airyDer_T]
+    ring
+  simp_rw [hT]
+  rw [← integral_finsetSum _ (fun k _ => (airySt_term_integrableOn hb hW hθ k).const_mul _),
+    airyDer_L, ← integral_neg, ← integral_sub (airyDer_hint hθ hW) (integrable_finsetSum _ fun k _ =>
+      (airySt_term_integrableOn hb hW hθ k).const_mul _)]
+  refine setIntegral_congr_fun measurableSet_Ioi (fun r hr => ?_)
+  have hr : (0 : ℝ) ≤ r := le_of_lt hr
+  have h := airyDer_binom_rem (airySt_one_add_mem hr hθ) N
+  have hs : ∑ k ∈ Finset.range (N + 1), (airyDer_d k : ℂ) * (Complex.exp (-(W * r)) *
+      (((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) * ((r : ℂ) * exp (θ * I)) ^ k)) =
+      Complex.exp (-(W * r)) * ((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1) *
+        ∑ k ∈ Finset.range (N + 1), (airyDer_d k : ℂ) * ((r : ℂ) * exp (θ * I)) ^ k := by
+    rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun k _ => by ring
+  rw [hs]
+  linear_combination (Complex.exp (-(W * r)) *
+    ((r : ℂ) * exp (θ * I)) ^ (((7 / 6 : ℝ) : ℂ) - 1)) * h
+
+
+/-- **Ai' remainder as a ray remainder** on `|arg z| < 2π/3`, with ray `θ = -(3/2) arg z`. -/
+lemma airyDer_aiDeriv_remainder {z : ℂ} (hz : z ≠ 0) (harg : |arg z| < 2 * π / 3) (N : ℕ) :
+    airyRemainder .aiDeriv N z = exp ((7 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+        (1 / Gamma ((7 / 6 : ℝ) : ℂ)) * exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) *
+      (airyDer_L (-(3 / 2 * arg z)) (Real.exp (log 2 + airyLogZeta z).re) -
+        ∑ k ∈ Finset.range N, airyDer_T (-(3 / 2 * arg z))
+          (Real.exp (log 2 + airyLogZeta z).re) k) ∧
+    ∀ k : ℕ, airyExpansionCoeff .aiDeriv k / airyZetaComplex z ^ k =
+      exp ((7 / 6 : ℂ) * (log 2 + airyLogZeta z)) *
+        (1 / Gamma ((7 / 6 : ℝ) : ℂ)) * exp (((-(3 / 2 * arg z) : ℝ) : ℂ) * I) *
+      airyDer_T (-(3 / 2 * arg z)) (Real.exp (log 2 + airyLogZeta z).re) k := by
+  set θ : ℝ := -(3 / 2 * arg z) with hθdef
+  set ℓ := log 2 + airyLogZeta z with hℓdef
+  set W : ℝ := Real.exp ℓ.re with hWdef
+  have hθ : |θ| < π := by
+    rw [hθdef, abs_neg, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 3 / 2)]; linarith
+  have hzθ : |3 / 2 * arg z + θ| < π / 2 := by
+    rw [hθdef, add_neg_cancel, abs_zero]; positivity
+  have hF := airyDer_G_eq hz hθ hzθ
+  rw [airySt_W_real, airyDer_lap_eq] at hF
+  have hG : Gamma ((7 / 6 : ℝ) : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp)
+  have hcT : ∀ k : ℕ, airyExpansionCoeff .aiDeriv k / airyZetaComplex z ^ k =
+      exp ((7 / 6 : ℂ) * ℓ) * (1 / Gamma ((7 / 6 : ℝ) : ℂ)) * exp (θ * I) *
+        airyDer_T θ W k := by
+    intro k
+    have hℓ : ℓ = (ℓ.re : ℂ) + ((-θ : ℝ) : ℂ) * I := by
+      have h := im_log_two_add_airyLogZeta z
+      simp only [add_im] at h
+      apply Complex.ext
+      · simp
+      · simp [hℓdef, hθdef, h]
+    have hWc : (W : ℂ) ^ (-(((7 / 6 : ℝ) : ℂ) + k)) =
+        exp (-(((7 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) := by
+      rw [hWdef, ofReal_exp, cpow_def_of_ne_zero (exp_ne_zero _), log_exp (by simp [Real.pi_pos])
+        (by simp [Real.pi_pos.le]), mul_comm]
+    have hζ : airyZetaComplex z = exp ℓ / 2 := by
+      rw [hℓdef, exp_log_two_add_airyLogZeta hz]; ring
+    have hc := airyDer_coef_aiDeriv k
+    have hgk : Gamma (((7 / 6 : ℝ) : ℂ) + k) = ((Real.Gamma (7 / 6 + k) : ℝ) : ℂ) := by
+      rw [← Complex.Gamma_ofReal]; push_cast; rfl
+    have hg0 : Gamma ((7 / 6 : ℝ) : ℂ) = ((Real.Gamma (7 / 6) : ℝ) : ℂ) := by
+      rw [← Complex.Gamma_ofReal]
+    have hc' : ((-1 : ℂ) ^ k * (airyV k : ℂ)) = (airyDer_d k : ℂ) *
+        Gamma (((7 / 6 : ℝ) : ℂ) + k) / Gamma ((7 / 6 : ℝ) : ℂ) / 2 ^ k := by
+      rw [hgk, hg0]
+      have : ((airyDer_d k * Real.Gamma (7 / 6 + k) / Real.Gamma (7 / 6) : ℝ) : ℂ) =
+          (((-1) ^ k * airyV k * 2 ^ k : ℝ) : ℂ) := by rw [hc]
+      push_cast at this
+      rw [this]; field_simp
+    have key : exp ((7 / 6 : ℂ) * ℓ) * exp (θ * I) * exp (θ * I * (((7 / 6 : ℝ) : ℂ) - 1 + k)) *
+        exp (-(((7 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) * exp (k * ℓ) = 1 := by
+      rw [← exp_add, ← exp_add, ← exp_add, ← exp_add]
+      convert exp_zero using 2
+      generalize ℓ.re = R at hℓ ⊢
+      rw [hℓ]; push_cast; ring
+    simp only [airyExpansionCoeff, airyDer_T]
+    rw [hc', hWc, hζ, div_pow, ← Complex.exp_nat_mul]
+    generalize exp ((7 / 6 : ℂ) * ℓ) = E1 at key ⊢
+    generalize exp (θ * I) = E2 at key ⊢
+    generalize exp (θ * I * (((7 / 6 : ℝ) : ℂ) - 1 + k)) = E3 at key ⊢
+    generalize exp (-(((7 / 6 : ℝ) : ℂ) + k) * (ℓ.re : ℂ)) = E4 at key ⊢
+    have hE5 : exp (k * ℓ) ≠ 0 := exp_ne_zero _
+    generalize exp (k * ℓ) = E5 at key hE5 ⊢
+    field_simp
+    linear_combination (-((airyDer_d k : ℂ) * Gamma (((7 / 6 : ℝ) : ℂ) + k))) * key
+  refine ⟨?_, hcT⟩
+  rw [airyRemainder, airyFunction, hF, airyExponentialSum]
+  simp_rw [hcT]
+  rw [← Finset.mul_sum]
+  ring
+
+/-- `∫ g_N = (-1)^N d_{N+1}`. -/
+lemma airyDer_int_g (N : ℕ) :
+    ∫ τ in Ioo (0 : ℝ) 1, airyDer_g N τ = (-1) ^ N * airyDer_d (N + 1) := by
+  unfold airyDer_g
+  rw [integral_const_mul, setIntegral_congr_fun measurableSet_Ioo (fun τ _ => airyDer_g_eq N),
+    integral_sub (airySt_integrableOn_w (by norm_num) (by norm_num) N)
+      (airySt_integrableOn_w (by norm_num) (by norm_num) (N + 1)),
+    airySt_moment (by norm_num) (by norm_num), airySt_moment (by norm_num) (by norm_num)]
+  have h1 := airySt_gamma_ratio_real N (x := 5 / 6) (by norm_num)
+  have h2 := airySt_gamma_ratio_real (N + 1) (x := 5 / 6) (by norm_num)
+  have g1 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 5 / 6 by norm_num)
+  have g2 := Real.Gamma_pos_of_pos (show (0 : ℝ) < 1 - 5 / 6 by norm_num)
+  rw [div_eq_iff g1.ne'] at h1 h2
+  rw [h1, h2, Real.Gamma_nat_eq_factorial, Real.Gamma_nat_eq_factorial]
+  unfold airyDer_d
+  have h3 : (ascPochhammer ℝ (N + 1)).eval (-1 / 6) =
+      (-1 / 6) * (ascPochhammer ℝ N).eval (5 / 6) := by
+    rw [ascPochhammer_succ_left, Polynomial.eval_mul, Polynomial.eval_X, Polynomial.eval_comp,
+      Polynomial.eval_add, Polynomial.eval_X, Polynomial.eval_one]
+    norm_num
+  rw [h3, ascPochhammer_succ_eval, Nat.factorial_succ]
+  have hf : (N.factorial : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr N.factorial_ne_zero
+  have hm : ((-1 : ℝ) ^ N) * (-1) ^ N = 1 := by rw [← mul_pow]; norm_num
+  push_cast
+  field_simp
+  linear_combination (-(ascPochhammer ℝ N).eval (5 / 6)) * hm
+
+
+/-- **The Ai' remainder on `|arg z| ≤ π/3`** after `N+1` terms is `(A + iB)` times the first
+neglected term, `0 ≤ A ≤ 1`. -/
+lemma airyDer_aiDeriv_ratio {z : ℂ} (hz : z ≠ 0) (harg : |arg z| ≤ π / 3) (N : ℕ) :
+    ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ airyRemainder .aiDeriv (N + 1) z =
+      (A + B * I) * (airyExpansionCoeff .aiDeriv (N + 1) / airyZetaComplex z ^ (N + 1)) := by
+  have hπ := Real.pi_pos
+  have harg' : |arg z| < 2 * π / 3 := by linarith
+  obtain ⟨h1, h2⟩ := airyDer_aiDeriv_remainder hz harg' (N + 1)
+  have hθ := airySt_theta_lt harg'
+  have hcos : 0 ≤ Real.cos (-(3 / 2 * arg z)) := by
+    rw [Real.cos_neg]
+    exact Real.cos_nonneg_of_mem_Icc ⟨by linarith [(abs_le.mp harg).1],
+      by linarith [(abs_le.mp harg).2]⟩
+  have hW : 0 < Real.exp (log 2 + airyLogZeta z).re := Real.exp_pos _
+  rw [h1, h2, airyDer_rem_repr hW hθ N]
+  obtain ⟨A, B, hA0, hA1, hE⟩ := airyDer_ray_ratio (b := 7 / 6) (by norm_num) hW hθ hcos (N + 1)
+    (airyDer_g_measurable N) (fun τ hτ => airyDer_g_nonneg N hτ) (airyDer_integrableOn_g N)
+  refine ⟨A, B, hA0, hA1, ?_⟩
+  have hs : ((-1 : ℝ) ^ (N + 1) * ((-1) ^ N * airyDer_d (N + 1))) = -airyDer_d (N + 1) := by
+    rw [pow_succ, show (-1 : ℝ) ^ N * -1 * ((-1) ^ N * airyDer_d (N + 1)) =
+      -(((-1) ^ N * (-1) ^ N) * airyDer_d (N + 1)) by ring, ← mul_pow]
+    norm_num
+  rw [hE, airyDer_int_g, hs]
+  unfold airyDer_T
+  push_cast
+  ring
+
+/-- `cos (w - π/4)` and `-sin (w - π/4)` through `e^{∓iw}`, second form. -/
+lemma airyDer_cos_sin' (w : ℂ) :
+    cos (w - π / 4) = I * (exp (-(π * I / 4)) / 2 * exp (-(w * I)) -
+        exp (π * I / 4) / 2 * exp (w * I)) ∧
+      -sin (w - π / 4) = exp (-(π * I / 4)) / 2 * exp (-(w * I)) +
+        exp (π * I / 4) / 2 * exp (w * I) := by
+  rw [show cos (w - π / 4) = sin (w - π / 4 + π / 2) from (Complex.sin_add_pi_div_two _).symm,
+    show sin (w - π / 4) = -cos (w - π / 4 + π / 2) by rw [Complex.cos_add_pi_div_two]; ring]
+  simp only [Complex.cos, Complex.sin]
+  have e1 : exp ((w - π / 4 + π / 2) * I) = exp (π * I / 4) * exp (w * I) := by
+    rw [← exp_add]; congr 1; ring
+  have e2 : exp (-(w - π / 4 + π / 2) * I) = exp (-(π * I / 4)) * exp (-(w * I)) := by
+    rw [← exp_add]; congr 1; ring
+  rw [e1, e2]
+  constructor
+  · field_simp
+  · ring
+
+/-- `Ai'(-z)` through the even and odd parts of the normalized `Ai'`, exactly (DLMF 9.7.10). -/
+lemma airyDer_airyAiDeriv_neg {z : ℂ} (hz0 : z ≠ 0) (hz3 : |arg z| < 2 * π / 3) :
+    airyAiDeriv (-z) = airyOscPrefactor .aiDeriv z *
+      (sin (airyZetaComplex z - π / 4) *
+          airyRot_even (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) z -
+        cos (airyZetaComplex z - π / 4) *
+          airyRot_odd (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) z) := by
+  obtain ⟨u4, um4, u3, um3, u2, um2, u12⟩ := airyRot_u_powers
+  set u := exp (π * I / 12) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  obtain ⟨d1, d2, d3, d4⟩ := airyRot_third_data hz0 hz3
+  have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz0)
+  have hp1 := airyRot_prefactor_ne_zero .aiDeriv
+    (mul_ne_zero hz0 (exp_ne_zero ((π / 3 : ℝ) * I)))
+  have hp2 := airyRot_prefactor_ne_zero .aiDeriv
+    (mul_ne_zero hz0 (exp_ne_zero ((-(π / 3) : ℝ) * I)))
+  obtain ⟨hc, hs⟩ := airyDer_cos_sin' (airyZetaComplex z)
+  rw [show sin (airyZetaComplex z - π / 4) = -(-sin (airyZetaComplex z - π / 4)) by ring, hs, hc]
+  rw [airyRot_airyAiDeriv_neg z]
+  rw [show airyAiDeriv (z * exp ((π / 3 : ℝ) * I)) =
+      airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I)) *
+      (airyAiDeriv (z * exp ((π / 3 : ℝ) * I)) /
+        airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I))) by field_simp,
+    show airyAiDeriv (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I)) *
+      (airyAiDeriv (z * exp ((-(π / 3) : ℝ) * I)) /
+        airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I))) by field_simp]
+  rw [← mul_assoc, ← mul_assoc]
+  rw [airyRot_decomp (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w)]
+  have ep : exp (-π * I / 3) * airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I)) =
+      airyOscPrefactor .aiDeriv z *
+        (-(exp (-(π * I / 4)) / 2) * exp (-(airyZetaComplex z * I))) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d1, d3, ← hu, um4, um3]
+    field_simp
+  have em : exp (π * I / 3) * airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyOscPrefactor .aiDeriv z * (-(exp (π * I / 4) / 2) * exp (airyZetaComplex z * I)) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d2, d4, ← hu, u4, u3, neg_neg]
+    field_simp
+  rw [ep, em]
+  ring
+
+/-- `Bi'(-z)` through the even and odd parts of the normalized `Ai'`, exactly (DLMF 9.7.12). -/
+lemma airyDer_airyBiDeriv_neg {z : ℂ} (hz0 : z ≠ 0) (hz3 : |arg z| < 2 * π / 3) :
+    airyBiDeriv (-z) = airyOscPrefactor .aiDeriv z *
+      (cos (airyZetaComplex z - π / 4) *
+          airyRot_even (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) z +
+        sin (airyZetaComplex z - π / 4) *
+          airyRot_odd (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) z) := by
+  obtain ⟨u4, um4, u3, um3, u2, um2, u12⟩ := airyRot_u_powers
+  set u := exp (π * I / 12) with hu
+  have hu0 : u ≠ 0 := exp_ne_zero _
+  obtain ⟨d1, d2, d3, d4⟩ := airyRot_third_data hz0 hz3
+  have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz0)
+  have hp1 := airyRot_prefactor_ne_zero .aiDeriv
+    (mul_ne_zero hz0 (exp_ne_zero ((π / 3 : ℝ) * I)))
+  have hp2 := airyRot_prefactor_ne_zero .aiDeriv
+    (mul_ne_zero hz0 (exp_ne_zero ((-(π / 3) : ℝ) * I)))
+  obtain ⟨hc, hs⟩ := airyDer_cos_sin (airyZetaComplex z)
+  rw [hc, hs]
+  rw [airyRot_airyBiDeriv_neg z]
+  rw [show airyAiDeriv (z * exp ((π / 3 : ℝ) * I)) =
+      airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I)) *
+      (airyAiDeriv (z * exp ((π / 3 : ℝ) * I)) /
+        airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I))) by field_simp,
+    show airyAiDeriv (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I)) *
+      (airyAiDeriv (z * exp ((-(π / 3) : ℝ) * I)) /
+        airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I))) by field_simp]
+  rw [← mul_assoc, ← mul_assoc]
+  rw [airyRot_decomp (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w)]
+  have ep : -exp (π * I / 6) * airyPrefactor .aiDeriv (z * exp ((π / 3 : ℝ) * I)) =
+      airyOscPrefactor .aiDeriv z *
+        (exp (π * I / 4) / 2 * exp (-(airyZetaComplex z * I))) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d1, d3, ← hu, u2, u3]
+    field_simp
+  have em : -exp (-π * I / 6) * airyPrefactor .aiDeriv (z * exp ((-(π / 3) : ℝ) * I)) =
+      airyOscPrefactor .aiDeriv z * (exp (-(π * I / 4)) / 2 * exp (airyZetaComplex z * I)) := by
+    simp only [airyPrefactor, airyOscPrefactor]
+    rw [d2, d4, ← hu, um2, um3, neg_neg]
+    field_simp
+  rw [ep, em]
+  ring
+
+/-- The derivative components are the even and odd parts of the normalized `Ai'`. -/
+lemma airyDer_comp_true {x : ℝ} (hx : 0 < x) :
+    airyOscComponent true 0 x =
+        airyRot_even (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) x ∧
+    airyOscComponent true 1 x =
+        airyRot_odd (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) x := by
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have harg : |arg (x : ℂ)| < 2 * π / 3 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  have hA := airyDer_airyAiDeriv_neg hx0 harg
+  have hB := airyDer_airyBiDeriv_neg hx0 harg
+  rw [airyReal_zeta_ofReal hx] at hA hB
+  have hP : airyOscPrefactor .aiDeriv (x : ℂ) ≠ 0 := by
+    simp only [airyOscPrefactor]
+    have hπs : (Real.sqrt π : ℂ) ≠ 0 :=
+      ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    have hq : (x : ℂ) ^ (1 / 4 : ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+    exact div_ne_zero hq hπs
+  have hcs := Complex.cos_sq_add_sin_sq (((airyZeta x : ℝ) : ℂ) - π / 4)
+  simp only [airyOscComponent, ite_true, Fin.val_zero, Fin.val_one, one_ne_zero, ite_false]
+  rw [hA, hB]
+  constructor
+  · rw [div_eq_iff hP]
+    linear_combination (airyOscPrefactor .aiDeriv (x : ℂ) *
+      airyRot_even (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) x) * hcs
+  · rw [div_eq_iff hP]
+    linear_combination (airyOscPrefactor .aiDeriv (x : ℂ) *
+      airyRot_odd (fun w => airyAiDeriv w / airyPrefactor .aiDeriv w) x) * hcs
+
+lemma airyDer_coeff_aiDeriv (j : ℕ) :
+    airyExpansionCoeff .aiDeriv (2 * j) = airyV (2 * j) ∧
+      airyExpansionCoeff .aiDeriv (2 * j + 1) = -(airyV (2 * j + 1) : ℂ) := by
+  have h := airyRot_coeff_parity .aiDeriv (Or.inr rfl) j
+  simpa using h
+
+lemma airyDer_aiDeriv_ratio' {w : ℂ} (hw : w ≠ 0) (harg : |arg w| ≤ π / 3) {M : ℕ} (hM : 1 ≤ M) :
+    ∃ A B : ℝ, 0 ≤ A ∧ A ≤ 1 ∧ airyAiDeriv w / airyPrefactor .aiDeriv w -
+      ∑ k ∈ Finset.range M, airyExpansionCoeff .aiDeriv k / airyZetaComplex w ^ k =
+        (A + B * I) * (airyExpansionCoeff .aiDeriv M / airyZetaComplex w ^ M) := by
+  obtain ⟨K, rfl⟩ : ∃ K, M = K + 1 := ⟨M - 1, by omega⟩
+  obtain ⟨A, B, h0, h1, h⟩ := airyDer_aiDeriv_ratio hw harg K
+  exact ⟨A, B, h0, h1, by rw [← h]; rfl⟩
+
+/-- DLMF §9.7(iii) for the even subseries of the `Ai'`, `Bi'` oscillatory expansions. -/
+lemma airyDer_osc_even_deriv {x : ℝ} (hx : 0 < x) {N : ℕ} (hN : 1 ≤ N) :
+    ‖airyOscComponent true 0 x - airyOscSum true 0 N x‖ ≤
+        ‖(-1 : ℂ) ^ N * (airyV (2 * N) : ℂ) / airyZetaComplex x ^ (2 * N)‖ ∧
+      0 ≤ (airyOscComponent true 0 x - airyOscSum true 0 N x).re *
+        ((-1 : ℝ) ^ N * airyV (2 * N)) := by
+  obtain ⟨hp0, hpa, hm0, hma⟩ := airyDer_rot_data hx
+  have hS : airyOscSum true 0 N x = ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (airyV (2 * j) : ℂ) / airyZetaComplex x ^ (2 * j) := by
+    simp [airyOscSum]
+  have hre := (airyDer_comp_im true 0 hx)
+  have hre' := airyDer_oscSum_im true 0 N hx
+  rw [hS] at hre'
+  rw [(airyDer_comp_true hx).1] at hre ⊢
+  rw [hS]
+  exact airyDer_even_bound _ (airyExpansionCoeff .aiDeriv) airyV
+    (fun j => (airyDer_coeff_aiDeriv j).1) hx N
+    (airyDer_aiDeriv_ratio' hp0 hpa (by omega)) (airyDer_aiDeriv_ratio' hm0 hma (by omega))
+    (by rw [sub_im, hre, hre', sub_zero])
+
+/-- DLMF §9.7(iii) for the odd subseries of the `Ai'`, `Bi'` oscillatory expansions. -/
+lemma airyDer_osc_odd_deriv {x : ℝ} (hx : 0 < x) (N : ℕ) :
+    ‖airyOscComponent true 1 x - airyOscSum true 1 N x‖ ≤
+        ‖(-1 : ℂ) ^ N * (airyV (2 * N + 1) : ℂ) / airyZetaComplex x ^ (2 * N + 1)‖ ∧
+      0 ≤ (airyOscComponent true 1 x - airyOscSum true 1 N x).re *
+        ((-1 : ℝ) ^ N * airyV (2 * N + 1)) := by
+  obtain ⟨hp0, hpa, hm0, hma⟩ := airyDer_rot_data hx
+  have hS : airyOscSum true 1 N x = ∑ j ∈ Finset.range N,
+      (-1 : ℂ) ^ j * (airyV (2 * j + 1) : ℂ) / airyZetaComplex x ^ (2 * j + 1) := by
+    simp [airyOscSum]
+  have hre := (airyDer_comp_im true 1 hx)
+  have hre' := airyDer_oscSum_im true 1 N hx
+  rw [hS] at hre'
+  rw [(airyDer_comp_true hx).2] at hre ⊢
+  rw [hS]
+  exact airyDer_odd_bound _ (airyExpansionCoeff .aiDeriv) airyV
+    (fun j => (airyDer_coeff_aiDeriv j).2) hx N
+    (airyDer_aiDeriv_ratio' hp0 hpa (by omega)) (airyDer_aiDeriv_ratio' hm0 hma (by omega))
+    (by rw [sub_im, hre, hre', sub_zero])
+
+lemma airyDer_airyV_two_neg : airyV 2 < 0 := by
+  have h := airySt_airyU_pos 2
+  unfold airyV
+  norm_num
+  linarith
+
 /-- The signed first-neglected-term bound for each real oscillatory subseries, 9.7(iii).
 The hypothesis explicitly retains the source's condition on the following term. -/
 theorem airy_oscillatory_real_error (derivative : Bool) (parity : Fin 2)
@@ -2816,7 +5081,18 @@ theorem airy_oscillatory_real_error (derivative : Bool) (parity : Fin 2)
         airyZetaComplex x ^ (2 * N + parity.val)‖ ∧
     0 ≤ (airyOscComponent derivative parity x - airyOscSum derivative parity.val N x).re *
       ((-1 : ℝ) ^ N * (if derivative then airyV (2 * N + parity.val) else airyU (2 * N + parity.val))) := by
-  sorry
+  cases derivative
+  · fin_cases parity
+    · simpa using airyDer_osc_even hx N
+    · simpa using airyDer_osc_odd hx N
+  · fin_cases parity
+    · rcases Nat.eq_zero_or_pos N with rfl | hN
+      · exfalso
+        have h0 : airyV 0 = 1 := by simp [airyV, airyU]
+        simp [h0] at hopposite
+        linarith [airyDer_airyV_two_neg]
+      · simpa using airyDer_osc_even_deriv hx hN
+    · simpa using airyDer_osc_odd_deriv hx N
 
 /-! ### Exact values of χ at integers -/
 

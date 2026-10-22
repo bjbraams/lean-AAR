@@ -16,6 +16,7 @@ public import DLMF.Struve.Poisson
 public import DLMF.Struve.Properties
 public import DLMF.Struve.AsymptoticTools
 public import DLMF.Struve.TurningTools
+public import DLMF.Struve.BarnesTools
 
 /-!
 # Struve, Lommel and Anger–Weber functions

@@ -10,6 +10,8 @@ public import DLMF.Airy.Equation
 public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import Mathlib.MeasureTheory.Integral.Gamma
 public import ToMathlib.Analysis.Complex.SegmentPrimitive
+public import DLMF.Airy.Zeros
+public import ToMathlib.Analysis.ODE.SturmCount
 
 /-!
 # Scorer functions, DLMF §9.12
@@ -1703,25 +1705,300 @@ theorem scorerHiDeriv_real_ne_zero (x : ℝ) :
   simp only [pow_one] at hp
   exact div_ne_zero (ofReal_ne_zero.mpr hp.ne') hpi
 
+/-! ### Real zeros of `Gi` and `Gi'`
+
+The real restrictions satisfy `Gi'' = x Gi - 1/π`. Positivity on `[0, ∞)` follows from the
+maximum principle (`ODE.sturmCount_neg_of_maxPrinciple`) and the asymptotics 9.12.25–26; on
+the negative axis `Gi = Bi - Hi`, where `Hi(x) ≤ 1/(π|x|)` is dominated by the Airy modulus
+`M(x)`, so `Gi` alternates in sign at the points where the Airy phase is a multiple of `π`.
+-/
+
+/-- `Gi` on the real axis. -/
+def scorerZ_gi (x : ℝ) : ℝ := (scorerGi x).re
+/-- `Gi'` on the real axis. -/
+def scorerZ_gi' (x : ℝ) : ℝ := (scorerGiDeriv x).re
+/-- `Hi` on the real axis, as a real Laplace integral. -/
+def scorerZ_hi (x : ℝ) : ℝ := (∫ t in Ioi (0 : ℝ), Real.exp (-(t ^ 3 / 3) + x * t)) / π
+
+lemma scorerZ_integrable (m : ℕ) (x : ℝ) :
+    IntegrableOn (fun t : ℝ => t ^ m * Real.exp (-(t ^ 3 / 3) + x * t)) (Ioi 0) := by
+  have := (integrableOn_pow_mul_exp_cubic m x).re
+  refine this.congr_fun (fun t _ => ?_) measurableSet_Ioi
+  beta_reduce
+  rw [RCLike.re_to_complex, show (-(t : ℂ) ^ 3 / 3 + (x : ℂ) * t) =
+      ((-(t ^ 3 / 3) + x * t : ℝ) : ℂ) by push_cast; ring,
+    ← ofReal_exp, ← ofReal_pow, ← ofReal_mul, ofReal_re]
+
+lemma scorerZ_hi_eq (x : ℝ) : scorerHi x = (scorerZ_hi x : ℂ) := by
+  rw [(scorerHi_exp_integral x).2]
+  have h := integral_pow_mul_exp_cubic_ofReal 0 x
+  simp only [pow_zero, one_mul] at h
+  rw [h, scorerZ_hi]; push_cast; rfl
+
+lemma scorerZ_hiDeriv_eq (x : ℝ) : scorerHiDeriv x =
+    (((∫ t in Ioi (0 : ℝ), t ^ 1 * Real.exp (-(t ^ 3 / 3) + x * t)) / π : ℝ) : ℂ) := by
+  rw [scorerHiDeriv_exp_integral]
+  have h := integral_pow_mul_exp_cubic_ofReal 1 x
+  simp only [pow_one] at h ⊢
+  rw [h]; push_cast; rfl
+
+lemma scorerZ_gi_ofReal (x : ℝ) : scorerGi x = (scorerZ_gi x : ℂ) := by
+  have h : scorerGi x = ((airyBiReal x - scorerZ_hi x : ℝ) : ℂ) := by
+    rw [scorerGi, airyBi_ofReal_eq, scorerZ_hi_eq]; push_cast; ring
+  rw [scorerZ_gi, h, ofReal_re]
+
+lemma scorerZ_gi_eq (x : ℝ) : scorerZ_gi x = airyBiReal x - scorerZ_hi x := by
+  rw [scorerZ_gi, scorerGi, sub_re, scorerZ_hi_eq, ofReal_re]; rfl
+
+lemma scorerZ_gi'_ofReal (x : ℝ) : scorerGiDeriv x = (scorerZ_gi' x : ℂ) := by
+  have h : ∃ r : ℝ, scorerGiDeriv x = (r : ℂ) := by
+    rw [scorerGiDeriv_eq, airyBiDeriv_ofReal_eq, scorerZ_hiDeriv_eq]
+    exact ⟨airyBiDerivReal x - (∫ t in Ioi (0 : ℝ), t ^ 1 * Real.exp (-(t ^ 3 / 3) + x * t)) / π,
+      by push_cast; ring⟩
+  obtain ⟨r, hr⟩ := h
+  rw [scorerZ_gi', hr, ofReal_re]
+
+lemma scorerZ_hasDerivAt_gi (x : ℝ) : HasDerivAt scorerZ_gi (scorerZ_gi' x) x :=
+  ((isAiryInhomSol_scorerGi x).1).real_of_complex
+
+lemma scorerZ_hasDerivAt_gi' (x : ℝ) :
+    HasDerivAt scorerZ_gi' (x * scorerZ_gi x - 1 / π) x := by
+  have h : HasDerivAt scorerZ_gi' _ x := ((isAiryInhomSol_scorerGi x).2).real_of_complex
+  refine h.congr_deriv ?_
+  rw [scorerZ_gi_ofReal]
+  simp only [add_re, re_ofReal_mul, neg_re, div_ofReal_re, one_re]
+  rw [ofReal_re]; ring
+
+lemma scorerZ_hasDerivAt_gi'' (x : ℝ) :
+    HasDerivAt (fun t => t * scorerZ_gi t - 1 / π) (scorerZ_gi x + x * scorerZ_gi' x) x := by
+  have := ((hasDerivAt_id x).mul (scorerZ_hasDerivAt_gi x)).sub_const (1 / π)
+  convert this using 1 <;> simp
+
+lemma scorerZ_continuous_gi : Continuous scorerZ_gi :=
+  continuous_iff_continuousAt.mpr fun x => (scorerZ_hasDerivAt_gi x).continuousAt
+
+lemma scorerZ_continuous_gi' : Continuous scorerZ_gi' :=
+  continuous_iff_continuousAt.mpr fun x => (scorerZ_hasDerivAt_gi' x).continuousAt
+
+lemma scorerZ_gi_zero_pos : 0 < scorerZ_gi 0 := by
+  rw [scorerZ_gi, ofReal_zero, scorer_zero.2.1, div_ofNat_re]
+  exact div_pos (airyBiReal_pos le_rfl) (by norm_num)
+
+lemma scorerZ_gi'_zero_pos : 0 < scorerZ_gi' 0 := by
+  rw [scorerZ_gi', ofReal_zero, scorerDeriv_zero.2.1, div_ofNat_re]
+  exact div_pos airyBiDerivReal_zero_pos (by norm_num)
+
+
+/-- Real form of a sector bound: `‖F x‖ ≤ C x^{-p}` eventually along the positive axis. -/
+lemma scorerZ_real_bound {F : ℂ → ℂ} {p : ℂ}
+    (h : IsBigO (comap (fun z : ℂ => z) (airySector (π / 3 - π / 6))) F (fun z => z ^ p)) :
+    ∃ C, ∀ᶠ x : ℝ in atTop, ‖F x‖ ≤ C * x ^ p.re := by
+  rw [comap_id'] at h
+  obtain ⟨C, hC⟩ := (h.comp_tendsto (airyInt_tendsto_ofReal_sector (by
+    linarith [Real.pi_pos]))).bound
+  refine ⟨C, ?_⟩
+  filter_upwards [hC, eventually_gt_atTop 0] with x hx hx0
+  simpa [Function.comp, Complex.norm_cpow_eq_rpow_re_of_pos hx0] using hx
+
+lemma scorerZ_gi_eventually_pos : ∀ᶠ x in atTop, 0 < scorerZ_gi x := by
+  have hπ := Real.pi_pos
+  obtain ⟨C, hC⟩ := scorerZ_real_bound (scorerGi_asymptotic (δ := π / 6)
+    (by positivity) (by linarith) 1)
+  filter_upwards [hC, eventually_gt_atTop (max 1 (C * π))] with x hx hxM
+  have hx1 : 1 < x := (le_max_left _ _).trans_lt hxM
+  have hxC : C * π < x := (le_max_right _ _).trans_lt hxM
+  have hx0 : 0 < x := by linarith
+  simp only [Finset.sum_range_one, Nat.factorial_zero, Nat.cast_one, div_one, pow_zero,
+    mul_one, mul_zero, zero_add, pow_one] at hx
+  rw [scorerZ_gi_ofReal, show (1 : ℂ) / (π * (x : ℂ)) = ((1 / (π * x) : ℝ) : ℂ) by push_cast; ring,
+    ← ofReal_sub, norm_real, Real.norm_eq_abs] at hx
+  have hre : (-(3 + 1 : ℂ)).re = -4 := by norm_num
+  rw [hre, Real.rpow_neg hx0.le, show (4 : ℝ) = ((4 : ℕ) : ℝ) by norm_num, Real.rpow_natCast]
+    at hx
+  have h1 := (abs_le.mp hx).1
+  have hx4 : 0 < x ^ 4 := by positivity
+  have key : C * (x ^ 4)⁻¹ < 1 / (π * x) := by
+    rw [← div_eq_mul_inv, div_lt_div_iff₀ hx4 (by positivity)]
+    have : x ≤ x ^ 3 := le_self_pow₀ hx1.le (by norm_num)
+    nlinarith
+  linarith
+
+lemma scorerZ_gi'_eventually_neg : ∀ᶠ x in atTop, scorerZ_gi' x < 0 := by
+  have hπ := Real.pi_pos
+  obtain ⟨C, hC⟩ := scorerZ_real_bound (scorerGiDeriv_asymptotic (δ := π / 6)
+    (by positivity) (by linarith) 1)
+  filter_upwards [hC, eventually_gt_atTop (max 1 (C * π))] with x hx hxM
+  have hx1 : 1 < x := (le_max_left _ _).trans_lt hxM
+  have hxC : C * π < x := (le_max_right _ _).trans_lt hxM
+  have hx0 : 0 < x := by linarith
+  simp only [Finset.sum_range_one, Nat.factorial_zero, Nat.cast_one, div_one, pow_zero,
+    mul_one, mul_zero, zero_add, Nat.factorial_one] at hx
+  rw [scorerZ_gi'_ofReal, show (-1 : ℂ) / (π * (x : ℂ) ^ 2) = ((-1 / (π * x ^ 2) : ℝ) : ℂ) by
+      push_cast; ring, ← ofReal_sub, norm_real, Real.norm_eq_abs] at hx
+  have hre : (-(3 + 2 : ℂ)).re = -5 := by norm_num
+  rw [hre, Real.rpow_neg hx0.le, show (5 : ℝ) = ((5 : ℕ) : ℝ) by norm_num, Real.rpow_natCast]
+    at hx
+  have h1 := (abs_le.mp hx).2
+  have hx5 : 0 < x ^ 5 := by positivity
+  have key : C * (x ^ 5)⁻¹ < 1 / (π * x ^ 2) := by
+    rw [← div_eq_mul_inv, div_lt_div_iff₀ hx5 (by positivity)]
+    have : x ≤ x ^ 3 := le_self_pow₀ hx1.le (by norm_num)
+    nlinarith [pow_pos hx0 2]
+  have : -1 / (π * x ^ 2) = -(1 / (π * x ^ 2)) := by ring
+  linarith
+
+/-- `Gi(x) > 0` for `x ≥ 0`. -/
+lemma scorerZ_gi_pos {x : ℝ} (hx : 0 ≤ x) : 0 < scorerZ_gi x := by
+  obtain ⟨X, hX, hXx⟩ := (scorerZ_gi_eventually_pos.and (eventually_gt_atTop x)).exists
+  have hπ := Real.pi_pos
+  have := ODE.sturmCount_neg_of_maxPrinciple (g := fun t => -scorerZ_gi t)
+    (g' := fun t => -scorerZ_gi' t) (g'' := fun t => -(t * scorerZ_gi t - 1 / π)) (a := 0) (b := X)
+    scorerZ_continuous_gi.neg.continuousOn (fun t _ => (scorerZ_hasDerivAt_gi t).neg)
+    (fun t _ => (scorerZ_hasDerivAt_gi' t).neg) (by simpa using scorerZ_gi_zero_pos)
+    (by simpa using hX) (fun t ht h0 _ => by
+      have : t * scorerZ_gi t ≤ 0 := mul_nonpos_of_nonneg_of_nonpos ht.1.le (by linarith)
+      have : 0 < 1 / π := by positivity
+      linarith) x ⟨hx, hXx.le⟩
+  linarith
+
+/-- `Gi'` has at most one zero on `[0, ∞)`. -/
+lemma scorerZ_gi'_zero_unique {y₁ y₂ : ℝ} (h₁ : 0 ≤ y₁) (hlt : y₁ < y₂) (e₁ : scorerZ_gi' y₁ = 0)
+    (e₂ : scorerZ_gi' y₂ = 0) : False := by
+  obtain ⟨X, hX, hXx⟩ := (scorerZ_gi'_eventually_neg.and (eventually_gt_atTop y₂)).exists
+  have hle := ODE.sturmCount_nonpos_of_maxPrinciple (g := scorerZ_gi')
+    (g' := fun t => t * scorerZ_gi t - 1 / π) (g'' := fun t => scorerZ_gi t + t * scorerZ_gi' t)
+    (a := y₁) (b := X) scorerZ_continuous_gi'.continuousOn
+    (fun t _ => scorerZ_hasDerivAt_gi' t) (fun t _ => scorerZ_hasDerivAt_gi'' t) e₁.le hX.le
+    (fun t ht hpos _ => by
+      have h0 : 0 < t := lt_of_le_of_lt h₁ ht.1
+      have := scorerZ_gi_pos h0.le
+      positivity)
+  have hloc : IsLocalMax scorerZ_gi' y₂ := by
+    filter_upwards [Icc_mem_nhds hlt hXx] with t ht
+    rw [e₂]; exact hle t ht
+  have hd0 := hloc.hasDerivAt_eq_zero (scorerZ_hasDerivAt_gi' y₂)
+  refine ODE.sturmCount_not_isLocalMax (Eventually.of_forall fun t => scorerZ_hasDerivAt_gi' t)
+    (scorerZ_hasDerivAt_gi'' y₂) hd0 ?_ hloc
+  rw [e₂, mul_zero, add_zero]
+  exact scorerZ_gi_pos (h₁.trans hlt.le)
+
+
+
+/-- `0 < Hi(x) ≤ 1/(π|x|)` for `x < 0`. -/
+lemma scorerZ_hi_le {x : ℝ} (hx : x < 0) : scorerZ_hi x ≤ 1 / (π * (-x)) := by
+  have hπ := Real.pi_pos
+  have hI : ∫ t in Ioi (0 : ℝ), Real.exp (-(t ^ 3 / 3) + x * t) ≤ 1 / (-x) := by
+    calc ∫ t in Ioi (0 : ℝ), Real.exp (-(t ^ 3 / 3) + x * t)
+        ≤ ∫ t in Ioi (0 : ℝ), Real.exp (x * t) := by
+          refine setIntegral_mono_on (by simpa using scorerZ_integrable 0 x)
+            (integrableOn_exp_mul_Ioi hx 0) measurableSet_Ioi fun t ht => ?_
+          have ht : (0 : ℝ) < t := ht
+          exact Real.exp_le_exp.mpr (by nlinarith [pow_pos ht 3])
+      _ = 1 / (-x) := by rw [integral_exp_mul_Ioi hx 0]; simp; field_simp
+  rw [scorerZ_hi, mul_comm, ← div_div]
+  exact div_le_div_of_nonneg_right hI hπ.le
+
+/-- The Airy modulus beats the Hi bound: `1/(π|x|) < M(x)` for `x ≤ -1`. -/
+lemma scorerZ_modulus_gt {x : ℝ} (hx : x ≤ -1) : 1 / (π * (-x)) < airyModulus x := by
+  have hπ := Real.pi_pos
+  set s := -x with hs
+  have hs1 : 1 ≤ s := by linarith
+  have hs0 : 0 < s := by linarith
+  obtain ⟨hb, -⟩ := airyMod_modulus_bounds hs0
+  rw [hs, neg_neg] at hb
+  set r := s ^ (1 / 2 : ℝ)
+  have hr2 : r ^ 2 = s := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul hs0.le]; norm_num
+  have hr1 : 1 ≤ r := Real.one_le_rpow hs1 (by norm_num)
+  have hrs : r ≤ s := by nlinarith
+  have hM := airyModulus_pos x
+  have h3 : (s ^ 3)⁻¹ ≤ 1 := inv_le_one_of_one_le₀ (one_le_pow₀ hs1)
+  have hb' : 27 / 32 ≤ π * r * airyModulus x ^ 2 := by linarith
+  rw [div_lt_iff₀ (by positivity)]
+  -- `(π s M)² ≥ π s · 27/32 > 1`
+  have hsq : 1 < (airyModulus x * (π * s)) ^ 2 := by
+    have : (airyModulus x * (π * s)) ^ 2 = (π * r * airyModulus x ^ 2) * (π * s * r) := by
+      have e : s ^ 2 = s * r ^ 2 := by rw [hr2]; ring
+      linear_combination (airyModulus x ^ 2 * π ^ 2) * e
+    rw [this]
+    have hsr : 1 ≤ s * r := one_le_mul_of_one_le_of_one_le hs1 hr1
+    have h1 : 3 ≤ π * s * r := by nlinarith [Real.pi_gt_three]
+    nlinarith
+  nlinarith [sq_nonneg (airyModulus x * (π * s) - 1), mul_pos hM (mul_pos hπ hs0)]
+
+/-- `Gi` takes both signs arbitrarily far to the left. -/
+lemma scorerZ_gi_signs (M : ℝ) (σ : ℝ) (hσ : σ = 0 ∨ σ = π) :
+    ∃ x < M, x ≤ -1 ∧ Real.cos (airyPhase x) = Real.cos σ := by
+  have hπ := Real.pi_pos
+  set A := min M (-1) - 1
+  obtain ⟨m, hm⟩ := exists_nat_gt (airyPhase A / (2 * π))
+  have hmA : airyPhase A < m * (2 * π) := by
+    rwa [div_lt_iff₀ (by positivity)] at hm
+  obtain ⟨y, hy, hyA⟩ := ((tendsto_airyPhase_atBot.eventually
+    (eventually_ge_atTop (m * (2 * π) + π))).and (eventually_lt_atBot A)).exists
+  have hσ0 : 0 ≤ σ ∧ σ ≤ π := by rcases hσ with rfl | rfl <;> constructor <;> linarith
+  obtain ⟨x, hx, hxθ⟩ := intermediate_value_Icc' hyA.le airyPhase_continuous.continuousOn
+    (show m * (2 * π) + σ ∈ Icc (airyPhase A) (airyPhase y) from
+      ⟨by linarith, by linarith⟩)
+  refine ⟨x, ?_, ?_, ?_⟩
+  · have : A < M := by simp only [A]; linarith [min_le_left M (-1)]
+    linarith [hx.2]
+  · have : A ≤ -2 := by simp only [A]; linarith [min_le_right M (-1)]
+    linarith [hx.2]
+  · rw [hxθ, add_comm, Real.cos_add_nat_mul_two_pi]
+
+lemma scorerZ_gi_frequently (M : ℝ) :
+    (∃ x < M, 0 < scorerZ_gi x) ∧ ∃ x < M, scorerZ_gi x < 0 := by
+  have hπ := Real.pi_pos
+  constructor
+  · obtain ⟨x, hxM, hx1, hc⟩ := scorerZ_gi_signs M 0 (Or.inl rfl)
+    refine ⟨x, hxM, ?_⟩
+    rw [scorerZ_gi_eq, airyBiReal_eq_modulus_cos, hc, Real.cos_zero, mul_one]
+    linarith [scorerZ_hi_le (show x < 0 by linarith), scorerZ_modulus_gt hx1]
+  · obtain ⟨x, hxM, hx1, hc⟩ := scorerZ_gi_signs M π (Or.inr rfl)
+    refine ⟨x, hxM, ?_⟩
+    rw [scorerZ_gi_eq, airyBiReal_eq_modulus_cos, hc, Real.cos_pi, mul_neg_one]
+    have : 0 < scorerZ_hi x := by
+      rw [scorerZ_hi]
+      exact div_pos (by simpa using integral_pow_mul_exp_cubic_pos 0 x) hπ
+    linarith [airyModulus_pos x]
+
+lemma scorerZ_gi_zeros_infinite : {x : ℝ | x < 0 ∧ scorerZ_gi x = 0}.Infinite :=
+  ODE.sturmCount_infinite_zeros_atBot scorerZ_continuous_gi.continuousOn
+    (fun M => (scorerZ_gi_frequently M).1) (fun M => (scorerZ_gi_frequently M).2)
+
 /-- Gi has no nonnegative real zeros, DLMF §9.12(ix). -/
 theorem scorerGi_nonneg_ne_zero {x : ℝ} (hx : 0 ≤ x) :
     scorerGi x ≠ 0 := by
-  sorry
+  rw [scorerZ_gi_ofReal, ofReal_ne_zero]
+  exact (scorerZ_gi_pos hx).ne'
 
 /-- Gi' has exactly one nonnegative real zero, DLMF §9.12(ix). -/
 theorem scorerGiDeriv_unique_nonneg_zero  :
     ∃! x : ℝ, 0 ≤ x ∧ scorerGiDeriv x = 0 := by
-  sorry
+  obtain ⟨X, hX, hX0⟩ := (scorerZ_gi'_eventually_neg.and (eventually_gt_atTop 0)).exists
+  obtain ⟨x, hx, hx0⟩ := intermediate_value_Icc' hX0.le scorerZ_continuous_gi'.continuousOn
+    ⟨hX.le, scorerZ_gi'_zero_pos.le⟩
+  refine ⟨x, ⟨hx.1, by rw [scorerZ_gi'_ofReal, hx0, ofReal_zero]⟩, fun y ⟨hy, hy0⟩ => ?_⟩
+  rw [scorerZ_gi'_ofReal, ofReal_eq_zero] at hy0
+  rcases lt_trichotomy y x with h | h | h
+  · exact (scorerZ_gi'_zero_unique hy h hy0 hx0).elim
+  · exact h
+  · exact (scorerZ_gi'_zero_unique hx.1 h hx0 hy0).elim
 
 /-- Infinitely many negative real zeros, DLMF §9.12(ix). -/
 theorem scorerGi_infinite_negative_zeros  :
     Set.Infinite {x : ℝ | x < 0 ∧ scorerGi x = 0} := by
-  sorry
+  convert scorerZ_gi_zeros_infinite using 3 with x
+  rw [scorerZ_gi_ofReal, ofReal_eq_zero]
 
 /-- Infinitely many negative real zeros, DLMF §9.12(ix). -/
 theorem scorerGiDeriv_infinite_negative_zeros  :
     Set.Infinite {x : ℝ | x < 0 ∧ scorerGiDeriv x = 0} := by
-  sorry
+  have h := ODE.sturmCount_infinite_deriv_zeros (s := Iio 0) ordConnected_Iio
+    (fun x _ => scorerZ_hasDerivAt_gi x) scorerZ_gi_zeros_infinite
+  convert h using 3 with x
+  rw [scorerZ_gi'_ofReal, ofReal_eq_zero]; rfl
 
 /-- Negative zeros of Gi and Gi' interlace, DLMF §9.12(ix). -/
 theorem scorerGi_zeros_interlace {a b : ℝ} (hab : a < b) (hb : b < 0)

@@ -13,6 +13,7 @@ public import Mathlib.Analysis.Asymptotics.Lemmas
 public import DLMF.Confluent.AsymptoticConsequences
 public import DLMF.ErrorFunctions.ZeroTools
 public import DLMF.Confluent.Recurrence
+public import DLMF.Confluent.ZeroTools
 
 /-!
 # Zeros (DLMF §§13.9, 13.22)
@@ -1567,12 +1568,27 @@ theorem kummerU_posZeros_none {a b : ℝ} (ha : 0 ≤ a) :
     simp [hG, hpos.ne'] at hzero
 
 /-- DLMF 13.9.14: the number `P(a,b)` of positive zeros when `a + 1 < b ≤ 1`, with `a`, `b`
-and `a-b+1` nonintegral (acquired 2026-10-20; DLMF's `P` counts positive zeros). -/
+and `a-b+1` nonintegral (acquired 2026-10-20; DLMF's `P` counts positive zeros). Proved by
+Kummer's transformation and the Sturm-comparison count `kzt_U_posZeros_count`; only the
+nonintegrality of `a-b+1` is used (`hai` and `hbi` are not needed). -/
 @[dlmf 13.9.E14]
 theorem kummerU_posZeros_ceil {a b : ℝ} (hb : b ≤ 1) (hab : a + 1 < b)
     (hai : ∀ n : ℤ, a ≠ n) (hbi : ∀ n : ℤ, b ≠ n) (habi : ∀ n : ℤ, a - b + 1 ≠ n) :
     (kummerUPosZeros a b).encard = Int.toNat ⌈b - a - 1⌉ := by
-  sorry
+  have h := kzt_U_posZeros_count (a := a - b + 1) (b := 2 - b) (by linarith) (by linarith) habi
+  have hset : kummerUPosZeros a b =
+      {x : ℝ | 0 < x ∧ kummerU ((a - b + 1 : ℝ) : ℂ) ((2 - b : ℝ) : ℂ) (x : ℂ) = 0} := by
+    ext x
+    simp only [kummerUPosZeros, Set.mem_ofPred_eq]
+    refine and_congr_right fun hx => ?_
+    have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+    have hpow : (x : ℂ) ^ (1 - (b : ℂ)) ≠ 0 := by
+      rw [Ne, cpow_eq_zero_iff]
+      exact fun h => hx0 h.1
+    rw [kummerU_kummer_transform_all _ _ hx0, mul_eq_zero, or_iff_right hpow]
+    push_cast
+    rfl
+  rw [hset, h, show -(a - b + 1) = b - a - 1 by ring]
 
 /-- DLMF 13.9.15: no positive zeros when `a + 1 ≥ b`. Stronger than DLMF: no restriction on
 `b` and no nonintegrality hypotheses. Kummer's transformation reduces it to 13.9.13 at the
@@ -1606,7 +1622,9 @@ the statement was checked numerically (mpmath, 16 October 2026); `|U|` approache
 negative axis only as `a` approaches a nonpositive integer. -/
 theorem kummerU_negZeros_none {a b : ℝ} (h : a + 1 ≥ b) (ha : ∀ n : ℕ, a ≠ -(n : ℝ)) :
     {x : ℝ | x < 0 ∧ kummerU a b (x : ℂ) = 0}.encard = 0 := by
-  sorry
+  rw [Set.encard_eq_zero, Set.eq_empty_iff_forall_notMem]
+  rintro x ⟨hx, hU⟩
+  exact DLMF.Confluent.kzt_U_neg_ne_zero h ha hx hU
 
 @[dlmf 13.9.E16]
 theorem kummerU_zeros_in_a (b z : ℂ) (hz : z ∈ slitPlane) :

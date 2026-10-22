@@ -31,5 +31,6 @@ public import DLMF.QSeries
 public import DLMF.Partitions
 public import DLMF.Bailey
 public import DLMF.Core.UpstreamElementary
+public import DLMF.Core.ZeroCounting
 
 /-! # Special Functions following Andrews, Askey, and Roy (1999) -/

@@ -10,6 +10,8 @@ public import DLMF.Elliptic.Complete
 public import DLMF.OrthogonalPolynomials.Topics
 public import DLMF.Legendre.Neumann
 public import DLMF.Hypergeometric.Clausen
+public import DLMF.Legendre.Connections
+public import DLMF.Elliptic.AGM
 
 /-!
 # Associated Legendre and Ferrers special values
@@ -1052,23 +1054,100 @@ theorem legendre_elliptic_21 {θ : ℝ} (h0 : 0 < θ) (hπ : θ < π) :
   field_simp
   norm_num
 
+/-- `cos θ` lies in `(-1, 1)` for `0 < θ < π`. -/
+private lemma cos_mem_Ioo_of_pos_of_lt_pi {θ : ℝ} (h0 : 0 < θ) (hπ : θ < π) :
+    Real.cos θ ∈ Ioo (-1:ℝ) 1 := by
+  constructor
+  · rw [← Real.cos_pi]; exact Real.cos_lt_cos_of_nonneg_of_le_pi h0.le le_rfl hπ
+  · rw [← Real.cos_zero]; exact Real.cos_lt_cos_of_nonneg_of_le_pi le_rfl (by linarith) h0
+
+/-- DLMF 14.9.10 at order zero, written with the reflected angle `π - θ`. -/
+private lemma ferrersQ_zero_order_connection {ν : ℂ} (hν : LegendreQRegular ν 0) {θ : ℝ}
+    (h0 : 0 < θ) (hπ : θ < π) :
+    2/π*sin (ν*π)*ferrersQ ν 0 (Real.cos θ) =
+      cos (ν*π)*ferrersP ν 0 (Real.cos θ) - ferrersP ν 0 (Real.cos (π-θ)) := by
+  have h := ferrers_connection_10 ν 0 hν (by simpa using hν) (cos_mem_Ioo_of_pos_of_lt_pi h0 hπ)
+  simp only [sub_zero, neg_zero] at h
+  rw [Real.cos_pi_sub]; exact h
+
+/-- `sin((π - θ)/2) = cos(θ/2)`. -/
+private lemma sin_half_pi_sub (θ : ℝ) : Real.sin ((π-θ)/2) = Real.cos (θ/2) := by
+  rw [show (π-θ)/2 = π/2 - θ/2 by ring, Real.sin_pi_div_two_sub]
+
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E22]
 theorem legendre_elliptic_22 {θ : ℝ} (h0 : 0 < θ) (hπ : θ < π) :
     ferrersQ (1/2) 0 (Real.cos θ)=(DLMF.Elliptic.Real.compEllIntKm ((Real.cos (θ/2))^2):ℂ)-2*(DLMF.Elliptic.Real.compEllIntEm ((Real.cos (θ/2))^2):ℂ) := by
-  sorry
+  have hr : LegendreQRegular (1/2) 0 := by
+    intro n h; have := congrArg Complex.re h; simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
+  have h := ferrersQ_zero_order_connection hr h0 hπ
+  rw [legendre_elliptic_20 (θ := π-θ) (by linarith) (by linarith), sin_half_pi_sub] at h
+  have hs : sin ((1/2:ℂ)*π) = 1 := by
+    rw [show (1/2:ℂ)*π = π/2 by ring, Complex.sin_pi_div_two]
+  have hc : cos ((1/2:ℂ)*π) = 0 := by
+    rw [show (1/2:ℂ)*π = π/2 by ring, Complex.cos_pi_div_two]
+  rw [hs, hc] at h
+  have hπ0 : (π:ℂ) ≠ 0 := by exact_mod_cast Real.pi_pos.ne'
+  generalize ferrersQ (1/2) 0 (Real.cos θ) = Q at h ⊢
+  generalize ferrersP (1/2) 0 (Real.cos θ) = P at h
+  field_simp at h
+  linear_combination h/2
 
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E23]
 theorem legendre_elliptic_23 {θ : ℝ} (h0 : 0 < θ) (hπ : θ < π) :
     ferrersQ (-1/2) 0 (Real.cos θ)=(DLMF.Elliptic.Real.compEllIntKm ((Real.cos (θ/2))^2):ℂ) := by
-  sorry
+  have hr : LegendreQRegular (-1/2) 0 := by
+    intro n h; have := congrArg Complex.re h; simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
+  have h := ferrersQ_zero_order_connection hr h0 hπ
+  rw [legendre_elliptic_21 (θ := π-θ) (by linarith) (by linarith), sin_half_pi_sub] at h
+  have hs : sin ((-1/2:ℂ)*π) = -1 := by
+    rw [show (-1/2:ℂ)*π = -(π/2) by ring, Complex.sin_neg, Complex.sin_pi_div_two]
+  have hc : cos ((-1/2:ℂ)*π) = 0 := by
+    rw [show (-1/2:ℂ)*π = -(π/2) by ring, Complex.cos_neg, Complex.cos_pi_div_two]
+  rw [hs, hc] at h
+  have hπ0 : (π:ℂ) ≠ 0 := by exact_mod_cast Real.pi_pos.ne'
+  generalize ferrersQ (-1/2) 0 (Real.cos θ) = Q at h ⊢
+  generalize ferrersP (-1/2) 0 (Real.cos θ) = P at h
+  field_simp at h
+  linear_combination -h/2
 
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E24]
 theorem legendre_elliptic_24 {θ : ℝ} (h0 : 0 < θ) :
     associatedP (1/2) 0 (Real.cosh θ)=2/π*Real.exp (θ/2)*(DLMF.Elliptic.Real.compEllIntEm ((Real.sqrt (1-Real.exp (-2*θ)))^2):ℂ) := by
-  sorry
+  have hc1 : 1 < Real.cosh θ := Real.one_lt_cosh.mpr h0.ne'
+  have hsl : (Real.cosh θ : ℂ) - 1 ∈ slitPlane := Or.inl (by simp; linarith)
+  set m : ℝ := 1 - Real.exp (-2*θ) with hm
+  have he : Real.exp (-2*θ) < 1 := Real.exp_lt_one_iff.mpr (by linarith)
+  have hm0 : 0 ≤ m := by rw [hm]; linarith
+  have hm1 : m < 1 := by rw [hm]; linarith [Real.exp_pos (-2*θ)]
+  rw [Real.sq_sqrt hm0, associatedP_zero_order _ hsl, legendreP_laplace _ hc1.le]
+  have hsq : Real.sqrt (Real.cosh θ ^ 2 - 1) = Real.sinh θ := by
+    rw [Real.cosh_sq, show Real.sinh θ ^ 2 + 1 - 1 = Real.sinh θ ^ 2 by ring,
+      Real.sqrt_sq (Real.sinh_nonneg_iff.mpr h0.le)]
+  have hpt : ∀ phi : ℝ, (((Real.cosh θ + Real.sqrt (Real.cosh θ ^ 2 - 1) * Real.cos phi : ℝ)) : ℂ) ^ (1/2:ℂ) =
+      ((Real.exp (θ/2) * (1 - m * Real.sin (phi/2) ^ 2) ^ (1/2:ℝ) : ℝ) : ℂ) := by
+    intro phi
+    have hs2 : Real.sin (phi/2) ^ 2 ≤ 1 := Real.sin_sq_le_one _
+    have hb : 0 ≤ 1 - m * Real.sin (phi/2) ^ 2 := by nlinarith [sq_nonneg (Real.sin (phi/2))]
+    have ha : Real.cosh θ + Real.sqrt (Real.cosh θ ^ 2 - 1) * Real.cos phi =
+        Real.exp θ * (1 - m * Real.sin (phi/2) ^ 2) := by
+      rw [hsq, hm, Real.cosh_eq, Real.sinh_eq,
+        show Real.cos phi = 1 - 2 * Real.sin (phi/2) ^ 2 by
+          rw [show phi = 2*(phi/2) by ring, Real.cos_two_mul, Real.cos_sq']; ring_nf,
+        show -2*θ = -θ + -θ by ring, Real.exp_add, Real.exp_neg]
+      have := Real.exp_pos θ
+      field_simp; ring
+    rw [ha, show (1/2:ℂ) = ((1/2:ℝ):ℂ) by push_cast; ring,
+      ← Complex.ofReal_cpow (mul_nonneg (Real.exp_pos θ).le hb),
+      Real.mul_rpow (Real.exp_pos θ).le hb, ← Real.exp_mul, show θ * (1/2) = θ/2 by ring]
+  simp_rw [hpt]
+  rw [intervalIntegral.integral_ofReal, intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_comp_div (fun t => (1 - m * Real.sin t ^ 2) ^ (1/2:ℝ)) two_ne_zero,
+    zero_div]
+  simp only [DLMF.Elliptic.Real.compEllIntEm, smul_eq_mul]
+  push_cast; ring
 
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E25]
@@ -1110,11 +1189,115 @@ theorem legendre_elliptic_25 {θ : ℝ} (h0 : 0 < θ) :
     sub_zero, Complex.Gamma_one]
   field_simp
 
+/-- `₂F₁(1/2, 3/2; 2; q) = 4(K(q) - E(q))/(πq)`, from `dE/dm = (E-K)/(2m)` and DLMF 15.5.1. -/
+private lemma hyp_half_three_halves_two {q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) :
+    ₂F₁ (1/2:ℂ) (3/2) 2 (q:ℂ) = 4/π * ((DLMF.Elliptic.Real.compEllIntKm q:ℂ) - DLMF.Elliptic.Real.compEllIntEm q)/q := by
+  have hqn : ‖(q:ℂ)‖ < 1 := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hq0]; exact hq1
+  have hc : ∀ k : ℕ, (1:ℂ) ≠ -k := fun k h => by
+    have := congrArg Complex.re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hd1 := (hasDerivAt_ordinaryHypergeometric (a := -(1/2)) (b := 1/2) hc hqn).comp_ofReal
+  have hd2 := (DLMF.Elliptic.Real.hasDerivAt_compEllIntEm hq1 hq0.ne').ofReal_comp
+  have heq : (fun m : ℝ => (DLMF.Elliptic.Real.compEllIntEm m : ℂ)) =ᶠ[𝓝 q]
+      fun m : ℝ => (π/2:ℂ) * ₂F₁ (-(1/2):ℂ) (1/2) 1 (m:ℂ) := by
+    have : ∀ᶠ m in 𝓝 q, |m| < 1 := by
+      have : |q| < 1 := by rw [abs_of_pos hq0]; exact hq1
+      exact (continuous_abs.tendsto q).eventually (gt_mem_nhds this)
+    filter_upwards [this] with m hm
+    exact DLMF.Elliptic.Real.compEllIntEm_eq_ordinaryHypergeometric hm
+  have hd3 := (hd1.const_mul (π/2:ℂ)).congr_of_eventuallyEq heq
+  have hu := hd2.unique hd3
+  rw [show -(1/2:ℂ)+1 = 1/2 by norm_num, show (1/2:ℂ)+1 = 3/2 by norm_num,
+    show (1:ℂ)+1 = 2 by norm_num] at hu
+  have hπ : (π:ℂ) ≠ 0 := by exact_mod_cast Real.pi_pos.ne'
+  have hq : (q:ℂ) ≠ 0 := by exact_mod_cast hq0.ne'
+  push_cast at hu
+  field_simp at hu ⊢
+  linear_combination hu
+
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E26]
 theorem legendre_elliptic_26 {θ : ℝ} (h0 : 0 < θ) :
     olverQ (1/2) 0 (Real.cosh θ)=2/Real.sqrt π*Real.cosh θ/Real.cosh (θ/2)*(DLMF.Elliptic.Real.compEllIntKm ((1/Real.cosh (θ/2))^2):ℂ)-4/Real.sqrt π*Real.cosh (θ/2)*(DLMF.Elliptic.Real.compEllIntEm ((1/Real.cosh (θ/2))^2):ℂ) := by
-  sorry
+  set Z := Real.cosh θ
+  set k := Real.exp (-θ) with hkdef
+  set q := k^2 with hqdef
+  have hZ0 : 0 < Z := Real.cosh_pos _
+  have hk0 : 0 < k := Real.exp_pos _
+  have hk1 : k < 1 := by rw [hkdef, ← Real.exp_zero]; exact Real.exp_lt_exp.2 (by linarith)
+  have hq0 : 0 < q := by positivity
+  have hq1 : q < 1 := pow_lt_one₀ hk0.le hk1 two_ne_zero
+  have hZq : Z = Real.exp θ * (1 + q) / 2 := by
+    show Real.cosh θ = _
+    rw [Real.cosh_eq, hqdef, hkdef, ← Real.exp_nat_mul, mul_add, mul_one, ← Real.exp_add]; push_cast; ring_nf
+  have hqn : ‖(q:ℂ)‖ < 1 := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hq0]; exact hq1
+  have h4 : 4 * (q:ℂ) / (1 + q)^2 = 1/(Z:ℂ)^2 := by
+    have hq' : (q:ℂ) * (Real.exp θ : ℂ)^2 = 1 := by
+      rw [hqdef, hkdef, ofReal_pow, ← mul_pow, ← ofReal_mul, ← Real.exp_add]; simp
+    have h1q : (1 + (q:ℂ)) ≠ 0 := by exact_mod_cast (by linarith : (0:ℝ) < 1 + q).ne'
+    have hE : (Real.exp θ : ℂ) ≠ 0 := by exact_mod_cast (Real.exp_pos θ).ne'
+    rw [hZq, ofReal_div, ofReal_mul, ofReal_add, ofReal_one, ofReal_ofNat]
+    field_simp; linear_combination 4 * hq'
+  have hw : ‖1/(Z:ℂ)^2‖ < 1 := by
+    rw [show (1:ℂ)/(Z:ℂ)^2 = ((1/Z^2 : ℝ) : ℂ) by push_cast; ring, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_pos (by positivity), div_lt_one (by positivity)]
+    have := Real.one_lt_cosh.2 h0.ne'; nlinarith
+  have hc : ∀ k : ℕ, (3/2:ℂ) - 1/2 + 1 ≠ -(k : ℂ) := fun k h => by
+    have := congrArg Complex.re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hwp := quadratic_well_poised_plus hc hqn (by rw [h4]; exact hw)
+  rw [h4, show (3/2:ℂ) - 1/2 + 1 = 2 by norm_num, show (3/2:ℂ)/2 = 3/4 by norm_num,
+    show ((3/2:ℂ)+1)/2 = 5/4 by norm_num, ordinaryHypergeometric_symm (3/2), hyp_half_three_halves_two hq0 hq1] at hwp
+  have hc1 : ∀ k : ℕ, (1/2 : ℂ) + 3/2 ≠ -(k : ℂ) := fun k h => by
+    have := congrArg Complex.re h; simp at this; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  have hG2 : Gamma (2:ℂ) = 1 := by simp
+  rw [olverQ, regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hw, regularizedGaussHGFun_eq_div_Gamma hc1,
+    show (1/2:ℂ) + 0 + 2 = 5/2 by norm_num, show (1/2:ℂ) + 0 + 1 = 3/2 by norm_num,
+    show (5/2:ℂ)/2 = 5/4 by norm_num, show (3/2:ℂ)/2 = 3/4 by norm_num,
+    show (1/2:ℂ) + 3/2 = 2 by norm_num, hG2, div_one,
+    ordinaryHypergeometric_symm (5/4), legendreBranchPower, zero_div, zero_mul, exp_zero, mul_one]
+  have h1q : 0 < 1 + q := by linarith
+  have hpre : (1:ℂ) / ((2:ℂ)^((1/2:ℂ)+1) * (Z:ℂ)^(3/2:ℂ)) =
+      (Real.exp (-3*θ/2) : ℂ) * (((1 + q : ℝ) : ℂ))^(-(3/2:ℂ)) := by
+    rw [show (2:ℂ)^((1/2:ℂ)+1) = ((2:ℝ):ℂ)^(3/2:ℂ) by norm_num, ofReal_cpow_eq_exp two_pos,
+      ofReal_cpow_eq_exp hZ0, ofReal_cpow_eq_exp h1q, ofReal_exp, ← exp_add, ← exp_add, one_div, ← exp_neg,
+      hZq, Real.log_div (by positivity) two_ne_zero, Real.log_mul (Real.exp_pos _).ne' h1q.ne', Real.log_exp]
+    congr 1; push_cast; ring
+  rw [ofReal_add, ofReal_one] at hpre
+  rw [div_eq_mul_one_div (Real.sqrt π : ℂ), hpre, mul_assoc, mul_assoc, ← hwp]
+  -- Landen
+  set u := Real.exp (θ/2) with hu
+  have hu0 : 0 < u := Real.exp_pos _
+  have hku : k = (u⁻¹)^2 := by
+    rw [hkdef, hu, ← Real.exp_neg, ← Real.exp_nat_mul]; push_cast; ring_nf
+  have hsq : Real.sqrt q = k := by rw [hqdef, Real.sqrt_sq hk0.le]
+  have hsk : Real.sqrt k = u⁻¹ := by rw [hku, Real.sqrt_sq (by positivity)]
+  have hcu : Real.cosh (θ/2) = (u + u⁻¹)/2 := by rw [Real.cosh_eq, hu, Real.exp_neg]
+  have hM : (2 * Real.sqrt (Real.sqrt q) / (1 + Real.sqrt q))^2 = (1/Real.cosh (θ/2))^2 := by
+    rw [hsq, hsk, hcu, hku]; field_simp
+  have hKa := DLMF.Elliptic.Real.compEllIntKm_landen_ascending hq0.le hq1
+  have hEa := DLMF.Elliptic.Real.compEllIntEm_landen_ascending hq0.le hq1
+  rw [hM, hsq] at hKa hEa
+  have hZu : Z = (u^2 + (u⁻¹)^2)/2 := by
+    show Real.cosh θ = _
+    rw [Real.cosh_eq, hu, ← Real.exp_neg, ← Real.exp_nat_mul, ← Real.exp_nat_mul]; push_cast; ring_nf
+  have he3 : Real.exp (-3*θ/2) = (u⁻¹)^3 := by
+    rw [hu, ← Real.exp_neg, ← Real.exp_nat_mul]; push_cast; ring_nf
+  set A := DLMF.Elliptic.Real.compEllIntKm ((1/Real.cosh (θ/2))^2)
+  set B := DLMF.Elliptic.Real.compEllIntEm ((1/Real.cosh (θ/2))^2)
+  set Kq := DLMF.Elliptic.Real.compEllIntKm q
+  set Eq := DLMF.Elliptic.Real.compEllIntEm q
+  have hK' : Kq = A / (1 + k) := hKa
+  have hE' : Eq = (1 + k)/2 * B + (1 - q)/2 * Kq := hEa
+  rw [hE', hK', he3, hcu, hZu, hqdef, hku]
+  have hpi : (Real.sqrt π : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.2 Real.pi_pos).ne'
+  have hpi2 : (Real.sqrt π : ℂ)^2 = π := by rw [← ofReal_pow, Real.sq_sqrt Real.pi_pos.le]
+  have huC : (u:ℂ) ≠ 0 := by exact_mod_cast hu0.ne'
+  have h1 : (u:ℂ)^2 + 1 ≠ 0 := by exact_mod_cast (by positivity : (0:ℝ) < u^2+1).ne'
+  have hπ : (π:ℂ) ≠ 0 := by exact_mod_cast Real.pi_pos.ne'
+  push_cast
+  rw [← hpi2]
+  field_simp
+  ring
+
 
 /-- Complete elliptic integrals use parameter equal to the square of DLMF modulus. -/
 @[dlmf 14.5.E27]

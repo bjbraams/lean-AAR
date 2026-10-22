@@ -597,11 +597,186 @@ theorem Real.expIntEi_Ein {x : ℝ} (hx : 0 < x) {ε : ℝ} (hε : ε=1 ∨ ε =
   push_cast
   ring
 
+/-- `|Ei(-u)| ≤ e^{-u}/u` for `u > 0`. -/
+lemma liPV_abs_expIntEi_neg_le {u : ℝ} (hu : 0 < u) :
+    |Real.expIntEi (-u)| ≤ Real.exp (-u) / u := by
+  have h := Real.expIntEi_negative hu
+  rw [genExpIntE_one_eq_integral hu] at h
+  have h' : Real.expIntEi (-u) = -∫ t in Ioi u, Real.exp (-t) / t := by exact_mod_cast h
+  have hnn : 0 ≤ ∫ t in Ioi u, Real.exp (-t) / t :=
+    setIntegral_nonneg measurableSet_Ioi fun t ht => by
+      have : 0 < t := lt_trans hu ht
+      positivity
+  have hle : (∫ t in Ioi u, Real.exp (-t) / t) ≤ ∫ t in Ioi u, Real.exp (-t) / u := by
+    refine integral_mono_of_nonneg ?_ ?_ ?_
+    · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun t ht => ?_)
+      have : 0 < t := lt_trans hu ht
+      simp only [Pi.zero_apply]; positivity
+    · exact (integrableOn_exp_neg_Ioi u).div_const u
+    · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun t ht => ?_)
+      exact div_le_div_of_nonneg_left (Real.exp_pos _).le hu (le_of_lt ht)
+  rw [integral_div, integral_exp_neg_Ioi] at hle
+  rw [h', abs_neg, abs_of_nonneg hnn]
+  exact hle
+
+/-- `li(δ) → 0` as `δ → 0⁺`. -/
+lemma liPV_tendsto_logIntLi_zero :
+    Tendsto Real.logIntLi (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+  have hlog : Tendsto (fun δ : ℝ => -Real.log δ) (𝓝[>] 0) atTop :=
+    tendsto_neg_atBot_atTop.comp Real.tendsto_log_nhdsGT_zero
+  have hb : Tendsto (fun u : ℝ => Real.exp (-u) / u) atTop (𝓝 0) := by
+    have := Real.tendsto_exp_neg_atTop_nhds_zero.mul (tendsto_inv_atTop_zero (𝕜 := ℝ))
+    simpa [div_eq_mul_inv] using this
+  refine squeeze_zero_norm' ?_ (hb.comp hlog)
+  filter_upwards [hlog.eventually_gt_atTop 0, self_mem_nhdsWithin] with δ hδ hδ0
+  rw [Real.norm_eq_abs, Real.logIntLi, show Real.log δ = -(-Real.log δ) by ring]
+  exact liPV_abs_expIntEi_neg_le hδ
+
+/-- `li(t) = γ + log|log t| - Ein(-log t)`. -/
+lemma liPV_logIntLi_eq (t : ℝ) : Real.logIntLi t =
+    Real.eulerMascheroniConstant + Real.log (Real.log t) - Real.expIntEin (-Real.log t) := by
+  rw [Real.logIntLi, Real.expIntEi, Real.log_abs,
+    show -((Real.log t : ℝ) : ℂ) = ((-Real.log t : ℝ) : ℂ) by push_cast; ring,
+    expIntEin_ofReal, ofReal_re]
+
+/-- The real `Ein` differentiates to `(1 - e^{-t})/t` off the origin. -/
+lemma liPV_hasDerivAt_ein {t : ℝ} (ht : t ≠ 0) :
+    HasDerivAt Real.expIntEin ((1 - Real.exp (-t)) / t) t := by
+  have h := (hasDerivAt_expIntEin_complex (z := (t : ℂ)) (by exact_mod_cast ht)).real_of_complex
+  have hf : (fun y : ℝ => (expIntEin (y : ℂ)).re) = Real.expIntEin := by
+    funext y; rw [expIntEin_ofReal, ofReal_re]
+  rw [hf] at h
+  convert h using 1
+  rw [← ofReal_neg, ← ofReal_exp, ← ofReal_one, ← ofReal_sub, ← ofReal_div, ofReal_re]
+
+/-- `li' = 1/log` on `(0, ∞) \ {1}`. -/
+lemma liPV_hasDerivAt {t : ℝ} (ht : 0 < t) (ht1 : t ≠ 1) :
+    HasDerivAt Real.logIntLi (1 / Real.log t) t := by
+  have hl : Real.log t ≠ 0 := by
+    intro h; rcases Real.log_eq_zero.mp h with h | h | h <;> [linarith; exact ht1 h; linarith]
+  rw [funext liPV_logIntLi_eq]
+  have h1 := ((Real.hasDerivAt_log ht.ne').log hl).const_add Real.eulerMascheroniConstant
+  have h2 := (liPV_hasDerivAt_ein (neg_ne_zero.mpr hl)).comp t (Real.hasDerivAt_log ht.ne').neg
+  refine (h1.sub h2).congr_deriv ?_
+  rw [neg_neg, Real.exp_log ht]
+  field_simp
+  ring
+
+/-- The integrand `1/log t` is continuous on `[0, b]` for `b < 1` (with `1/log 0 = 0`). -/
+lemma liPV_continuousOn_left {b : ℝ} (hb : b < 1) :
+    ContinuousOn (fun t : ℝ => 1 / Real.log t) (Icc 0 b) := by
+  intro t ht
+  rcases eq_or_lt_of_le ht.1 with h | h
+  · subst h
+    refine ContinuousAt.continuousWithinAt ?_
+    rw [← continuousWithinAt_compl_self, ContinuousWithinAt]
+    simp only [Real.log_zero, div_zero, one_div]
+    exact Real.tendsto_log_nhdsNE_zero.inv_tendsto_atBot
+  · refine ContinuousAt.continuousWithinAt (continuousAt_const.div
+      (Real.continuousAt_log h.ne') ?_)
+    exact (Real.log_neg h (by linarith [ht.2])).ne
+
+/-- `li(1-ε) - li(1+ε) → 0`. -/
+lemma liPV_tendsto_sub :
+    Tendsto (fun ε : ℝ => Real.logIntLi (1 - ε) - Real.logIntLi (1 + ε)) (𝓝[>] 0) (𝓝 0) := by
+  have hs := (Real.hasDerivAt_log one_ne_zero).tendsto_slope_zero
+  simp only [Real.log_one, sub_zero, inv_one, smul_eq_mul] at hs
+  have hp : Tendsto (fun ε : ℝ => ε) (𝓝[>] 0) (𝓝[≠] 0) :=
+    tendsto_nhdsWithin_mono_left (fun x hx => ne_of_gt hx) tendsto_id
+  have hn : Tendsto (fun ε : ℝ => -ε) (𝓝[>] 0) (𝓝[≠] 0) := by
+    refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
+    · simpa using (continuous_neg.tendsto (0:ℝ)).mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with ε hε
+      exact neg_ne_zero.mpr (ne_of_gt hε)
+  have hr : Tendsto (fun ε : ℝ => |(-ε)⁻¹ * Real.log (1 + -ε)| / |ε⁻¹ * Real.log (1 + ε)|)
+      (𝓝[>] 0) (𝓝 (|1| / |1|)) :=
+    ((hs.comp hn).abs).div ((hs.comp hp).abs) (by norm_num)
+  have hL : Tendsto (fun ε : ℝ => Real.log (|(-ε)⁻¹ * Real.log (1 + -ε)| /
+      |ε⁻¹ * Real.log (1 + ε)|)) (𝓝[>] 0) (𝓝 0) := by
+    have := ((Real.continuousAt_log (by norm_num : (|1| / |1| : ℝ) ≠ 0)).tendsto).comp hr
+    simp only [abs_one, div_one, Real.log_one] at this
+    exact this
+  have hE : Tendsto (fun ε : ℝ => Real.expIntEin (-Real.log (1 - ε)) -
+      Real.expIntEin (-Real.log (1 + ε))) (𝓝[>] 0) (𝓝 0) := by
+    have hc : Continuous Real.expIntEin := by
+      have : Real.expIntEin = fun y : ℝ => (expIntEin (y : ℂ)).re := by
+        funext y; rw [expIntEin_ofReal, ofReal_re]
+      rw [this]; exact Complex.continuous_re.comp (expIntEin_entire.continuous.comp
+        continuous_ofReal)
+    have hg : ∀ σ : ℝ, Tendsto (fun ε : ℝ => Real.expIntEin (-Real.log (1 + σ * ε))) (𝓝[>] 0)
+        (𝓝 (Real.expIntEin (-Real.log (1 + σ * 0)))) := by
+      intro σ
+      have h0 : ContinuousAt (fun ε : ℝ => 1 + σ * ε) 0 := by fun_prop
+      have hcont : ContinuousAt (fun ε : ℝ => Real.expIntEin (-Real.log (1 + σ * ε))) 0 :=
+        hc.continuousAt.comp (h0.log (by simp)).neg
+      exact hcont.tendsto.mono_left nhdsWithin_le_nhds
+    have := (hg (-1)).sub (hg 1)
+    simp only [mul_zero, add_zero, sub_self, neg_one_mul, one_mul, ← sub_eq_add_neg] at this
+    exact this
+  have hev : ∀ᶠ ε in 𝓝[>] (0 : ℝ), Real.logIntLi (1 - ε) - Real.logIntLi (1 + ε) =
+      Real.log (|(-ε)⁻¹ * Real.log (1 + -ε)| / |ε⁻¹ * Real.log (1 + ε)|) -
+      (Real.expIntEin (-Real.log (1 - ε)) - Real.expIntEin (-Real.log (1 + ε))) := by
+    filter_upwards [Ioo_mem_nhdsGT (by norm_num : (0:ℝ) < 1)] with ε hε
+    have h1 : Real.log (1 - ε) ≠ 0 := (Real.log_neg (by linarith [hε.2]) (by linarith [hε.1])).ne
+    have h2 : Real.log (1 + ε) ≠ 0 := (Real.log_pos (by linarith [hε.1])).ne'
+    have hε0 : ε ≠ 0 := hε.1.ne'
+    rw [liPV_logIntLi_eq, liPV_logIntLi_eq, abs_mul, abs_mul, ← sub_eq_add_neg, abs_inv, abs_inv,
+      abs_neg, mul_div_mul_left _ _ (inv_ne_zero (abs_ne_zero.mpr hε0)),
+      Real.log_div (abs_ne_zero.mpr h1) (abs_ne_zero.mpr h2), Real.log_abs, Real.log_abs]
+    ring
+  refine Tendsto.congr' (EventuallyEq.symm hev) ?_
+  simpa using hL.sub hE
+
 /-- Real.logIntLi principalValue. -/
 @[dlmf 6.2.E8]
 theorem Real.logIntLi_principalValue {x : ℝ} (hx : 1 < x) :
     Tendsto (fun ε : ℝ => (∫ t in (0 : ℝ)..(1-ε), 1/Real.log t) + ∫ t in (1+ε)..x, 1/Real.log t) (𝓝[>] (0 : ℝ)) (𝓝 (Real.logIntLi x)) := by
-  sorry
+  have hleft : ∀ ε : ℝ, 0 < ε → ε < 1 →
+      (∫ t in (0 : ℝ)..(1-ε), 1/Real.log t) = Real.logIntLi (1 - ε) := by
+    intro ε hε hε1
+    set G : ℝ → ℝ := fun t => if t = 0 then 0 else Real.logIntLi t with hG
+    have hGe : ∀ t : ℝ, t ≠ 0 → G =ᶠ[𝓝 t] Real.logIntLi := fun t ht => by
+      filter_upwards [isOpen_ne.mem_nhds ht] with s hs
+      simp [G, hs]
+    have hGc : ContinuousOn G (Icc 0 (1 - ε)) := by
+      intro t ht
+      rcases eq_or_lt_of_le ht.1 with h | h
+      · subst h
+        have h0 : ContinuousWithinAt G (Ioi 0) 0 := by
+          have : G 0 = 0 := by simp [G]
+          rw [ContinuousWithinAt, this]
+          refine liPV_tendsto_logIntLi_zero.congr' ?_
+          filter_upwards [self_mem_nhdsWithin] with s hs
+          simp [G, ne_of_gt (show (0:ℝ) < s from hs)]
+        exact (continuousWithinAt_Ioi_iff_Ici.mp h0).mono Icc_subset_Ici_self
+      · have hd := liPV_hasDerivAt h (by linarith [ht.2])
+        exact (hd.continuousAt.congr (hGe t h.ne').symm).continuousWithinAt
+    have hGd : ∀ t ∈ Ioo 0 (1 - ε), HasDerivAt G (1 / Real.log t) t := fun t ht =>
+      (liPV_hasDerivAt ht.1 (by linarith [ht.2])).congr_of_eventuallyEq (hGe t ht.1.ne')
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le (by linarith) hGc hGd
+      ((liPV_continuousOn_left (by linarith)).intervalIntegrable_of_Icc (by linarith))]
+    simp [G, show (1 : ℝ) - ε ≠ 0 by linarith]
+  have hright : ∀ ε : ℝ, 0 < ε → 1 + ε < x →
+      (∫ t in (1+ε)..x, 1/Real.log t) = Real.logIntLi x - Real.logIntLi (1 + ε) := by
+    intro ε hε hεx
+    have hpos : ∀ t ∈ uIcc (1 + ε) x, 1 < t := fun t ht => by
+      rw [uIcc_of_le hεx.le] at ht; linarith [ht.1]
+    refine intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t ht =>
+      liPV_hasDerivAt (by linarith [hpos t ht]) (ne_of_gt (hpos t ht))) ?_
+    refine ContinuousOn.intervalIntegrable fun t ht => ?_
+    have h1 := hpos t ht
+    exact (continuousAt_const.div (Real.continuousAt_log (by linarith))
+      (Real.log_pos h1).ne').continuousWithinAt
+  have hev : ∀ᶠ ε in 𝓝[>] (0 : ℝ),
+      (∫ t in (0 : ℝ)..(1-ε), 1/Real.log t) + (∫ t in (1+ε)..x, 1/Real.log t) =
+        Real.logIntLi x + (Real.logIntLi (1 - ε) - Real.logIntLi (1 + ε)) := by
+    filter_upwards [Ioo_mem_nhdsGT (lt_min one_pos (sub_pos.mpr hx))] with ε hε
+    have h1 : ε < 1 := lt_of_lt_of_le hε.2 (min_le_left _ _)
+    have h2 : ε < x - 1 := lt_of_lt_of_le hε.2 (min_le_right _ _)
+    rw [hleft ε hε.1 h1, hright ε hε.1 (by linarith)]
+    ring
+  refine Tendsto.congr' (EventuallyEq.symm hev) ?_
+  simpa using (tendsto_const_nhds (x := Real.logIntLi x)).add liPV_tendsto_sub
 
 
 

@@ -35,6 +35,7 @@ public import DLMF.Gamma.MathlibCoverage
 public import DLMF.Gamma.VerticalBounds
 public import DLMF.Gamma.MellinBarnes
 public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.ShiftedLineBounds
 
 /-!
 # The Gamma and Beta functions (AAR Chapter 1; DLMF Chapter 5)

@@ -8,6 +8,8 @@ module
 public import DLMF.ErrorFunctions.Relations
 public import DLMF.ErrorFunctions.IntegralTools
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import DLMF.Bessel.KMellin
+public import DLMF.Gamma.MellinBarnes
 
 /-!
 # Integral representations and transforms, DLMF §§7.7 and 7.14
@@ -896,17 +898,587 @@ theorem fresnelAux_contour_tail (z : ℂ) :
   rw [I_sq]
   ring
 
+/-! ### Mellin–Barnes integrals for the auxiliary Fresnel functions (DLMF 7.7.13–14)
+
+The Laplace forms 7.7.10–11 and the Gaussian Mellin transform give the Mellin transform of
+`X ↦ f(2 X^{1/4}/√π)` and `X ↦ g(2 X^{1/4}/√π)`; Mellin inversion
+(`mellinInv_mellin_eq`) gives 7.7.13–14 on the positive axis, and analytic continuation in
+`1/z` (`DLMF.Gamma.differentiableOn_integral_mul_cpow`) extends them to `|arg z| < π/2`. -/
+
+section FresnelMellinBarnes
+
+
+/-- `∫₀^∞ t^{2a-1}/(t²+1) dt = Γ(a) Γ(1-a)/2` for `0 < Re a < 1`. -/
+lemma fresMB_integral_cpow_div {a : ℂ} (h0 : 0 < a.re) (h1 : a.re < 1) :
+    ∫ t : ℝ in Ioi 0, (t : ℂ) ^ (2 * a - 1) / ((t : ℂ) ^ 2 + 1) = Gamma a * Gamma (1 - a) / 2 := by
+  have h1a : 0 < (1 - a).re := by simp; linarith
+  have hb := DLMF.Gamma.beta_on_Ioi h0 h1a
+  rw [show a + (1 - a) = 1 by ring] at hb
+  simp only [cpow_one] at hb
+  have hG := Complex.Gamma_mul_Gamma_eq_betaIntegral h0 h1a
+  rw [show a + (1 - a) = 1 by ring, Complex.Gamma_one, one_mul] at hG
+  have h := integral_comp_rpow_Ioi
+    (fun u : ℝ => (1 / 2 : ℂ) * ((u : ℂ) ^ (a - 1) / (1 + (u : ℂ)))) (p := 2) two_ne_zero
+  rw [integral_const_mul, hb, ← hG] at h
+  rw [show Gamma a * Gamma (1 - a) / 2 = 1 / 2 * (Gamma a * Gamma (1 - a)) by ring, ← h]
+  refine setIntegral_congr_fun measurableSet_Ioi fun x hx => ?_
+  have hx : 0 < x := hx
+  have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  rw [abs_two, show (2 : ℝ) - 1 = 1 by norm_num, Real.rpow_one, Real.rpow_two,
+    DLMF.Bessel.kMel_ofReal_sq_cpow hx, real_smul]
+  have hd : (1 : ℂ) + ((x ^ 2 : ℝ) : ℂ) ≠ 0 := by
+    have : (0 : ℝ) < 1 + x ^ 2 := by positivity
+    exact_mod_cast this.ne'
+  have hd' : (x : ℂ) ^ 2 + 1 ≠ 0 := by
+    have : (0 : ℝ) < x ^ 2 + 1 := by positivity
+    exact_mod_cast this.ne'
+  have e : (x : ℂ) * (x : ℂ) ^ (2 * (a - 1)) = (x : ℂ) ^ (2 * a - 1) := by
+    conv_lhs => arg 1; rw [← cpow_one (x : ℂ)]
+    rw [← cpow_add _ _ hx0]; ring_nf
+  push_cast
+  rw [add_comm (1 : ℂ) ((x : ℂ) ^ 2), ← e]
+  field_simp
+
+/-- Integrability of `t^q/(t²+1)` on `(0, ∞)` for `-1 < q < 1`. -/
+lemma fresMB_integrableOn_rpow_div {q : ℝ} (h0 : -1 < q) (h1 : q < 1) :
+    IntegrableOn (fun t : ℝ => t ^ q / (t ^ 2 + 1)) (Ioi 0) := by
+  set p : ℝ := (q + 1) / 2 with hp
+  have hp0 : 0 < p := by rw [hp]; linarith
+  have hp1 : 0 < 1 - p := by rw [hp]; linarith
+  obtain ⟨hint, -⟩ := DLMF.Gamma.real_beta_on_Ioi hp0 hp1
+  rw [show p + (1 - p) = 1 by ring] at hint
+  simp only [Real.rpow_one] at hint
+  have h := (integrableOn_Ioi_comp_rpow_iff
+    (fun u : ℝ => (1 / 2 : ℝ) * (u ^ (p - 1) / (1 + u))) (p := 2) two_ne_zero).mpr
+    (hint.const_mul _)
+  refine h.congr_fun (fun x hx => ?_) measurableSet_Ioi
+  have hx : 0 < x := hx
+  simp only [smul_eq_mul]
+  rw [abs_two, show (2 : ℝ) - 1 = 1 by norm_num, Real.rpow_one, ← Real.rpow_mul hx.le,
+    show (2 : ℝ) * (p - 1) = q - 1 by rw [hp]; ring, Real.rpow_two, Real.rpow_sub hx, Real.rpow_one]
+  have : (0 : ℝ) < x ^ 2 + 1 := by positivity
+  field_simp
+  ring
+
+/-- The Fresnel auxiliary functions `f` (`aux = false`) and `g` (`aux = true`). -/
+def fresMB_aux (aux : Bool) (z : ℂ) : ℂ := if aux then fresnelAuxGComplex z else fresnelAuxFComplex z
+
+/-- The kernel of the double integral for the Mellin transform of the auxiliary functions. -/
+def fresMB_kernel (k : ℕ) (w : ℂ) (p : ℝ × ℝ) : ℂ :=
+  (p.1 : ℂ) ^ ((k : ℂ) - 1 / 2) / ((p.1 : ℂ) ^ 2 + 1) *
+    ((p.2 : ℂ) ^ (w - 1) * exp (-(((π * p.1 / 2 : ℝ) : ℂ) * (p.2 : ℂ) ^ 2)))
+
+lemma fresMB_measurable_kernel (k : ℕ) (w : ℂ) : Measurable (fresMB_kernel k w) := by
+  unfold fresMB_kernel; fun_prop
+
+lemma fresMB_norm_inner (k : ℕ) {w : ℂ} (hw : 0 < w.re) {t : ℝ} (ht : 0 < t) :
+    ∫ x : ℝ in Ioi 0, ‖fresMB_kernel k w (t, x)‖ =
+      (π / 2) ^ (-w.re / 2) * (1 / 2) * Real.Gamma (w.re / 2) *
+        (t ^ ((k : ℝ) - 1 / 2 - w.re / 2) / (t ^ 2 + 1)) := by
+  have hb : (0 : ℝ) < π * t / 2 := by positivity
+  simp only [fresMB_kernel, norm_mul]
+  rw [integral_const_mul, DLMF.Bessel.kMel_norm_integral_gauss hw hb, norm_div,
+    norm_cpow_eq_rpow_re_of_pos ht]
+  have hd : ‖(t : ℂ) ^ 2 + 1‖ = t ^ 2 + 1 := by
+    rw [show (t : ℂ) ^ 2 + 1 = ((t ^ 2 + 1 : ℝ) : ℂ) by push_cast; ring, norm_real,
+      Real.norm_eq_abs, abs_of_pos (by positivity)]
+  rw [hd, show π * t / 2 = (π / 2) * t by ring, Real.mul_rpow (by positivity) ht.le]
+  have hre : ((k : ℂ) - 1 / 2).re = (k : ℝ) - 1 / 2 := by simp
+  rw [hre]
+  rw [show (k : ℝ) - 1 / 2 - w.re / 2 = ((k : ℝ) - 1 / 2) + (-w.re / 2) by ring,
+    Real.rpow_add ht]
+  norm_num
+  ring
+
+lemma fresMB_integrable_kernel {k : ℕ} (hk : k ≤ 1) {w : ℂ} (hw : 0 < w.re)
+    (hw1 : w.re < 2 * k + 1) :
+    Integrable (fresMB_kernel k w) ((volume.restrict (Ioi (0 : ℝ))).prod
+      (volume.restrict (Ioi (0 : ℝ)))) := by
+  have hk' : (k : ℝ) ≤ 1 := by exact_mod_cast hk
+  refine (integrable_prod_iff (fresMB_measurable_kernel k w).aestronglyMeasurable).mpr ⟨?_, ?_⟩
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    have ht : 0 < t := ht
+    have hb : (0 : ℝ) < π * t / 2 := by positivity
+    simp only [fresMB_kernel]
+    exact (DLMF.Bessel.kMel_integrableOn_gauss hw hb).const_mul _
+  · refine IntegrableOn.congr_fun ((fresMB_integrableOn_rpow_div (q := (k : ℝ) - 1 / 2 - w.re / 2)
+      (by linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]) (by linarith)).const_mul
+      ((π / 2) ^ (-w.re / 2) * (1 / 2) * Real.Gamma (w.re / 2))) (fun t ht => ?_) measurableSet_Ioi
+    exact (fresMB_norm_inner k hw ht).symm
+
+lemma fresMB_pointwise (aux : Bool) (w : ℂ) {x : ℝ} (hx : 0 < x) :
+    (x : ℂ) ^ (w - 1) • fresMB_aux aux x = 1 / (π * Real.sqrt 2) *
+      ∫ t : ℝ in Ioi 0, fresMB_kernel (if aux then 1 else 0) w (t, x) := by
+  have harg : |arg (x : ℂ)| ≤ π / 4 := by
+    rw [arg_ofReal_of_nonneg hx.le, abs_zero]; positivity
+  have h := erfInt_fresnelAux_laplace aux harg
+  rw [smul_eq_mul, fresMB_aux, h]
+  rw [← mul_assoc, mul_comm ((x : ℂ) ^ (w - 1)), mul_assoc, ← integral_const_mul]
+  congr 1
+  refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+  simp only [fresMB_kernel]
+  have e : exp (-↑π * (x : ℂ) ^ 2 * ↑t / 2) = exp (-(((π * t / 2 : ℝ) : ℂ) * (x : ℂ) ^ 2)) := by
+    congr 1; push_cast; ring
+  rw [e]; ring
+
+lemma fresMB_inner (k : ℕ) {w : ℂ} (hw : 0 < w.re) {t : ℝ} (ht : 0 < t) :
+    ∫ x : ℝ in Ioi 0, fresMB_kernel k w (t, x) =
+      ((2 / π : ℝ) : ℂ) ^ (w / 2) * Gamma (w / 2) / 2 *
+        ((t : ℂ) ^ (2 * ((k : ℂ) / 2 + 1 / 4 - w / 4) - 1) / ((t : ℂ) ^ 2 + 1)) := by
+  have hb : (0 : ℝ) < π * t / 2 := by positivity
+  have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+  simp only [fresMB_kernel]
+  rw [integral_const_mul, DLMF.Bessel.kMel_integral_gauss hw hb]
+  have e1 : (1 / ((π * t / 2 : ℝ) : ℂ)) = ((2 / π : ℝ) : ℂ) * ((t⁻¹ : ℝ) : ℂ) := by
+    push_cast; field_simp
+  rw [e1, mul_cpow_ofReal_nonneg (by positivity) (inv_nonneg.mpr ht.le), ofReal_inv,
+    inv_cpow_ofReal_nonneg ht.le, ← cpow_neg]
+  have e2 : (t : ℂ) ^ ((k : ℂ) - 1 / 2) * (t : ℂ) ^ (-(w / 2)) =
+      (t : ℂ) ^ (2 * ((k : ℂ) / 2 + 1 / 4 - w / 4) - 1) := by
+    rw [← cpow_add _ _ ht0]; ring_nf
+  rw [← e2]
+  ring
+
+lemma fresMB_mellin (aux : Bool) {w : ℂ} (hw : 0 < w.re)
+    (hw1 : w.re < 2 * ((if aux then 1 else 0 : ℕ) : ℝ) + 1) :
+    MellinConvergent (fun x : ℝ => fresMB_aux aux x) w ∧
+      mellin (fun x : ℝ => fresMB_aux aux x) w = 1 / (π * Real.sqrt 2) *
+        (((2 / π : ℝ) : ℂ) ^ (w / 2) * Gamma (w / 2) / 2 *
+          (Gamma (((if aux then 1 else 0 : ℕ) : ℂ) / 2 + 1 / 4 - w / 4) *
+            Gamma (1 - (((if aux then 1 else 0 : ℕ) : ℂ) / 2 + 1 / 4 - w / 4)) / 2)) := by
+  set k : ℕ := if aux then 1 else 0 with hkdef
+  have hk : k ≤ 1 := by simp only [k]; split_ifs <;> norm_num
+  have hint := fresMB_integrable_kernel hk hw hw1
+  have hpt := fun x (hx : x ∈ Ioi (0 : ℝ)) => fresMB_pointwise aux w hx
+  refine ⟨IntegrableOn.congr_fun ((hint.integral_prod_right).const_mul (1 / (π * Real.sqrt 2)))
+    (fun x hx => (hpt x hx).symm) measurableSet_Ioi, ?_⟩
+  rw [mellin, setIntegral_congr_fun measurableSet_Ioi hpt, integral_const_mul]
+  have hswap := integral_integral_swap (f := fun t x => fresMB_kernel k w (t, x)) hint
+  rw [← hswap, setIntegral_congr_fun measurableSet_Ioi fun t ht => fresMB_inner k hw ht,
+    integral_const_mul]
+  have hk' : (k : ℝ) ≤ 1 := by exact_mod_cast hk
+  have ha0 : 0 < ((k : ℂ) / 2 + 1 / 4 - w / 4).re := by
+    simp [div_ofNat_re]; linarith
+  have ha1 : ((k : ℂ) / 2 + 1 / 4 - w / 4).re < 1 := by
+    simp [div_ofNat_re]; linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
+  rw [fresMB_integral_cpow_div ha0 ha1]
+
+/-- The Gamma product of the Mellin–Barnes integrands of DLMF 7.7.13–14. -/
+def fresMB_G (b : ℝ) (s : ℂ) : ℂ :=
+  Gamma s * Gamma (s + 1 / 2) * Gamma (s + b) * Gamma (1 - b - s)
+
+lemma fresMB_continuous_G {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) :
+    Continuous fun y : ℝ => fresMB_G b (c + y * I) := by
+  refine continuous_iff_continuousAt.mpr fun y => ?_
+  unfold fresMB_G
+  refine ((ContinuousAt.mul ?_ ?_).mul ?_).mul ?_
+  · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp [hc])).comp (by fun_prop)
+  · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+  · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+  · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
+
+lemma fresMB_bound_G {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) :
+    ∃ C : ℝ, ∃ K : ℕ, ∀ y : ℝ,
+      ‖fresMB_G b (c + y * I)‖ ≤ C * (1 + |y|) ^ K * Real.exp (-(2 * π * |y|)) := by
+  obtain ⟨C₁, K₁, h₁⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le hc 0
+  obtain ⟨C₂, K₂, h₂⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le (x := c + 1 / 2) (by linarith) 0
+  obtain ⟨C₃, K₃, h₃⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le (x := c + b) hcb 0
+  obtain ⟨C₄, K₄, h₄⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le (x := 1 - b - c) (by linarith) 0
+  refine ⟨C₁ * C₂ * C₃ * C₄, K₁ + K₂ + K₃ + K₄, fun y => ?_⟩
+  have e₁ : (c : ℂ) + y * I = ((c : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + (y : ℂ)) := by push_cast; ring
+  have e₂ : (c : ℂ) + y * I + 1 / 2 = ((c + 1 / 2 : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + (y : ℂ)) := by
+    push_cast; ring
+  have e₃ : (c : ℂ) + y * I + b = ((c + b : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + (y : ℂ)) := by
+    push_cast; ring
+  have e₄ : 1 - (b : ℂ) - (c + y * I) = ((1 - b - c : ℝ) : ℂ) + I * (((0 : ℝ) : ℂ) + ((-y : ℝ) : ℂ)) := by
+    push_cast; ring
+  have b₁ := h₁ y; have b₂ := h₂ y; have b₃ := h₃ y; have b₄ := h₄ (-y)
+  rw [← e₁] at b₁; rw [← e₂] at b₂; rw [← e₃] at b₃; rw [← e₄, abs_neg] at b₄
+  unfold fresMB_G
+  rw [norm_mul, norm_mul, norm_mul]
+  have hE : Real.exp (-(2 * π * |y|)) = Real.exp (-(π * |y|) / 2) * Real.exp (-(π * |y|) / 2) *
+      Real.exp (-(π * |y|) / 2) * Real.exp (-(π * |y|) / 2) := by
+    rw [← Real.exp_add, ← Real.exp_add, ← Real.exp_add]; ring_nf
+  rw [hE]
+  have p₁ := (norm_nonneg _).trans b₁
+  have p₂ := (norm_nonneg _).trans b₂
+  have p₃ := (norm_nonneg _).trans b₃
+  calc _ ≤ (C₁ * (1 + |y|) ^ K₁ * Real.exp (-(π * |y|) / 2)) *
+        (C₂ * (1 + |y|) ^ K₂ * Real.exp (-(π * |y|) / 2)) *
+        (C₃ * (1 + |y|) ^ K₃ * Real.exp (-(π * |y|) / 2)) *
+        (C₄ * (1 + |y|) ^ K₄ * Real.exp (-(π * |y|) / 2)) := by
+          gcongr
+    _ = _ := by rw [pow_add, pow_add, pow_add]; ring
+
+lemma fresMB_integrable_G {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) :
+    Integrable fun y : ℝ => fresMB_G b (c + y * I) := by
+  obtain ⟨C, K, hC⟩ := fresMB_bound_G hc hcb hcb1
+  refine ((DLMF.Gamma.integrable_one_add_abs_pow_mul_exp_neg (by positivity : 0 < 2 * π) K).const_mul
+    C).mono' (fresMB_continuous_G hc hcb hcb1).aestronglyMeasurable
+    (Eventually.of_forall fun y => (hC y).trans (le_of_eq (by ring)))
+
+/-- The auxiliary function in the Mellin variable `X = (π x²/4)²`. -/
+def fresMB_g (aux : Bool) : ℝ → ℂ :=
+  fun X => fresMB_aux aux (((2 / Real.sqrt π * X ^ (1 / 4 : ℝ) : ℝ)) : ℂ)
+
+lemma fresMB_cpow_eq_exp {r : ℝ} (hr : 0 < r) (z : ℂ) :
+    ((r : ℝ) : ℂ) ^ z = exp (((Real.log r : ℝ) : ℂ) * z) := by
+  rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr hr.ne'), ← ofReal_log hr.le]
+
+lemma fresMB_two_pi_cpow :
+    (2 * π : ℂ) ^ (3 / 2 : ℂ) = 2 * π * ((Real.sqrt 2 * Real.sqrt π : ℝ) : ℂ) := by
+  have h2π : (0 : ℝ) ≤ 2 * π := by positivity
+  have e : (2 * π : ℂ) ^ (3 / 2 : ℂ) = (((2 * π) ^ (3 / 2 : ℝ) : ℝ) : ℂ) := by
+    rw [ofReal_cpow h2π]; push_cast; rfl
+  rw [e, show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num, Real.rpow_add (by positivity), Real.rpow_one,
+    ← Real.sqrt_eq_rpow, Real.sqrt_mul (by norm_num)]
+  push_cast; ring
+
+lemma fresMB_mellin_g (aux : Bool) {s : ℂ} (hs : 0 < s.re)
+    (hs1 : s.re < ((if aux then 1 else 0 : ℕ) : ℝ) / 2 + 1 / 4) :
+    MellinConvergent (fresMB_g aux) s ∧
+      mellin (fresMB_g aux) s = ((2 * π : ℂ) ^ (3 / 2 : ℂ))⁻¹ *
+        fresMB_G (3 / 4 - ((if aux then 1 else 0 : ℕ) : ℝ) / 2) s := by
+  set k : ℕ := if aux then 1 else 0 with hkdef
+  set f : ℝ → ℂ := fun x => fresMB_aux aux x with hf
+  set F : ℝ → ℂ := fun u => f (2 / Real.sqrt π * u) with hF
+  have hgF : fresMB_g aux = fun X => F (X ^ (1 / 4 : ℝ)) := rfl
+  set w : ℂ := s / ((1 / 4 : ℝ) : ℂ) with hw
+  have hw4 : w = 4 * s := by rw [hw]; push_cast; field_simp
+  have hwre : 0 < w.re := by rw [hw4]; simp; linarith
+  have hwre1 : w.re < 2 * (k : ℝ) + 1 := by rw [hw4]; simp; linarith
+  obtain ⟨hconv, hval⟩ := fresMB_mellin aux hwre hwre1
+  have hsq : (0 : ℝ) < 2 / Real.sqrt π := by positivity
+  refine ⟨?_, ?_⟩
+  · rw [hgF, MellinConvergent.comp_rpow (by norm_num), ← hw]
+    exact (MellinConvergent.comp_mul_left hsq).mpr hconv
+  rw [hgF, mellin_comp_rpow, ← hw, hF, mellin_comp_mul_left _ _ hsq, hval, hw4]
+  -- Gamma algebra
+  have hdup := Complex.Gamma_mul_Gamma_add_half s
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hsp : ((Real.sqrt π : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hs2 : ((Real.sqrt 2 : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+  have hP : (2 : ℂ) ^ (2 * s) ≠ 0 := by rw [cpow_def_of_ne_zero two_ne_zero]; exact exp_ne_zero _
+  have hE : ((2 / Real.sqrt π : ℝ) : ℂ) ^ (-(4 * s)) * ((2 / π : ℝ) : ℂ) ^ (4 * s / 2) *
+      (2 : ℂ) ^ (2 * s) = 1 := by
+    rw [show (2 : ℂ) = ((2 : ℝ) : ℂ) by norm_num, fresMB_cpow_eq_exp hsq,
+      fresMB_cpow_eq_exp (by positivity), fresMB_cpow_eq_exp two_pos, ← exp_add, ← exp_add,
+      Real.log_div (by norm_num) (Real.sqrt_pos.mpr Real.pi_pos).ne',
+      Real.log_div (by norm_num) Real.pi_ne_zero, Real.log_sqrt Real.pi_pos.le]
+    rw [← exp_zero]; congr 1; push_cast; ring
+  have h12 : (2 : ℂ) ^ (1 - 2 * s) = 2 / (2 : ℂ) ^ (2 * s) := by
+    rw [cpow_sub _ _ two_ne_zero, cpow_one]
+  have hsqrt : ((Real.sqrt π : ℝ) : ℂ) = ↑√π := rfl
+  rw [h12] at hdup
+  have ha1 : (1 : ℂ) - ((k : ℂ) / 2 + 1 / 4 - 4 * s / 4) = s + ((3 / 4 - (k : ℝ) / 2 : ℝ) : ℂ) := by
+    push_cast; ring
+  have ha2 : (k : ℂ) / 2 + 1 / 4 - 4 * s / 4 = 1 - ((3 / 4 - (k : ℝ) / 2 : ℝ) : ℂ) - s := by
+    push_cast; ring
+  rw [ha1, ha2, fresMB_two_pi_cpow, show 4 * s / 2 = 2 * s by ring]
+  rw [show 4 * s / 2 = 2 * s by ring] at hE
+  unfold fresMB_G
+  simp only [smul_eq_mul, abs_div, abs_one, Nat.abs_ofNat, Complex.real_smul]
+  generalize ((2 / Real.sqrt π : ℝ) : ℂ) ^ (-(4 * s)) = A at hE ⊢
+  generalize ((2 / π : ℝ) : ℂ) ^ (2 * s) = B at hE ⊢
+  generalize (2 : ℂ) ^ (2 * s) = P at hE hP hdup ⊢
+  have hB : B = 1 / (A * P) := by
+    have hA : A ≠ 0 := by rintro rfl; simp at hE
+    field_simp; linear_combination hE
+  subst hB
+  have hA : A ≠ 0 := by rintro rfl; simp at hE
+  rw [hdup]
+  field_simp
+  push_cast
+  ring
+
+lemma fresMB_differentiable_aux (aux : Bool) : Differentiable ℂ (fresMB_aux aux) := by
+  unfold fresMB_aux; cases aux
+  · exact fresnelAuxFComplex_entire
+  · exact fresnelAuxGComplex_entire
+
+/-- The Mellin–Barnes integrand of DLMF 7.7.13–14. -/
+def fresMB_E (b c : ℝ) (z : ℂ) (y : ℝ) : ℂ :=
+  exp (-((c : ℂ) + y * I) * (2 * log (π : ℂ) - log 16 + 4 * log z)) * fresMB_G b (c + y * I)
+
+lemma fresMB_real (aux : Bool) {c : ℝ} (hc : 0 < c)
+    (hc1 : c < ((if aux then 1 else 0 : ℕ) : ℝ) / 2 + 1 / 4) {x : ℝ} (hx : 0 < x) :
+    Integrable (fresMB_E (3 / 4 - ((if aux then 1 else 0 : ℕ) : ℝ) / 2) c x) ∧
+      ∫ y : ℝ, fresMB_E (3 / 4 - ((if aux then 1 else 0 : ℕ) : ℝ) / 2) c x y =
+        2 * π * (2 * π : ℂ) ^ (3 / 2 : ℂ) * fresMB_aux aux x := by
+  set k : ℕ := if aux then 1 else 0 with hkdef
+  set b : ℝ := 3 / 4 - (k : ℝ) / 2 with hb
+  have hk : (k : ℝ) ≤ 1 := by simp only [k]; split_ifs <;> norm_num
+  have hk0 : (0 : ℝ) ≤ k := Nat.cast_nonneg k
+  have hcb : 0 < c + b := by rw [hb]; linarith
+  have hcb1 : c < 1 - b := by rw [hb]; linarith
+  set X : ℝ := (π * x ^ 2 / 4) ^ 2 with hX
+  have hX0 : 0 < X := by positivity
+  -- the point `X` corresponds to `x`
+  have hgX : fresMB_g aux X = fresMB_aux aux x := by
+    unfold fresMB_g
+    congr 2
+    have h1 : X ^ (1 / 4 : ℝ) = Real.sqrt π * x / 2 := by
+      rw [hX, ← Real.rpow_natCast, ← Real.rpow_mul (by positivity)]
+      norm_num
+      rw [← Real.sqrt_eq_rpow, Real.sqrt_div' _ (by norm_num : (0 : ℝ) ≤ 4),
+        Real.sqrt_mul Real.pi_pos.le, Real.sqrt_sq hx.le,
+        show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
+    rw [h1]
+    have : Real.sqrt π ≠ 0 := (Real.sqrt_pos.mpr Real.pi_pos).ne'
+    field_simp
+  -- the power `X^{-s}`
+  have hlog : Real.log X = 2 * Real.log π - Real.log 16 + 4 * Real.log x := by
+    rw [hX, Real.log_pow, Real.log_div (by positivity) (by norm_num), Real.log_mul
+      Real.pi_ne_zero (by positivity), Real.log_pow, show (16 : ℝ) = 4 ^ 2 by norm_num,
+      Real.log_pow]
+    push_cast; ring
+  have hpow : ∀ y : ℝ, ((X : ℝ) : ℂ) ^ (-((c : ℂ) + y * I)) =
+      exp (-((c : ℂ) + y * I) * (2 * log (π : ℂ) - log 16 + 4 * log (x : ℂ))) := by
+    intro y
+    rw [fresMB_cpow_eq_exp hX0, hlog, ← ofReal_log Real.pi_pos.le, ← ofReal_log hx.le,
+      show (16 : ℂ) = ((16 : ℝ) : ℂ) by norm_num, ← ofReal_log (by norm_num)]
+    congr 1; push_cast; ring
+  -- Mellin inversion
+  have hconv := (fresMB_mellin_g aux (s := (c : ℂ)) (by simpa using hc) (by have h := hc1; rw [hkdef] at h; simpa using h)).1
+  have hmel : ∀ y : ℝ, mellin (fresMB_g aux) ((c : ℂ) + y * I) =
+      ((2 * π : ℂ) ^ (3 / 2 : ℂ))⁻¹ * fresMB_G b (c + y * I) := fun y =>
+    (fresMB_mellin_g aux (s := (c : ℂ) + y * I) (by simpa using hc) (by have h := hc1; rw [hkdef] at h; simpa using h)).2
+  have hGint := fresMB_integrable_G hc hcb hcb1
+  have hvert : VerticalIntegrable (mellin (fresMB_g aux)) c := by
+    unfold VerticalIntegrable
+    simp_rw [hmel]
+    exact hGint.const_mul _
+  have hcont : ContinuousAt (fresMB_g aux) X := by
+    unfold fresMB_g
+    refine (fresMB_differentiable_aux aux).continuous.continuousAt.comp ?_
+    refine continuous_ofReal.continuousAt.comp ?_
+    exact (Real.continuousAt_rpow_const _ _ (Or.inl hX0.ne')).const_mul _
+  have hinv := mellinInv_mellin_eq c (fresMB_g aux) hX0 hconv hvert hcont
+  rw [mellinInv, hgX] at hinv
+  have hEeq : ∀ y : ℝ, (X : ℂ) ^ (-((c : ℂ) + y * I)) • mellin (fresMB_g aux) ((c : ℂ) + y * I) =
+      ((2 * π : ℂ) ^ (3 / 2 : ℂ))⁻¹ * fresMB_E b c x y := by
+    intro y; rw [hmel, smul_eq_mul, hpow, fresMB_E]; ring
+  simp_rw [hEeq] at hinv
+  rw [integral_const_mul] at hinv
+  -- integrability
+  have hEint : Integrable (fresMB_E b c x) := by
+    have hc' : Continuous (fresMB_E b c x) := by
+      unfold fresMB_E
+      exact (by fun_prop : Continuous fun y : ℝ => exp (-((c : ℂ) + y * I) *
+        (2 * log (π : ℂ) - log 16 + 4 * log (x : ℂ))))|>.mul (fresMB_continuous_G hc hcb hcb1)
+    refine (hGint.norm.const_mul (X ^ (-c))).mono' hc'.aestronglyMeasurable
+      (Eventually.of_forall fun y => ?_)
+    rw [fresMB_E, ← hpow, norm_mul, norm_cpow_eq_rpow_re_of_pos hX0]
+    simp
+  refine ⟨hEint, ?_⟩
+  have h2π : ((2 * π : ℂ) ^ (3 / 2 : ℂ)) ≠ 0 := by
+    rw [fresMB_two_pi_cpow]
+    have : (0 : ℝ) < Real.sqrt 2 * Real.sqrt π := by positivity
+    have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+    exact mul_ne_zero (mul_ne_zero two_ne_zero hp) (ofReal_ne_zero.mpr this.ne')
+  rw [← hinv, real_smul]
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  push_cast
+  field_simp
+
+/-- An absolutely integrable function has a convergent whole-line improper integral. -/
+lemma fresMB_hasIntegralWholeLine {f : ℝ → ℂ} (hf : Integrable f) :
+    HasIntegralWholeLine f (∫ y, f y) :=
+  ⟨∫ y in Iic 0, f y, ∫ y in Ioi 0, f y,
+    intervalIntegral_tendsto_integral_Iic 0 hf.integrableOn tendsto_id,
+    intervalIntegral_tendsto_integral_Ioi 0 hf.integrableOn tendsto_id,
+    intervalIntegral.integral_Iic_add_Ioi hf.integrableOn hf.integrableOn⟩
+
+lemma fresMB_continuous_E {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) (z : ℂ) :
+    Continuous (fresMB_E b c z) := by
+  unfold fresMB_E
+  exact (by fun_prop : Continuous fun y : ℝ => exp (-((c : ℂ) + y * I) *
+    (2 * log (π : ℂ) - log 16 + 4 * log z))).mul (fresMB_continuous_G hc hcb hcb1)
+
+lemma fresMB_im_A (z : ℂ) : (2 * log (π : ℂ) - log 16 + 4 * log z).im = 4 * arg z := by
+  have h1 : (log (π : ℂ)).im = 0 := by
+    rw [log_im, arg_ofReal_of_nonneg Real.pi_pos.le]
+  have h2 : (log (16 : ℂ)).im = 0 := by
+    rw [log_im, show (16 : ℂ) = ((16 : ℝ) : ℂ) by norm_num, arg_ofReal_of_nonneg (by norm_num)]
+  simp [h1, h2, log_im]
+
+/-- Absolute integrability of the Mellin–Barnes integrand in the sector `|arg z| < π/2`. -/
+lemma fresMB_integrable_E {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) {z : ℂ}
+    (hz : |arg z| < π / 2) : Integrable (fresMB_E b c z) := by
+  obtain ⟨C, K, hC⟩ := fresMB_bound_G hc hcb hcb1
+  set A : ℂ := 2 * log (π : ℂ) - log 16 + 4 * log z with hA
+  have hAim : |A.im| < 2 * π := by
+    rw [hA, fresMB_im_A, abs_mul]; norm_num; linarith
+  have hpos : 0 < 2 * π - |A.im| := by linarith
+  refine (((DLMF.Gamma.integrable_one_add_abs_pow_mul_exp_neg hpos K).const_mul
+    (C * Real.exp (-(c * A.re))))).mono' (fresMB_continuous_E hc hcb hcb1 z).aestronglyMeasurable
+    (Eventually.of_forall fun y => ?_)
+  rw [fresMB_E, ← hA, norm_mul, norm_exp]
+  have hre : (-((c : ℂ) + y * I) * A).re = -(c * A.re) + y * A.im := by
+    simp [mul_re]
+  rw [hre]
+  have hy : y * A.im ≤ |A.im| * |y| := by
+    rw [mul_comm]; exact (le_abs_self _).trans (by rw [abs_mul])
+  have hC0 : 0 ≤ C := (norm_nonneg _).trans ((hC 0).trans (by simp))
+  calc Real.exp (-(c * A.re) + y * A.im) * ‖fresMB_G b (c + y * I)‖
+      ≤ (Real.exp (-(c * A.re)) * Real.exp (|A.im| * |y|)) *
+          (C * (1 + |y|) ^ K * Real.exp (-(2 * π * |y|))) := by
+        rw [← Real.exp_add]
+        exact mul_le_mul (Real.exp_le_exp.mpr (by linarith)) (hC y) (norm_nonneg _)
+          (Real.exp_pos _).le
+    _ = C * Real.exp (-(c * A.re)) * ((1 + |y|) ^ K * Real.exp (-((2 * π - |A.im|) * |y|))) := by
+        have : Real.exp (|A.im| * |y|) * Real.exp (-(2 * π * |y|)) =
+            Real.exp (-((2 * π - |A.im|) * |y|)) := by rw [← Real.exp_add]; ring_nf
+        calc _ = C * Real.exp (-(c * A.re)) * (1 + |y|) ^ K *
+              (Real.exp (|A.im| * |y|) * Real.exp (-(2 * π * |y|))) := by ring
+          _ = _ := by rw [this]; ring
+
+/-- The rescaled Mellin–Barnes amplitude, in the form used by
+`DLMF.Gamma.differentiableOn_integral_mul_cpow`. -/
+def fresMB_B (b c : ℝ) (y : ℝ) : ℂ :=
+  exp (-((c : ℂ) + (y / 4 : ℝ) * I) * (2 * log (π : ℂ) - log 16)) *
+    fresMB_G b (c + (y / 4 : ℝ) * I)
+
+lemma fresMB_E_eq {b c : ℝ} {z : ℂ} (hz : 0 < z.re) (y : ℝ) :
+    fresMB_E b c z y = fresMB_B b c (4 * y) * z⁻¹ ^ (((4 * c : ℝ) : ℂ) + I * ((4 * y : ℝ) : ℂ)) := by
+  have hz0 : z ≠ 0 := by rintro rfl; simp at hz
+  have harg : z.arg ≠ π := by
+    intro h
+    have := (abs_arg_lt_pi_div_two_iff.mpr (Or.inl hz))
+    rw [h, abs_of_pos Real.pi_pos] at this; linarith [Real.pi_pos]
+  rw [fresMB_E, fresMB_B, cpow_def_of_ne_zero (inv_ne_zero hz0), log_inv z harg,
+    show (4 * y / 4 : ℝ) = y by ring]
+  have he : exp (-((c : ℂ) + y * I) * (2 * log (π : ℂ) - log 16 + 4 * log z)) =
+      exp (-((c : ℂ) + y * I) * (2 * log (π : ℂ) - log 16)) *
+        exp (-log z * (((4 * c : ℝ) : ℂ) + I * ((4 * y : ℝ) : ℂ))) := by
+    rw [← exp_add]; congr 1; push_cast; ring
+  rw [he]; ring
+
+lemma fresMB_integral_E_eq {b c : ℝ} {z : ℂ} (hz : 0 < z.re) :
+    ∫ y, fresMB_E b c z y =
+      (1 / 4 : ℂ) * ∫ y, fresMB_B b c y * z⁻¹ ^ (((4 * c : ℝ) : ℂ) + I * (y : ℂ)) := by
+  simp_rw [fresMB_E_eq hz]
+  rw [Measure.integral_comp_mul_left (fun y : ℝ =>
+    fresMB_B b c y * z⁻¹ ^ (((4 * c : ℝ) : ℂ) + I * (y : ℂ))) 4]
+  rw [real_smul]; norm_num
+
+lemma fresMB_bound_B {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) :
+    ∃ C : ℝ, ∃ K : ℕ, ∀ y : ℝ,
+      ‖fresMB_B b c y‖ ≤ C * (1 + |y|) ^ K * Real.exp (-(π * |y|) / 2) := by
+  obtain ⟨C, K, hC⟩ := fresMB_bound_G hc hcb hcb1
+  have hC0 : 0 ≤ C := (norm_nonneg _).trans ((hC 0).trans (by simp))
+  set r : ℝ := 2 * Real.log π - Real.log 16
+  have hA : (2 * log (π : ℂ) - log 16) = (r : ℂ) := by
+    rw [← ofReal_log Real.pi_pos.le, show (16 : ℂ) = ((16 : ℝ) : ℂ) by norm_num,
+      ← ofReal_log (by norm_num)]
+    simp only [r]; push_cast; ring
+  refine ⟨C * Real.exp (-(c * r)), K, fun y => ?_⟩
+  rw [fresMB_B, hA, norm_mul, norm_exp]
+  have hre : (-((c : ℂ) + ((y / 4 : ℝ) : ℂ) * I) * (r : ℂ)).re = -(c * r) := by
+    simp [mul_re]
+  rw [hre]
+  have h1 := hC (y / 4)
+  have hy : |y / 4| = |y| / 4 := by rw [abs_div]; norm_num
+  rw [hy] at h1
+  have hK : (1 + |y| / 4) ^ K ≤ (1 + |y|) ^ K :=
+    pow_le_pow_left₀ (by positivity) (by linarith [abs_nonneg y]) K
+  have he : Real.exp (-(2 * π * (|y| / 4))) = Real.exp (-(π * |y|) / 2) := by ring_nf
+  rw [he] at h1
+  calc Real.exp (-(c * r)) * ‖fresMB_G b (c + ((y / 4 : ℝ) : ℂ) * I)‖
+      ≤ Real.exp (-(c * r)) * (C * (1 + |y|) ^ K * Real.exp (-(π * |y|) / 2)) := by
+        refine mul_le_mul_of_nonneg_left (h1.trans ?_) (Real.exp_pos _).le
+        gcongr
+    _ = _ := by ring
+
+lemma fresMB_continuous_B {b c : ℝ} (hc : 0 < c) (hcb : 0 < c + b) (hcb1 : c < 1 - b) :
+    Continuous (fresMB_B b c) := by
+  unfold fresMB_B
+  refine Continuous.mul (by fun_prop) ?_
+  exact (fresMB_continuous_G hc hcb hcb1).comp (continuous_id.div_const 4)
+
+/-- The Mellin–Barnes integral for the auxiliary Fresnel functions (DLMF 7.7.13–14),
+in the right half-plane. -/
+lemma fresMB_complex (aux : Bool) {c : ℝ} (hc : 0 < c)
+    (hc1 : c < ((if aux then 1 else 0 : ℕ) : ℝ) / 2 + 1 / 4) {z : ℂ} (hz : 0 < z.re) :
+    ∫ y : ℝ, fresMB_E (3 / 4 - ((if aux then 1 else 0 : ℕ) : ℝ) / 2) c z y =
+      2 * π * (2 * π : ℂ) ^ (3 / 2 : ℂ) * fresMB_aux aux z := by
+  set k : ℕ := if aux then 1 else 0 with hkdef
+  set b : ℝ := 3 / 4 - (k : ℝ) / 2 with hb
+  have hk : (k : ℝ) ≤ 1 := by simp only [k]; split_ifs <;> norm_num
+  have hk0 : (0 : ℝ) ≤ k := Nat.cast_nonneg k
+  have hcb : 0 < c + b := by rw [hb]; linarith
+  have hcb1 : c < 1 - b := by rw [hb]; linarith
+  obtain ⟨C, K, hCK⟩ := fresMB_bound_B hc hcb hcb1
+  have hG := DLMF.Gamma.differentiableOn_integral_mul_cpow (fresMB_continuous_B hc hcb hcb1)
+    hCK (4 * c)
+  set V : ℂ := 2 * π * (2 * π : ℂ) ^ (3 / 2 : ℂ)
+  have hR : DifferentiableOn ℂ (fun w : ℂ => 4 * V * fresMB_aux aux w⁻¹) {w | 0 < w.re} := by
+    intro w hw
+    have hw0 : w ≠ 0 := by rintro rfl; simp at hw
+    exact (((fresMB_differentiable_aux aux).differentiableAt.comp w
+      (differentiableAt_inv hw0)).const_mul _).differentiableWithinAt
+  have hU : IsOpen {w : ℂ | 0 < w.re} := isOpen_lt continuous_const continuous_re
+  have hconv : Convex ℝ {w : ℂ | 0 < w.re} := convex_halfSpace_re_gt 0
+  have h1 : (1 : ℂ) ∈ {w : ℂ | 0 < w.re} := by simp
+  have hzi : 0 < z⁻¹.re := by
+    rw [inv_re]; exact div_pos hz (normSq_pos.mpr (by rintro rfl; simp at hz))
+  have key := AnalyticOnNhd.eqOn_of_preconnected_of_frequently_eq (z₀ := 1)
+    (hG.analyticOnNhd hU) (hR.analyticOnNhd hU) hconv.isPreconnected h1 ?_ hzi
+  · rw [fresMB_integral_E_eq hz]
+    simp only at key
+    rw [key, inv_inv]; ring
+  have hev : ∀ᶠ x : ℝ in 𝓝[≠] 1,
+      (∫ y : ℝ, fresMB_B b c y * (x : ℂ) ^ (((4 * c : ℝ) : ℂ) + I * y)) =
+        4 * V * fresMB_aux aux (x : ℂ)⁻¹ := by
+    filter_upwards [nhdsWithin_le_nhds (lt_mem_nhds one_pos)] with x hx
+    have hxr : 0 < ((x : ℂ)⁻¹).re := by
+      rw [← ofReal_inv, ofReal_re]; exact inv_pos.mpr hx
+    have h := fresMB_integral_E_eq (b := b) (c := c) hxr
+    rw [inv_inv] at h
+    have hr := (fresMB_real aux hc hc1 (inv_pos.mpr hx)).2
+    rw [← hkdef, ← hb, ofReal_inv, h] at hr
+    show _ = 4 * (2 * π * (2 * π : ℂ) ^ (3 / 2 : ℂ)) * _
+    linear_combination 4 * hr
+  have ht : Tendsto (fun x : ℝ => (x : ℂ)) (𝓝[≠] 1) (𝓝[≠] 1) :=
+    Complex.continuous_ofReal.continuousWithinAt.tendsto_nhdsWithin fun x hx => by
+      simpa using hx
+  exact ht.frequently hev.frequently
+
+end FresnelMellinBarnes
+
 /-- fresnelAuxFComplex mellinBarnes. -/
 @[dlmf 7.7.E13]
 theorem fresnelAuxFComplex_mellinBarnes {z : ℂ} (hz0 : z ≠ 0) (hz : |arg z| < π/2) {c : ℝ} (hc : 0 < c) (hc1 : c < 1/4) :
     HasIntegralWholeLine (fun y : ℝ => let s : ℂ := c+y*I; exp (-s*(2*log (π : ℂ)-log 16+4*log z))*Gamma s*Gamma (s+1/2)*Gamma (s+3/4)*Gamma (1/4-s)) (2*π*(2*π : ℂ)^(3/2 : ℂ)*fresnelAuxFComplex z) := by
-  sorry
+  have hre : 0 < z.re := (abs_arg_lt_pi_div_two_iff.mp hz).resolve_right hz0
+  have hv := fresMB_complex false hc (by norm_num; linarith) hre
+  have e : (3 / 4 - ((if false = true then 1 else 0 : ℕ) : ℝ) / 2) = 3 / 4 := by norm_num
+  rw [e] at hv
+  have hI := fresMB_integrable_E (b := 3 / 4) hc (by linarith) (by linarith) hz
+  have h := fresMB_hasIntegralWholeLine hI
+  rw [hv] at h
+  convert h using 2 with y
+  simp only [fresMB_E, fresMB_G]
+  push_cast
+  ring_nf
+  simp [fresMB_aux]
 
 /-- fresnelAuxGComplex mellinBarnes. -/
 @[dlmf 7.7.E14]
 theorem fresnelAuxGComplex_mellinBarnes {z : ℂ} (hz0 : z ≠ 0) (hz : |arg z| < π/2) {c : ℝ} (hc : 0 < c) (hc1 : c < 3/4) :
     HasIntegralWholeLine (fun y : ℝ => let s : ℂ := c+y*I; exp (-s*(2*log (π : ℂ)-log 16+4*log z))*Gamma s*Gamma (s+1/2)*Gamma (s+1/4)*Gamma (3/4-s)) (2*π*(2*π : ℂ)^(3/2 : ℂ)*fresnelAuxGComplex z) := by
-  sorry
+  have hre : 0 < z.re := (abs_arg_lt_pi_div_two_iff.mp hz).resolve_right hz0
+  have hv := fresMB_complex true hc (by norm_num; linarith) hre
+  have e : (3 / 4 - ((if true = true then 1 else 0 : ℕ) : ℝ) / 2) = 1 / 4 := by norm_num
+  rw [e] at hv
+  have hI := fresMB_integrable_E (b := 1 / 4) hc (by linarith) (by linarith) hz
+  have h := fresMB_hasIntegralWholeLine hI
+  rw [hv] at h
+  convert h using 2 with y
+  simp only [fresMB_E, fresMB_G]
+  push_cast
+  ring_nf
+  simp [fresMB_aux]
 
 /-- The half-line Gaussian Laplace transform on the boundary `Re b = 0`, obtained from the
 case `Re b > 0` by dominated convergence. -/

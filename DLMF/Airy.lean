@@ -12,6 +12,8 @@ public import DLMF.Airy.Equation
 public import DLMF.Airy.IntegralRepresentations
 public import DLMF.Airy.Relations
 public import DLMF.Airy.Asymptotics
+public import DLMF.Airy.ErrorBoundTools
+public import DLMF.Airy.StieltjesForm
 public import DLMF.Airy.ModulusTools
 public import DLMF.Airy.ModulusPhase
 public import DLMF.Airy.Zeros

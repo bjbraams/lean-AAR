@@ -6,6 +6,9 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.ParabolicCylinder.Weber
+public import DLMF.ParabolicCylinder.Hermite
+public import DLMF.OrthogonalPolynomials.ClassicalInstances
+public import ToMathlib.Analysis.ODE.SturmDeformation
 
 /-!
 # Cylinder asymptotic sectors and real and complex zeros
@@ -338,20 +341,408 @@ theorem pcfU_no_positive_zero {a : ℝ} (h0 : -3/2 < a) (h1 : a < -1/2) {x : ℝ
       (Real.rpow_pos_of_pos ht _)) (Real.rpow_pos_of_pos (by linarith [show (0:ℝ) < t from ht]) _)) ?_
     exact (kummerU_laplace_integrable (b := 3/2) hα hz).congr_fun heq measurableSet_Ioi
 
-/-- Exact positive real zero count in DLMF 12.11(i). -/
-theorem pcfU_positive_zero_count {a : ℝ} (n : ℕ) (hn : 0 < n) (h0 : -2*n-3/2 < a) (h1 : a < -2*n+1/2) :
-    Set.Finite {x : ℝ | 0 < x ∧ pcfU a x=0} ∧ ({x : ℝ | 0 < x ∧ pcfU a x=0}:Set ℝ).ncard=n := by
-  sorry
-
 /-- Hermite specialization and enclosure of all real zeros. -/
 theorem pcfU_hermite_zero_count (n : ℕ) :
     Set.Finite {x : ℝ | pcfU (-n-1/2) x=0} ∧ ({x : ℝ | pcfU (-n-1/2) x=0}:Set ℝ).ncard=n ∧ ∀ x : ℝ, pcfU (-n-1/2) x=0 → |x| ≤ 2*Real.sqrt (n+1/2) := by
-  sorry
+  obtain ⟨r, hr, hb, hz⟩ := DLMF.OrthogonalPolynomials.hermitePolyH_zeros_bound n
+  have hs : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr (by norm_num)
+  have hs0 : (Real.sqrt 2 : ℂ) ≠ 0 := by exact_mod_cast hs.ne'
+  have hset : {x : ℝ | pcfU (-n-1/2) x=0} = Set.range (fun i => Real.sqrt 2 * r i) := by
+    ext x
+    simp only [mem_ofPred_eq, mem_range, pcfU_physicists_hermite]
+    have h2 : (2 : ℂ) ^ (-(n : ℂ) / 2) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+    rw [mul_eq_zero, or_iff_right (mul_ne_zero h2 (exp_ne_zero _)), hz]
+    constructor
+    · rintro ⟨i, hi⟩
+      refine ⟨i, ?_⟩
+      have : (x : ℂ) = Real.sqrt 2 * r i := by rw [← hi]; field_simp
+      exact_mod_cast this.symm
+    · rintro ⟨i, rfl⟩
+      exact ⟨i, by push_cast; field_simp⟩
+  have hinj : Function.Injective (fun i => Real.sqrt 2 * r i) := fun i j h =>
+    hr.injective (mul_left_cancel₀ hs.ne' h)
+  refine ⟨hset ▸ Set.finite_range _, ?_, ?_⟩
+  · rw [hset, ← Set.image_univ, Set.ncard_image_of_injective _ hinj, Set.ncard_univ,
+      Nat.card_eq_fintype_card, Fintype.card_fin]
+  · intro x hx
+    have hx' : x ∈ {x : ℝ | pcfU (-n-1/2) x=0} := hx
+    rw [hset] at hx'
+    obtain ⟨i, rfl⟩ := hx'
+    have e : 2 * Real.sqrt (n + 1/2) = Real.sqrt 2 * Real.sqrt (2 * n + 1) := by
+      rw [← Real.sqrt_mul (by norm_num), show (2:ℝ) * (2 * n + 1) = 2^2 * (n + 1/2) by ring,
+        Real.sqrt_mul (by norm_num), Real.sqrt_sq (by norm_num)]
+    rw [e, abs_mul, abs_of_pos hs]
+    exact mul_le_mul_of_nonneg_left (hb i).le hs.le
+
+/-! ### Positive zeros of `U(a,x)` by parameter deformation -/
+
+/-- Joint continuity of Kummer's `M` in the first parameter and the argument. -/
+lemma pcfPZ_kummerM_continuous {c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) :
+    Continuous (fun p : ℂ × ℂ => kummerM p.1 c p.2) := by
+  rw [continuous_iff_continuousAt]
+  rintro ⟨a₀, z₀⟩
+  set α : ℝ := ‖a₀‖ + 1
+  set R : ℝ := ‖z₀‖ + 1
+  have hsum : Summable fun n => ‖kummerMCoeff (α : ℂ) c n * (R : ℂ) ^ n‖ :=
+    summable_norm_iff.mpr (hasSum_kummerM hc (R : ℂ)).summable
+  set s : Set (ℂ × ℂ) := {p | ‖p.1‖ < α ∧ ‖p.2‖ < R}
+  have hs : IsOpen s := (isOpen_lt (continuous_fst.norm) continuous_const).inter
+    (isOpen_lt (continuous_snd.norm) continuous_const)
+  have hmem : (a₀, z₀) ∈ s := ⟨by simp [α], by simp [R]⟩
+  have hc' : ContinuousOn (fun p : ℂ × ℂ => ∑' n : ℕ, poch p.1 n / (poch c n * n !) * p.2 ^ n) s := by
+    refine continuousOn_tsum (fun n => ?_) hsum ?_
+    · have : Continuous fun p : ℂ × ℂ => poch p.1 n :=
+        (Polynomial.continuous _).comp continuous_fst
+      exact ((this.div_const _).mul (continuous_snd.pow n)).continuousOn
+    · intro n p hp
+      rw [norm_mul, norm_mul, norm_div, norm_div, norm_pow, norm_pow]
+      have h1 := norm_ascPochhammer_eval_le hp.1.le n
+      have h2 : ‖p.2‖ ^ n ≤ ‖(R : ℂ)‖ ^ n := by
+        gcongr
+        rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity)]
+        exact hp.2.le
+      gcongr
+  exact (hc'.continuousAt (hs.mem_nhds hmem))
+
+/-- Composition form of `pcfPZ_kummerM_continuous`. -/
+lemma pcfPZ_kummerM_comp {c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) {f g : ℂ × ℂ → ℂ}
+    (hf : Continuous f) (hg : Continuous g) :
+    Continuous (fun p => kummerM (f p) c (g p)) :=
+  (pcfPZ_kummerM_continuous hc).comp (hf.prodMk hg)
+
+/-- Continuity of `1/Γ` along a continuous map. -/
+lemma pcfPZ_invGamma_comp {f : ℂ × ℂ → ℂ} (hf : Continuous f) :
+    Continuous (fun p => (Gamma (f p))⁻¹) :=
+  differentiable_one_div_Gamma.continuous.comp hf |>.congr fun p => by simp
+
+/-- `U(a,z)` is jointly continuous in `(a,z)`. -/
+lemma pcfPZ_pcfU_continuous : Continuous (fun p : ℂ × ℂ => pcfU p.1 p.2) := by
+  have hb1 : ∀ k : ℕ, (1 / 2 : ℂ) ≠ -k := half_ne_neg_nat
+  have hb3 : ∀ k : ℕ, (3 / 2 : ℂ) ≠ -k := three_half_ne_neg_nat
+  unfold pcfU pcfEven pcfOdd
+  have k1 := pcfPZ_kummerM_comp hb1 (f := fun p : ℂ × ℂ => p.1 / 2 + 1 / 4)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have k3 := pcfPZ_kummerM_comp hb3 (f := fun p : ℂ × ℂ => p.1 / 2 + 3 / 4)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have g1 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
+  have g2 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
+  have c1 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 + 1 / 4)) :=
+    Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
+  have c2 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 - 1 / 4)) :=
+    Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
+  fun_prop
+
+/-- `U'(a,z)` is jointly continuous in `(a,z)`. -/
+lemma pcfPZ_pcfUDeriv_continuous : Continuous (fun p : ℂ × ℂ => pcfUDeriv p.1 p.2) := by
+  have hb1 : ∀ k : ℕ, (1 / 2 : ℂ) ≠ -k := half_ne_neg_nat
+  have hb3 : ∀ k : ℕ, (3 / 2 : ℂ) ≠ -k := three_half_ne_neg_nat
+  have hb3' : ∀ k : ℕ, (1 / 2 + 1 : ℂ) ≠ -k := by norm_num; exact three_half_ne_neg_nat
+  have hb5 : ∀ k : ℕ, (3 / 2 + 1 : ℂ) ≠ -k := by norm_num; exact five_halves_ne_neg_nat
+  unfold pcfUDeriv pcfEvenDeriv pcfOddDeriv
+  have k1 := pcfPZ_kummerM_comp hb1 (f := fun p : ℂ × ℂ => p.1 / 2 + 1 / 4)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have k3 := pcfPZ_kummerM_comp hb3 (f := fun p : ℂ × ℂ => p.1 / 2 + 3 / 4)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have k1' := pcfPZ_kummerM_comp hb3' (f := fun p : ℂ × ℂ => p.1 / 2 + 1 / 4 + 1)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have k3' := pcfPZ_kummerM_comp hb5 (f := fun p : ℂ × ℂ => p.1 / 2 + 3 / 4 + 1)
+    (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
+  have g1 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
+  have g2 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
+  have c1 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 + 1 / 4)) :=
+    Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
+  have c2 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 - 1 / 4)) :=
+    Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
+  fun_prop
+
+/-- A solution of `f'' = q f` with `q ≥ 0` on `[X, ∞)` that decays at infinity and has only
+simple zeros has no zero in `[X, ∞)`. -/
+lemma pcfPZ_no_zero_of_decay {f f' q : ℝ → ℝ} {X : ℝ}
+    (hf : ∀ x, X ≤ x → HasDerivAt f (f' x) x)
+    (hf' : ∀ x, X ≤ x → HasDerivAt f' (q x * f x) x) (hq : ∀ x, X ≤ x → 0 ≤ q x)
+    (hlim : Tendsto f atTop (𝓝 0)) (hs : ∀ x, X ≤ x → f x = 0 → f' x ≠ 0) :
+    ∀ x, X ≤ x → f x ≠ 0 := by
+  intro x₀ hx₀ h0
+  -- `g = f f'` is monotone on `[X, ∞)`.
+  have hg : ∀ x, X ≤ x → HasDerivAt (fun t => f t * f' t)
+      (f' x * f' x + f x * (q x * f x)) x := fun x hx => (hf x hx).mul (hf' x hx)
+  have hgmono : MonotoneOn (fun t => f t * f' t) (Ici x₀) := by
+    refine monotoneOn_of_deriv_nonneg (convex_Ici x₀) ?_ ?_ ?_
+    · exact fun x hx => (hg x (hx₀.trans hx)).continuousAt.continuousWithinAt
+    · intro x hx
+      rw [interior_Ici] at hx
+      exact (hg x (hx₀.trans hx.le)).differentiableAt.differentiableWithinAt
+    · intro x hx
+      rw [interior_Ici] at hx
+      rw [(hg x (hx₀.trans hx.le)).deriv]
+      have := hq x (hx₀.trans hx.le)
+      nlinarith [mul_self_nonneg (f' x), mul_self_nonneg (f x)]
+  have hgnn : ∀ x, x₀ ≤ x → 0 ≤ f x * f' x := fun x hx => by
+    have := hgmono (self_mem_Ici) hx hx
+    simpa [h0] using this
+  -- hence `f²` is monotone on `[x₀, ∞)`
+  have hsq : ∀ x, X ≤ x → HasDerivAt (fun t => f t * f t) (f' x * f x + f x * f' x) x :=
+    fun x hx => (hf x hx).mul (hf x hx)
+  have hsqmono : MonotoneOn (fun t => f t * f t) (Ici x₀) := by
+    refine monotoneOn_of_deriv_nonneg (convex_Ici x₀) ?_ ?_ ?_
+    · exact fun x hx => (hsq x (hx₀.trans hx)).continuousAt.continuousWithinAt
+    · intro x hx
+      rw [interior_Ici] at hx
+      exact (hsq x (hx₀.trans hx.le)).differentiableAt.differentiableWithinAt
+    · intro x hx
+      rw [interior_Ici] at hx
+      rw [(hsq x (hx₀.trans hx.le)).deriv]
+      linarith [hgnn x hx.le]
+  have hlim2 : Tendsto (fun t => f t * f t) atTop (𝓝 0) := by
+    simpa using hlim.mul hlim
+  have hz : ∀ x, x₀ ≤ x → f x = 0 := by
+    intro x hx
+    have hle : f x * f x ≤ 0 := by
+      refine ge_of_tendsto hlim2 ?_
+      filter_upwards [eventually_ge_atTop x] with y hy
+      exact hsqmono hx (hx.trans hy) hy
+    exact mul_self_eq_zero.mp (le_antisymm hle (mul_self_nonneg _))
+  -- so the right derivative at `x₀` vanishes
+  have hsl := (hasDerivAt_iff_tendsto_slope.mp (hf x₀ hx₀)).mono_left (nhdsGT_le_nhdsNE x₀)
+  have hc : Tendsto (slope f x₀) (𝓝[>] x₀) (𝓝 0) := by
+    refine tendsto_const_nhds.congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with x hx
+    rw [slope_def_field, hz x (le_of_lt hx), h0]
+    simp
+  exact hs x₀ hx₀ h0 (tendsto_nhds_unique hsl hc)
+
+/-- `U(a,x) → 0` as `x → +∞` for real `a`. -/
+lemma pcfPZ_tendsto_pcfU (a : ℝ) : Tendsto (fun x : ℝ => pcfU a x) atTop (𝓝 0) := by
+  have h0 := hasAsymptoticExpansion_pcfU (a : ℂ) 0
+  simp only [Finset.range_zero, Finset.sum_empty, sub_zero, CharP.cast_eq_zero, mul_zero,
+    sub_zero] at h0
+  refine h0.trans_tendsto ?_
+  set s : ℝ := -a - 1 / 2
+  have hreal : Tendsto (fun x : ℝ => (x ^ 2) ^ (s / 2) * Real.exp (-(1 / 4) * x ^ 2)) atTop
+      (𝓝 0) :=
+    (tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero (s / 2) (1 / 4) (by norm_num)).comp
+      (tendsto_pow_atTop two_ne_zero)
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  refine hreal.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with x hx
+  rw [norm_mul, Complex.norm_exp, Complex.norm_cpow_eq_rpow_re_of_pos hx]
+  have hre : (-(x : ℂ) ^ 2 / 4).re = -(1 / 4) * x ^ 2 := by
+    rw [show -(x : ℂ) ^ 2 / 4 = ((-(1 / 4) * x ^ 2 : ℝ) : ℂ) by push_cast; ring, Complex.ofReal_re]
+  have hre2 : (-(a : ℂ) - 1 / 2).re = s := by simp [s]
+  rw [hre, hre2, ← Real.rpow_natCast, ← Real.rpow_mul hx.le]
+  norm_num
+  ring_nf
+
+/-- The real derivative family of `U` along real arguments. -/
+lemma pcfPZ_hasDerivAt_re (t x : ℝ) :
+    HasDerivAt (fun y : ℝ => (pcfU t y).re) (pcfUDeriv t x).re x :=
+  (hasDerivAt_pcfU t x).real_of_complex
+
+/-- Weber's equation for the real parts. -/
+lemma pcfPZ_hasDerivAt_deriv_re (t x : ℝ) :
+    HasDerivAt (fun y : ℝ => (pcfUDeriv t y).re) ((x ^ 2 / 4 + t) * (pcfU t x).re) x := by
+  have h := (hasDerivAt_pcfUDeriv t x).real_of_complex
+  rwa [show ((x : ℂ) ^ 2 / 4 + t) = ((x ^ 2 / 4 + t : ℝ) : ℂ) by push_cast; ring,
+    Complex.re_ofReal_mul] at h
+
+/-- `U(t,x)` is real for real `t, x`. -/
+lemma pcfPZ_eq_re (t x : ℝ) : pcfU t x = ((pcfU t x).re : ℂ) :=
+  Complex.ext (by simp) (by simp [pcfU_real])
+
+/-- `U'(t,x)` is real for real `t, x`. -/
+lemma pcfPZ_deriv_eq_re (t x : ℝ) : pcfUDeriv t x = ((pcfUDeriv t x).re : ℂ) := by
+  have h1 : HasDerivAt (fun y : ℝ => pcfU t y) (pcfUDeriv t x) x := (hasDerivAt_pcfU t x).comp_ofReal
+  have h2 : HasDerivAt (fun y : ℝ => (((pcfU t y).re : ℝ) : ℂ)) ((pcfUDeriv t x).re : ℂ) x :=
+    (pcfPZ_hasDerivAt_re t x).ofReal_comp
+  have he : (fun y : ℝ => (((pcfU t y).re : ℝ) : ℂ)) = fun y : ℝ => pcfU t y :=
+    funext fun y => (pcfPZ_eq_re t y).symm
+  rw [he] at h2
+  exact h1.unique h2
+
+/-- Real zeros of `U(t,·)` are simple (Wronskian with `V`). -/
+lemma pcfPZ_simple (t x : ℝ) (h : (pcfU t x).re = 0) : (pcfUDeriv t x).re ≠ 0 := by
+  intro h'
+  have hU : pcfU t x = 0 := by rw [pcfPZ_eq_re, h, Complex.ofReal_zero]
+  have hU' : pcfUDeriv t x = 0 := by rw [pcfPZ_deriv_eq_re, h', Complex.ofReal_zero]
+  have hW := pcfV_wronskian (t : ℂ) (x : ℂ)
+  rw [deriv_pcfU, hU, hU'] at hW
+  have : (0 : ℝ) < Real.sqrt (2 / π) := Real.sqrt_pos.mpr (by positivity)
+  have h0 : ((Real.sqrt (2 / π) : ℝ) : ℂ) ≠ 0 := by exact_mod_cast this.ne'
+  exact h0 (by rw [← hW]; ring)
+
+/-- `U(t,0) ≠ 0` away from the poles of `Γ(3/4 + t/2)`. -/
+lemma pcfPZ_zero_ne {t : ℝ} (h : ∀ m : ℕ, (3 / 4 + t / 2 : ℂ) ≠ -m) : pcfU t 0 ≠ 0 := by
+  rw [pcfU_zero]
+  refine div_ne_zero ?_ (mul_ne_zero ?_ (Complex.Gamma_ne_zero h))
+  · exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  · exact (Complex.cpow_ne_zero_iff.mpr (Or.inl two_ne_zero))
+
+/-- No zeros of `U(t,x)` where `x²/4 + t ≥ 0` beyond `X`. -/
+lemma pcfPZ_far {t : ℝ} {X : ℝ} (hX : ∀ x, X ≤ x → 0 ≤ x ^ 2 / 4 + t) :
+    ∀ x, X ≤ x → (pcfU t x).re ≠ 0 :=
+  pcfPZ_no_zero_of_decay (f := fun y : ℝ => (pcfU t y).re) (f' := fun y : ℝ => (pcfUDeriv t y).re)
+    (q := fun y => y ^ 2 / 4 + t) (fun x _ => pcfPZ_hasDerivAt_re t x)
+    (fun x _ => pcfPZ_hasDerivAt_deriv_re t x) hX
+    (by have h := (Complex.continuous_re.tendsto 0).comp (pcfPZ_tendsto_pcfU t); rw [Complex.zero_re] at h; exact h)
+    (fun x _ h => pcfPZ_simple t x h)
+
+/-- Vanishing of `U(t,x)` through its real part. -/
+lemma pcfPZ_re_eq_zero_iff (t x : ℝ) : (pcfU t x).re = 0 ↔ pcfU t x = 0 := by
+  constructor
+  · intro h; rw [pcfPZ_eq_re, h, Complex.ofReal_zero]
+  · intro h; rw [h, Complex.zero_re]
+
+/-- Base count: `U(-2n-1/2, x)` has exactly `n` positive zeros. -/
+lemma pcfPZ_base (n : ℕ) :
+    {x : ℝ | x ∈ Ici 0 ∧ (pcfU ((-2 * n - 1 / 2 : ℝ) : ℂ) x).re = 0}.ncard = n := by
+  obtain ⟨hfin, hcard, -⟩ := pcfU_hermite_zero_count (2 * n)
+  have hc : ((-2 * n - 1 / 2 : ℝ) : ℂ) = -((2 * n : ℕ) : ℂ) - 1 / 2 := by push_cast; ring
+  set Z := {x : ℝ | pcfU (-((2 * n : ℕ) : ℂ) - 1 / 2) x = 0} with hZ
+  have h0 : (0 : ℝ) ∉ Z := by
+    have := pcfPZ_zero_ne (t := -2 * n - 1 / 2) (fun m h => by
+      have h' := congrArg Complex.re h
+      simp at h'
+      have h2 : ((1 : ℤ) : ℝ) = ((2 * ((n : ℤ) - m) : ℤ) : ℝ) := by push_cast; linarith
+      have := Int.cast_injective (α := ℝ) h2
+      omega)
+    rw [hc] at this
+    simpa [hZ] using this
+  have hsymm : ∀ x, x ∈ Z ↔ -x ∈ Z := by
+    intro x
+    simp only [hZ, mem_ofPred_eq, Complex.ofReal_neg]
+    rw [pcfU_neg_nat_sub_half_neg (2 * n) (x : ℂ), pow_mul]
+    simp
+  set P := {x : ℝ | 0 < x ∧ x ∈ Z}
+  have hset : {x : ℝ | x ∈ Ici 0 ∧ (pcfU ((-2 * n - 1 / 2 : ℝ) : ℂ) x).re = 0} = P := by
+    ext x
+    simp only [mem_ofPred_eq, mem_Ici, P]
+    rw [show (((-2 * n - 1 / 2 : ℝ) : ℂ)) = (((-2 * n - 1 / 2 : ℝ) : ℝ) : ℂ) from rfl,
+      pcfPZ_re_eq_zero_iff, hc]
+    constructor
+    · rintro ⟨hx, hz⟩
+      refine ⟨lt_of_le_of_ne hx ?_, hz⟩
+      rintro rfl
+      exact h0 hz
+    · rintro ⟨hx, hz⟩
+      exact ⟨hx.le, hz⟩
+  rw [hset]
+  have hZu : Z = P ∪ (-P) := by
+    ext x
+    simp only [P, mem_union, mem_ofPred_eq, Set.mem_neg]
+    constructor
+    · intro hx
+      rcases lt_trichotomy x 0 with h | h | h
+      · exact Or.inr ⟨by linarith, (hsymm x).mp hx⟩
+      · exact absurd (h ▸ hx) h0
+      · exact Or.inl ⟨h, hx⟩
+    · rintro (⟨-, h⟩ | ⟨-, h⟩)
+      · exact h
+      · exact (hsymm x).mpr h
+  have hdisj : Disjoint P (-P) := by
+    rw [Set.disjoint_left]
+    intro x hx hx'
+    simp only [P, Set.mem_neg, mem_ofPred_eq] at hx hx'
+    linarith [hx.1, hx'.1]
+  have hPf : P.Finite := hfin.subset fun x hx => hx.2
+  have hnP : (-P).ncard = P.ncard := by
+    rw [← Set.image_neg_eq_neg, Set.ncard_image_of_injective _ neg_injective]
+  rw [hZu, Set.ncard_union_eq hdisj hPf hPf.neg, hnP] at hcard
+  omega
+
+/-- Exact positive real zero count in DLMF 12.11(i). -/
+theorem pcfU_positive_zero_count {a : ℝ} (n : ℕ) (hn : 0 < n) (h0 : -2*n-3/2 < a) (h1 : a < -2*n+1/2) :
+    Set.Finite {x : ℝ | 0 < x ∧ pcfU a x=0} ∧ ({x : ℝ | 0 < x ∧ pcfU a x=0}:Set ℝ).ncard=n := by
+  set S : Set ℝ := Ioo (-2 * n - 3 / 2) (-2 * n + 1 / 2) with hS
+  set Y : ℝ → ℝ → ℝ := fun t x => (pcfU t x).re with hY
+  set Y' : ℝ → ℝ → ℝ := fun t x => (pcfUDeriv t x).re with hY'
+  have hcR : Continuous (fun p : ℝ × ℝ => ((p.1 : ℂ), (p.2 : ℂ))) := by fun_prop
+  have hcY : ContinuousOn (Function.uncurry Y) (S ×ˢ univ) :=
+    (Complex.continuous_re.comp (pcfPZ_pcfU_continuous.comp hcR)).continuousOn
+  have hcY' : ContinuousOn (Function.uncurry Y') (S ×ˢ univ) :=
+    (Complex.continuous_re.comp (pcfPZ_pcfUDeriv_continuous.comp hcR)).continuousOn
+  have hY0 : ∀ t ∈ S, Y t 0 ≠ 0 := by
+    intro t ht h
+    have h' : pcfU t 0 = 0 := by
+      have := (pcfPZ_re_eq_zero_iff t 0).mp h
+      simpa using this
+    refine pcfPZ_zero_ne (t := t) (fun m hm => ?_) h'
+    have hre := congrArg Complex.re hm
+    simp at hre
+    have hm1 : (m : ℝ) < n := by linarith [ht.1]
+    have hm2 : (n : ℝ) < m + 1 := by linarith [ht.2]
+    have e1 : m < n := by exact_mod_cast hm1
+    have e2 : n < m + 1 := by exact_mod_cast hm2
+    omega
+  have hfar : ∀ t ∈ S, ∀ x, (4 * n + 4 : ℝ) ≤ x → Y t x ≠ 0 := by
+    intro t ht
+    refine pcfPZ_far (fun x hx => ?_)
+    have hn0 : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+    nlinarith [ht.1]
+  have hmem : (-2 * n - 1 / 2 : ℝ) ∈ S := ⟨by linarith, by linarith⟩
+  have heq := ODE.sturmDef_ncard_Ici_eq_of_isPreconnected (Y := Y) (Y' := Y') (Λ := S)
+    (U := univ) (a := 0) (b := 4 * n + 4) isOpen_Ioo isOpen_univ (subset_univ _) hcY hcY'
+    (fun t _ x _ => pcfPZ_hasDerivAt_re t x) (fun t _ x _ h => pcfPZ_simple t x h)
+    isPreconnected_Ioo subset_rfl hY0 hfar (t₁ := a) (t₂ := -2 * n - 1 / 2) ⟨h0, h1⟩ hmem
+  have hbase := pcfPZ_base n
+  have hset : {x : ℝ | 0 < x ∧ pcfU a x = 0} = {x | x ∈ Ici 0 ∧ Y a x = 0} := by
+    ext x
+    simp only [mem_ofPred_eq, mem_Ici, hY, pcfPZ_re_eq_zero_iff]
+    constructor
+    · rintro ⟨hx, hz⟩; exact ⟨hx.le, hz⟩
+    · rintro ⟨hx, hz⟩
+      refine ⟨lt_of_le_of_ne hx ?_, hz⟩
+      rintro rfl
+      exact hY0 a ⟨h0, h1⟩ ((pcfPZ_re_eq_zero_iff a 0).mpr (by simpa using hz))
+  have hcard : ({x : ℝ | 0 < x ∧ pcfU a x = 0} : Set ℝ).ncard = n := by
+    rw [hset, heq]
+    exact hbase
+  exact ⟨Set.finite_of_ncard_ne_zero (by omega), hcard⟩
 
 /-- DLMF 12.11(i): absence of positive real zeros of V. -/
 theorem pcfV_no_positive_zero {a : ℝ} (ha : -1/2 < a) {x : ℝ} (hx : 0 < x) :
     pcfV a x ≠ 0 := by
-  sorry
+  have hn : ∀ n : ℕ, 1 / 2 + (a : ℂ) ≠ -n := fun n h => by
+    have := congrArg re h
+    simp at this
+    linarith [n.cast_nonneg (α := ℝ)]
+  have ha' : -1 / 2 < (a : ℂ).re := by simpa using ha
+  have hΓ : Gamma (1 / 2 + (a : ℂ)) ≠ 0 := Complex.Gamma_ne_zero hn
+  have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hc : -1 < ((a : ℂ) - 1 / 2).re := by simp; linarith
+  rw [pcfV_eq hn, pcfU_eq_integral ha', pcfU_eq_integral ha', neg_sq]
+  set E := exp (-(x : ℂ) ^ 2 / 4)
+  set f1 := fun t : ℝ => (t : ℂ) ^ ((a : ℂ) - 1 / 2) * exp (-(t : ℂ) ^ 2 / 2 - (x : ℂ) * t)
+  set f2 := fun t : ℝ => (t : ℂ) ^ ((a : ℂ) - 1 / 2) * exp (-(t : ℂ) ^ 2 / 2 - (-(x : ℂ)) * t)
+  have h1 : IntegrableOn f1 (Ioi 0) := integrableOn_pcfIntegrand hc _
+  have h2 : IntegrableOn f2 (Ioi 0) := integrableOn_pcfIntegrand hc _
+  have key : Gamma (1 / 2 + (a : ℂ)) / π * (Complex.sin (π * a) * (E / Gamma (1 / 2 + (a : ℂ)) *
+      ∫ t in Ioi (0 : ℝ), f1 t) + E / Gamma (1 / 2 + (a : ℂ)) * ∫ t in Ioi (0 : ℝ), f2 t) =
+      E / π * ∫ t in Ioi (0 : ℝ), (Complex.sin (π * a) * f1 t + f2 t) := by
+    rw [integral_add (h1.const_mul _) h2, integral_const_mul]
+    field_simp
+    have hΓ' : Gamma ((1 + 2 * (a : ℂ)) / 2) ≠ 0 := by convert hΓ using 2; ring
+    rw [mul_assoc, mul_div_cancel_left₀ _ hΓ']
+  rw [key]
+  refine mul_ne_zero (div_ne_zero (exp_ne_zero _) hπ) ?_
+  set g : ℝ → ℝ := fun t => t ^ (a - 1 / 2) * Real.exp (-t ^ 2 / 2) *
+    (Real.sin (π * a) * Real.exp (-x * t) + Real.exp (x * t))
+  have heq : ∀ t ∈ Ioi (0 : ℝ), Complex.sin (π * a) * f1 t + f2 t = (g t : ℂ) := by
+    intro t ht
+    simp only [f1, f2, g]
+    rw [ofReal_mul, ofReal_mul, ofReal_cpow (le_of_lt ht)]
+    push_cast
+    rw [show -(t : ℂ) ^ 2 / 2 - x * t = -(t : ℂ) ^ 2 / 2 + -x * t by ring,
+      show -(t : ℂ) ^ 2 / 2 - -x * t = -(t : ℂ) ^ 2 / 2 + x * t by ring, exp_add, exp_add]
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi heq]
+  refine integral_Ioi_ofReal_ne_zero (fun t ht => ?_) ?_
+  · have ht : (0 : ℝ) < t := ht
+    have hlt : Real.exp (-x * t) < Real.exp (x * t) := Real.exp_lt_exp.mpr (by nlinarith)
+    have hs : -1 ≤ Real.sin (π * a) := Real.neg_one_le_sin _
+    have : 0 < Real.sin (π * a) * Real.exp (-x * t) + Real.exp (x * t) := by
+      nlinarith [Real.exp_pos (-x * t)]
+    exact mul_pos (mul_pos (Real.rpow_pos_of_pos ht _) (Real.exp_pos _)) this
+  · exact IntegrableOn.congr_fun ((h1.const_mul _).add h2) heq measurableSet_Ioi
 
 /-- DLMF 12.11(i): zeros of V at the origin. -/
 theorem pcfV_integer_zero (n : ℤ) :

@@ -11,6 +11,8 @@ public import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 public import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
 public import DLMF.Bessel.Asymptotics
 public import ToMathlib.Analysis.Integral.Improper
+public import DLMF.Gamma.ShiftedLineBounds
+public import DLMF.Struve.BarnesTools
 
 /-!
 # Struve integrals and Laplace transforms
@@ -531,21 +533,884 @@ theorem struveL_fourier {ν : ℂ} (hν : ν.re < 1/2) {x : ℝ} (hx : 0 < x) :
   rw [hLM] at hL
   exact hL
 
-/-- struveH barnes. -/
-@[dlmf 11.5.E8]
-theorem struveH_barnes {ν : ℂ} (hν : -1 < ν.re) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0) (hv : -1 < ν.re+2*c) :
-    HasIntegralWholeLine (fun y : ℝ => let s : ℂ := c+y*I; π/sin (π*s)/(Gamma (3/2+s)*Gamma (3/2+ν+s))*(x^2/4:ℂ)^s) (-2*π*(x/2:ℂ)^(-ν-1)*struveH ν x) := by
-  sorry
-
 /-- Separating loop from positive infinity above the poles to positive infinity below them. -/
 def positiveBarnesLoop (f : ℂ → ℂ) (c h R : ℝ) : ℂ :=
   segmentIntegral f (R+h*I) (c+h*I) + segmentIntegral f (c+h*I) (c-h*I) + segmentIntegral f (c-h*I) (R-h*I)
 
-/-- struveL barnes loop. -/
+/-! ### The Barnes loop for `L_ν` (DLMF 11.5.9)
+
+The loop integral is a rectangle boundary integral minus its right side. The residue theorem for
+rectangles with one simple pole (proved directly from the rectangle Cauchy theorem and the
+explicit boundary integral of `(s - p)⁻¹`) gives the partial sums of the residue series on
+`[c, N + 1/2] × [-h, h]`; the right sides tend to `0` by the uniform bounds for `1/Γ` on
+right-shifted lines (`DLMF.Gamma.shiftB_norm_inv_Gamma_le`, `DLMF.Gamma.shiftB_Gamma_ge`), and the
+horizontal integrals converge absolutely. -/
+
+section StruveLoop
+open scoped Interval
+
+/-- The boundary integral of `F` over the rectangle `[a, b] × [-h, h]`, in the orientation of
+`Complex.integral_boundary_rect_eq_zero_of_differentiableOn` (counterclockwise, `ds` with the
+factor `I` on the vertical sides). -/
+def struveLoop_rect (F : ℂ → ℂ) (a b h : ℝ) : ℂ :=
+  (∫ x : ℝ in a..b, F (x + (-h : ℝ) * I)) - (∫ x : ℝ in a..b, F (x + h * I)) +
+    I • (∫ y : ℝ in (-h)..h, F (b + y * I)) - I • ∫ y : ℝ in (-h)..h, F (a + y * I)
+
+/-- The rectangle boundary integral of `(s - p)⁻¹` around a real point `p` is `2πi`. -/
+lemma struveLoop_rect_inv {a b p h : ℝ} (ha : a < p) (hb : p < b) (hh : 0 < h) :
+    struveLoop_rect (fun s => (s - p)⁻¹) a b h = 2 * π * I := by
+  unfold struveLoop_rect
+  have hv : ∀ d : ℝ, d ≠ p → ∫ y : ℝ in (-h)..h, (((d : ℂ) + y * I) - p)⁻¹ =
+      2 * (Real.arctan (h / (d - p)) : ℂ) := by
+    intro d hd
+    rw [← Complex.barnesRes_integral_inv (c := d - p) (sub_ne_zero.mpr hd) h]
+    congr 1; funext y; push_cast; ring_nf
+  have hne : ∀ (x t : ℝ), t ≠ 0 → ((x : ℂ) + t * I - p) ≠ 0 := by
+    intro x t ht h0; apply ht; simpa using congrArg Complex.im h0
+  have hc : ∀ t : ℝ, t ≠ 0 → Continuous fun x : ℝ => ((x : ℂ) + t * I - p)⁻¹ := fun t ht =>
+    Continuous.inv₀ (by fun_prop) fun x => hne x t ht
+  have hpt : ∀ x : ℝ, ((x : ℂ) + ((-h : ℝ) : ℂ) * I - p)⁻¹ - ((x : ℂ) + h * I - p)⁻¹ =
+      ((2 * h / ((x - p) ^ 2 + h ^ 2) : ℝ) : ℂ) * I := by
+    intro x
+    have h1 := hne x (-h) (by linarith)
+    have h2 := hne x h hh.ne'
+    have h3 : ((x - p) ^ 2 + h ^ 2 : ℝ) ≠ 0 := by positivity
+    have hden : ((x : ℂ) + ((-h : ℝ) : ℂ) * I - p) * ((x : ℂ) + h * I - p) =
+        (((x - p) ^ 2 + h ^ 2 : ℝ) : ℂ) := by
+      push_cast; ring_nf; rw [I_sq]; ring
+    rw [inv_sub_inv h1 h2, hden]
+    have h3' : ((x : ℂ) - p) ^ 2 + (h : ℂ) ^ 2 ≠ 0 := by exact_mod_cast h3
+    push_cast
+    field_simp
+    ring
+  have hH : (∫ x : ℝ in a..b, ((x : ℂ) + ((-h : ℝ) : ℂ) * I - p)⁻¹) -
+      (∫ x : ℝ in a..b, ((x : ℂ) + h * I - p)⁻¹) =
+      ((2 * (Real.arctan ((b - p) / h) - Real.arctan ((a - p) / h)) : ℝ) : ℂ) * I := by
+    rw [← intervalIntegral.integral_sub ((hc _ (by linarith)).intervalIntegrable _ _)
+      ((hc _ hh.ne').intervalIntegrable _ _)]
+    simp_rw [hpt]
+    rw [intervalIntegral.integral_mul_const, intervalIntegral.integral_ofReal]
+    congr 2
+    have hd : ∀ x : ℝ, HasDerivAt (fun x => 2 * Real.arctan ((x - p) / h))
+        (2 * h / ((x - p) ^ 2 + h ^ 2)) x := by
+      intro x
+      have := (((hasDerivAt_id' x).sub_const p).div_const h).arctan.const_mul 2
+      convert this using 1
+      field_simp
+      ring
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hd x)
+      (Continuous.intervalIntegrable (by
+        refine Continuous.div (by fun_prop) (by fun_prop) fun x => by positivity) _ _)]
+    ring
+  simp only
+  rw [hH, smul_eq_mul, smul_eq_mul, hv b hb.ne', hv a ha.ne]
+  have hB : Real.arctan (h / (b - p)) = π / 2 - Real.arctan ((b - p) / h) := by
+    rw [← inv_div, Real.arctan_inv_of_pos (div_pos (by linarith) hh)]
+  have hA : Real.arctan (h / (a - p)) = -(π / 2) - Real.arctan ((a - p) / h) := by
+    rw [← inv_div, Real.arctan_inv_of_neg (div_neg_of_neg_of_pos (by linarith) hh)]
+  rw [hB, hA]
+  push_cast
+  ring
+
+/-- Linearity of the rectangle boundary integral, for functions continuous on the four sides. -/
+lemma struveLoop_rect_add {f g : ℂ → ℂ} {a b h : ℝ}
+    (hf : ContinuousOn f ([[a, b]] ×ℂ [[-h, h]] \ (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h)))
+    (hg : ContinuousOn g ([[a, b]] ×ℂ [[-h, h]] \ (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h))) :
+    struveLoop_rect (fun s => f s + g s) a b h = struveLoop_rect f a b h + struveLoop_rect g a b h := by
+  have hh : ∀ t : ℝ, (t = -h ∨ t = h) → ∀ k : ℂ → ℂ,
+      ContinuousOn k ([[a, b]] ×ℂ [[-h, h]] \ (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h)) →
+      IntervalIntegrable (fun x : ℝ => k (x + t * I)) volume a b := by
+    intro t ht k hk
+    refine ContinuousOn.intervalIntegrable ?_
+    refine hk.comp (by fun_prop) fun x hx => ?_
+    refine ⟨⟨by simpa using hx, ?_⟩, ?_⟩
+    · show (((x : ℂ) + t * I).im) ∈ [[-h, h]]
+      simp only [add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re, mul_zero, zero_add, add_zero]
+      rcases ht with ht | ht <;> rw [ht]
+      exacts [Set.left_mem_uIcc (a := -h) (b := h), Set.right_mem_uIcc (a := -h) (b := h)]
+    · rintro ⟨-, h2⟩
+      simp only [mem_preimage, add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re,
+        mul_zero, zero_add, add_zero, mem_Ioo] at h2
+      rcases ht with ht | ht <;> rw [ht] at h2 <;> linarith [h2.1, h2.2]
+  have hv : ∀ x : ℝ, (x = a ∨ x = b) → ∀ k : ℂ → ℂ,
+      ContinuousOn k ([[a, b]] ×ℂ [[-h, h]] \ (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h)) →
+      IntervalIntegrable (fun y : ℝ => k (x + y * I)) volume (-h) h := by
+    intro x hx k hk
+    refine ContinuousOn.intervalIntegrable ?_
+    refine hk.comp (by fun_prop) fun y hy => ?_
+    refine ⟨⟨?_, by simpa using hy⟩, ?_⟩
+    · show (((x : ℂ) + y * I).re) ∈ [[a, b]]
+      simp only [add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im, mul_one, sub_self,
+        add_zero]
+      rcases hx with hx | hx <;> rw [hx]
+      exacts [Set.left_mem_uIcc (a := a) (b := b), Set.right_mem_uIcc (a := a) (b := b)]
+    · rintro ⟨h1, -⟩
+      simp only [mem_preimage, add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im,
+        mul_one, sub_self, add_zero, mem_Ioo] at h1
+      rcases hx with hx | hx <;> rw [hx] at h1 <;> linarith [h1.1, h1.2]
+  unfold struveLoop_rect
+  rw [intervalIntegral.integral_add (hh _ (Or.inl rfl) f hf) (hh _ (Or.inl rfl) g hg),
+    intervalIntegral.integral_add (hh _ (Or.inr rfl) f hf) (hh _ (Or.inr rfl) g hg),
+    intervalIntegral.integral_add (hv _ (Or.inr rfl) f hf) (hv _ (Or.inr rfl) g hg),
+    intervalIntegral.integral_add (hv _ (Or.inl rfl) f hf) (hv _ (Or.inl rfl) g hg)]
+  simp only [smul_eq_mul]
+  ring
+
+/-- The boundary of the rectangle `[a, b] × [-h, h]`. -/
+def struveLoop_bdry (a b h : ℝ) : Set ℂ :=
+  [[a, b]] ×ℂ [[-h, h]] \ (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h)
+
+/-- Points of the horizontal sides lie on the rectangle boundary. -/
+lemma struveLoop_mem_bdry_h {a b h t x : ℝ} (ht : t = -h ∨ t = h) (hx : x ∈ [[a, b]]) :
+    (x : ℂ) + t * I ∈ struveLoop_bdry a b h := by
+  refine ⟨⟨by simpa using hx, ?_⟩, ?_⟩
+  · show (((x : ℂ) + t * I).im) ∈ [[-h, h]]
+    simp only [add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re, mul_zero, zero_add,
+      add_zero]
+    rcases ht with ht | ht <;> rw [ht]
+    exacts [Set.left_mem_uIcc (a := -h) (b := h), Set.right_mem_uIcc (a := -h) (b := h)]
+  · rintro ⟨-, h2⟩
+    simp only [mem_preimage, add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re,
+      mul_zero, zero_add, add_zero, mem_Ioo] at h2
+    rcases ht with ht | ht <;> rw [ht] at h2 <;> linarith [h2.1, h2.2]
+
+/-- Points of the vertical sides lie on the rectangle boundary. -/
+lemma struveLoop_mem_bdry_v {a b h x y : ℝ} (hx : x = a ∨ x = b) (hy : y ∈ [[-h, h]]) :
+    (x : ℂ) + y * I ∈ struveLoop_bdry a b h := by
+  refine ⟨⟨?_, by simpa using hy⟩, ?_⟩
+  · show (((x : ℂ) + y * I).re) ∈ [[a, b]]
+    simp only [add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im, mul_one, sub_self,
+      add_zero]
+    rcases hx with hx | hx <;> rw [hx]
+    exacts [Set.left_mem_uIcc (a := a) (b := b), Set.right_mem_uIcc (a := a) (b := b)]
+  · rintro ⟨h1, -⟩
+    simp only [mem_preimage, add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im,
+      mul_one, sub_self, add_zero, mem_Ioo] at h1
+    rcases hx with hx | hx <;> rw [hx] at h1 <;> linarith [h1.1, h1.2]
+
+/-- The rectangle boundary integral only depends on the values on the boundary. -/
+lemma struveLoop_rect_congr {F G : ℂ → ℂ} {a b h : ℝ} (hFG : EqOn F G (struveLoop_bdry a b h)) :
+    struveLoop_rect F a b h = struveLoop_rect G a b h := by
+  unfold struveLoop_rect
+  rw [intervalIntegral.integral_congr (g := fun x : ℝ => G (x + (-h : ℝ) * I))
+      fun x hx => hFG (struveLoop_mem_bdry_h (Or.inl rfl) hx),
+    intervalIntegral.integral_congr (g := fun x : ℝ => G (x + h * I))
+      fun x hx => hFG (struveLoop_mem_bdry_h (Or.inr rfl) hx),
+    intervalIntegral.integral_congr (g := fun y : ℝ => G (b + y * I))
+      fun y hy => hFG (struveLoop_mem_bdry_v (Or.inr rfl) hy),
+    intervalIntegral.integral_congr (g := fun y : ℝ => G (a + y * I))
+      fun y hy => hFG (struveLoop_mem_bdry_v (Or.inl rfl) hy)]
+
+/-- The rectangle boundary integral is homogeneous. -/
+lemma struveLoop_rect_const_mul (F : ℂ → ℂ) (c : ℂ) (a b h : ℝ) :
+    struveLoop_rect (fun s => c * F s) a b h = c * struveLoop_rect F a b h := by
+  unfold struveLoop_rect
+  simp only [intervalIntegral.integral_const_mul, smul_eq_mul]
+  ring
+
+/-- **Residue theorem for a rectangle with one simple pole on the real axis.** -/
+lemma struveLoop_rect_pole {F Φ : ℂ → ℂ} {a b p h : ℝ} (ha : a < p) (hb : p < b) (hh : 0 < h)
+    (hΦ : DifferentiableOn ℂ Φ ([[a, b]] ×ℂ [[-h, h]]))
+    (hF : ∀ s ∈ struveLoop_bdry a b h, F s = Φ s / (s - p)) :
+    struveLoop_rect F a b h = 2 * π * I * Φ p := by
+  have hS : [[a, b]] ×ℂ [[-h, h]] ∈ 𝓝 (p : ℂ) := by
+    have ho : IsOpen (re ⁻¹' Ioo a b ∩ im ⁻¹' Ioo (-h) h) :=
+      (isOpen_Ioo.preimage continuous_re).inter (isOpen_Ioo.preimage continuous_im)
+    refine Filter.mem_of_superset (ho.mem_nhds ⟨by simp [ha, hb], by simp [hh]⟩) ?_
+    rintro s ⟨h1, h2⟩
+    exact ⟨Ioo_subset_Icc_self.trans Icc_subset_uIcc h1, Ioo_subset_Icc_self.trans Icc_subset_uIcc h2⟩
+  set g := dslope Φ p with hgdef
+  have hg : DifferentiableOn ℂ g ([[a, b]] ×ℂ [[-h, h]]) := (differentiableOn_dslope hS).mpr hΦ
+  have hne : ∀ s ∈ struveLoop_bdry a b h, s ≠ (p : ℂ) := by
+    rintro s hs rfl
+    exact hs.2 ⟨by simp [ha, hb], by simp [hh]⟩
+  have hdec : EqOn F (fun s => Φ p * (s - p)⁻¹ + g s) (struveLoop_bdry a b h) := by
+    intro s hs
+    have hsp : s - p ≠ 0 := sub_ne_zero.mpr (hne s hs)
+    simp only [hgdef, dslope_of_ne _ (hne s hs), slope_def_module, smul_eq_mul]
+    rw [hF s hs]
+    field_simp
+    ring
+  have hinv : ContinuousOn (fun s : ℂ => Φ p * (s - p)⁻¹) (struveLoop_bdry a b h) :=
+    continuousOn_const.mul (ContinuousOn.inv₀ (by fun_prop) fun s hs => sub_ne_zero.mpr (hne s hs))
+  rw [struveLoop_rect_congr hdec, struveLoop_rect_add hinv (hg.continuousOn.mono sdiff_subset),
+    struveLoop_rect_const_mul (fun s => (s - p)⁻¹), struveLoop_rect_inv ha hb hh]
+  have h0 := integral_boundary_rect_eq_zero_of_differentiableOn g ⟨a, -h⟩ ⟨b, h⟩ hg
+  have : struveLoop_rect g a b h = 0 := h0
+  rw [this]; ring
+
+/-- The positive Barnes loop as a rectangle boundary integral minus its right side. -/
+lemma struveLoop_loop_eq (F : ℂ → ℂ) (c h R : ℝ) :
+    positiveBarnesLoop F c h R =
+      struveLoop_rect F c R h - I * ∫ y : ℝ in (-h)..h, F (R + y * I) := by
+  unfold positiveBarnesLoop segmentIntegral struveLoop_rect
+  have e1 : ((c : ℂ) + h * I - (R + h * I)) * ∫ t : ℝ in (0 : ℝ)..1,
+      F (R + h * I + t * ((c : ℂ) + h * I - (R + h * I))) =
+      -∫ x : ℝ in c..R, F (x + h * I) := by
+    have := intervalIntegral.smul_integral_comp_mul_add (fun x : ℝ => F (x + h * I))
+      (a := 0) (b := 1) (c - R) R
+    simp only [mul_zero, zero_add, mul_one, sub_add_cancel] at this
+    rw [intervalIntegral.integral_symm R c, ← this, real_smul]
+    have : (fun t : ℝ => F (R + h * I + t * ((c : ℂ) + h * I - (R + h * I)))) =
+        fun t : ℝ => F (((c - R) * t + R : ℝ) + h * I) := by
+      funext t; congr 1; push_cast; ring
+    rw [this]; push_cast; ring
+  have e2 : ((c : ℂ) - h * I - (c + h * I)) * ∫ t : ℝ in (0 : ℝ)..1,
+      F (c + h * I + t * ((c : ℂ) - h * I - (c + h * I))) =
+      -(I * ∫ y : ℝ in (-h)..h, F (c + y * I)) := by
+    have := intervalIntegral.smul_integral_comp_mul_add (fun y : ℝ => F (c + y * I))
+      (a := 0) (b := 1) (-2 * h) h
+    simp only [mul_zero, zero_add, mul_one, show -2 * h + h = -h by ring] at this
+    rw [intervalIntegral.integral_symm h (-h), ← this, real_smul]
+    have : (fun t : ℝ => F (c + h * I + t * ((c : ℂ) - h * I - (c + h * I)))) =
+        fun t : ℝ => F (c + ((-2 * h) * t + h : ℝ) * I) := by
+      funext t; congr 1; push_cast; ring
+    rw [this]; push_cast; ring
+  have e3 : ((R : ℂ) - h * I - (c - h * I)) * ∫ t : ℝ in (0 : ℝ)..1,
+      F (c - h * I + t * ((R : ℂ) - h * I - (c - h * I))) =
+      ∫ x : ℝ in c..R, F (x + (-h : ℝ) * I) := by
+    have := intervalIntegral.smul_integral_comp_mul_add (fun x : ℝ => F (x + (-h : ℝ) * I))
+      (a := 0) (b := 1) (R - c) c
+    simp only [mul_zero, zero_add, mul_one, sub_add_cancel] at this
+    rw [← this, real_smul]
+    have : (fun t : ℝ => F (c - h * I + t * ((R : ℂ) - h * I - (c - h * I)))) =
+        fun t : ℝ => F (((R - c) * t + c : ℝ) + (-h : ℝ) * I) := by
+      funext t; congr 1; push_cast; ring
+    rw [this]; push_cast; ring
+  rw [e1, e2, e3, smul_eq_mul, smul_eq_mul]
+  ring
+
+/-- Additivity of the rectangle boundary integral over adjacent rectangles. -/
+lemma struveLoop_rect_adj {F : ℂ → ℂ} {a b d h : ℝ}
+    (hcont : ∀ t : ℝ, (t = -h ∨ t = h) → Continuous fun x : ℝ => F (x + t * I)) :
+    struveLoop_rect F a b h + struveLoop_rect F b d h = struveLoop_rect F a d h := by
+  unfold struveLoop_rect
+  rw [← intervalIntegral.integral_add_adjacent_intervals
+      ((hcont _ (Or.inl rfl)).intervalIntegrable a b) ((hcont _ (Or.inl rfl)).intervalIntegrable b d),
+    ← intervalIntegral.integral_add_adjacent_intervals
+      ((hcont _ (Or.inr rfl)).intervalIntegrable a b) ((hcont _ (Or.inr rfl)).intervalIntegrable b d)]
+  ring
+
+/-- The left end of the `n`-th rectangle: `c` for `n = 0`, `n - 1/2` otherwise. -/
+def struveLoop_cut (c : ℝ) (n : ℕ) : ℝ := if n = 0 then c else (n : ℝ) - 1 / 2
+
+/-- **Residue theorem for the rectangles `[c, N + 1/2] × [-h, h]`** with simple poles at
+`0, 1, …, N`. -/
+lemma struveLoop_rect_sum {F : ℂ → ℂ} {Φ : ℕ → ℂ → ℂ} {c h : ℝ} (hc0 : c < 0) (hh : 0 < h)
+    (hcont : ∀ t : ℝ, (t = -h ∨ t = h) → Continuous fun x : ℝ => F (x + t * I))
+    (hΦ : ∀ n : ℕ, DifferentiableOn ℂ (Φ n) ([[struveLoop_cut c n, n + 1 / 2]] ×ℂ [[-h, h]]))
+    (hF : ∀ n : ℕ, ∀ s ∈ struveLoop_bdry (struveLoop_cut c n) (n + 1 / 2) h,
+      F s = Φ n s / (s - n)) (N : ℕ) :
+    struveLoop_rect F c (N + 1 / 2) h = 2 * π * I * ∑ n ∈ Finset.range (N + 1), Φ n n := by
+  have hpole : ∀ n : ℕ, struveLoop_rect F (struveLoop_cut c n) (n + 1 / 2) h =
+      2 * π * I * Φ n n := by
+    intro n
+    have hcut : struveLoop_cut c n < n := by
+      unfold struveLoop_cut; split_ifs with hn
+      · subst hn; simpa using hc0
+      · linarith
+    have := struveLoop_rect_pole (F := F) (Φ := Φ n) (p := (n : ℝ)) hcut (by linarith) hh (hΦ n)
+      (fun s hs => by rw [hF n s hs, ofReal_natCast])
+    rwa [ofReal_natCast] at this
+  induction N with
+  | zero =>
+    have := hpole 0
+    simp only [struveLoop_cut, Nat.cast_zero] at this
+    simpa using this
+  | succ N ih =>
+    rw [Finset.sum_range_succ, mul_add, ← ih, ← hpole (N + 1)]
+    have hc : struveLoop_cut c (N + 1) = (N : ℝ) + 1 / 2 := by
+      simp only [struveLoop_cut, Nat.succ_ne_zero, ite_false]; push_cast; ring
+    rw [hc, struveLoop_rect_adj hcont]
+
+/-- Exponential decay of `w^s / (Γ(3/2+s) Γ(3/2+ν+s))` in a horizontal strip as `Re s → ∞`. -/
+lemma struveLoop_tail_bound (ν : ℂ) {w : ℂ} (hw : w ≠ 0) (h : ℝ) :
+    ∃ X K : ℝ, ∀ x : ℝ, X ≤ x → ∀ y : ℝ, |y| ≤ h →
+      ‖(Gamma (3 / 2 + (x + y * I)))⁻¹ * (Gamma (3 / 2 + ν + (x + y * I)))⁻¹ *
+        w ^ ((x : ℂ) + y * I)‖ ≤ K * Real.exp (-x) := by
+  set A : ℝ := Real.exp 1 * (‖w‖ + 1) with hA
+  have hA0 : 0 < A := by positivity
+  have hwA : ‖w‖ / A ≤ Real.exp (-1) := by
+    rw [div_le_iff₀ hA0, hA, ← mul_assoc, ← Real.exp_add]; simp
+  refine ⟨max 0 (-1 / 2 - ν.re), Real.exp (π * h) * (Real.exp (π * h / 2) *
+    (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1))) * (Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2),
+    fun x hx y hy => ?_⟩
+  have hx0 : 0 ≤ x := le_trans (le_max_left _ _) hx
+  have hxν : -1 / 2 - ν.re ≤ x := le_trans (le_max_right _ _) hx
+  -- the power
+  have hpow : ‖w ^ ((x : ℂ) + y * I)‖ ≤ ‖w‖ ^ x * Real.exp (π * h) := by
+    rw [norm_cpow_of_ne_zero hw]
+    simp only [add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im, mul_one, sub_self,
+      add_zero, add_im, mul_im, zero_add]
+    rw [div_eq_mul_inv, ← Real.exp_neg]
+    gcongr
+    have h1 := abs_arg_le_pi w
+    have h2 : |arg w * y| ≤ π * h := by
+      rw [abs_mul]; exact mul_le_mul h1 hy (abs_nonneg _) Real.pi_pos.le
+    linarith [neg_abs_le (arg w * y)]
+  -- the first Gamma
+  have hG1 : ‖(Gamma (3 / 2 + (x + y * I)))⁻¹‖ ≤
+      Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1)) * (A ^ x)⁻¹ := by
+    have e : (3 / 2 : ℂ) + (x + y * I) = ((3 / 2 + x : ℝ) : ℂ) + y * I := by push_cast; ring
+    rw [e]
+    refine (DLMF.Gamma.shiftB_norm_inv_Gamma_le (by linarith) y).trans ?_
+    have hg := DLMF.Gamma.shiftB_Gamma_ge (t := 3 / 2 + x) (by linarith) hA0
+    have hGp : 0 < Real.Gamma (3 / 2 + x) := Real.Gamma_pos_of_pos (by linarith)
+    rw [div_le_iff₀ hGp]
+    have hE : Real.exp (π * |y| / 2) ≤ Real.exp (π * h / 2) := by
+      gcongr
+    have hk : A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1) * (A ^ x)⁻¹ *
+        (A ^ (3 / 2 + x - 1) * Real.exp (-(A + 1))) = 1 := by
+      rw [show (3 / 2 + x - 1 : ℝ) = 1 / 2 + x by ring, Real.rpow_add hA0, Real.rpow_neg hA0.le]
+      have : Real.exp (A + 1) * Real.exp (-(A + 1)) = 1 := by rw [← Real.exp_add]; simp
+      have h1 : 0 < A ^ (1 / 2 : ℝ) := Real.rpow_pos_of_pos hA0 _
+      have h2 : 0 < A ^ x := Real.rpow_pos_of_pos hA0 _
+      field_simp
+      exact this
+    have hC : 0 ≤ Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1)) * (A ^ x)⁻¹ := by
+      positivity
+    calc Real.exp (π * |y| / 2) ≤ Real.exp (π * h / 2) := hE
+      _ = (Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1)) * (A ^ x)⁻¹) *
+            (A ^ (3 / 2 + x - 1) * Real.exp (-(A + 1))) := by
+          linear_combination (-Real.exp (π * h / 2)) * hk
+      _ ≤ _ := mul_le_mul_of_nonneg_left hg hC
+  -- the second Gamma
+  have hG2 : ‖(Gamma (3 / 2 + ν + (x + y * I)))⁻¹‖ ≤
+      Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2 := by
+    have e : (3 / 2 : ℂ) + ν + (x + y * I) = ((3 / 2 + ν.re + x : ℝ) : ℂ) + (ν.im + y : ℝ) * I := by
+      apply Complex.ext <;> simp
+    rw [e]
+    refine (DLMF.Gamma.shiftB_norm_inv_Gamma_le (by linarith) _).trans ?_
+    have hg := DLMF.Gamma.shiftB_Gamma_ge (t := 3 / 2 + ν.re + x) (by linarith) one_pos
+    rw [Real.one_rpow, one_mul, show (1 : ℝ) + 1 = 2 by norm_num] at hg
+    have hGp : 0 < Real.Gamma (3 / 2 + ν.re + x) := Real.Gamma_pos_of_pos (by linarith)
+    rw [div_le_iff₀ hGp]
+    have hE : Real.exp (π * |ν.im + y| / 2) ≤ Real.exp (π * (|ν.im| + h) / 2) := by
+      gcongr; exact (abs_add_le _ _).trans (by linarith)
+    have h22 : Real.exp 2 * Real.exp (-2) = 1 := by rw [← Real.exp_add]; simp
+    have hC : 0 ≤ Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2 := by positivity
+    calc Real.exp (π * |ν.im + y| / 2) ≤ Real.exp (π * (|ν.im| + h) / 2) := hE
+      _ = (Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2) * Real.exp (-2) := by
+          linear_combination (-Real.exp (π * (|ν.im| + h) / 2)) * h22
+      _ ≤ _ := mul_le_mul_of_nonneg_left hg hC
+  -- assemble
+  have hfin : ‖w‖ ^ x * (A ^ x)⁻¹ ≤ Real.exp (-x) := by
+    rw [← div_eq_mul_inv, ← Real.div_rpow (norm_nonneg _) hA0.le]
+    calc (‖w‖ / A) ^ x ≤ Real.exp (-1) ^ x :=
+          Real.rpow_le_rpow (by positivity) hwA hx0
+      _ = Real.exp (-x) := by rw [← Real.exp_mul]; ring_nf
+  rw [norm_mul, norm_mul]
+  calc ‖(Gamma (3 / 2 + (x + y * I)))⁻¹‖ * ‖(Gamma (3 / 2 + ν + (x + y * I)))⁻¹‖ *
+        ‖w ^ ((x : ℂ) + y * I)‖
+      ≤ (Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1)) * (A ^ x)⁻¹) *
+        (Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2) * (‖w‖ ^ x * Real.exp (π * h)) := by
+        gcongr
+    _ = Real.exp (π * h) * (Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1))) *
+        (Real.exp (π * (|ν.im| + h) / 2) * Real.exp 2) * (‖w‖ ^ x * (A ^ x)⁻¹) := by ring
+    _ ≤ _ := by gcongr
+
+
+/-- The integrand of the Barnes loop for `L_ν` (DLMF 11.5.9). -/
+def struveLoop_F (ν z : ℂ) : ℂ → ℂ :=
+  fun s : ℂ => π/sin (π*s)/(Gamma (3/2+s)*Gamma (3/2+ν+s))*(-z^2/4)^s
+
+/-- `sin(πs)/(s - n)`, holomorphic (removable at `s = n`). -/
+def struveLoop_D (n : ℕ) : ℂ → ℂ := dslope (fun u : ℂ => sin (π * u)) n
+
+/-- The numerator of the integrand at the pole `n`: `F s = Φ_n s / (s - n)`. -/
+def struveLoop_num (ν z : ℂ) (n : ℕ) : ℂ → ℂ :=
+  fun s : ℂ => π / struveLoop_D n s / (Gamma (3/2+s)*Gamma (3/2+ν+s)) * (-z^2/4)^s
+
+/-- The zeros of `sin(πs)` are the integers. -/
+lemma struveLoop_sin_eq_zero {s : ℂ} (hs : sin (π * s) = 0) : ∃ k : ℤ, s = k := by
+  obtain ⟨k, hk⟩ := Complex.sin_eq_zero_iff.mp hs
+  refine ⟨k, ?_⟩
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have := hk; field_simp at this
+  linear_combination this
+
+/-- `sin(πs)/(s - n)` is entire. -/
+lemma struveLoop_differentiable_D (n : ℕ) : Differentiable ℂ (struveLoop_D n) := by
+  have := (differentiableOn_dslope (f := fun u : ℂ => sin (π * u)) (c := (n : ℂ))
+    (s := univ) Filter.univ_mem).mpr (by fun_prop)
+  exact differentiableOn_univ.mp this
+
+/-- `D_n(s) = sin(πs)/(s - n)` for `s ≠ n`. -/
+lemma struveLoop_D_of_ne {n : ℕ} {s : ℂ} (hs : s ≠ n) :
+    struveLoop_D n s = sin (π * s) / (s - n) := by
+  rw [struveLoop_D, dslope_of_ne _ hs, slope_def_module, smul_eq_mul,
+    show (π : ℂ) * n = n * π by ring, Complex.sin_nat_mul_pi, sub_zero, div_eq_inv_mul]
+
+/-- `D_n(n) = π cos(πn) = π (-1)^n`. -/
+lemma struveLoop_D_self (n : ℕ) : struveLoop_D n n = π * (-1) ^ n := by
+  rw [struveLoop_D, dslope_same]
+  have hd : HasDerivAt (fun u : ℂ => sin (π * u)) (cos (π * n) * π) n := by
+    have := ((hasDerivAt_id (n : ℂ)).const_mul (π : ℂ)).csin
+    simpa using this
+  have hc : Complex.cos (π * n) = (-1) ^ n := by
+    rw [show (π : ℂ) * n = ((n * π : ℝ) : ℂ) by push_cast; ring, ← ofReal_cos,
+      Real.cos_nat_mul_pi]; push_cast; ring
+  rw [hd.deriv, hc]
+  ring
+
+/-- `D_n` has no zeros on the `n`-th rectangle. -/
+lemma struveLoop_D_ne_zero {c h : ℝ} (hc : -1 < c) (hc0 : c < 0) {n : ℕ} {s : ℂ}
+    (hs : s ∈ [[struveLoop_cut c n, n + 1 / 2]] ×ℂ [[-h, h]]) : struveLoop_D n s ≠ 0 := by
+  by_cases hsn : s = n
+  · rw [hsn, struveLoop_D_self]
+    exact mul_ne_zero (ofReal_ne_zero.mpr Real.pi_ne_zero) (pow_ne_zero _ (by norm_num))
+  rw [struveLoop_D_of_ne hsn]
+  refine div_ne_zero (fun h0 => hsn ?_) (sub_ne_zero.mpr hsn)
+  obtain ⟨k, rfl⟩ := struveLoop_sin_eq_zero h0
+  have hre : ((k : ℂ)).re ∈ [[struveLoop_cut c n, n + 1 / 2]] := hs.1
+  simp only [intCast_re] at hre
+  have hcut : (n : ℝ) - 1 < struveLoop_cut c n := by
+    unfold struveLoop_cut; split_ifs with hn
+    · subst hn; simpa using hc
+    · linarith
+  have hle : struveLoop_cut c n ≤ n + 1 / 2 := by
+    unfold struveLoop_cut; split_ifs with hn
+    · subst hn; simp; linarith
+    · linarith
+  rw [Set.uIcc_of_le hle] at hre
+  have h1 : ((n : ℤ) : ℝ) - 1 < (k : ℝ) := by push_cast; linarith [hre.1]
+  have h2 : (k : ℝ) < ((n : ℤ) : ℝ) + 1 := by push_cast; linarith [hre.2]
+  have h1' : (n : ℤ) - 1 < k := by exact_mod_cast h1
+  have h2' : k < (n : ℤ) + 1 := by exact_mod_cast h2
+  have : k = (n : ℤ) := by omega
+  subst this; simp
+
+/-- The numerator `Φ_n` is holomorphic on the closed `n`-th rectangle. -/
+lemma struveLoop_differentiableOn_Φ (ν z : ℂ) {c h : ℝ} (hc : -1 < c) (hc0 : c < 0) (hz : z ≠ 0) (n : ℕ) :
+    DifferentiableOn ℂ (struveLoop_num ν z n) ([[struveLoop_cut c n, n + 1 / 2]] ×ℂ [[-h, h]]) := by
+  have hw : -z ^ 2 / 4 ≠ 0 := by
+    have := pow_ne_zero 2 hz; intro h0; apply this; linear_combination -4 * h0
+  have e : struveLoop_num ν z n = fun s => π / struveLoop_D n s *
+      ((Gamma (3/2+s))⁻¹ * (Gamma (3/2+ν+s))⁻¹) * (-z^2/4)^s := by
+    funext s; simp only [struveLoop_num]; rw [div_eq_mul_inv _ (Gamma _ * Gamma _), mul_inv]
+  rw [e]
+  refine DifferentiableOn.mul (DifferentiableOn.mul ?_ ?_) ?_
+  · exact DifferentiableOn.div (differentiableOn_const _)
+      (struveLoop_differentiable_D n).differentiableOn fun s hs => struveLoop_D_ne_zero hc hc0 hs
+  · have hg1 : Differentiable ℂ fun s : ℂ => (Gamma (3/2+s))⁻¹ := fun s =>
+      (differentiable_one_div_Gamma (3/2+s)).comp s ((differentiableAt_id).const_add _)
+    have hg2 : Differentiable ℂ fun s : ℂ => (Gamma (3/2+ν+s))⁻¹ := fun s =>
+      (differentiable_one_div_Gamma (3/2+ν+s)).comp s ((differentiableAt_id).const_add _)
+    exact (hg1.mul hg2).differentiableOn
+  · exact (differentiable_id.const_cpow (Or.inl hw)).differentiableOn
+
+/-- On the boundary of the `n`-th rectangle, `F(s) = Φ_n(s)/(s - n)`. -/
+lemma struveLoop_F_eq_Φ (ν z : ℂ) {c h : ℝ} (hc0 : c < 0) (hh : 0 < h) (n : ℕ) {s : ℂ}
+    (hs : s ∈ struveLoop_bdry (struveLoop_cut c n) (n + 1 / 2) h) :
+    struveLoop_F ν z s = struveLoop_num ν z n s / (s - n) := by
+  have hsn : s ≠ n := by
+    rintro rfl
+    refine hs.2 ⟨?_, by simp [hh]⟩
+    simp only [mem_preimage, natCast_re, mem_Ioo]
+    refine ⟨?_, by linarith⟩
+    unfold struveLoop_cut; split_ifs with hn
+    · subst hn; simpa using hc0
+    · linarith
+  simp only [struveLoop_F, struveLoop_num, struveLoop_D_of_ne hsn]
+  have hsn' : s - n ≠ 0 := sub_ne_zero.mpr hsn
+  rcases eq_or_ne (sin (π * s)) 0 with h0 | h0
+  · simp [h0]
+  · field_simp
+
+/-- The integrand as `π/sin(πs)` times an entire function. -/
+lemma struveLoop_F_eq (ν z s : ℂ) : struveLoop_F ν z s = π / sin (π * s) *
+    ((Gamma (3/2+s))⁻¹ * (Gamma (3/2+ν+s))⁻¹ * (-z^2/4)^s) := by
+  simp only [struveLoop_F, div_eq_mul_inv _ (Gamma _ * Gamma _), mul_inv]; ring
+
+/-- `-z²/4 ≠ 0` for `z ≠ 0`. -/
+lemma struveLoop_w_ne_zero {z : ℂ} (hz : z ≠ 0) : -z ^ 2 / 4 ≠ 0 := by
+  have := pow_ne_zero 2 hz; intro h0; apply this; linear_combination -4 * h0
+
+/-- The entire factor `w^s/(Γ(3/2+s)Γ(3/2+ν+s))` is continuous. -/
+lemma struveLoop_continuous_G (ν : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    Continuous fun s : ℂ => (Gamma (3/2+s))⁻¹ * (Gamma (3/2+ν+s))⁻¹ * (-z^2/4)^s := by
+  have hg1 : Differentiable ℂ fun s : ℂ => (Gamma (3/2+s))⁻¹ := fun s =>
+    (differentiable_one_div_Gamma (3/2+s)).comp s ((differentiableAt_id).const_add _)
+  have hg2 : Differentiable ℂ fun s : ℂ => (Gamma (3/2+ν+s))⁻¹ := fun s =>
+    (differentiable_one_div_Gamma (3/2+ν+s)).comp s ((differentiableAt_id).const_add _)
+  exact (hg1.continuous.mul hg2.continuous).mul (continuous_const_cpow' (struveLoop_w_ne_zero hz))
+
+/-- The integrand is continuous on every horizontal line off the real axis. -/
+lemma struveLoop_continuous_line (ν : ℂ) {z : ℂ} (hz : z ≠ 0) {t : ℝ} (ht : t ≠ 0) :
+    Continuous fun x : ℝ => struveLoop_F ν z (x + t * I) := by
+  simp_rw [struveLoop_F_eq]
+  refine Continuous.mul (Continuous.div continuous_const (by fun_prop) fun x h0 => ?_)
+    ((struveLoop_continuous_G ν hz).comp (by fun_prop))
+  obtain ⟨k, hk⟩ := struveLoop_sin_eq_zero h0
+  apply ht; simpa using congrArg Complex.im hk
+
+/-- `|π/sin(π(x+it))| ≤ π/|sinh(πt)|`. -/
+lemma struveLoop_norm_pi_div_sin_le_line {x t : ℝ} (ht : t ≠ 0) :
+    ‖(π : ℂ) / sin (π * (x + t * I))‖ ≤ π / |Real.sinh (π * t)| := by
+  have hs := Complex.barnesRes_abs_sinh_le_norm_sin (π * x) (π * t)
+  have hpos : 0 < |Real.sinh (π * t)| := by
+    rw [abs_pos, Real.sinh_ne_zero]; exact mul_ne_zero Real.pi_ne_zero ht
+  rw [show (π : ℂ) * (x + t * I) = ((π * x : ℝ) : ℂ) + ((π * t : ℝ) : ℂ) * I by push_cast; ring,
+    norm_div, norm_real, Real.norm_eq_abs, abs_of_pos Real.pi_pos]
+  exact div_le_div_of_nonneg_left Real.pi_pos.le hpos hs
+
+/-- The integrand is integrable on horizontal half-lines `Re s > c`, `Im s = t ≠ 0`. -/
+lemma struveLoop_integrableOn (ν : ℂ) {z : ℂ} (hz : z ≠ 0) (c : ℝ) {t : ℝ} (ht : t ≠ 0) :
+    IntegrableOn (fun x : ℝ => struveLoop_F ν z (x + t * I)) (Ioi c) := by
+  obtain ⟨X, K, hK⟩ := struveLoop_tail_bound ν (struveLoop_w_ne_zero hz) |t|
+  set X' := max X c
+  have hc := struveLoop_continuous_line ν hz ht
+  have h1 : IntegrableOn (fun x : ℝ => struveLoop_F ν z (x + t * I)) (Icc c X') :=
+    hc.integrableOn_Icc
+  have h2 : IntegrableOn (fun x : ℝ => struveLoop_F ν z (x + t * I)) (Ioi X') := by
+    refine ((exp_neg_integrableOn_Ioi X' one_pos).const_mul
+      (π / |Real.sinh (π * t)| * K)).mono' hc.aestronglyMeasurable ?_
+    refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun x hx => ?_)
+    have hx : X ≤ x := le_trans (le_max_left _ _) (le_of_lt hx)
+    rw [struveLoop_F_eq, norm_mul, neg_one_mul]
+    refine le_of_le_of_eq (mul_le_mul (struveLoop_norm_pi_div_sin_le_line (x := x) ht)
+      (hK x hx t le_rfl) (norm_nonneg _) (by positivity)) (by ring)
+  refine (integrableOn_union.mpr ⟨h1, h2⟩).mono_set fun x hx => ?_
+  by_cases hxX : x ≤ X'
+  · exact Or.inl ⟨le_of_lt hx, hxX⟩
+  · exact Or.inr (lt_of_not_ge hxX)
+
+/-- The integrals over the right sides `Re s = N + 1/2` tend to `0`. -/
+lemma struveLoop_tendsto_vertical (ν : ℂ) {z : ℂ} (hz : z ≠ 0) {h : ℝ} (hh : 0 < h) :
+    Tendsto (fun N : ℕ => ∫ y : ℝ in (-h)..h, struveLoop_F ν z (((N + 1 / 2 : ℝ) : ℂ) + y * I))
+      atTop (𝓝 0) := by
+  obtain ⟨X, K, hK⟩ := struveLoop_tail_bound ν (struveLoop_w_ne_zero hz) h
+  have hbound : ∀ᶠ N : ℕ in atTop, ‖∫ y : ℝ in (-h)..h,
+      struveLoop_F ν z (((N + 1 / 2 : ℝ) : ℂ) + y * I)‖ ≤
+      π * K * Real.exp (-((N : ℝ) + 1 / 2)) * |h - -h| := by
+    obtain ⟨N₀, hN₀⟩ := exists_nat_ge X
+    filter_upwards [eventually_ge_atTop N₀] with N hN
+    refine intervalIntegral.norm_integral_le_of_norm_le_const fun y hy => ?_
+    rw [Set.uIoc_of_le (by linarith)] at hy
+    have hy' : |y| ≤ h := abs_le.mpr ⟨le_of_lt hy.1, hy.2⟩
+    have hX : X ≤ (N : ℝ) + 1 / 2 := by
+      have : (N₀ : ℝ) ≤ N := by exact_mod_cast hN
+      linarith
+    rw [struveLoop_F_eq, norm_mul]
+    refine le_of_le_of_eq (mul_le_mul ?_ (hK _ hX y hy') (norm_nonneg _) Real.pi_pos.le)
+      (by ring)
+    have hs := Complex.barnesRes_abs_sin_mul_cosh_le_norm_sin (π * ((N : ℝ) + 1 / 2)) (π * y)
+    have hsin : |Real.sin (π * ((N : ℝ) + 1 / 2))| = 1 := by
+      rw [mul_add, show π * (1 / 2) = π / 2 by ring, Real.sin_add_pi_div_two,
+        show π * (N : ℝ) = N * π by ring, Real.cos_nat_mul_pi, abs_pow, abs_neg, abs_one, one_pow]
+    rw [hsin, one_mul] at hs
+    have hs1 : 1 ≤ ‖sin (π * ((((N : ℝ) + 1 / 2 : ℝ) : ℂ) + y * I))‖ := by
+      refine le_trans (Real.one_le_cosh _) (le_of_le_of_eq hs ?_)
+      congr 2; push_cast; ring
+    rw [norm_div, norm_real, Real.norm_eq_abs, abs_of_pos Real.pi_pos]
+    exact div_le_self Real.pi_pos.le hs1
+  refine squeeze_zero_norm' hbound ?_
+  have : Tendsto (fun N : ℕ => Real.exp (-((N : ℝ) + 1 / 2))) atTop (𝓝 0) :=
+    Real.tendsto_exp_neg_atTop_nhds_zero.comp
+      (tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop)
+  simpa using ((this.const_mul (π * K)).mul_const |h - -h|)
+
+/-- The residue series is the Struve `L` series: `∑ Φ_n(n) = struveLCore ν z`. -/
+lemma struveLoop_hasSum (ν : ℂ) (z : ℂ) :
+    HasSum (fun n : ℕ => struveLoop_num ν z n n) (struveLCore ν z) := by
+  convert hasSum_struveLCore ν z using 1
+  funext n
+  rw [struveLoop_num, struveLoop_D_self, cpow_natCast, struveCoeff,
+    show (3 / 2 : ℂ) + n = n + 3 / 2 by ring, show (3 / 2 : ℂ) + ν + n = n + ν + 3 / 2 by ring]
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have h1 : ((-1 : ℂ) ^ n) * (-1) ^ n = 1 := by rw [← mul_pow]; simp
+  have hm : ((-1 : ℂ) ^ n) ≠ 0 := pow_ne_zero _ (by norm_num)
+  have e : (-z ^ 2 / 4 : ℂ) ^ n = (-1) ^ n * (z / 2) ^ (2 * n) := by
+    rw [pow_mul, ← mul_pow]; congr 1; ring
+  rw [e]
+  field_simp
+
+end StruveLoop
+
+/-- struveL barnes loop (DLMF 11.5.9): residue theorem on rectangles `[c, N+1/2] × [-h, h]`. -/
 @[dlmf 11.5.E9]
 theorem struveL_barnes_loop (ν : ℂ) {z : ℂ} (hz : z ≠ 0) {c h : ℝ} (hc : -1 < c) (hc0 : c < 0) (hh : 0 < h) :
     Tendsto (fun R => positiveBarnesLoop (fun s : ℂ => π/sin (π*s)/(Gamma (3/2+s)*Gamma (3/2+ν+s))*(-z^2/4)^s) c h R) atTop (𝓝 (2*π*I*(z/2)^(-ν-1)*struveL ν z)) := by
-  sorry
+  change Tendsto (fun R => positiveBarnesLoop (struveLoop_F ν z) c h R) atTop _
+  set F := struveLoop_F ν z with hFdef
+  have hcont : ∀ t : ℝ, (t = -h ∨ t = h) → Continuous fun x : ℝ => F (x + t * I) := by
+    intro t ht
+    exact struveLoop_continuous_line ν hz (by rcases ht with rfl | rfl <;> [linarith; linarith])
+  have hint : ∀ t : ℝ, (t = -h ∨ t = h) → IntegrableOn (fun x : ℝ => F (x + t * I)) (Ioi c) := by
+    intro t ht
+    exact struveLoop_integrableOn ν hz c (by rcases ht with rfl | rfl <;> [linarith; linarith])
+  -- the loop through the two horizontal integrals
+  have hform : ∀ R : ℝ, positiveBarnesLoop F c h R =
+      (∫ x : ℝ in c..R, F (x + (-h : ℝ) * I)) - (∫ x : ℝ in c..R, F (x + h * I)) -
+        I * ∫ y : ℝ in (-h)..h, F (c + y * I) := by
+    intro R
+    rw [struveLoop_loop_eq, struveLoop_rect, smul_eq_mul, smul_eq_mul]
+    ring
+  set Lval := (∫ x : ℝ in Ioi c, F (x + (-h : ℝ) * I)) - (∫ x : ℝ in Ioi c, F (x + h * I)) -
+    I * ∫ y : ℝ in (-h)..h, F (c + y * I) with hLval
+  have hL : Tendsto (fun R => positiveBarnesLoop F c h R) atTop (𝓝 Lval) := by
+    simp_rw [hform]
+    exact ((intervalIntegral_tendsto_integral_Ioi c (hint _ (Or.inl rfl)) tendsto_id).sub
+      (intervalIntegral_tendsto_integral_Ioi c (hint _ (Or.inr rfl)) tendsto_id)).sub
+      tendsto_const_nhds
+  -- the residue sums along `R = N + 1/2`
+  have hrect := struveLoop_rect_sum (F := F) (Φ := struveLoop_num ν z) hc0 hh hcont
+    (fun n => struveLoop_differentiableOn_Φ ν z hc hc0 hz n)
+    (fun n s hs => struveLoop_F_eq_Φ ν z hc0 hh n hs)
+  have hseq : Tendsto (fun N : ℕ => positiveBarnesLoop F c h ((N : ℝ) + 1 / 2)) atTop
+      (𝓝 (2 * π * I * struveLCore ν z)) := by
+    have hs := ((struveLoop_hasSum ν z).tendsto_sum_nat.comp (tendsto_add_atTop_nat 1)).const_mul
+      (2 * π * I)
+    have hv := (struveLoop_tendsto_vertical ν hz hh).const_mul I
+    rw [mul_zero] at hv
+    have := hs.sub hv
+    rw [sub_zero] at this
+    refine this.congr fun N => ?_
+    simp only [Function.comp_apply]
+    rw [struveLoop_loop_eq, hrect N]
+  have hRN : Tendsto (fun N : ℕ => (N : ℝ) + 1 / 2) atTop atTop :=
+    tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop
+  have hval : Lval = 2 * π * I * struveLCore ν z := tendsto_nhds_unique (hL.comp hRN) hseq
+  have hz2 : z / 2 ≠ 0 := div_ne_zero hz two_ne_zero
+  have hpow : (z / 2) ^ (-ν - 1) * (z / 2) ^ (ν + 1) = 1 := by
+    rw [← cpow_add _ _ hz2]; simp
+  rw [struveL, show 2 * π * I * (z / 2) ^ (-ν - 1) * ((z / 2) ^ (ν + 1) * struveLCore ν z) =
+    2 * π * I * struveLCore ν z * ((z / 2) ^ (-ν - 1) * (z / 2) ^ (ν + 1)) by ring, hpow,
+    mul_one, ← hval]
+  exact hL
+
+/-! ### The Barnes integral for `H_ν` (DLMF 11.5.8) -/
+
+/-- `-(ix)²/4 = x²/4`. -/
+lemma struveBar_w (x : ℝ) : -(I * x) ^ 2 / 4 = ((x ^ 2 / 4 : ℝ) : ℂ) := by
+  push_cast; ring_nf; rw [I_sq]; ring
+
+/-- The modulus of the 11.5.8 integrand `F(s)` at `s = t + iy`. -/
+lemma struveBar_norm_F (ν : ℂ) {x : ℝ} (hx : 0 < x) (t y : ℝ) :
+    ‖struveLoop_F ν (I * x) (t + y * I)‖ = (x ^ 2 / 4) ^ t * (π / ‖sin (π * ((t : ℂ) + y * I))‖ *
+      (‖Gamma (((3 / 2 + t : ℝ) : ℂ) + y * I)‖)⁻¹ *
+      (‖Gamma (((3 / 2 + ν.re + t : ℝ) : ℂ) + ((y : ℂ) + ν.im) * I)‖)⁻¹) := by
+  have e1 : (3 / 2 : ℂ) + (t + y * I) = ((3 / 2 + t : ℝ) : ℂ) + y * I := by push_cast; ring
+  have e2 : (3 / 2 : ℂ) + ν + (t + y * I) =
+      ((3 / 2 + ν.re + t : ℝ) : ℂ) + ((y : ℂ) + ν.im) * I := by
+    apply Complex.ext <;> simp; ring
+  simp only [struveLoop_F]
+  rw [struveBar_w, e1, e2, norm_mul, norm_div, norm_div, norm_mul,
+    norm_cpow_eq_rpow_re_of_pos (by positivity)]
+  simp only [norm_real, Real.norm_eq_abs, abs_of_pos Real.pi_pos, add_re, ofReal_re, mul_re,
+    I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self, add_zero]
+  rw [div_eq_mul_inv _ (_ * _), mul_inv]
+  ring
+
+/-- The modulus of the 11.5.8 integrand at `s = t - iy`, by conjugation. -/
+lemma struveBar_norm_F_neg (ν : ℂ) {x : ℝ} (hx : 0 < x) (t y : ℝ) :
+    ‖struveLoop_F ν (I * x) (t + (-y : ℝ) * I)‖ = (x ^ 2 / 4) ^ t *
+      (π / ‖sin (π * ((t : ℂ) + y * I))‖ * (‖Gamma (((3 / 2 + t : ℝ) : ℂ) + y * I)‖)⁻¹ *
+      (‖Gamma (((3 / 2 + ν.re + t : ℝ) : ℂ) + ((y : ℂ) + ((-ν.im : ℝ) : ℂ)) * I)‖)⁻¹) := by
+  rw [struveBar_norm_F ν hx]
+  have h1 : (π : ℂ) * ((t : ℂ) + ((-y : ℝ) : ℂ) * I) = (starRingEnd ℂ) (π * ((t : ℂ) + y * I)) := by
+    apply Complex.ext <;> simp
+  have h2 : ((3 / 2 + t : ℝ) : ℂ) + ((-y : ℝ) : ℂ) * I =
+      (starRingEnd ℂ) (((3 / 2 + t : ℝ) : ℂ) + y * I) := by
+    rw [map_add, map_mul, conj_ofReal, conj_ofReal, conj_I]; push_cast; ring
+  have h3 : ((3 / 2 + ν.re + t : ℝ) : ℂ) + ((((-y : ℝ) : ℂ)) + ν.im) * I =
+      (starRingEnd ℂ) (((3 / 2 + ν.re + t : ℝ) : ℂ) + ((y : ℂ) + ((-ν.im : ℝ) : ℂ)) * I) := by
+    rw [map_add, map_mul, map_add, conj_ofReal, conj_ofReal, conj_ofReal, conj_I]; push_cast; ring
+  rw [h1, h2, h3, sin_conj, Gamma_conj, Gamma_conj, norm_conj, norm_conj, norm_conj]
+
+/-- **The horizontal sides vanish.** If `‖G h t‖` is the modulus of the 11.5.8 integrand at
+`t ± ih` (with shift `m = ±Im ν`), then `∫_{(c,∞)} G h → 0` as `h → ∞`: dominated convergence
+with the uniform bounds `DLMF.Gamma.shiftB_norm_inv_Gamma_le` and the pointwise Stirling decay
+`struveBar_isBigO`. -/
+lemma struveBar_tendsto_horizontal (ν : ℂ) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0)
+    (hv : -1 < ν.re + 2 * c) (m : ℝ) (G : ℝ → ℝ → ℂ)
+    (hG : ∀ h t : ℝ, ‖G h t‖ = (x ^ 2 / 4) ^ t * (π / ‖sin (π * ((t : ℂ) + h * I))‖ *
+      (‖Gamma (((3 / 2 + t : ℝ) : ℂ) + h * I)‖)⁻¹ *
+      (‖Gamma (((3 / 2 + ν.re + t : ℝ) : ℂ) + ((h : ℂ) + m) * I)‖)⁻¹))
+    (hGc : ∀ h : ℝ, 1 ≤ h → Continuous (G h)) :
+    Tendsto (fun h => ∫ t in Ioi c, G h t) atTop (𝓝 0) := by
+  have hw : 0 < x ^ 2 / 4 := by positivity
+  set D : ℝ → ℝ := fun t => 4 * π * Real.exp (π * |m| / 2) *
+    ((x ^ 2 / 4) ^ t / (Real.Gamma (3 / 2 + t) * Real.Gamma (3 / 2 + ν.re + t))) with hD
+  have hDi : IntegrableOn D (Ioi c) :=
+    (struveBar_integrableOn_rpow_div_Gamma (α := 3 / 2) (β := 3 / 2 + ν.re) (by linarith)
+      (by linarith) hw).const_mul _
+  have hlim := tendsto_integral_filter_of_dominated_convergence (μ := volume.restrict (Ioi c))
+    (F := fun h t => G h t) (f := fun _ => (0 : ℂ)) (l := atTop) D ?_ ?_ hDi ?_
+  · simpa using hlim
+  · filter_upwards [eventually_ge_atTop 1] with h hh
+    exact (hGc h hh).aestronglyMeasurable
+  · filter_upwards [eventually_ge_atTop 1] with h hh
+    refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    have ht' : c < t := ht
+    rw [hG]
+    have ha : 1 / 2 ≤ 3 / 2 + t := by linarith
+    have hb : 1 / 2 ≤ 3 / 2 + ν.re + t := by linarith
+    have hGa := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < 3 / 2 + t)
+    have hGb := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < 3 / 2 + ν.re + t)
+    have g1 := DLMF.Gamma.shiftB_norm_inv_Gamma_le ha h
+    have g2 := DLMF.Gamma.shiftB_norm_inv_Gamma_le hb (h + m)
+    rw [norm_inv] at g1 g2
+    have e : ((h : ℂ) + m) = ((h + m : ℝ) : ℂ) := by push_cast; ring
+    rw [e]
+    have hS := struveBar_pi_div_sin_le t hh
+    have hexp : Real.exp (-(π * h)) * Real.exp (π * |h| / 2) * Real.exp (π * |h + m| / 2) ≤
+        Real.exp (π * |m| / 2) := by
+      rw [← Real.exp_add, ← Real.exp_add]
+      apply Real.exp_le_exp.mpr
+      have h1 : |h| = h := abs_of_nonneg (by linarith)
+      have h2 : |h + m| ≤ h + |m| := (abs_add_le h m).trans (by rw [h1])
+      rw [h1]; nlinarith [Real.pi_pos]
+    calc (x ^ 2 / 4) ^ t * (π / ‖sin (π * ((t : ℂ) + h * I))‖ *
+          (‖Gamma (((3 / 2 + t : ℝ) : ℂ) + h * I)‖)⁻¹ *
+          (‖Gamma (((3 / 2 + ν.re + t : ℝ) : ℂ) + ((h + m : ℝ) : ℂ) * I)‖)⁻¹)
+        ≤ (x ^ 2 / 4) ^ t * (4 * π * Real.exp (-(π * h)) *
+          (Real.exp (π * |h| / 2) / Real.Gamma (3 / 2 + t)) *
+          (Real.exp (π * |h + m| / 2) / Real.Gamma (3 / 2 + ν.re + t))) := by
+          gcongr
+      _ = 4 * π * (Real.exp (-(π * h)) * Real.exp (π * |h| / 2) * Real.exp (π * |h + m| / 2)) *
+          ((x ^ 2 / 4) ^ t / (Real.Gamma (3 / 2 + t) * Real.Gamma (3 / 2 + ν.re + t))) := by
+          field_simp
+      _ ≤ D t := by
+          simp only [hD]
+          gcongr
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun t ht => ?_)
+    have ht' : c < t := ht
+    have hO := struveBar_isBigO t (3 / 2 + t) (3 / 2 + ν.re + t) m
+    have hq : 0 < 2 + ν.re + 2 * t := by linarith
+    have hO' : (fun h : ℝ => G h t) =O[atTop] fun h : ℝ => h ^ (-(2 + ν.re + 2 * t)) := by
+      refine Asymptotics.IsBigO.of_norm_left ?_
+      simp_rw [hG]
+      have := hO.const_mul_left ((x ^ 2 / 4) ^ t)
+      rw [show (1 - (3 / 2 + t) - (3 / 2 + ν.re + t)) = -(2 + ν.re + 2 * t) by ring] at this
+      exact this
+    exact hO'.trans_tendsto (tendsto_rpow_neg_atTop hq)
+
+/-- `L_ν`'s normalized series at `iz` is `H_ν`'s at `z`. -/
+lemma struveBar_LCore_I (ν z : ℂ) : struveLCore ν (I * z) = struveHCore ν z := by
+  unfold struveLCore struveHCore
+  congr 1; funext n
+  have e : (I * z / 2) ^ 2 = -1 * (z / 2) ^ 2 := by ring_nf; rw [I_sq]; ring
+  rw [pow_mul, pow_mul, e, mul_pow]
+  ring
+
+/-- The 11.5.8 integrand is continuous on the vertical line `Re s = c`, `-1 < c < 0`. -/
+lemma struveBar_continuous_vertical (ν : ℂ) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0) :
+    Continuous fun y : ℝ => struveLoop_F ν (I * x) (c + y * I) := by
+  have hz : I * (x : ℂ) ≠ 0 := mul_ne_zero I_ne_zero (ofReal_ne_zero.mpr hx.ne')
+  simp_rw [struveLoop_F_eq]
+  refine Continuous.mul (Continuous.div continuous_const (by fun_prop) fun y h0 => ?_)
+    ((struveLoop_continuous_G ν hz).comp (by fun_prop))
+  obtain ⟨k, hk⟩ := struveLoop_sin_eq_zero h0
+  have hre : c = (k : ℝ) := by simpa using congrArg Complex.re hk
+  have h1 : (-1 : ℝ) < k := hre ▸ hc
+  have h2 : (k : ℝ) < 0 := hre ▸ hc0
+  have h1' : (-1 : ℤ) < k := by exact_mod_cast h1
+  have h2' : k < 0 := by exact_mod_cast h2
+  omega
+
+/-- The 11.5.8 integrand is integrable on the vertical line: it is `O(|y|^{-2-Re ν-2c})`. -/
+lemma struveBar_integrable_vertical (ν : ℂ) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0)
+    (hv : -1 < ν.re + 2 * c) :
+    Integrable fun y : ℝ => struveLoop_F ν (I * x) (c + y * I) := by
+  have hp : -(2 + ν.re + 2 * c) < -1 := by linarith
+  have e : (1 - (3 / 2 + c) - (3 / 2 + ν.re + c)) = -(2 + ν.re + 2 * c) := by ring
+  refine struveBar_integrable_of_isBigO (struveBar_continuous_vertical ν hx hc hc0) hp ?_ ?_
+  · refine Asymptotics.IsBigO.of_norm_left ?_
+    simp_rw [struveBar_norm_F ν hx]
+    have := (struveBar_isBigO c (3 / 2 + c) (3 / 2 + ν.re + c) ν.im).const_mul_left
+      ((x ^ 2 / 4) ^ c)
+    rwa [e] at this
+  · refine Asymptotics.IsBigO.of_norm_left ?_
+    simp_rw [struveBar_norm_F_neg ν hx]
+    have := (struveBar_isBigO c (3 / 2 + c) (3 / 2 + ν.re + c) (-ν.im)).const_mul_left
+      ((x ^ 2 / 4) ^ c)
+    rwa [e] at this
+
+/-- The closed rectangle identity at height `h`, after `R → ∞`: the two horizontal half-line
+integrals and the vertical segment give `2πi` times the residue sum `H`-core. -/
+lemma struveBar_rect_identity (ν : ℂ) {x c h : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0)
+    (hh : 0 < h) :
+    (∫ t in Ioi c, struveLoop_F ν (I * x) (t + (-h : ℝ) * I)) -
+      (∫ t in Ioi c, struveLoop_F ν (I * x) (t + h * I)) -
+      I * ∫ y in (-h)..h, struveLoop_F ν (I * x) (c + y * I) = 2 * π * I * struveHCore ν x := by
+  have hz : I * (x : ℂ) ≠ 0 := mul_ne_zero I_ne_zero (ofReal_ne_zero.mpr hx.ne')
+  set F := struveLoop_F ν (I * x) with hFdef
+  have hloop := struveL_barnes_loop ν hz hc hc0 hh
+  change Tendsto (fun R => positiveBarnesLoop F c h R) atTop _ at hloop
+  have hint : ∀ t : ℝ, t ≠ 0 → IntegrableOn (fun x : ℝ => F (x + t * I)) (Ioi c) :=
+    fun t ht => struveLoop_integrableOn ν hz c ht
+  have hform : ∀ R : ℝ, positiveBarnesLoop F c h R =
+      (∫ x : ℝ in c..R, F (x + (-h : ℝ) * I)) - (∫ x : ℝ in c..R, F (x + h * I)) -
+        I * ∫ y : ℝ in (-h)..h, F (c + y * I) := by
+    intro R
+    rw [struveLoop_loop_eq, struveLoop_rect, smul_eq_mul, smul_eq_mul]
+    ring
+  have hL : Tendsto (fun R => positiveBarnesLoop F c h R) atTop
+      (𝓝 ((∫ t in Ioi c, F (t + (-h : ℝ) * I)) - (∫ t in Ioi c, F (t + h * I)) -
+        I * ∫ y in (-h)..h, F (c + y * I))) := by
+    simp_rw [hform]
+    exact ((intervalIntegral_tendsto_integral_Ioi c (hint _ (by linarith)) tendsto_id).sub
+      (intervalIntegral_tendsto_integral_Ioi c (hint _ hh.ne') tendsto_id)).sub
+      tendsto_const_nhds
+  rw [tendsto_nhds_unique hL hloop, struveL, struveBar_LCore_I]
+  have hz2 : I * (x : ℂ) / 2 ≠ 0 := div_ne_zero hz two_ne_zero
+  have hpow : (I * (x : ℂ) / 2) ^ (-ν - 1) * (I * (x : ℂ) / 2) ^ (ν + 1) = 1 := by
+    rw [← cpow_add _ _ hz2]; simp
+  linear_combination (2 * π * I * struveHCore ν x) * hpow
+
+/-- struveH barnes (DLMF 11.5.8). Proof: the residue theorem on the rectangles
+`[c, N + 1/2] × [-h, h]` (as for 11.5.9, `struveL_barnes_loop` at `z = ix`) gives the identity
+`struveBar_rect_identity` for every height `h`; the horizontal half-line integrals tend to `0` as
+`h → ∞` by dominated convergence (`struveBar_tendsto_horizontal`), and the vertical integrand is
+`O(|y|^{-2-Re ν-2c})` by Stirling's formula on vertical lines, hence integrable
+(`struveBar_integrable_vertical`). A 30-digit numerical check (2026-10-22) is recorded in
+REVIEW.md. -/
+@[dlmf 11.5.E8]
+theorem struveH_barnes {ν : ℂ} (hν : -1 < ν.re) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0) (hv : -1 < ν.re+2*c) :
+    HasIntegralWholeLine (fun y : ℝ => let s : ℂ := c+y*I; π/sin (π*s)/(Gamma (3/2+s)*Gamma (3/2+ν+s))*(x^2/4:ℂ)^s) (-2*π*(x/2:ℂ)^(-ν-1)*struveH ν x) := by
+  set f : ℝ → ℂ := fun y => struveLoop_F ν (I * x) (c + y * I) with hfdef
+  have hfe : (fun y : ℝ => let s : ℂ := c+y*I; π/sin (π*s)/(Gamma (3/2+s)*Gamma (3/2+ν+s))*(x^2/4:ℂ)^s) = f := by
+    funext y
+    simp only [hfdef, struveLoop_F]
+    congr 2
+    ring_nf; rw [I_sq]; ring
+  have hval : -2*π*(x/2:ℂ)^(-ν-1)*struveH ν x = -2 * π * struveHCore ν x := by
+    have hx2 : (x : ℂ) / 2 ≠ 0 := div_ne_zero (ofReal_ne_zero.mpr hx.ne') two_ne_zero
+    have hpow : ((x : ℂ) / 2) ^ (-ν - 1) * ((x : ℂ) / 2) ^ (ν + 1) = 1 := by
+      rw [← cpow_add _ _ hx2]; simp
+    rw [struveH]
+    linear_combination (-2 * π * struveHCore ν x) * hpow
+  rw [hfe, hval]
+  have hfi : Integrable f := struveBar_integrable_vertical ν hx hc hc0 hv
+  -- the symmetric integrals
+  have hJ : Tendsto (fun h : ℝ => ∫ y in (-h)..h, f y) atTop (𝓝 (-2 * π * struveHCore ν x)) := by
+    have hP := struveBar_tendsto_horizontal ν hx hc hc0 hv ν.im
+      (fun h t => struveLoop_F ν (I * x) (t + h * I))
+      (fun h t => struveBar_norm_F ν hx t h)
+      (fun h hh => struveLoop_continuous_line ν (mul_ne_zero I_ne_zero (ofReal_ne_zero.mpr hx.ne'))
+        (by linarith))
+    have hM := struveBar_tendsto_horizontal ν hx hc hc0 hv (-ν.im)
+      (fun h t => struveLoop_F ν (I * x) (t + (-h : ℝ) * I))
+      (fun h t => struveBar_norm_F_neg ν hx t h)
+      (fun h hh => struveLoop_continuous_line ν (mul_ne_zero I_ne_zero (ofReal_ne_zero.mpr hx.ne'))
+        (by linarith))
+    have hlim := ((hM.sub hP).sub (tendsto_const_nhds (x := 2 * π * I * struveHCore ν x))).const_mul (-I)
+    have e : -I * ((0 : ℂ) - 0 - 2 * π * I * struveHCore ν x) = -2 * π * struveHCore ν x := by
+      ring_nf; rw [I_sq]; ring
+    rw [e] at hlim
+    refine hlim.congr' ?_
+    filter_upwards [eventually_gt_atTop 0] with h hh
+    have := struveBar_rect_identity ν hx hc hc0 hh
+    simp only [hfdef]
+    linear_combination (-I) * this - (I_sq) * (∫ y in (-h)..h, struveLoop_F ν (I * x) (c + y * I))
+  have hint := intervalIntegral_tendsto_integral hfi tendsto_neg_atTop_atBot tendsto_id
+  have hI : ∫ y, f y = -2 * π * struveHCore ν x := tendsto_nhds_unique hint hJ
+  rw [← hI]
+  exact ⟨_, _, intervalIntegral_tendsto_integral_Iic 0 hfi.integrableOn tendsto_id,
+    intervalIntegral_tendsto_integral_Ioi 0 hfi.integrableOn tendsto_id,
+    intervalIntegral.integral_Iic_add_Ioi hfi.integrableOn hfi.integrableOn⟩
+
 
 /-- struveHPrimitive. -/
 @[dlmf 11.7.E5]

@@ -40,6 +40,11 @@ public import DLMF.Legendre.Neumann
 public import DLMF.Legendre.Recurrences
 public import DLMF.Legendre.SecondKind
 public import DLMF.Legendre.MathlibCoverage
+public import DLMF.Legendre.ZeroTools
+public import DLMF.Legendre.ZeroCounts
+public import DLMF.Legendre.AdditionTools
+public import DLMF.Legendre.QAdditionTools
+public import DLMF.Legendre.FourierTools
 
 /-!
 # Legendre and related functions (Temme Chapter 8; DLMF Chapter 14)

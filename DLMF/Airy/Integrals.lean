@@ -8,6 +8,8 @@ module
 public import DLMF.Airy.Scorer
 public import DLMF.Airy.IntegralTools
 public import DLMF.IncompleteGamma.Basic
+public import ToMathlib.Analysis.Integral.PrincipalValue
+public import DLMF.Bessel.KMellin
 
 /-!
 # Airy indefinite integrals and transforms, DLMF §9.10
@@ -1779,13 +1781,102 @@ theorem airyBi_negative_laplace {p : ℂ} (hp : 0 < p.re) :
   have hp0 : p ≠ 0 := by intro h; rw [h] at hp; simp at hp
   exact ⟨(airyLapB_integrableOn hp).1, (airyLapNB_eq hp).trans (airyLapRB_eq_printed hp0)⟩
 
-/-- airyAi mellin (DLMF 9.10.17). -/
+/-- On `(0, ∞)`, `t^{α-1} Ai(t) = (π√3)⁻¹ t^{(α+½)-1} K_{1/3}((2/3) t^{3/2})` (DLMF 9.6.2). -/
+lemma airyMel_integrand {α : ℂ} {t : ℝ} (ht : 0 < t) :
+    (t : ℂ) ^ (α - 1) * airyAi t = ((π⁻¹ * (Real.sqrt 3)⁻¹ : ℝ) : ℂ) •
+      ((t : ℂ) ^ ((α + 1 / 2) - 1) •
+        (fun u : ℝ => DLMF.Bessel.besselK (1 / 3) ((2 / 3 * u : ℝ) : ℂ)) (t ^ (3 / 2 : ℝ))) := by
+  have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+  rw [airyAi_eq_besselK ht, Real.sqrt_div' t (by norm_num : (0:ℝ) ≤ 3)]
+  have hs : ((Real.sqrt t : ℝ) : ℂ) = (t : ℂ) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow ht.le]; push_cast; rfl
+  have e : (t : ℂ) ^ (α - 1) * (t : ℂ) ^ (1 / 2 : ℂ) = (t : ℂ) ^ ((α + 1 / 2) - 1) := by
+    rw [← cpow_add _ _ ht0]; ring_nf
+  simp only [smul_eq_mul, airyZeta]
+  push_cast
+  rw [hs, ← e]
+  ring
+
+/-- airyAi mellin (DLMF 9.10.17), from the Mellin transform of `K_{1/3}` (DLMF 10.43.19), the
+substitution `ζ = (2/3) t^{3/2}` and Gauss's multiplication formula for `m = 3`. -/
 @[dlmf 9.10.E17]
 theorem airyAi_mellin {α : ℂ} (hα : 0 < α.re) :
     IntegrableOn (fun t : ℝ => (t : ℂ) ^ (α - 1) * airyAi t) (Ioi 0) ∧
       (∫ t : ℝ in Ioi 0, (t : ℂ) ^ (α - 1) * airyAi t) =
         Gamma α / ((3 : ℂ) ^ ((α + 2) / 3) * Gamma (α / 3 + 2 / 3)) := by
-  sorry
+  set f : ℝ → ℂ := fun u => DLMF.Bessel.besselK (1 / 3) (u : ℂ) with hf
+  set g : ℝ → ℂ := fun u => DLMF.Bessel.besselK (1 / 3) ((2 / 3 * u : ℝ) : ℂ) with hg
+  set w : ℂ := (α + 1 / 2) / ((3 / 2 : ℝ) : ℂ) with hw
+  have hwre : |(1 / 3 : ℂ).re| < w.re := by
+    have : w.re = (2 * α.re + 1) / 3 := by
+      rw [hw]; simp [div_re, Complex.normSq]; ring_nf
+    rw [this]; norm_num; linarith
+  have hconv : MellinConvergent (fun t : ℝ => g (t ^ (3 / 2 : ℝ))) (α + 1 / 2) := by
+    rw [MellinConvergent.comp_rpow (by norm_num)]
+    exact (MellinConvergent.comp_mul_left (f := f) (by norm_num)).mpr
+      (DLMF.Bessel.besselK_mellinConvergent hwre)
+  have hEq : EqOn (fun t : ℝ => (t : ℂ) ^ (α - 1) * airyAi t)
+      (fun t : ℝ => ((π⁻¹ * (Real.sqrt 3)⁻¹ : ℝ) : ℂ) • ((t : ℂ) ^ ((α + 1 / 2) - 1) •
+        g (t ^ (3 / 2 : ℝ)))) (Ioi 0) := fun t ht => airyMel_integrand ht
+  refine ⟨IntegrableOn.congr_fun (Integrable.smul (((π⁻¹ * (Real.sqrt 3)⁻¹ : ℝ) : ℂ)) hconv)
+    hEq.symm measurableSet_Ioi, ?_⟩
+  rw [setIntegral_congr_fun measurableSet_Ioi hEq, integral_smul]
+  change ((π⁻¹ * (Real.sqrt 3)⁻¹ : ℝ) : ℂ) • mellin (fun t : ℝ => g (t ^ (3 / 2 : ℝ))) (α + 1 / 2) = _
+  rw [mellin_comp_rpow, show g = fun t => f (2 / 3 * t) from rfl,
+    mellin_comp_mul_left f _ (a := 2 / 3) (by norm_num), ← hw, DLMF.Bessel.mellin_besselK hwre]
+  have hw' : w = (2 * α + 1) / 3 := by rw [hw]; push_cast; field_simp
+  have hG := Complex.Gamma_prod_add_div (m := 3) (by norm_num) (α / 3)
+  simp only [Finset.prod_range_succ, Finset.prod_range_zero] at hG
+  push_cast at hG
+  norm_num at hG
+  rw [show 3 * (α / 3) = α by ring, show (1 : ℂ) / 2 - α = 1 / 2 - α from rfl] at hG
+  have g1 : (w - 1 / 3) / 2 = α / 3 := by rw [hw']; ring
+  have g2 : (w + 1 / 3) / 2 = α / 3 + 1 / 3 := by rw [hw']; ring
+  have h2 : (2 : ℂ) ≠ 0 := two_ne_zero
+  have h3 : (3 : ℂ) ≠ 0 := three_ne_zero
+  have c1 : (((2 / 3 : ℝ)) : ℂ) ^ (-w) = (2 : ℂ) ^ (-w) * (3 : ℂ) ^ w := by
+    rw [show ((2 / 3 : ℝ) : ℂ) = ((2 : ℝ) : ℂ) / ((3 : ℝ) : ℂ) by push_cast; ring,
+      div_cpow_ofReal_nonneg (by norm_num) (by norm_num), cpow_neg, cpow_neg]
+    push_cast; field_simp; rw [← cpow_add _ _ h2]; simp
+  have c2 : (2 : ℂ) ^ (-w) * 2 ^ (w - 2) = 1 / 4 := by
+    rw [← cpow_add _ _ h2, show -w + (w - 2) = -(2 : ℕ) by push_cast; ring, cpow_neg,
+      cpow_natCast]; norm_num
+  have c3 : (3 : ℂ) ^ w * 3 ^ (1 / 2 - α) =
+      3 * (3 : ℂ) ^ (1 / 2 : ℂ) * ((3 : ℂ) ^ ((α + 2) / 3))⁻¹ := by
+    rw [← cpow_add _ _ h3, show w + (1 / 2 - α) = (1 : ℂ) + 1 / 2 + (-((α + 2) / 3)) by
+      rw [hw']; ring, cpow_add _ _ h3, cpow_add _ _ h3, cpow_one, cpow_neg]
+  have c4 : ((Real.sqrt 3 : ℝ) : ℂ) = (3 : ℂ) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow (by norm_num)]; push_cast; rfl
+  have hs3 : (3 : ℂ) ^ (1 / 2 : ℂ) ≠ 0 := by rw [← c4]; exact_mod_cast (Real.sqrt_pos.mpr (by norm_num)).ne'
+  have hG3 : Gamma (α / 3 + 2 / 3) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp [div_ofNat_re]; linarith)
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hc3 : (3 : ℂ) ^ ((α + 2) / 3) ≠ 0 := (cpow_ne_zero_iff_of_exponent_ne_zero (by
+    intro h; have := congrArg Complex.re h; simp [div_ofNat_re] at this; linarith)).mpr h3
+  rw [g1, g2, c1, abs_of_pos (by norm_num : (0 : ℝ) < 3 / 2)]
+  simp only [smul_eq_mul, real_smul]
+  push_cast
+  rw [c4]
+  have key : Gamma (α / 3) * Gamma (α / 3 + 1 / 3) =
+      2 * π * 3 ^ (1 / 2 - α) * Gamma α / Gamma (α / 3 + 2 / 3) := by
+    rw [eq_div_iff hG3, hG]
+  rw [mul_assoc (2 ^ (w - 2)), key]
+  have hA0 : (2 : ℂ) ^ (-w) ≠ 0 := by rw [cpow_def_of_ne_zero h2]; exact exp_ne_zero _
+  have hC0 : (3 : ℂ) ^ w ≠ 0 := by rw [cpow_def_of_ne_zero h3]; exact exp_ne_zero _
+  generalize (2 : ℂ) ^ (-w) = A at c2 hA0 ⊢
+  generalize (2 : ℂ) ^ (w - 2) = B at c2 ⊢
+  generalize (3 : ℂ) ^ w = C at c3 hC0 ⊢
+  generalize (3 : ℂ) ^ (1 / 2 - α) = D at c3 ⊢
+  generalize (3 : ℂ) ^ (1 / 2 : ℂ) = S at c3 hs3 ⊢
+  generalize (3 : ℂ) ^ ((α + 2) / 3) = X at c3 hc3 ⊢
+  generalize Gamma (α / 3 + 2 / 3) = Gm at hG3 ⊢
+  have hB : B = 1 / (4 * A) := by field_simp; linear_combination 4 * c2
+  have hD : D = 3 * S / (X * C) := by
+    rw [eq_div_iff (mul_ne_zero hc3 hC0)]
+    field_simp at c3
+    linear_combination c3
+  subst hB hD
+  field_simp
+  ring
 
 /-- airyAi stieltjes (DLMF 9.10.18). -/
 @[dlmf 9.10.E18]
@@ -1853,12 +1944,220 @@ theorem airyAi_repeated_integrals {n : ℕ} (hn : 1 ≤ n) :
         ((3 : ℂ) ^ (((n : ℂ) + 2) / 3) * Gamma ((n : ℂ) / 3 + 2 / 3))) := by
   sorry
 
+/-- Existence of a symmetric principal value on `(0, ∞)` at `c > 0`, in the form of
+`HasPrincipalValueIoi`, from the subtraction hypothesis near `c` and integrable tails. -/
+lemma airyPV_hasPrincipalValueIoi {f : ℝ → ℂ} {b c : ℝ} (A : ℂ) (hc : 0 < c) (hcb : c < b)
+    (hsub : IntegrableOn (fun t => f t - A / (t - c)) (Icc 0 b))
+    (htail : ∀ d : ℝ, c < d → IntegrableOn f (Ioi d)) :
+    HasPrincipalValueIoi f c
+      ((∫ t in (0:ℝ)..b, (f t - A / (t - c))) + A * Real.log ((b - c) / (c - 0)) +
+        ∫ t in Ioi b, f t) := by
+  have hI : ∀ d : ℝ, c < d → HasIntegralAtTop f d (∫ t in Ioi d, f t) := fun d hd =>
+    intervalIntegral_tendsto_integral_Ioi d (htail d hd) tendsto_id
+  have himp : ∀ d : ℝ, c < d → improperAtTop f d = ∫ t in Ioi d, f t := fun d hd =>
+    (hI d hd).limUnder_eq
+  refine ⟨fun ε hε => ?_, ?_⟩
+  · rw [himp _ (by linarith)]; exact hI _ (by linarith)
+  have hev : ∀ᶠ ε in 𝓝[>] (0 : ℝ), (∫ t in (0:ℝ)..c - ε, f t) + improperAtTop f (c + ε) =
+      ((∫ t in (0:ℝ)..c - ε, f t) + ∫ t in c + ε..b, f t) + ∫ t in Ioi b, f t := by
+    filter_upwards [Ioo_mem_nhdsGT (sub_pos.mpr hcb)] with ε hε
+    have hd : c < c + ε := by linarith [hε.1]
+    have hdb : c + ε ≤ b := by linarith [hε.2]
+    have hfi : IntervalIntegrable f volume (c + ε) b :=
+      (intervalIntegrable_iff_integrableOn_Ioc_of_le hdb).mpr
+        ((htail _ hd).mono_set Ioc_subset_Ioi_self)
+    have hloc : ∀ R, b ≤ R → IntervalIntegrable f volume b R := fun R hR =>
+      (intervalIntegrable_iff_integrableOn_Ioc_of_le hR).mpr
+        ((htail _ (by linarith)).mono_set Ioc_subset_Ioi_self)
+    have h := pv_tendsto_intervalIntegral_atTop_of_le (hI b hcb) hfi hloc
+    rw [himp _ hd, tendsto_nhds_unique
+      (intervalIntegral_tendsto_integral_Ioi _ (htail _ hd) tendsto_id) h]
+    ring
+  exact ((pv_tendsto_of_integrableOn_sub A hc hcb hsub).add_const _).congr'
+    (EventuallyEq.symm hev)
+
+/-- `(t:ℂ)^(3/2)` is the real power for `t ≥ 0`. -/
+lemma airyPV_cpow_three_halves {t : ℝ} (ht : 0 ≤ t) :
+    (t : ℂ) ^ (3 / 2 : ℂ) = ((t ^ (3 / 2 : ℝ) : ℝ) : ℂ) := by
+  rw [Complex.ofReal_cpow ht]; push_cast; ring_nf
+
+/-- `t ↦ t^{3/2}` is injective on `[0, ∞)`. -/
+lemma airyPV_cpow_ne {t x : ℝ} (ht : 0 ≤ t) (hx : 0 ≤ x) (htx : t ≠ x) :
+    (t : ℂ) ^ (3 / 2 : ℂ) - (x : ℂ) ^ (3 / 2 : ℂ) ≠ 0 := by
+  rw [airyPV_cpow_three_halves ht, airyPV_cpow_three_halves hx, ← Complex.ofReal_sub,
+    Complex.ofReal_ne_zero, sub_ne_zero]
+  rcases lt_or_gt_of_ne htx with h | h
+  · exact (Real.rpow_lt_rpow ht h (by norm_num)).ne
+  · exact (Real.rpow_lt_rpow hx h (by norm_num)).ne'
+
 /-- Convergence of the symmetric principal value in DLMF 9.10.19. -/
 @[dlmf 9.10.E19]
 theorem airyBi_stieltjes_principalValue_converges {x : ℝ} (hx : 0 < x) :
     let f := fun t : ℝ => (t : ℂ) ^ (-3 / 4 : ℂ) * exp (-(airyZeta t : ℂ)) *
       airyAi t / ((x : ℂ) ^ (3 / 2 : ℂ) - (t : ℂ) ^ (3 / 2 : ℂ))
     HasPrincipalValueIoi f x (principalValueIoi f x) := by
-  sorry
+  intro f
+  set φ : ℂ → ℂ := fun s => s ^ (3 / 2 : ℂ) with hφ
+  set D : ℂ → ℂ := dslope φ x with hD
+  set g : ℝ → ℂ := fun t => (t : ℂ) ^ (-3 / 4 : ℂ) * exp (-(airyZeta t : ℂ)) * airyAi t with hg
+  set h : ℝ → ℂ := fun t => g t * (-(D t)⁻¹) with hh
+  have hfh : ∀ t : ℝ, t ≠ x → f t = h t / (t - x) := by
+    intro t htx
+    have htx' : (t : ℂ) ≠ x := by exact_mod_cast htx
+    have hDt : D t = ((t : ℂ) - x)⁻¹ * (φ t - φ x) := by
+      simp only [hD, dslope_of_ne _ htx', slope_def_module, smul_eq_mul]
+    have hsub : (t : ℂ) - x ≠ 0 := sub_ne_zero.mpr htx'
+    simp only [f, h, hDt, hφ, hg]
+    rw [mul_inv, inv_inv]
+    by_cases hz : (t : ℂ) ^ (3 / 2 : ℂ) - (x : ℂ) ^ (3 / 2 : ℂ) = 0
+    · rw [hz, show (x : ℂ) ^ (3 / 2 : ℂ) - (t : ℂ) ^ (3 / 2 : ℂ) = 0 by
+        linear_combination -hz]
+      simp
+    · have hz' : (x : ℂ) ^ (3 / 2 : ℂ) - (t : ℂ) ^ (3 / 2 : ℂ) ≠ 0 := by
+        intro h0; exact hz (by linear_combination -h0)
+      field_simp
+      ring
+  have hx0 : (x : ℂ) ≠ 0 := by exact_mod_cast hx.ne'
+  have hslit : ∀ s ∈ Metric.ball (x : ℂ) x, s ∈ slitPlane := by
+    intro s hs
+    refine mem_slitPlane_iff.mpr (Or.inl ?_)
+    have h1 := abs_re_le_norm (s - x)
+    rw [Metric.mem_ball, dist_eq_norm] at hs
+    simp only [sub_re, ofReal_re] at h1
+    linarith [neg_abs_le (s.re - x)]
+  have hball : Metric.ball (x : ℂ) x ∈ 𝓝 (x : ℂ) := Metric.ball_mem_nhds _ hx
+  have hφd : DifferentiableOn ℂ φ (Metric.ball (x : ℂ) x) := fun s hs =>
+    (Complex.hasStrictDerivAt_cpow_const (c := (3/2 : ℂ)) (hslit s hs)).hasDerivAt
+      |>.differentiableAt.differentiableWithinAt
+  have hDd : DifferentiableAt ℂ D x :=
+    ((differentiableOn_dslope hball).mpr hφd).differentiableAt hball
+  have hDx : D x ≠ 0 := by
+    have hxs : (x : ℂ) ∈ slitPlane := hslit _ (Metric.mem_ball_self hx)
+    rw [hD, dslope_same, (Complex.hasStrictDerivAt_cpow_const (c := (3/2 : ℂ)) hxs).hasDerivAt.deriv]
+    refine mul_ne_zero (by norm_num) ?_
+    rw [Ne, cpow_eq_zero_iff]; tauto
+  have hDne : ∀ t : ℝ, 0 ≤ t → D t ≠ 0 := by
+    intro t ht
+    by_cases htx : t = x
+    · rw [htx]; exact hDx
+    have htx' : (t : ℂ) ≠ x := by exact_mod_cast htx
+    simp only [hD, dslope_of_ne _ htx', slope_def_module, smul_eq_mul]
+    exact mul_ne_zero (inv_ne_zero (sub_ne_zero.mpr htx')) (airyPV_cpow_ne ht hx.le htx)
+  have hDc : ∀ t : ℝ, 0 ≤ t → ContinuousAt D t := by
+    intro t ht
+    by_cases htx : t = x
+    · rw [htx]; exact hDd.continuousAt
+    have htx' : (t : ℂ) ≠ x := by exact_mod_cast htx
+    have hφc : ContinuousAt φ t :=
+      continuousAt_cpow_const_of_re_pos (Or.inl (by simpa using ht)) (by norm_num)
+    have hsl : ContinuousAt (fun s : ℂ => (s - x)⁻¹ * (φ s - φ x)) t :=
+      ((continuousAt_id.sub continuousAt_const).inv₀ (sub_ne_zero.mpr htx')).mul
+        (hφc.sub continuousAt_const)
+    refine hsl.congr ?_
+    filter_upwards [isOpen_ne.mem_nhds htx'] with s hs
+    simp only [hD, dslope_of_ne _ hs, slope_def_module, smul_eq_mul]
+  have hζc : Continuous airyZeta := by
+    unfold airyZeta; exact continuous_const.mul (Real.continuous_rpow_const (by norm_num))
+  have hAc : Continuous fun t : ℝ => airyAi t := differentiable_airyAi.continuous.comp
+    continuous_ofReal
+  set b : ℝ := 2 * x with hb
+  have hxb : x < b := by rw [hb]; linarith
+  have hgi : IntegrableOn g (Icc 0 b) := by
+    have h1 := intervalIntegral.intervalIntegrable_cpow' (a := 0) (b := b)
+      (r := (-3/4 : ℂ)) (by norm_num)
+    have hec : Continuous fun t : ℝ => exp (-(airyZeta t : ℂ)) :=
+      Complex.continuous_exp.comp (continuous_ofReal.comp hζc).neg
+    have h2 := (h1.mul_continuousOn hec.continuousOn).mul_continuousOn hAc.continuousOn
+    exact (intervalIntegrable_iff_integrableOn_Icc_of_le (by linarith)).mp h2
+  have hqc : ContinuousOn (fun t : ℝ => -(D t)⁻¹) (Icc 0 b) := fun t ht =>
+    (((hDc t ht.1).comp continuous_ofReal.continuousAt).inv₀ (hDne t ht.1)).neg.continuousWithinAt
+  have hhi : IntegrableOn h (Icc 0 b) := hgi.mul_continuousOn hqc isCompact_Icc
+  have hgd : DifferentiableAt ℝ g x := by
+    have h1 : DifferentiableAt ℝ (fun t : ℝ => (t : ℂ) ^ (-3 / 4 : ℂ)) x :=
+      ((hasDerivAt_id (x : ℂ)).cpow_const (c := (-3/4 : ℂ))
+        (hslit _ (Metric.mem_ball_self hx))).comp_ofReal.differentiableAt
+    have hζ : DifferentiableAt ℝ airyZeta x := by
+      unfold airyZeta
+      exact (differentiableAt_id.rpow_const (Or.inl hx.ne')).const_mul _
+    have h2 : DifferentiableAt ℝ (fun t : ℝ => exp (-(airyZeta t : ℂ))) x :=
+      (hζ.hasDerivAt.ofReal_comp.neg.cexp).differentiableAt
+    have h3 : DifferentiableAt ℝ (fun t : ℝ => airyAi t) x :=
+      (hasDerivAt_airyAi (x : ℂ)).comp_ofReal.differentiableAt
+    exact (h1.mul h2).mul h3
+  have hhd : DifferentiableAt ℝ h x := by
+    have hq : DifferentiableAt ℝ (fun t : ℝ => -(D t)⁻¹) x :=
+      ((hDd.inv hDx).neg).hasDerivAt.comp_ofReal.differentiableAt
+    exact hgd.mul hq
+  have hsub0 := pv_integrableOn_sub_of_differentiableAt hhi hhd
+  have hsub : IntegrableOn (fun t => f t - h x / (t - x)) (Icc 0 b) := by
+    refine hsub0.congr_fun_ae ?_
+    have : ∀ᵐ t ∂(volume.restrict (Icc 0 b)), t ≠ x :=
+      ae_restrict_of_ae (by simp [ae_iff, measure_singleton])
+    filter_upwards [this] with t ht
+    simp only [hfh t ht]
+  have htail : ∀ d : ℝ, x < d → IntegrableOn f (Ioi d) := by
+    intro d hd
+    have hd0 : 0 < d := lt_trans hx hd
+    obtain ⟨C, hC0, hC⟩ := airyLap_pos_bound 0
+    set ρ : ℝ := (x / d) ^ (3 / 2 : ℝ) with hρ
+    have hρ1 : ρ < 1 := Real.rpow_lt_one (by positivity) ((div_lt_one hd0).mpr hd) (by norm_num)
+    set K : ℝ := d ^ (-3 / 4 : ℝ) * C / (1 - ρ)
+    have hK : IntegrableOn (fun t : ℝ => K * t ^ (-3 / 2 : ℝ)) (Ioi d) :=
+      (integrableOn_Ioi_rpow_of_lt (by norm_num) hd0).const_mul K
+    refine hK.mono' ?_ ?_
+    · refine ContinuousOn.aestronglyMeasurable (fun t ht => ?_) measurableSet_Ioi
+      have ht0 : 0 < t := lt_trans hd0 ht
+      have htx : t ≠ x := ne_of_gt (lt_trans hd ht)
+      refine ContinuousAt.continuousWithinAt (ContinuousAt.div ?_ ?_ ?_)
+      · refine ContinuousAt.mul (ContinuousAt.mul ?_ (by fun_prop)) hAc.continuousAt
+        exact continuousAt_ofReal_cpow_const _ _ (Or.inr ht0.ne')
+      · exact continuousAt_const.sub
+          (continuousAt_ofReal_cpow_const _ _ (Or.inr ht0.ne'))
+      · intro h0; exact airyPV_cpow_ne ht0.le hx.le htx (by linear_combination -h0)
+    · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun t ht => ?_)
+      have ht0 : 0 < t := lt_trans hd0 ht
+      have hdt : d ≤ t := le_of_lt ht
+      have h32 : 0 < t ^ (3 / 2 : ℝ) := by positivity
+      have hden : (1 - ρ) * t ^ (3 / 2 : ℝ) ≤ t ^ (3 / 2 : ℝ) - x ^ (3 / 2 : ℝ) := by
+        have : x ^ (3 / 2 : ℝ) ≤ ρ * t ^ (3 / 2 : ℝ) := by
+          rw [hρ, ← Real.mul_rpow (by positivity) ht0.le]
+          refine Real.rpow_le_rpow hx.le ?_ (by norm_num)
+          rw [div_mul_eq_mul_div, le_div_iff₀ hd0]
+          exact mul_le_mul_of_nonneg_left hdt hx.le
+        linarith
+      have hnd : ‖(x : ℂ) ^ (3 / 2 : ℂ) - (t : ℂ) ^ (3 / 2 : ℂ)‖ =
+          t ^ (3 / 2 : ℝ) - x ^ (3 / 2 : ℝ) := by
+        rw [airyPV_cpow_three_halves hx.le, airyPV_cpow_three_halves ht0.le, ← ofReal_sub,
+          Complex.norm_real, Real.norm_eq_abs, abs_sub_comm, abs_of_nonneg]
+        have := Real.rpow_le_rpow hx.le (lt_trans hd ht).le (by norm_num : (0:ℝ) ≤ 3/2)
+        linarith
+      have hn1 : ‖(t : ℂ) ^ (-3 / 4 : ℂ)‖ ≤ d ^ (-3 / 4 : ℝ) := by
+        rw [Complex.norm_cpow_eq_rpow_re_of_pos ht0]
+        have : ((-3 / 4 : ℂ)).re = (-3/4 : ℝ) := by norm_num
+        rw [this]
+        exact Real.rpow_le_rpow_of_nonpos hd0 hdt (by norm_num)
+      have hn2 : ‖exp (-(airyZeta t : ℂ))‖ ≤ 1 := by
+        rw [Complex.norm_exp]
+        simp only [neg_re, ofReal_re, Real.exp_le_one_iff, neg_nonpos]
+        unfold airyZeta; positivity
+      have hn3 : ‖airyAi t‖ ≤ C := by
+        have := (hC t ht0.le).1; simpa using this
+      have hnum : ‖(t : ℂ) ^ (-3 / 4 : ℂ) * exp (-(airyZeta t : ℂ)) * airyAi t‖ ≤
+          d ^ (-3 / 4 : ℝ) * C := by
+        rw [norm_mul, norm_mul]
+        calc ‖(t : ℂ) ^ (-3 / 4 : ℂ)‖ * ‖exp (-(airyZeta t : ℂ))‖ * ‖airyAi t‖
+            ≤ d ^ (-3 / 4 : ℝ) * 1 * C := by gcongr
+          _ = _ := by ring
+      simp only [f]
+      rw [norm_div, hnd, show (-3 / 2 : ℝ) = -(3 / 2) by norm_num, Real.rpow_neg ht0.le,
+        mul_comm K, ← div_eq_inv_mul]
+      have h1ρ : 0 < 1 - ρ := by linarith
+      calc _ ≤ d ^ (-3 / 4 : ℝ) * C / ((1 - ρ) * t ^ (3 / 2 : ℝ)) :=
+            div_le_div₀ (by positivity) hnum (by positivity) hden
+        _ = K / t ^ (3 / 2 : ℝ) := by simp only [K]; field_simp
+  have hP := airyPV_hasPrincipalValueIoi (h x) hx hxb hsub htail
+  refine ⟨hP.1, ?_⟩
+  rw [principalValueIoi, hP.2.limUnder_eq]
+  exact hP.2
 
 end DLMF.Airy

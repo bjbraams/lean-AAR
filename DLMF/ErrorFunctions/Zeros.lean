@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.ErrorFunctions.Relations
+public import DLMF.ErrorFunctions.ZeroClassification
 
 /-!
 # Zero distributions and asymptotics, DLMF §7.13
@@ -13,6 +14,14 @@ public import DLMF.ErrorFunctions.Relations
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results, numerical
 tables (Tables 7.13.1–7.13.4) and application notes are excluded. Existing Mathlib results are referenced, not reproved.
 New theorem statements are initially admitted and are not completed proofs.
+
+The orderings and zero classifications (`errorFunctionZero_ordered`, `erf_zero_classification`,
+`erfc_zero_classification`, `faddeevaW_zero_classification`, `fresnelFunctionZero_ordered`,
+`fresnel_zero_classification`) are derived from the enumeration statements
+`errorFunctionZero_spec` and `fresnelFunctionZero_spec` together with the zero localizations of
+`DLMF/ErrorFunctions/ZeroClassification.lean`, so they depend on those two admissions only.
+`errorFunctionZero_spec_iff` reduces `errorFunctionZero_spec` to distinct moduli and infinitely
+many zeros in the sector.
 -/
 
 @[expose] public noncomputable section
@@ -65,25 +74,113 @@ theorem errorFunctionZero_spec (complement : Bool) {k : ℕ} (hk : 1 ≤ k) :
     let f := if complement then erfc else erf; let S := if complement then {z : ℂ | π/2 < arg z ∧ arg z < 3*π/4} else {z : ℂ | 0 < z.re ∧ 0 < z.im}; errorFunctionZero complement k ∈ S ∧ f (errorFunctionZero complement k)=0 ∧ ({z : ℂ | z ∈ S ∧ f z=0 ∧ ‖z‖ < ‖errorFunctionZero complement k‖} : Set ℂ).ncard=k-1 := by
   sorry
 
+/-- The enumeration `errorFunctionZero` is well defined for every index exactly when the zeros of
+`erf` in the first quadrant (resp. of `erfc` in `π/2 < ph z < 3π/4`) have pairwise distinct moduli
+and are infinitely many. This isolates the analytic content of `errorFunctionZero_spec`. -/
+theorem errorFunctionZero_spec_iff (complement : Bool) :
+    let f := if complement then erfc else erf
+    let S := if complement then {z : ℂ | π/2 < arg z ∧ arg z < 3*π/4} else {z : ℂ | 0 < z.re ∧ 0 < z.im}
+    (∀ k : ℕ, 1 ≤ k → errorFunctionZero complement k ∈ S ∧ f (errorFunctionZero complement k)=0 ∧
+      ({z : ℂ | z ∈ S ∧ f z=0 ∧ ‖z‖ < ‖errorFunctionZero complement k‖} : Set ℂ).ncard=k-1) ↔
+    (Set.InjOn (fun z : ℂ => ‖z‖) {z : ℂ | z ∈ S ∧ f z = 0} ∧ {z : ℂ | z ∈ S ∧ f z = 0}.Infinite) := by
+  cases complement
+  · exact zcnt_orderedZero_spec_iff
+      (zcnt_finite_zeros_lt differentiable_erf_complex (zcnt_erf_ofReal_ne_zero one_ne_zero) _)
+  · exact zcnt_orderedZero_spec_iff
+      (zcnt_finite_zeros_lt zcnt_differentiable_erfc (x := 0) (by simp [erfc, erf_zero]) _)
+
 /-- errorFunctionZero ordered. -/
 theorem errorFunctionZero_ordered (complement : Bool) :
     StrictMonoOn (fun k => ‖errorFunctionZero complement k‖) (Ici 1) := by
-  sorry
+  cases complement
+  · exact zcnt_orderedZero_strictMonoOn
+      (zcnt_finite_zeros_lt differentiable_erf_complex (zcnt_erf_ofReal_ne_zero one_ne_zero) _)
+      (fun k hk => errorFunctionZero_spec false hk)
+  · exact zcnt_orderedZero_strictMonoOn
+      (zcnt_finite_zeros_lt zcnt_differentiable_erfc (x := 0) (by simp [erfc, erf_zero]) _)
+      (fun k hk => errorFunctionZero_spec true hk)
 
 /-- erf zero classification. -/
 theorem erf_zero_classification (z : ℂ) :
     erf z=0 ↔ z=0 ∨ ∃ k : ℕ, 1 ≤ k ∧ let u := errorFunctionZero false k; z=u ∨ z = -u ∨ z=star u ∨ z = -star u := by
-  sorry
+  set Q : Set ℂ := {z : ℂ | 0 < z.re ∧ 0 < z.im}
+  have hfin := zcnt_finite_zeros_lt differentiable_erf_complex
+    (zcnt_erf_ofReal_ne_zero one_ne_zero) Q
+  have hspec : ∀ k : ℕ, 1 ≤ k → orderedZero erf Q k ∈ Q ∧ erf (orderedZero erf Q k) = 0 ∧
+      ({w : ℂ | w ∈ Q ∧ erf w = 0 ∧ ‖w‖ < ‖orderedZero erf Q k‖} : Set ℂ).ncard = k - 1 :=
+    fun k hk => errorFunctionZero_spec false hk
+  have hu : ∀ k, errorFunctionZero false k = orderedZero erf Q k := fun _ => rfl
+  have hconj : ∀ w : ℂ, erf (star w) = star (erf w) := zcnt_erf_conj
+  have henum : ∀ w, w ∈ Q → erf w = 0 → ∃ k : ℕ, 1 ≤ k ∧ w = errorFunctionZero false k :=
+    fun w hw hw0 => zcnt_eq_orderedZero hfin hspec hw hw0
+  constructor
+  · intro h0
+    by_cases hz : z = 0
+    · exact Or.inl hz
+    right
+    have hre : z.re ≠ 0 := by
+      intro hre
+      have hz' : z = I * (z.im : ℂ) := by apply Complex.ext <;> simp [hre]
+      have him : z.im ≠ 0 := fun him => hz (Complex.ext (by simp [hre]) (by simp [him]))
+      exact zcnt_erf_I_mul_ofReal_ne_zero him (hz' ▸ h0)
+    have him : z.im ≠ 0 := by
+      intro him
+      have hz' : z = (z.re : ℂ) := by apply Complex.ext <;> simp [him]
+      exact zcnt_erf_ofReal_ne_zero hre (hz' ▸ h0)
+    rcases hre.lt_or_gt with hr | hr <;> rcases him.lt_or_gt with hi | hi
+    · obtain ⟨k, hk, hkz⟩ := henum (-z) ⟨by simp; linarith, by simp; linarith⟩
+        (by rw [erf_negative, h0, neg_zero])
+      exact ⟨k, hk, Or.inr (Or.inl (by rw [← hkz, neg_neg]))⟩
+    · obtain ⟨k, hk, hkz⟩ := henum (-star z) ⟨by simp; linarith, by simp; linarith⟩
+        (by rw [erf_negative, hconj, h0, star_zero, neg_zero])
+      exact ⟨k, hk, Or.inr (Or.inr (Or.inr (by rw [← hkz, star_neg, star_star, neg_neg])))⟩
+    · obtain ⟨k, hk, hkz⟩ := henum (star z) ⟨by simp; linarith, by simp; linarith⟩
+        (by rw [hconj, h0, star_zero])
+      exact ⟨k, hk, Or.inr (Or.inr (Or.inl (by rw [← hkz, star_star])))⟩
+    · obtain ⟨k, hk, hkz⟩ := henum z ⟨hr, hi⟩ h0
+      exact ⟨k, hk, Or.inl hkz⟩
+  · rintro (rfl | ⟨k, hk, h⟩)
+    · exact erf_zero
+    have hu0 : erf (errorFunctionZero false k) = 0 := (hspec k hk).2.1
+    rcases h with rfl | rfl | rfl | rfl
+    · exact hu0
+    · rw [erf_negative, hu0, neg_zero]
+    · rw [hconj, hu0, star_zero]
+    · rw [erf_negative, hconj, hu0, star_zero, neg_zero]
 
 /-- erfc zero classification. -/
 theorem erfc_zero_classification (z : ℂ) :
     erfc z=0 ↔ ∃ k : ℕ, 1 ≤ k ∧ (z=errorFunctionZero true k ∨ z=star (errorFunctionZero true k)) := by
-  sorry
+  set S : Set ℂ := {z : ℂ | π/2 < arg z ∧ arg z < 3*π/4}
+  have hfin := zcnt_finite_zeros_lt zcnt_differentiable_erfc (x := 0)
+    (by simp [erfc, erf_zero]) S
+  have hspec : ∀ k : ℕ, 1 ≤ k → orderedZero erfc S k ∈ S ∧ erfc (orderedZero erfc S k) = 0 ∧
+      ({w : ℂ | w ∈ S ∧ erfc w = 0 ∧ ‖w‖ < ‖orderedZero erfc S k‖} : Set ℂ).ncard = k - 1 :=
+    fun k hk => errorFunctionZero_spec true hk
+  have hconj : ∀ w : ℂ, erfc (star w) = star (erfc w) := zcnt_erfc_conj
+  constructor
+  · intro h0
+    rcases zcnt_erfc_zero_mem_sector h0 with hS | hS
+    · obtain ⟨k, hk, hkz⟩ := zcnt_eq_orderedZero hfin hspec hS h0
+      exact ⟨k, hk, Or.inl hkz⟩
+    · obtain ⟨k, hk, hkz⟩ := zcnt_eq_orderedZero hfin hspec (z := star z) hS
+        (by rw [hconj, h0, star_zero])
+      exact ⟨k, hk, Or.inr (by rw [← star_star z]; exact congrArg star hkz)⟩
+  · rintro ⟨k, hk, h | h⟩
+    · rw [h]; exact (hspec k hk).2.1
+    · rw [h, hconj]
+      exact (congrArg star (hspec k hk).2.1).trans (star_zero _)
 
 /-- faddeevaW zero classification. -/
 theorem faddeevaW_zero_classification (z : ℂ) :
     faddeevaW z=0 ↔ ∃ k : ℕ, 1 ≤ k ∧ (z=I*errorFunctionZero true k ∨ z=I*star (errorFunctionZero true k)) := by
-  sorry
+  have hI : ∀ w : ℂ, -I * z = w ↔ z = I * w := fun w => by
+    constructor
+    · rintro rfl; ring_nf; rw [I_sq]; ring
+    · rintro rfl; ring_nf; rw [I_sq]; ring
+  rw [faddeevaW, mul_eq_zero, or_iff_right (Complex.exp_ne_zero _),
+    erfc_zero_classification]
+  simp only [hI]
 
 /-- fresnelFunctionZero spec. -/
 theorem fresnelFunctionZero_spec (sine : Bool) {k : ℕ} (hk : 1 ≤ k) :
@@ -93,12 +190,78 @@ theorem fresnelFunctionZero_spec (sine : Bool) {k : ℕ} (hk : 1 ≤ k) :
 /-- fresnelFunctionZero ordered. -/
 theorem fresnelFunctionZero_ordered (sine : Bool) :
     StrictMonoOn (fun k => ‖fresnelFunctionZero sine k‖) (Ici 1) := by
-  sorry
+  obtain ⟨-, hC1, -, -, -, hS3⟩ := fresnel_zero_orders
+  have hconv : ∀ (s : Bool) (k : ℕ), 1 ≤ k →
+      let f := if s then fresnelSinInt else fresnelCosInt
+      let S : Set ℂ := {z : ℂ | 0 < arg z ∧ arg z < π/4}
+      orderedZero f S k ∈ S ∧ f (orderedZero f S k) = 0 ∧
+        ({w : ℂ | w ∈ S ∧ f w = 0 ∧ ‖w‖ < ‖orderedZero f S k‖} : Set ℂ).ncard = k - 1 := by
+    intro s k hk
+    obtain ⟨h1, h2, h3, h4⟩ := fresnelFunctionZero_spec s hk
+    refine ⟨⟨h1, h2⟩, h3, ?_⟩
+    simp only [fresnelFunctionZero] at h4
+    simpa only [Set.mem_ofPred_eq, and_assoc] using h4
+  cases sine
+  · have hx : ∃ x, fresnelCosInt x ≠ 0 := by
+      by_contra h
+      push Not at h
+      have : fresnelCosInt = fun _ => 0 := funext h
+      rw [this, deriv_const] at hC1
+      exact zero_ne_one hC1
+    obtain ⟨x, hx⟩ := hx
+    exact zcnt_orderedZero_strictMonoOn
+      (zcnt_finite_zeros_lt (fun z => (hasDerivAt_fresnelCosInt_complex z).differentiableAt) hx _)
+      (fun k hk => hconv false k hk)
+  · have hx : ∃ x, fresnelSinInt x ≠ 0 := by
+      by_contra h
+      push Not at h
+      have : fresnelSinInt = fun _ => 0 := funext h
+      rw [this, iteratedDeriv_const] at hS3
+      simp at hS3
+      exact Real.pi_ne_zero (by exact_mod_cast hS3.symm)
+    obtain ⟨x, hx⟩ := hx
+    exact zcnt_orderedZero_strictMonoOn
+      (zcnt_finite_zeros_lt (fun z => (hasDerivAt_fresnelSinInt_complex z).differentiableAt) hx _)
+      (fun k hk => hconv true k hk)
 
 /-- fresnel zero classification. -/
 theorem fresnel_zero_classification (sine : Bool) (z : ℂ) :
     (if sine then fresnelSinInt z else fresnelCosInt z)=0 ↔ z=0 ∨ ∃ k : ℕ, 1 ≤ k ∧ let u := fresnelFunctionZero sine k; z=u ∨ z = -u ∨ z=star u ∨ z = -star u ∨ z=I*u ∨ z = -I*u ∨ z=I*star u ∨ z = -I*star u := by
-  sorry
+  obtain ⟨hC0, hC1, hS0, -, -, hS3⟩ := fresnel_zero_orders
+  have hspec : ∀ k : ℕ, 1 ≤ k →
+      let f := if sine then fresnelSinInt else fresnelCosInt
+      let S : Set ℂ := {z : ℂ | 0 < arg z ∧ arg z < π/4}
+      orderedZero f S k ∈ S ∧ f (orderedZero f S k) = 0 ∧
+        ({w : ℂ | w ∈ S ∧ f w = 0 ∧ ‖w‖ < ‖orderedZero f S k‖} : Set ℂ).ncard = k - 1 := by
+    intro k hk
+    obtain ⟨h1, h2, h3, h4⟩ := fresnelFunctionZero_spec sine hk
+    refine ⟨⟨h1, h2⟩, h3, ?_⟩
+    simp only [fresnelFunctionZero] at h4
+    simpa only [Set.mem_ofPred_eq, and_assoc] using h4
+  have hstar : ∀ w : ℂ, star w = (starRingEnd ℂ) w := fun _ => rfl
+  cases sine
+  · have hx : ∃ x, fresnelCosInt x ≠ 0 := ⟨1, by
+      simpa using zcnt_fresnelCosInt_ofReal_ne_zero (x := 1) one_ne_zero⟩
+    obtain ⟨x, hx⟩ := hx
+    simpa [fresnelFunctionZero] using zcnt_octant_classification (f := fresnelCosInt)
+      (zcnt_finite_zeros_lt (fun z => (hasDerivAt_fresnelCosInt_complex z).differentiableAt) hx _)
+      (hspec · ·) hC0
+      (fun w => by rw [zcnt_fresnelCosInt_neg, neg_eq_zero])
+      (fun w => by rw [hstar, zcnt_fresnelCosInt_conj, map_eq_zero])
+      (fun w => by rw [zcnt_fresnelCosInt_I_mul, mul_eq_zero, or_iff_right I_ne_zero])
+      (fun x hx => zcnt_fresnelCosInt_ofReal_ne_zero hx)
+      (fun x hx => zcnt_fresnelCosInt_diag_ne_zero hx) z
+  · have hx : ∃ x, fresnelSinInt x ≠ 0 := ⟨1, by
+      simpa using zcnt_fresnelSinInt_ofReal_ne_zero (x := 1) one_ne_zero⟩
+    obtain ⟨x, hx⟩ := hx
+    simpa [fresnelFunctionZero] using zcnt_octant_classification (f := fresnelSinInt)
+      (zcnt_finite_zeros_lt (fun z => (hasDerivAt_fresnelSinInt_complex z).differentiableAt) hx _)
+      (hspec · ·) hS0
+      (fun w => by rw [zcnt_fresnelSinInt_neg, neg_eq_zero])
+      (fun w => by rw [hstar, zcnt_fresnelSinInt_conj, map_eq_zero])
+      (fun w => by rw [zcnt_fresnelSinInt_I_mul, mul_eq_zero, or_iff_right (neg_ne_zero.mpr I_ne_zero)])
+      (fun x hx => zcnt_fresnelSinInt_ofReal_ne_zero hx)
+      (fun x hx => zcnt_fresnelSinInt_diag_ne_zero hx) z
 
 /-- The complete Fresnel-tail zero correspondence in DLMF §7.13(iv). -/
 theorem fresnelTail_zero_classification (z : ℂ) :

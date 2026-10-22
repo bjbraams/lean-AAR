@@ -893,3 +893,76 @@ work:
 The mathematical sources are DLMF Chapters 6–9 and 11–15, the classical Pincherle theorem on
 continued fractions and minimal solutions, and F. W. J. Olver, *Asymptotics and Special
 Functions*.
+
+## Round 8 (2026-10-21)
+
+The new ToMathlib files `Analysis/Calculus/DoubleZeroSqrt.lean`,
+`Analysis/Complex/MellinBarnesSeries.lean`, `Analysis/Integral/PrincipalValue.lean`,
+`Analysis/ODE/SturmCount.lean` and `Analysis/ODE/SturmDeformation.lean`, the new DLMF tool files
+`Airy/ErrorBoundTools.lean`, `Bessel/SphericalSeriesTools.lean` and
+`SphericalHarmonics/AdditionTools.lean`, and the proofs of this round are original project work,
+with these uses of other work:
+
+- `harmonicHomogeneous_orthogonal` (`DLMF/SphericalHarmonics/Basic.lean`) uses TauCeti's polar
+  decomposition `TauCeti.integral_eq_integral_Ioi_integral_toSphere`
+  (`TauCeti.MeasureTheory.Constructions.HaarToSphere`); its private helper `hhOrth_eval_smul` is
+  adapted from TauCeti's `MvPolynomial.IsHomogeneous.eval₂_const_mul`
+  (`TauCeti/RingTheory/MvPolynomial/Homogeneous.lean`), as credited in the module header and the
+  docstring. It also uses Mathlib's line-derivative integration by parts and Euler identity for
+  homogeneous polynomials.
+- `MellinBarnesSeries.lean` builds on the project's `BarnesResidue.lean` (round 7).
+- `SturmCount.lean` builds on the project's `SturmComparison.lean` (Beals–Wong, Theorems 3.3.3,
+  3.3.4 and 3.3.6).
+
+The mathematical sources are DLMF Chapters 6–14 and 18, F. W. J. Olver, *Asymptotics and Special
+Functions*, and G. E. Andrews, R. Askey and R. Roy, *Special Functions* (§9.8 for the Gegenbauer
+addition theorem).
+
+## Round 9 (2026-10-22)
+
+The new ToMathlib files `Analysis/Asymptotics/StieltjesRemainder.lean` and
+`Analysis/Calculus/InverseSeries.lean`, the new DLMF files `Airy/StieltjesForm.lean`,
+`Bessel/KMellin.lean`, `Bessel/SphericalProductTools.lean`, `Gamma/ShiftedLineBounds.lean`,
+`Legendre/ZeroTools.lean` and `SphericalHarmonics/ZonalTools.lean`, and the proofs of this round are
+original project work, with these uses of other work:
+
+- `SphericalHarmonics/ZonalTools.lean` uses TauCeti's Poisson integral on the ball
+  (`TauCeti.Analysis.Complex.PoissonIntegral.Ball`, `poissonKernelBall_reproduces`) and its Laplacian
+  API (`laplacian_eq_sum_fderiv_fderiv_apply`).
+- The Mellin inversion step for 7.7.13–14 uses Mathlib's `mellinInv_mellin_eq`; Stirling-type
+  inputs use Mathlib's `Real.GammaSeq_tendsto_Gamma` and the project's Binet integral.
+
+The mathematical sources are DLMF Chapters 6–12, 14 and 18, F. W. J. Olver, *Asymptotics and
+Special Functions*, G. Nemes (2017) on the Airy error bounds (as cited in DLMF 9.7(iv)), and
+G. E. Andrews, R. Askey and R. Roy, *Special Functions* (§§9.6–9.7 for the addition theorem and
+Funk–Hecke).
+
+## Round 10 (2026-10-22)
+
+The new ToMathlib file `Analysis/Complex/LagrangeBurmann.lean`, the new DLMF files
+`Confluent/ZeroTools.lean`, `Legendre/ZeroCounts.lean`, `Legendre/AdditionTools.lean`,
+`Hypergeometric/AppellF4.lean` and `SphericalHarmonics/BesselAddition.lean`, and the proofs of this
+round are original project work. They use Mathlib's Cauchy integral formula for derivatives,
+circle integrals and `HasFPowerSeriesOnBall.exchange_radius`, Mathlib's maximum modulus principle
+(for the Hurwitz-type step in the Saff–Varga argument), and Carlson's theorem from
+`ToMathlib/Analysis/Complex/Carlson.lean` (maintained in `../lean-codes`).
+
+The mathematical sources are DLMF Chapters 9, 10, 13, 14, 16 and 18, G. E. Andrews, R. Askey and
+R. Roy, *Special Functions* (§4.16, Saff–Varga parabolic regions; §9.6), W. N. Bailey's product
+formula for Appell's F4, and L. Brafman's generating function for Jacobi polynomials.
+
+## Round 11 (2026-10-22)
+
+The new ToMathlib file `Analysis/SpecificLimits/Pincherle.lean`, the new DLMF files
+`Core/ZeroCounting.lean`, `ErrorFunctions/ZeroClassification.lean`,
+`ExpIntegrals/TransformTools.lean`, `IncompleteGamma/BoundTools.lean`,
+`Legendre/QAdditionTools.lean`, `Legendre/FourierTools.lean` and `Struve/BarnesTools.lean`, and the
+proofs of this round are original project work. They use TauCeti's Rouché theorem
+(`TauCeti.Analysis.Complex.Conformal.Rouche`) and its incomplete-gamma API
+(`TauCeti.Analysis.SpecialFunctions.IncompleteGamma`: `lowerIncompleteGamma`,
+`regularizedGamma`), and Mathlib's Abel limit theorem, Stirling-type Gamma bounds and dominated
+convergence.
+
+The mathematical sources are DLMF Chapters 6, 7, 8, 11, 13 and 14; H. Alzer's bounds for the
+incomplete gamma function (DLMF 8.10.11); Pincherle's theorem on minimal solutions and continued
+fractions; and Tannery's theorem.
