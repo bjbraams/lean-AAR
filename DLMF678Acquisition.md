@@ -196,7 +196,7 @@ Additional explicit qualifications are:
 - [Expansions](DLMF/ExpIntegrals/Expansions.lean): 0 admissions.
 - [Representations](DLMF/ExpIntegrals/Representations.lean): 5 admissions.
 - [ZerosIntegrals](DLMF/ExpIntegrals/ZerosIntegrals.lean): 1 admissions.
-- [Asymptotics](DLMF/IncompleteGamma/Asymptotics.lean): 11 admissions.
+- [Asymptotics](DLMF/IncompleteGamma/Asymptotics.lean): 4 admissions.
 - [Basic](DLMF/IncompleteGamma/Basic.lean): 0 admissions.
 - [Beta](DLMF/IncompleteGamma/Beta.lean): 2 admissions.
 - [BetaAsymptotics](DLMF/IncompleteGamma/BetaAsymptotics.lean): 10 admissions.
@@ -677,25 +677,25 @@ is not counted as a proved version of the incorrect universal claim.
 
 #### §8.11
 
-- [8.11.E1](https://dlmf.nist.gov/8.11.E1): [incGammaAsymptoticCoeff](DLMF/IncompleteGamma/Asymptotics.lean#L27) (definition).
-- [8.11.E2](https://dlmf.nist.gov/8.11.E2): [hasAsymptoticExpansion_upperIncGamma](DLMF/Confluent/IncompleteGamma.lean#L218) (proved); [incGammaAsymptoticRemainder](DLMF/IncompleteGamma/Asymptotics.lean#L32) (definition).
-- [8.11.E3](https://dlmf.nist.gov/8.11.E3): [upperIncGamma_log_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L37) (proved).
-- [8.11.E4](https://dlmf.nist.gov/8.11.E4): [lowerIncGamma_large_parameter_hasSum](DLMF/IncompleteGamma/Asymptotics.lean#L108) (proved); [lowerIncGamma_large_parameter_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L156) (proved).
-- [8.11.E5](https://dlmf.nist.gov/8.11.E5): [normIncGammaP_large_parameter_equivalent](DLMF/IncompleteGamma/Asymptotics.lean#L215) (admitted).
-- [8.11.E6](https://dlmf.nist.gov/8.11.E6): [lowerIncGamma_fixed_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L235) (admitted).
-- [8.11.E7](https://dlmf.nist.gov/8.11.E7): [upperIncGamma_fixed_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L241) (admitted); [upperIncGamma_negative_parameter_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L247) (admitted).
-- [8.11.E8](https://dlmf.nist.gov/8.11.E8): [incGammaLambdaPolynomial_initial](DLMF/IncompleteGamma/Asymptotics.lean#L228) (proved).
-- [8.11.E9](https://dlmf.nist.gov/8.11.E9): [incGammaLambdaPolynomial](DLMF/IncompleteGamma/Asymptotics.lean#L221) (definition).
-- [8.11.E10](https://dlmf.nist.gov/8.11.E10): [normIncGammaP_central_expansion](DLMF/IncompleteGamma/Asymptotics.lean#L257) (admitted).
-- [8.11.E11](https://dlmf.nist.gov/8.11.E11): [scIncGamma_central_expansion](DLMF/IncompleteGamma/Asymptotics.lean#L263) (admitted).
-- [8.11.E12](https://dlmf.nist.gov/8.11.E12): [upperIncGamma_diagonal_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L269) (admitted).
-- [8.11.E13](https://dlmf.nist.gov/8.11.E13): [expPartialSum_poisson_limit](DLMF/IncompleteGamma/Asymptotics.lean#L275) (admitted).
-- [8.11.E14](https://dlmf.nist.gov/8.11.E14): [expPartialSumRemainderS_identity](DLMF/IncompleteGamma/Asymptotics.lean#L286) (proved).
-- [8.11.E15](https://dlmf.nist.gov/8.11.E15): [expPartialSumRemainderS](DLMF/IncompleteGamma/Asymptotics.lean#L281) (definition).
-- [8.11.E16](https://dlmf.nist.gov/8.11.E16): [expPartialSumRemainderS_one_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L308) (admitted).
-- [8.11.E17](https://dlmf.nist.gov/8.11.E17): [expPartialSumRemainderS_neg_one_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L314) (admitted).
-- [8.11.E18](https://dlmf.nist.gov/8.11.E18): [expPartialSumRemainderS_uniform_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L325) (admitted).
-- [8.11.E19](https://dlmf.nist.gov/8.11.E19): [expPartialSumRemainderCoeff](DLMF/IncompleteGamma/Asymptotics.lean#L320) (definition).
+- [8.11.E1](https://dlmf.nist.gov/8.11.E1): [incGammaAsymptoticCoeff](DLMF/IncompleteGamma/Asymptotics.lean#L38) (definition).
+- [8.11.E2](https://dlmf.nist.gov/8.11.E2): [hasAsymptoticExpansion_upperIncGamma](DLMF/Confluent/IncompleteGamma.lean#L218) (proved); [incGammaAsymptoticRemainder](DLMF/IncompleteGamma/Asymptotics.lean#L43) (definition).
+- [8.11.E3](https://dlmf.nist.gov/8.11.E3): [upperIncGamma_log_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L48) (proved).
+- [8.11.E4](https://dlmf.nist.gov/8.11.E4): [lowerIncGamma_large_parameter_hasSum](DLMF/IncompleteGamma/Asymptotics.lean#L119) (proved); [lowerIncGamma_large_parameter_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L167) (proved).
+- [8.11.E5](https://dlmf.nist.gov/8.11.E5): [normIncGammaP_large_parameter_equivalent](DLMF/IncompleteGamma/Asymptotics.lean#L359) (proved).
+- [8.11.E6](https://dlmf.nist.gov/8.11.E6): [lowerIncGamma_fixed_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L642) (proved).
+- [8.11.E7](https://dlmf.nist.gov/8.11.E7): [upperIncGamma_fixed_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L731) (admitted); [upperIncGamma_negative_parameter_ratio_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L737) (admitted).
+- [8.11.E8](https://dlmf.nist.gov/8.11.E8): [incGammaLambdaPolynomial_initial](DLMF/IncompleteGamma/Asymptotics.lean#L384) (proved).
+- [8.11.E9](https://dlmf.nist.gov/8.11.E9): [incGammaLambdaPolynomial](DLMF/IncompleteGamma/Asymptotics.lean#L377) (definition).
+- [8.11.E10](https://dlmf.nist.gov/8.11.E10): [normIncGammaP_central_expansion](DLMF/IncompleteGamma/Asymptotics.lean#L2928) (proved).
+- [8.11.E11](https://dlmf.nist.gov/8.11.E11): [scIncGamma_central_expansion](DLMF/IncompleteGamma/Asymptotics.lean#L2985) (admitted).
+- [8.11.E12](https://dlmf.nist.gov/8.11.E12): [upperIncGamma_diagonal_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L743) (admitted).
+- [8.11.E13](https://dlmf.nist.gov/8.11.E13): [expPartialSum_poisson_limit](DLMF/IncompleteGamma/Asymptotics.lean#L1352) (proved).
+- [8.11.E14](https://dlmf.nist.gov/8.11.E14): [expPartialSumRemainderS_identity](DLMF/IncompleteGamma/Asymptotics.lean#L1379) (proved).
+- [8.11.E15](https://dlmf.nist.gov/8.11.E15): [expPartialSumRemainderS](DLMF/IncompleteGamma/Asymptotics.lean#L1374) (definition).
+- [8.11.E16](https://dlmf.nist.gov/8.11.E16): [expPartialSumRemainderS_one_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L1937) (proved).
+- [8.11.E17](https://dlmf.nist.gov/8.11.E17): [expPartialSumRemainderS_neg_one_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L2046) (proved).
+- [8.11.E18](https://dlmf.nist.gov/8.11.E18): [expPartialSumRemainderS_uniform_asymptotic](DLMF/IncompleteGamma/Asymptotics.lean#L2109) (proved).
+- [8.11.E19](https://dlmf.nist.gov/8.11.E19): [expPartialSumRemainderCoeff](DLMF/IncompleteGamma/Asymptotics.lean#L2068) (definition).
 
 #### §8.12
 
@@ -961,8 +961,8 @@ pointers and bibliographic comments are recorded above.
 - [DLMF.Confluent.Real.sinIntTailZero_spec](DLMF/ExpIntegrals/ZerosIntegrals.lean#L403) (proved).
 - [DLMF.Confluent.Real.sinIntTailZero_enumeration](DLMF/ExpIntegrals/ZerosIntegrals.lean#L410) (proved).
 - [DLMF.Confluent.expIntActon_initial](DLMF/ExpIntegrals/ZerosIntegrals.lean#L656) (proved).
-- [DLMF.Confluent.incGammaAsymptoticRemainder_real_bound](DLMF/IncompleteGamma/Asymptotics.lean#L53) (proved).
-- [DLMF.Confluent.gammaCentralFilter](DLMF/IncompleteGamma/Asymptotics.lean#L254) (definition).
+- [DLMF.Confluent.incGammaAsymptoticRemainder_real_bound](DLMF/IncompleteGamma/Asymptotics.lean#L64) (proved).
+- [DLMF.Confluent.gammaCentralFilter](DLMF/IncompleteGamma/Asymptotics.lean#L2925) (definition).
 - [DLMF.Confluent.upperIncGammaOnLog](DLMF/IncompleteGamma/Basic.lean#L28) (definition).
 - [DLMF.Confluent.lowerIncGammaOnLog](DLMF/IncompleteGamma/Basic.lean#L32) (definition).
 - [DLMF.Confluent.normIncGammaPOnLog](DLMF/IncompleteGamma/Basic.lean#L46) (definition).

@@ -25,6 +25,7 @@ public import DLMF.Airy.Products
 public import DLMF.Airy.Generalized
 public import DLMF.Airy.GeneralizedContours
 public import DLMF.Airy.Incomplete
+public import DLMF.Airy.SquareTools
 
 /-!
 # Airy functions (DLMF Chapter 9; Beals–Wong §9.9)

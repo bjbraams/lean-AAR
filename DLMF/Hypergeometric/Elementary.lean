@@ -8,6 +8,7 @@ module
 public import DLMF.Hypergeometric.Contiguous
 public import DLMF.Hypergeometric.Continuation
 public import DLMF.Hypergeometric.FurtherTransformations
+public import DLMF.Hypergeometric.SpecialValueTools
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 public import DLMF.Gamma.Digamma
 public import DLMF.Gamma.SpecialValues
@@ -15,7 +16,8 @@ public import DLMF.Gamma.SpecialValues
 /-!
 # Elementary evaluations and special arguments (DLMF §15.4)
 
-These are statement acquisitions; proofs marked `sorry` remain to be supplied.
+All statements in this file are proved; the cubic transformations and boundary limits used
+for 15.4.31–15.4.34 are in `SpecialValueTools`.
 Existing evaluations are in `Basic`, `DiffEq`, `EulerIntegral`, and `Identities`.
 Powers use the principal complex logarithm. Trigonometric substitutions are stated
 for real arguments, so their transformed arguments stay in the convergence disk.
@@ -792,14 +794,175 @@ theorem value_neg_one_third {a : ℂ} (hc : ∀ k : ℕ, 3 / 2 - 2 * a ≠ -(k :
     ₂F₁ a (a + 1 / 2) (3 / 2 - 2 * a) (-1 / 3) =
       (8 / 9 : ℂ) ^ (-2 * a) * Gamma (4 / 3) * Gamma (3 / 2 - 2 * a) / (Gamma (3 / 2) * Gamma (4 / 3 - 2 *
         a)) := by
-  sorry
+  set A : ℂ := 1 / 3 - a with hA
+  have hcA : ∀ k : ℕ, 2 * A + 5 / 6 ≠ -(k : ℂ) := by
+    rw [show 2 * A + 5 / 6 = 3 / 2 - 2 * a by rw [hA]; ring]; exact hc
+  have hre : 0 < (2 * A + 5 / 6 - A - (A + 1 / 2)).re := by
+    rw [show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring]; norm_num
+  set G : ℂ → ℂ := ₂F₁ (3 * A) (3 * A + 1 / 2) (2 * A + 5 / 6) with hG
+  -- Euler's transformation reduces the left side to `G(-1/3)`.
+  have hE : ₂F₁ a (a + 1 / 2) (3 / 2 - 2 * a) (-1 / 3) =
+      (4 / 3 : ℂ) ^ (1 - 4 * a) * G (-1 / 3) := by
+    rw [euler_transformation_of_ne_neg_nat hc (by norm_num), hG,
+      show (3 : ℂ) / 2 - 2 * a - a - (a + 1 / 2) = 1 - 4 * a by ring,
+      show (1 : ℂ) - -1 / 3 = 4 / 3 by norm_num,
+      show (3 : ℂ) / 2 - 2 * a - a = 3 * A + 1 / 2 by rw [hA]; ring,
+      show (3 : ℂ) / 2 - 2 * a - (a + 1 / 2) = 3 * A by rw [hA]; ring,
+      show (3 : ℂ) / 2 - 2 * a = 2 * A + 5 / 6 by rw [hA]; ring, ordinaryHypergeometric_symm]
+  -- the value `G(-1/3)` through the cubic transformation and Abel's theorem
+  have hsq : (Real.sqrt Real.pi : ℂ) = (Real.pi : ℂ) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]; push_cast; ring_nf
+  have hΓ43 : Gamma (4 / 3) = Gamma (1 / 3) / 3 := by
+    rw [show (4 / 3 : ℂ) = 1 / 3 + 1 by norm_num, Gamma_add_one _ (by norm_num)]; ring
+  have hΓ32 : Gamma (3 / 2) = (Real.sqrt Real.pi : ℂ) / 2 := by
+    rw [show (3 / 2 : ℂ) = 1 / 2 + 1 by norm_num, Gamma_add_one _ (by norm_num), Gamma_one_half_eq,
+      hsq]; ring
+  have hdup : Gamma (2 * A + 5 / 6 - A) * Gamma (2 * A + 5 / 6 - (A + 1 / 2)) =
+      Gamma (4 / 3 - 2 * a) * (2 : ℂ) ^ (1 - 2 * (2 / 3 - a)) * (Real.sqrt Real.pi : ℂ) := by
+    rw [show 2 * A + 5 / 6 - A = 2 / 3 - a + 1 / 2 by rw [hA]; ring,
+      show 2 * A + 5 / 6 - (A + 1 / 2) = 2 / 3 - a by rw [hA]; ring, mul_comm,
+      Gamma_mul_Gamma_add_half, show 2 * (2 / 3 - a) = 4 / 3 - 2 * a by ring]
+  have hpow : (4 / 3 : ℂ) ^ (1 - 4 * a) * (4 : ℂ) ^ (-2 * A) =
+      2 / 3 * (8 / 9 : ℂ) ^ (-2 * a) * (2 : ℂ) ^ (1 - 2 * (2 / 3 - a)) := by
+    have e1 : (4 / 3 : ℂ) ^ (1 - 4 * a) = exp (Real.log (4 / 3) * (1 - 4 * a)) := by
+      have := ofReal_cpow_eq_exp_log (u := 4 / 3) (by norm_num) (1 - 4 * a); push_cast at this; exact this
+    have e2 : (4 : ℂ) ^ (-2 * A) = exp (Real.log 4 * (-2 * A)) := by
+      have := ofReal_cpow_eq_exp_log (u := 4) (by norm_num) (-2 * A); push_cast at this; exact this
+    have e3 : (8 / 9 : ℂ) ^ (-2 * a) = exp (Real.log (8 / 9) * (-2 * a)) := by
+      have := ofReal_cpow_eq_exp_log (u := 8 / 9) (by norm_num) (-2 * a); push_cast at this; exact this
+    have e4 : (2 : ℂ) ^ (1 - 2 * (2 / 3 - a)) = exp (Real.log 2 * (1 - 2 * (2 / 3 - a))) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (1 - 2 * (2 / 3 - a))
+      push_cast at this; exact this
+    have e5 : (2 / 3 : ℂ) = exp (Real.log (2 / 3)) := by
+      rw [← ofReal_exp, Real.exp_log (by norm_num)]; push_cast; ring
+    rw [e1, e2, e3, e4]
+    nth_rw 1 [e5]
+    rw [← exp_add, ← exp_add, ← exp_add]
+    congr 1
+    have l1 : Real.log (4 / 3) = 2 * Real.log 2 - Real.log 3 := by
+      rw [Real.log_div (by norm_num) (by norm_num), show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]
+      push_cast; ring
+    have l2 : Real.log 4 = 2 * Real.log 2 := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
+    have l3 : Real.log (8 / 9) = 3 * Real.log 2 - 2 * Real.log 3 := by
+      rw [Real.log_div (by norm_num) (by norm_num), show (8 : ℝ) = 2 ^ 3 by norm_num,
+        show (9 : ℝ) = 3 ^ 2 by norm_num, Real.log_pow, Real.log_pow]
+      push_cast; ring
+    have l4 : Real.log (2 / 3) = Real.log 2 - Real.log 3 := Real.log_div (by norm_num) (by norm_num)
+    rw [l1, l2, l3, l4, hA]
+    push_cast
+    ring
+  rw [hE, hG, hypSV_cubic_psi_neg_one_third hcA, gauss_summation hcA hre, hdup, hΓ43, hΓ32,
+    show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring,
+    show 2 * A + 5 / 6 = 3 / 2 - 2 * a by rw [hA]; ring, ← mul_assoc, hpow]
+  have h2 : (2 : ℂ) ^ (1 - 2 * (2 / 3 - a)) ≠ 0 := by
+    rw [Ne, cpow_eq_zero_iff]; norm_num
+  have hs : (Real.sqrt Real.pi : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr Real.pi_pos)
+  by_cases hg : Gamma (4 / 3 - 2 * a) = 0
+  · simp [hg]
+  · field_simp
 
 @[dlmf 15.4.E32]
 theorem value_one_ninth {a : ℂ} (hc : ∀ k : ℕ, 5 / 6 + 2 * a / 3 ≠ -(k : ℂ)) :
     ₂F₁ a (a + 1 / 2) (5 / 6 + 2 * a / 3) (1 / 9) =
       (Real.sqrt Real.pi : ℂ) * (3 / 4 : ℂ) ^ a * Gamma (5 / 6 + 2 * a / 3) / (Gamma (1 / 2 + a / 3) * Gamma
         (5 / 6 + a / 3)) := by
-  sorry
+  set A : ℂ := a / 3 with hA
+  have hcA : ∀ k : ℕ, 2 * A + 5 / 6 ≠ -(k : ℂ) := by
+    rw [show 2 * A + 5 / 6 = 5 / 6 + 2 * a / 3 by rw [hA]; ring]; exact hc
+  have hre : 0 < (2 * A + 5 / 6 - A - (A + 1 / 3)).re := by
+    rw [show 2 * A + 5 / 6 - A - (A + 1 / 3) = 1 / 2 by ring]; norm_num
+  set G : ℂ → ℂ := ₂F₁ (3 * A) (1 / 3 - A) (2 * A + 5 / 6) with hG
+  -- Pfaff's transformation reduces the left side to `G(-1/8)`.
+  have hE : ₂F₁ a (a + 1 / 2) (5 / 6 + 2 * a / 3) (1 / 9) = (8 / 9 : ℂ) ^ (-a) * G (-1 / 8) := by
+    rw [pfaff_transformation_of_ne_neg_nat hc (by norm_num) (by norm_num), hG,
+      show (1 : ℂ) / 9 / (1 / 9 - 1) = -1 / 8 by norm_num, show (1 : ℂ) - 1 / 9 = 8 / 9 by norm_num,
+      show 5 / 6 + 2 * a / 3 - (a + 1 / 2) = 1 / 3 - A by rw [hA]; ring,
+      show 5 / 6 + 2 * a / 3 = 2 * A + 5 / 6 by rw [hA]; ring, show a = 3 * A by rw [hA]; ring]
+  set sr : ℝ → ℝ := fun x => 27 * x / (4 * x - 1) ^ 3 with hsr
+  have hsc : ∀ x : ℝ, ((sr x : ℝ) : ℂ) = 27 * (x : ℂ) / (4 * x - 1) ^ 3 := by
+    intro x; simp only [hsr]; push_cast; ring
+  have hs1 : ∀ x : ℝ, -1 / 8 < x → x ≤ 0 → 0 ≤ sr x ∧ sr x < 1 := by
+    intro x hx1 hx2
+    have hq : (4 * x - 1) ^ 3 < 0 := by
+      have : 4 * x - 1 < 0 := by linarith
+      nlinarith [pow_two_nonneg (4 * x - 1)]
+    simp only [hsr]
+    constructor
+    · exact div_nonneg_of_nonpos (by linarith) hq.le
+    · rw [div_lt_one_of_neg hq]
+      have hid : 27 * x - (4 * x - 1) ^ 3 = (8 * x + 1) ^ 2 * (1 - x) := by ring
+      have : 0 < (8 * x + 1) ^ 2 * (1 - x) := mul_pos (pow_pos (by linarith) 2) (by linarith)
+      linarith
+  have hmap : Tendsto sr (𝓝[>] (-1 / 8)) (𝓝[<] 1) := by
+    apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+    · have hcont : ContinuousAt sr (-1 / 8) := by
+        simp only [hsr]
+        exact ContinuousAt.div (by fun_prop) (by fun_prop) (by norm_num)
+      have := hcont.tendsto
+      rw [show sr (-1 / 8) = 1 by simp only [hsr]; norm_num] at this
+      exact this.mono_left nhdsWithin_le_nhds
+    · filter_upwards [Ioo_mem_nhdsGT (show (-1 / 8 : ℝ) < 0 by norm_num)] with x hx
+      exact (hs1 x hx.1 hx.2.le).2
+  have hR := (tendsto_ordinaryHypergeometric_left_one hre).comp hmap
+  have hP : Tendsto (fun x : ℝ => (1 - 4 * (x : ℂ)) ^ (-3 * A)) (𝓝[>] (-1 / 8))
+      (𝓝 ((3 / 2 : ℂ) ^ (-3 * A))) := by
+    have h4 : (1 : ℂ) - 4 * ((-1 / 8 : ℝ) : ℂ) = 3 / 2 := by push_cast; norm_num
+    have hcont : ContinuousAt (fun x : ℝ => (1 - 4 * (x : ℂ)) ^ (-3 * A)) (-1 / 8) := by
+      apply ContinuousAt.cpow (by fun_prop) continuousAt_const
+      rw [h4]; exact mem_slitPlane_iff.mpr (Or.inl (by norm_num))
+    have := hcont.tendsto
+    rw [h4] at this
+    exact this.mono_left nhdsWithin_le_nhds
+  have hL : Tendsto (fun x : ℝ => G (x : ℂ)) (𝓝[>] (-1 / 8)) (𝓝 (G (-1 / 8))) := by
+    have hc0 := (continuous_ofReal.tendsto (-1 / 8 : ℝ)).mono_left
+      (nhdsWithin_le_nhds (s := Set.Ioi (-1 / 8 : ℝ)))
+    rw [show ((-1 / 8 : ℝ) : ℂ) = -1 / 8 by push_cast; ring] at hc0
+    exact (analyticAt_ordinaryHypergeometric (a := 3 * A) (b := 1 / 3 - A) (c := 2 * A + 5 / 6)
+      (show ‖(-1 / 8 : ℂ)‖ < 1 by norm_num)).continuousAt.tendsto.comp hc0
+  have heq : ∀ᶠ x : ℝ in 𝓝[>] (-1 / 8), G (x : ℂ) =
+      (1 - 4 * (x : ℂ)) ^ (-3 * A) * ₂F₁ A (A + 1 / 3) (2 * A + 5 / 6) ((sr x : ℝ) : ℂ) := by
+    filter_upwards [Ioo_mem_nhdsGT (show (-1 / 8 : ℝ) < 0 by norm_num)] with x hx
+    obtain ⟨h0, h1⟩ := hs1 x hx.1 hx.2.le
+    rw [hsc x]
+    refine hypSV_cubic_two hcA ?_ ?_ ?_
+    · simp; linarith [hx.1]
+    · simp; linarith [hx.2]
+    · rw [← hsc x, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg h0]; exact h1
+  have hlim := tendsto_nhds_unique hL ((hP.mul hR).congr' (by
+    filter_upwards [heq] with x hx
+    simp only [Function.comp_apply]
+    rw [hx]))
+  have hsq : (Real.sqrt Real.pi : ℂ) = (Real.pi : ℂ) ^ (1 / 2 : ℂ) := by
+    rw [Real.sqrt_eq_rpow, ofReal_cpow Real.pi_pos.le]; push_cast; ring_nf
+  have hpow : (8 / 9 : ℂ) ^ (-a) * (3 / 2 : ℂ) ^ (-3 * A) = (3 / 4 : ℂ) ^ a := by
+    have e1 : (8 / 9 : ℂ) ^ (-a) = exp (Real.log (8 / 9) * (-a)) := by
+      have := ofReal_cpow_eq_exp_log (u := 8 / 9) (by norm_num) (-a); push_cast at this; exact this
+    have e2 : (3 / 2 : ℂ) ^ (-3 * A) = exp (Real.log (3 / 2) * (-3 * A)) := by
+      have := ofReal_cpow_eq_exp_log (u := 3 / 2) (by norm_num) (-3 * A); push_cast at this; exact this
+    have e3 : (3 / 4 : ℂ) ^ a = exp (Real.log (3 / 4) * a) := by
+      have := ofReal_cpow_eq_exp_log (u := 3 / 4) (by norm_num) a; push_cast at this; exact this
+    rw [e1, e2, e3, ← exp_add]
+    congr 1
+    have l1 : Real.log (8 / 9) = 3 * Real.log 2 - 2 * Real.log 3 := by
+      rw [Real.log_div (by norm_num) (by norm_num), show (8 : ℝ) = 2 ^ 3 by norm_num,
+        show (9 : ℝ) = 3 ^ 2 by norm_num, Real.log_pow, Real.log_pow]
+      push_cast; ring
+    have l2 : Real.log (3 / 2) = Real.log 3 - Real.log 2 := Real.log_div (by norm_num) (by norm_num)
+    have l3 : Real.log (3 / 4) = Real.log 3 - 2 * Real.log 2 := by
+      rw [Real.log_div (by norm_num) (by norm_num), show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]
+      push_cast; ring
+    rw [l1, l2, l3, hA]
+    push_cast
+    ring
+  rw [hE, hlim, gauss_summation hcA hre,
+    show 2 * A + 5 / 6 - A - (A + 1 / 3) = 1 / 2 by ring,
+    show 2 * A + 5 / 6 - A = 5 / 6 + a / 3 by rw [hA]; ring,
+    show 2 * A + 5 / 6 - (A + 1 / 3) = 1 / 2 + a / 3 by rw [hA]; ring,
+    show 2 * A + 5 / 6 = 5 / 6 + 2 * a / 3 by rw [hA]; ring, Gamma_one_half_eq, ← hsq, ← mul_assoc,
+    hpow]
+  ring
 
 @[dlmf 15.4.E33]
 theorem value_sixth_root
@@ -810,7 +973,169 @@ theorem value_sixth_root
     ₂F₁ (3 * a) (1 / 3 + a) (2 / 3 + 2 * a) (exp (I * Real.pi / 3)) =
       (Real.sqrt Real.pi : ℂ) * exp (I * Real.pi * a / 2) * (16 / 27 : ℂ) ^ ((3 * a + 1) / 6) * Gamma (5 / 6
         + a) / (Gamma (2 / 3 + a) * Gamma (2 / 3)) := by
-  sorry
+  set ω : ℂ := exp (I * Real.pi / 3) with hωdef
+  have hs3 : (Real.sqrt 3 : ℝ) ^ 2 = 3 := Real.sq_sqrt (by norm_num)
+  have hω : ω = 1 / 2 + (Real.sqrt 3 / 2 : ℝ) * I := by
+    rw [hωdef, show I * (Real.pi : ℂ) / 3 = ((Real.pi / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      exp_mul_I, ← ofReal_cos, ← ofReal_sin, Real.cos_pi_div_three, Real.sin_pi_div_three]
+    push_cast; ring
+  have hωn : ‖ω‖ = 1 := by
+    rw [hωdef, show I * (Real.pi : ℂ) / 3 = ((Real.pi / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      norm_exp_ofReal_mul_I]
+  have h2ω : 2 - ω ≠ 0 := by
+    intro h; have := congrArg re h; rw [hω] at this; simp at this; norm_num at this
+  have hsq : (ω / (2 - ω)) ^ 2 = -1 / 3 := by
+    have hs3c : ((Real.sqrt 3 : ℝ) : ℂ) ^ 2 = 3 := by exact_mod_cast hs3
+    rw [div_pow, div_eq_iff (pow_ne_zero 2 h2ω), hω]
+    push_cast
+    linear_combination ((Real.sqrt 3 : ℂ) ^ 2 / 3) * I_sq - (1 / 3) * hs3c
+  set A : ℂ := a / 2 with hA
+  have hcA : ∀ k : ℕ, 2 * A + 5 / 6 ≠ -(k : ℂ) := by
+    rw [show 2 * A + 5 / 6 = 5 / 6 + a by rw [hA]; ring]; exact hg
+  have hb : ∀ k : ℕ, 2 * (1 / 3 + a) ≠ -(k : ℂ) := by
+    rw [show 2 * (1 / 3 + a) = 2 / 3 + 2 * a by ring]; exact hc
+  have hb' : ∀ k : ℕ, 1 / 3 + a + 1 / 2 ≠ -(k : ℂ) := by
+    rw [show 1 / 3 + a + 1 / 2 = 5 / 6 + a by ring]; exact hg
+  set G : ℂ → ℂ := ₂F₁ (3 * A) (3 * A + 1 / 2) (2 * A + 5 / 6) with hG
+  have hre : 0 < (2 / 3 + 2 * a - 3 * a - (1 / 3 + a)).re := by
+    rw [show 2 / 3 + 2 * a - 3 * a - (1 / 3 + a) = 1 / 3 - 2 * a by ring]
+    simp; linarith
+  have hslit : 1 - ω / 2 ∈ slitPlane := by
+    refine mem_slitPlane_iff.mpr (Or.inl ?_)
+    rw [hω]; simp; norm_num
+  -- radial limit and the quadratic transformation
+  have hL := hypSV_tendsto_ray (a := 3 * a) (b := 1 / 3 + a) (c := 2 / 3 + 2 * a) hωn hre
+  have hcontR : ContinuousAt (fun r : ℝ => (1 - (r : ℂ) * ω / 2) ^ (-(3 * a)) *
+      G (((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2)) 1 := by
+    have h1 : ContinuousAt (fun r : ℝ => (1 - (r : ℂ) * ω / 2) ^ (-(3 * a))) 1 := by
+      apply ContinuousAt.cpow (by fun_prop) continuousAt_const
+      simpa using hslit
+    have hden : (2 : ℂ) - ((1 : ℝ) : ℂ) * ω ≠ 0 := by simpa using h2ω
+    have h2 : ContinuousAt (fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) 1 :=
+      ((by fun_prop : ContinuousAt (fun r : ℝ => (r : ℂ) * ω) 1).div (by fun_prop) hden).pow 2
+    have hGa : ContinuousAt G ((fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) 1) := by
+      simp only [ofReal_one, one_mul]
+      rw [hsq]
+      exact (analyticAt_ordinaryHypergeometric (show ‖(-1 / 3 : ℂ)‖ < 1 by norm_num)).continuousAt
+    exact h1.mul (ContinuousAt.comp (f := fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2)
+      hGa h2)
+  have hR := hcontR.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Iio (1 : ℝ)))
+  simp only [ofReal_one, one_mul, hsq] at hR
+  have heq : ∀ᶠ r : ℝ in 𝓝[<] 1, ₂F₁ (3 * a) (1 / 3 + a) (2 / 3 + 2 * a) ((r : ℂ) * ω) =
+      (1 - (r : ℂ) * ω / 2) ^ (-(3 * a)) * G (((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) := by
+    filter_upwards [Ioo_mem_nhdsLT (show (0 : ℝ) < 1 by norm_num)] with r hr
+    have hrn : ‖(r : ℂ) * ω‖ < 1 := by
+      rw [norm_mul, hωn, mul_one, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr.1]; exact hr.2
+    rw [show (2 / 3 + 2 * a : ℂ) = 2 * (1 / 3 + a) by ring,
+      quadratic_double_denominator hb hb' hrn, hG,
+      show 3 * a / 2 = 3 * A by rw [hA]; ring, show (3 * a + 1) / 2 = 3 * A + 1 / 2 by rw [hA]; ring,
+      show 1 / 3 + a + 1 / 2 = 2 * A + 5 / 6 by rw [hA]; ring]
+  have hlim := tendsto_nhds_unique hL (hR.congr' (by
+    filter_upwards [heq] with r hr
+    rw [hr]))
+  rw [hlim, hG, hypSV_cubic_psi_neg_one_third hcA, gauss_summation hcA (by
+    rw [show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring]; norm_num)]
+  have hsqπ : ((Real.sqrt Real.pi : ℝ) : ℂ) ^ 2 = (Real.pi : ℂ) := by
+    exact_mod_cast Real.sq_sqrt Real.pi_pos.le
+  have hs3c : ((Real.sqrt 3 : ℝ) : ℂ) ^ 2 = 3 := by exact_mod_cast hs3
+  have hdup : Gamma (2 * A + 5 / 6 - A) * Gamma (2 * A + 5 / 6 - (A + 1 / 2)) =
+      Gamma (2 / 3 + a) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) * (Real.sqrt Real.pi : ℂ) := by
+    rw [show 2 * A + 5 / 6 - A = A + 1 / 3 + 1 / 2 by ring,
+      show 2 * A + 5 / 6 - (A + 1 / 2) = A + 1 / 3 by ring, mul_comm,
+      Gamma_mul_Gamma_add_half, show 2 * (A + 1 / 3) = 2 / 3 + a by rw [hA]; ring]
+  have hrefl : Gamma (1 / 3) * Gamma (2 / 3) = 2 * Real.pi / Real.sqrt 3 := by
+    have := Gamma_mul_Gamma_one_sub (1 / 3)
+    rw [show (1 : ℂ) - 1 / 3 = 2 / 3 by norm_num, show (Real.pi : ℂ) * (1 / 3) = ((Real.pi / 3 : ℝ) : ℂ)
+      by push_cast; ring, ← ofReal_sin, Real.sin_pi_div_three] at this
+    rw [this]
+    have h3 : ((Real.sqrt 3 : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+    push_cast
+    field_simp
+  have hG23 : Gamma (2 / 3 : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
+  have hΓ13 : Gamma (1 / 3) = 2 * Real.pi / Real.sqrt 3 / Gamma (2 / 3) := by
+    rw [← hrefl]; field_simp
+  -- the power `(1 - ω/2)^(-3a)` through an explicit logarithm
+  set Lr : ℝ := Real.log (Real.sqrt 3 / 2) with hLr
+  have hexpL : exp ((Lr : ℂ) + ((-(Real.pi / 6) : ℝ) : ℂ) * I) = 1 - ω / 2 := by
+    rw [exp_add, ← ofReal_exp, hLr, Real.exp_log (by positivity), exp_mul_I, ← ofReal_cos,
+      ← ofReal_sin, Real.cos_neg, Real.sin_neg, Real.cos_pi_div_six, Real.sin_pi_div_six, hω]
+    push_cast
+    linear_combination (1 / 4 : ℂ) * hs3c
+  have hpowω : (1 - ω / 2) ^ (-(3 * a)) =
+      exp ((Lr : ℂ) * (-(3 * a))) * exp (I * Real.pi * a / 2) := by
+    rw [cpow_eq_exp_of_exp_eq' hexpL (by simp; linarith [Real.pi_pos])
+      (by simp; linarith [Real.pi_pos]), ← exp_add]
+    congr 1; push_cast; ring
+  have h2ne : (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; norm_num
+  have h3ne : ((Real.sqrt 3 : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+  have hπne : ((Real.sqrt Real.pi : ℝ) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr Real.pi_pos)
+  have hnum : (16 / 27 : ℂ) ^ ((3 * a + 1) / 6) = exp ((Lr : ℂ) * (-(3 * a))) * (4 : ℂ) ^ (-2 * A) *
+      exp (Real.log 2) / ((Real.sqrt 3 : ℝ) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3))) := by
+    rw [eq_div_iff (mul_ne_zero h3ne h2ne)]
+    have e1 : (16 / 27 : ℂ) ^ ((3 * a + 1) / 6) = exp (Real.log (16 / 27) * ((3 * a + 1) / 6)) := by
+      have := ofReal_cpow_eq_exp_log (u := 16 / 27) (by norm_num) ((3 * a + 1) / 6)
+      push_cast at this; exact this
+    have e2 : (4 : ℂ) ^ (-2 * A) = exp (Real.log 4 * (-2 * A)) := by
+      have := ofReal_cpow_eq_exp_log (u := 4) (by norm_num) (-2 * A); push_cast at this; exact this
+    have e3 : (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) = exp (Real.log 2 * (1 - 2 * (A + 1 / 3))) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (1 - 2 * (A + 1 / 3))
+      push_cast at this; exact this
+    have e4 : ((Real.sqrt 3 : ℝ) : ℂ) = exp (Real.log 3 / 2) := by
+      rw [Real.sqrt_eq_rpow, Real.rpow_def_of_pos (by norm_num), ofReal_exp]; push_cast; ring_nf
+    rw [e1, e2, e3, e4]
+    rw [← exp_add, ← exp_add, ← exp_add, ← exp_add]
+    congr 1
+    have l1 : Real.log (16 / 27) = 4 * Real.log 2 - 3 * Real.log 3 := by
+      rw [Real.log_div (by norm_num) (by norm_num), show (16 : ℝ) = 2 ^ 4 by norm_num,
+        show (27 : ℝ) = 3 ^ 3 by norm_num, Real.log_pow, Real.log_pow]
+      push_cast; ring
+    have l2 : Real.log 4 = 2 * Real.log 2 := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
+    have l3 : Lr = Real.log 3 / 2 - Real.log 2 := by
+      rw [hLr, Real.log_div (by positivity) (by norm_num), Real.log_sqrt (by norm_num)]
+    rw [l1, l2, l3, hA]
+    push_cast
+    ring
+  rw [hdup, show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring,
+    show 2 * A + 5 / 6 = 5 / 6 + a by rw [hA]; ring, hΓ13, hpowω, hnum,
+    show exp ((Real.log 2 : ℝ) : ℂ) = 2 by rw [← ofReal_exp, Real.exp_log (by norm_num)]; push_cast; ring]
+  generalize exp (I * Real.pi * a / 2) = E2
+  generalize exp ((Lr : ℂ) * (-(3 * a))) = E1
+  rw [← hsqπ]
+  by_cases hg2 : Gamma (2 / 3 + a) = 0
+  · simp [hg2]
+  · field_simp
+
+/-- Coefficient form of `z F'(a,b;c+1;z) = c (F(a,b;c;z) - F(a,b;c+1;z))`. -/
+lemma hypSV_gaussHGCoeff_shift_c {a b c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) (n : ℕ) :
+    (n : ℂ) * gaussHGCoeff a b (c + 1) n =
+      c * (gaussHGCoeff a b c n - gaussHGCoeff a b (c + 1) n) := by
+  have hc1 : ∀ k : ℕ, c + 1 ≠ -k := fun k h => hc (k + 1) (by push_cast; linear_combination h)
+  have hcp := poch_ne_zero_of_not_neg_nat hc n
+  have hcp1 := poch_ne_zero_of_not_neg_nat hc1 n
+  have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
+  have hpoch := poch_succ_left_mul c n
+  simp only [gaussHGCoeff]
+  field_simp
+  linear_combination (-(poch a n * poch b n)) * hpoch
+
+/-- `z F'(a,b;c+1;z) = c (F(a,b;c;z) - F(a,b;c+1;z))` (DLMF 15.5.4 with `n = 1`). -/
+lemma hypSV_mul_deriv_shift_c {a b c z : ℂ} (hc : ∀ k : ℕ, c ≠ -k) (hz : ‖z‖ < 1) :
+    z * deriv (₂F₁ a b (c + 1)) z = c * (₂F₁ a b c z - ₂F₁ a b (c + 1) z) := by
+  have hz' := mem_eball_one_of_norm_lt_one hz
+  have hf := hasFPowerSeriesOnBall_ordinaryHypergeometric a b (c + 1)
+  have hL := hf.hasSum_z_mul_deriv hz'
+  have hs1 := (hasFPowerSeriesOnBall_ordinaryHypergeometric a b c).hasSum_mul_pow hz'
+  have hs0 := hf.hasSum_mul_pow hz'
+  have hR := (hs1.sub hs0).mul_left c
+  have hfun : (fun n : ℕ => (n : ℂ) * gaussHGCoeff a b (c + 1) n * z ^ n) =
+      fun n => c * (gaussHGCoeff a b c n * z ^ n - gaussHGCoeff a b (c + 1) n * z ^ n) := by
+    funext n
+    have hcoeff := hypSV_gaussHGCoeff_shift_c (a := a) (b := b) hc n
+    linear_combination hcoeff * z ^ n
+  rw [hfun] at hL
+  exact hL.unique (by simpa [mul_sub] using hR)
 
 @[dlmf 15.4.E34]
 theorem value_sixth_root_contiguous
@@ -822,7 +1147,237 @@ theorem value_sixth_root_contiguous
       (Real.sqrt Real.pi : ℂ) * exp (I * Real.pi * a / 2) * (2 : ℂ) ^ (2 * a) * Gamma (1 / 2 + a) / (3 : ℂ)
         ^ ((3 * a + 1) / 2) * (1 / (Gamma (1 / 3 + a) * Gamma (2 / 3)) + 1 / (Gamma (2 / 3 + a) * Gamma (1 /
         3))) := by
-  sorry
+  set ω : ℂ := exp (I * Real.pi / 3) with hωdef
+  have hs3 : (Real.sqrt 3 : ℝ) ^ 2 = 3 := Real.sq_sqrt (by norm_num)
+  have hω : ω = 1 / 2 + (Real.sqrt 3 / 2 : ℝ) * I := by
+    rw [hωdef, show I * (Real.pi : ℂ) / 3 = ((Real.pi / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      exp_mul_I, ← ofReal_cos, ← ofReal_sin, Real.cos_pi_div_three, Real.sin_pi_div_three]
+    push_cast; ring
+  have hωn : ‖ω‖ = 1 := by
+    rw [hωdef, show I * (Real.pi : ℂ) / 3 = ((Real.pi / 3 : ℝ) : ℂ) * I by push_cast; ring,
+      norm_exp_ofReal_mul_I]
+  have h2ω : 2 - ω ≠ 0 := by
+    intro h; have := congrArg re h; rw [hω] at this; simp at this; norm_num at this
+  have hsq : (ω / (2 - ω)) ^ 2 = -1 / 3 := by
+    have hs3c : ((Real.sqrt 3 : ℝ) : ℂ) ^ 2 = 3 := by exact_mod_cast hs3
+    rw [div_pow, div_eq_iff (pow_ne_zero 2 h2ω), hω]
+    push_cast
+    linear_combination ((Real.sqrt 3 : ℂ) ^ 2 / 3) * I_sq - (1 / 3) * hs3c
+  have hb' : ∀ k : ℕ, a + 1 / 2 ≠ -(k : ℂ) := by
+    rw [show a + 1 / 2 = 1 / 2 + a by ring]; exact hg
+  set G : ℂ → ℂ := ₂F₁ (3 * a / 2) ((3 * a + 1) / 2) (a + 1 / 2) with hG
+  have hre : 0 < (2 * a - 3 * a - a).re := by
+    rw [show 2 * a - 3 * a - a = -(2 * a) by ring]
+    simp; linarith
+  have hslit : 1 - ω / 2 ∈ slitPlane := by
+    refine mem_slitPlane_iff.mpr (Or.inl ?_)
+    rw [hω]; simp; norm_num
+  -- radial limit and the quadratic transformation
+  have hL := hypSV_tendsto_ray (a := 3 * a) (b := a) (c := 2 * a) hωn hre
+  have hcontR : ContinuousAt (fun r : ℝ => (1 - (r : ℂ) * ω / 2) ^ (-(3 * a)) *
+      G (((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2)) 1 := by
+    have h1 : ContinuousAt (fun r : ℝ => (1 - (r : ℂ) * ω / 2) ^ (-(3 * a))) 1 := by
+      apply ContinuousAt.cpow (by fun_prop) continuousAt_const
+      simpa using hslit
+    have hden : (2 : ℂ) - ((1 : ℝ) : ℂ) * ω ≠ 0 := by simpa using h2ω
+    have h2 : ContinuousAt (fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) 1 :=
+      ((by fun_prop : ContinuousAt (fun r : ℝ => (r : ℂ) * ω) 1).div (by fun_prop) hden).pow 2
+    have hGa : ContinuousAt G ((fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) 1) := by
+      simp only [ofReal_one, one_mul]
+      rw [hsq]
+      exact (analyticAt_ordinaryHypergeometric (show ‖(-1 / 3 : ℂ)‖ < 1 by norm_num)).continuousAt
+    exact h1.mul (ContinuousAt.comp (f := fun r : ℝ => ((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2)
+      hGa h2)
+  have hR := hcontR.tendsto.mono_left (nhdsWithin_le_nhds (s := Set.Iio (1 : ℝ)))
+  simp only [ofReal_one, one_mul, hsq] at hR
+  have heq : ∀ᶠ r : ℝ in 𝓝[<] 1, ₂F₁ (3 * a) a (2 * a) ((r : ℂ) * ω) =
+      (1 - (r : ℂ) * ω / 2) ^ (-(3 * a)) * G (((r : ℂ) * ω / (2 - (r : ℂ) * ω)) ^ 2) := by
+    filter_upwards [Ioo_mem_nhdsLT (show (0 : ℝ) < 1 by norm_num)] with r hr
+    have hrn : ‖(r : ℂ) * ω‖ < 1 := by
+      rw [norm_mul, hωn, mul_one, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr.1]; exact hr.2
+    rw [quadratic_double_denominator hc hb' hrn, hG]
+  have hlim := tendsto_nhds_unique hL (hR.congr' (by
+    filter_upwards [heq] with r hr
+    rw [hr]))
+  rw [hlim, hG]
+  -- Euler's transformation at `-1/3`
+  have hE : ₂F₁ (3 * a / 2) ((3 * a + 1) / 2) (a + 1 / 2) (-1 / 3) =
+      (4 / 3 : ℂ) ^ (-(2 * a)) * ₂F₁ (-a / 2) (-a / 2 + 1 / 2) (a + 1 / 2) (-1 / 3) := by
+    rw [euler_transformation_of_ne_neg_nat hb' (by norm_num),
+      show a + 1 / 2 - 3 * a / 2 - (3 * a + 1) / 2 = -(2 * a) by ring,
+      show (1 : ℂ) - -1 / 3 = 4 / 3 by norm_num,
+      show a + 1 / 2 - 3 * a / 2 = -a / 2 + 1 / 2 by ring,
+      show a + 1 / 2 - (3 * a + 1) / 2 = -a / 2 by ring, ordinaryHypergeometric_symm]
+  rw [hE]
+  -- lowering `c` by one through the derivative
+  have hcK : ∀ k : ℕ, a + 1 / 2 + 1 ≠ -(k : ℂ) := fun k h =>
+    hb' (k + 1) (by push_cast; linear_combination h)
+  set K : ℂ → ℂ := ₂F₁ (-a / 2) (-a / 2 + 1 / 2) (a + 1 / 2 + 1) with hK
+  have hc0 : a + 1 / 2 ≠ 0 := by simpa using hb' 0
+  have hSK : ₂F₁ (-a / 2) (-a / 2 + 1 / 2) (a + 1 / 2) (-1 / 3) =
+      K (-1 / 3) + (-1 / 3) * deriv K (-1 / 3) / (a + 1 / 2) := by
+    have h := hypSV_mul_deriv_shift_c (a := -a / 2) (b := -a / 2 + 1 / 2) hb'
+      (show ‖(-1 / 3 : ℂ)‖ < 1 by norm_num)
+    rw [hK, h, mul_div_cancel_left₀ _ hc0]
+    ring
+  rw [hSK]
+  -- `K` through the `ψ`-cubic family
+  set A : ℂ := 1 / 3 + a / 2 with hA
+  have hcA : ∀ k : ℕ, 2 * A + 5 / 6 ≠ -(k : ℂ) := by
+    rw [show 2 * A + 5 / 6 = a + 1 / 2 + 1 by rw [hA]; ring]; exact hcK
+  set FG : ℂ → ℂ := ₂F₁ (3 * A) (3 * A + 1 / 2) (2 * A + 5 / 6) with hFG
+  have hKev : K =ᶠ[𝓝 (-1 / 3)] fun z => (1 + (-1) * z) ^ (2 * a + 1) * FG z := by
+    filter_upwards [Metric.isOpen_ball.mem_nhds (show (-1 / 3 : ℂ) ∈ Metric.ball (0 : ℂ) 1 by
+      simp; norm_num)] with z hz
+    have hz1 : ‖z‖ < 1 := by simpa using hz
+    rw [hK, euler_transformation_of_ne_neg_nat hcK hz1, hFG,
+      show a + 1 / 2 + 1 - -a / 2 - (-a / 2 + 1 / 2) = 2 * a + 1 by ring,
+      show a + 1 / 2 + 1 - -a / 2 = 3 * A + 1 / 2 by rw [hA]; ring,
+      show a + 1 / 2 + 1 - (-a / 2 + 1 / 2) = 3 * A by rw [hA]; ring,
+      show a + 1 / 2 + 1 = 2 * A + 5 / 6 by rw [hA]; ring, ordinaryHypergeometric_symm,
+      show (1 : ℂ) - z = 1 + (-1) * z by ring]
+  have h43 : (1 : ℂ) + (-1) * (-1 / 3) = 4 / 3 := by norm_num
+  have hK0 : K (-1 / 3) = (4 / 3 : ℂ) ^ (2 * a + 1) * FG (-1 / 3) := by
+    rw [hKev.eq_of_nhds, h43]
+  have hFGa : AnalyticAt ℂ FG (-1 / 3 : ℂ) := analyticAt_ordinaryHypergeometric (by norm_num)
+  have hK1 : deriv K (-1 / 3) = (2 * a + 1) * (4 / 3 : ℂ) ^ (2 * a) * (-1) * FG (-1 / 3) +
+      (4 / 3 : ℂ) ^ (2 * a + 1) * deriv FG (-1 / 3) := by
+    rw [hKev.deriv_eq]
+    have h := ((((hasDerivAt_id (-1 / 3 : ℂ)).const_mul (-1 : ℂ)).const_add (1 : ℂ)).cpow_const
+      (c := 2 * a + 1) (by
+        rw [show (1 : ℂ) + (-1) * id (-1 / 3) = 4 / 3 by norm_num]
+        exact mem_slitPlane_iff.mpr (Or.inl (by norm_num)))).mul hFGa.differentiableAt.hasDerivAt
+    refine Eq.trans h.deriv ?_
+    simp only [id, h43]
+    rw [show 2 * a + 1 - 1 = 2 * a by ring]
+    ring
+  rw [hK0, hK1, hFG, hypSV_cubic_psi_neg_one_third hcA, hypSV_cubic_psi_deriv_neg_one_third hcA,
+    gauss_summation hcA (by rw [show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring]; norm_num)]
+  have hsqπ : ((Real.sqrt Real.pi : ℝ) : ℂ) ^ 2 = (Real.pi : ℂ) := by
+    exact_mod_cast Real.sq_sqrt Real.pi_pos.le
+  have hs3c : ((Real.sqrt 3 : ℝ) : ℂ) ^ 2 = 3 := by exact_mod_cast hs3
+  set Lr : ℝ := Real.log (Real.sqrt 3 / 2) with hLr
+  have hexpL : exp ((Lr : ℂ) + ((-(Real.pi / 6) : ℝ) : ℂ) * I) = 1 - ω / 2 := by
+    rw [exp_add, ← ofReal_exp, hLr, Real.exp_log (by positivity), exp_mul_I, ← ofReal_cos,
+      ← ofReal_sin, Real.cos_neg, Real.sin_neg, Real.cos_pi_div_six, Real.sin_pi_div_six, hω]
+    push_cast
+    linear_combination (1 / 4 : ℂ) * hs3c
+  have hpowω : (1 - ω / 2) ^ (-(3 * a)) =
+      exp ((Lr : ℂ) * (-(3 * a))) * exp (I * Real.pi * a / 2) := by
+    rw [cpow_eq_exp_of_exp_eq' hexpL (by simp; linarith [Real.pi_pos])
+      (by simp; linarith [Real.pi_pos]), ← exp_add]
+    congr 1; push_cast; ring
+  have hsin : sin ((Real.pi : ℂ) * (1 / 3)) = ((Real.sqrt 3 : ℝ) : ℂ) / 2 := by
+    rw [show (Real.pi : ℂ) * (1 / 3) = ((Real.pi / 3 : ℝ) : ℂ) by push_cast; ring, ← ofReal_sin,
+      Real.sin_pi_div_three]; push_cast; ring
+  have hrefl : Gamma (1 / 3) * Gamma (2 / 3) = Real.pi / sin (Real.pi * (1 / 3)) := by
+    have := Gamma_mul_Gamma_one_sub (1 / 3)
+    rwa [show (1 : ℂ) - 1 / 3 = 2 / 3 by norm_num] at this
+  have hG13 : Gamma (1 / 3 : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
+  have hG23 : Gamma (2 / 3 : ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
+  have hΓ43 : Gamma (4 / 3 : ℂ) = Gamma (1 / 3) / 3 := by
+    rw [show (4 / 3 : ℂ) = 1 / 3 + 1 by norm_num, Gamma_add_one _ (by norm_num)]; ring
+  have hΓc : Gamma (2 * A + 5 / 6) = (a + 1 / 2) * Gamma (1 / 2 + a) := by
+    rw [show 2 * A + 5 / 6 = (1 / 2 + a) + 1 by rw [hA]; ring, Gamma_add_one _ (by
+      rw [show 1 / 2 + a = a + 1 / 2 by ring]; exact hc0)]; ring
+  have hdup1 : Gamma (2 * A + 5 / 6 - A) * Gamma (2 * A + 5 / 6 - (A + 1 / 2)) =
+      Gamma (a + 4 / 3) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) * (Real.sqrt Real.pi : ℂ) := by
+    rw [show 2 * A + 5 / 6 - A = A + 1 / 3 + 1 / 2 by ring,
+      show 2 * A + 5 / 6 - (A + 1 / 2) = A + 1 / 3 by ring, mul_comm,
+      Gamma_mul_Gamma_add_half, show 2 * (A + 1 / 3) = a + 4 / 3 by rw [hA]; ring]
+  have hdup1' : Gamma (A + 5 / 6) * Gamma (A + 1 / 3) =
+      Gamma (a + 4 / 3) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) * (Real.sqrt Real.pi : ℂ) := by
+    rw [← hdup1]; ring_nf
+  have hdup2 : Gamma A * Gamma (A + 1 / 2) =
+      Gamma (2 / 3 + a) * (2 : ℂ) ^ (1 - 2 * A) * (Real.sqrt Real.pi : ℂ) := by
+    rw [Gamma_mul_Gamma_add_half, show 2 * A = 2 / 3 + a by rw [hA]; ring]
+  have hinv : (Gamma (1 / 3 + a))⁻¹ = (a + 1 / 3) * (Gamma (a + 4 / 3))⁻¹ := by
+    by_cases h0 : 1 / 3 + a = 0
+    · rw [h0, Gamma_zero, inv_zero, show a + 1 / 3 = 0 by linear_combination h0, zero_mul]
+    · rw [show a + 4 / 3 = (1 / 3 + a) + 1 by ring, Gamma_add_one _ h0, mul_inv,
+        show a + 1 / 3 = 1 / 3 + a by ring, ← mul_assoc, mul_inv_cancel₀ h0, one_mul]
+  have hN1 : (2 : ℂ) ^ (2 * a) * ((Real.sqrt 3 : ℝ) : ℂ) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) =
+      exp ((Lr : ℂ) * (-(3 * a))) * (4 : ℂ) ^ (-2 * A) * exp ((Real.log 2 : ℝ) : ℂ) *
+        (3 : ℂ) ^ ((3 * a + 1) / 2) := by
+    have e1 : (2 : ℂ) ^ (2 * a) = exp (Real.log 2 * (2 * a)) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (2 * a); push_cast at this; exact this
+    have e2 : (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) = exp (Real.log 2 * (1 - 2 * (A + 1 / 3))) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (1 - 2 * (A + 1 / 3))
+      push_cast at this; exact this
+    have e3 : (4 : ℂ) ^ (-2 * A) = exp (Real.log 4 * (-2 * A)) := by
+      have := ofReal_cpow_eq_exp_log (u := 4) (by norm_num) (-2 * A); push_cast at this; exact this
+    have e4 : (3 : ℂ) ^ ((3 * a + 1) / 2) = exp (Real.log 3 * ((3 * a + 1) / 2)) := by
+      have := ofReal_cpow_eq_exp_log (u := 3) (by norm_num) ((3 * a + 1) / 2)
+      push_cast at this; exact this
+    have e5 : ((Real.sqrt 3 : ℝ) : ℂ) = exp (Real.log 3 / 2) := by
+      rw [Real.sqrt_eq_rpow, Real.rpow_def_of_pos (by norm_num), ofReal_exp]; push_cast; ring_nf
+    rw [e1, e2, e3, e4, e5, ← exp_add, ← exp_add, ← exp_add, ← exp_add, ← exp_add]
+    congr 1
+    have l2 : Real.log 4 = 2 * Real.log 2 := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
+    have l3 : Lr = Real.log 3 / 2 - Real.log 2 := by
+      rw [hLr, Real.log_div (by positivity) (by norm_num), Real.log_sqrt (by norm_num)]
+    rw [l2, l3, hA]
+    push_cast
+    ring
+  have hN2 : 4 * (4 : ℂ) ^ (-(2 / 3) : ℂ) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) = (2 : ℂ) ^ (1 - 2 * A) := by
+    have e2 : (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) = exp (Real.log 2 * (1 - 2 * (A + 1 / 3))) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (1 - 2 * (A + 1 / 3))
+      push_cast at this; exact this
+    have e2' : (2 : ℂ) ^ (1 - 2 * A) = exp (Real.log 2 * (1 - 2 * A)) := by
+      have := ofReal_cpow_eq_exp_log (u := 2) (by norm_num) (1 - 2 * A)
+      push_cast at this; exact this
+    have e3 : (4 : ℂ) ^ (-(2 / 3) : ℂ) = exp (Real.log 4 * (-(2 / 3))) := by
+      have := ofReal_cpow_eq_exp_log (u := 4) (by norm_num) (-(2 / 3)); push_cast at this; exact this
+    have e4 : (4 : ℂ) = exp (Real.log 4) := by
+      rw [← ofReal_exp, Real.exp_log (by norm_num)]; push_cast; ring
+    rw [e2, e2', e3]
+    nth_rw 1 [e4]
+    rw [← exp_add, ← exp_add]
+    congr 1
+    have l2 : Real.log 4 = 2 * Real.log 2 := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
+    rw [l2]
+    push_cast
+    ring
+  have hPne : (4 / 3 : ℂ) ^ (2 * a) ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; norm_num
+  have hT1ne : (2 : ℂ) ^ (1 - 2 * (A + 1 / 3)) ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; norm_num
+  have hR3ne : (3 : ℂ) ^ ((3 * a + 1) / 2) ≠ 0 := by rw [Ne, cpow_eq_zero_iff]; norm_num
+  have h3ne : ((Real.sqrt 3 : ℝ) : ℂ) ≠ 0 := ofReal_ne_zero.mpr (by positivity)
+  have hπne : ((Real.sqrt Real.pi : ℝ) : ℂ) ≠ 0 :=
+    ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr Real.pi_pos)
+  have hB : (2 : ℂ) ^ (2 * a) = exp ((Lr : ℂ) * (-(3 * a))) * (4 : ℂ) ^ (-2 * A) *
+      exp ((Real.log 2 : ℝ) : ℂ) * (3 : ℂ) ^ ((3 * a + 1) / 2) /
+      (((Real.sqrt 3 : ℝ) : ℂ) * (2 : ℂ) ^ (1 - 2 * (A + 1 / 3))) := by
+    rw [eq_div_iff (mul_ne_zero h3ne hT1ne), ← hN1]; ring
+  have hΓ13' : Gamma (1 / 3) = Real.pi / (((Real.sqrt 3 : ℝ) : ℂ) / 2) / Gamma (2 / 3) := by
+    rw [← hsin, ← hrefl]; field_simp
+  rw [show (1 : ℂ) / (Gamma (1 / 3 + a) * Gamma (2 / 3)) = (Gamma (1 / 3 + a))⁻¹ * (Gamma (2 / 3))⁻¹ by
+      rw [one_div, mul_inv],
+    show (1 : ℂ) / (Gamma (2 / 3 + a) * Gamma (1 / 3)) = (Gamma (2 / 3 + a))⁻¹ * (Gamma (1 / 3))⁻¹ by
+      rw [one_div, mul_inv], hinv]
+  rw [show (4 / 3 : ℂ) ^ (2 * a + 1) = (4 / 3) ^ (2 * a) * (4 / 3) by
+      rw [cpow_add _ _ (by norm_num), cpow_one], hpowω,
+    show (4 / 3 : ℂ) ^ (-(2 * a)) = ((4 / 3 : ℂ) ^ (2 * a))⁻¹ from cpow_neg _ _,
+    show 2 * A + 5 / 6 - A - (A + 1 / 2) = 1 / 3 by ring, hdup1, hdup1', hdup2, hΓc, hΓ43, hsin,
+    hB, ← hN2, hΓ13']
+  generalize exp (I * Real.pi * a / 2) = E
+  generalize exp ((Lr : ℂ) * (-(3 * a))) = Ex
+  rw [show exp ((Real.log 2 : ℝ) : ℂ) = 2 by rw [← ofReal_exp, Real.exp_log (by norm_num)]; push_cast; ring,
+    ← hsqπ]
+  rw [hA]
+  have h12 : (1 + a * 2 : ℂ) ≠ 0 := by
+    intro h; apply hc0; linear_combination h / 2
+  generalize hg1 : (Gamma (a + 4 / 3))⁻¹ = g1
+  generalize hg2 : (Gamma (2 / 3 + a))⁻¹ = g2
+  generalize hgh : Gamma (1 / 2 + a) = gh
+  simp only [div_eq_mul_inv, mul_inv]
+  field_simp
+  ring_nf
+  rw [show (4 / 3 : ℂ) + a = a + 4 / 3 by ring, hg1]
+  subst hg2
+  field_simp
+  ring_nf
 
 /-- The paired terms of the alternating series `∑ (-1)^k a/(a+k)`. -/
 def altPair (a : ℂ) (j : ℕ) : ℂ := a / (a + 2 * j) - a / (a + 2 * j + 1)

@@ -42,6 +42,7 @@ public import DLMF.OrthogonalPolynomials.QFamilies
 public import DLMF.OrthogonalPolynomials.Associated
 public import DLMF.OrthogonalPolynomials.UnitCircle
 public import DLMF.OrthogonalPolynomials.Multivariate
+public import DLMF.OrthogonalPolynomials.InequalityTools
 
 /-!
 # Orthogonal polynomials (AAR Chapters 5–7)

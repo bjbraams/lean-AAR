@@ -829,11 +829,7 @@ theorem hasSum_scorerHiDeriv (z : ℂ) :
   push_cast
   field_simp
 
-/-- scorerGi sin integral (DLMF 9.12.19). -/
-@[dlmf 9.12.E19]
-theorem scorerGi_sin_integral (x : ℝ) :
-    HasIntegralAtTop (fun t : ℝ => (Real.sin (t ^ 3 / 3 + x * t) : ℂ)) 0 (π * scorerGi x) := by
-  sorry
+-- `scorerGi_sin_integral` (DLMF 9.12.19) is in `DLMF/Airy/IntegralRepresentations.lean`.
 
 /-- `t^k e^{-t³/3}` in `rpow` form. -/
 lemma pow_mul_exp_neg_cube_eq (k : ℕ) :

@@ -22,6 +22,7 @@ public import DLMF.ParabolicCylinder.BarnesContinuation
 public import DLMF.ParabolicCylinder.Basic
 public import DLMF.ParabolicCylinder.Relations
 public import DLMF.ParabolicCylinder.MathlibCoverage
+public import DLMF.ParabolicCylinder.ContourTools
 
 /-!
 # Parabolic cylinder U/V/D and oscillatory W functions

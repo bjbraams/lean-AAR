@@ -13,6 +13,7 @@ public import DLMF.OrthogonalPolynomials.JacobiDiscriminant
 public import DLMF.OrthogonalPolynomials.GegenbauerSeries
 public import DLMF.OrthogonalPolynomials.ClassicalInstances
 public import DLMF.OrthogonalPolynomials.SoninePolyaApplications
+public import DLMF.OrthogonalPolynomials.InequalityTools
 
 /-!
 # Bounds, positive sums, zeros, and leading asymptotics
@@ -335,12 +336,184 @@ theorem ultrasphPoly_odd_bound {lam x : ℝ} (hlam : -1 / 2 < lam) (hlam0 : lam 
   · rw [← hx0, hp0, abs_zero]
     exact div_pos (abs_pos.mpr hD) hsqrt
 
+/-- Lorch's sharpened Bernstein inequality for Gegenbauer polynomials, `0 < λ < 1`.
+Proof: the Sonine-type function of `opIneq_gegenbauer_sonine` bounds
+`(1 - x²)^λ C_n^{(λ)}(x)²` by its value at `x = 0`, and the values `C_n^{(λ)}(0)`,
+`C_n^{(λ)}′(0)` are controlled by the sharp Gamma-ratio bounds `opIneq_Gamma_even`,
+`opIneq_Gamma_odd`. -/
 @[dlmf 18.14.E7]
 theorem ultrasphPoly_bernstein_bound {lam x : ℝ} (hlam : 0 < lam) (hlam1 : lam < 1) (hx : |x| ≤ 1)
     (n : ℕ) :
     (n + lam) ^ (1 - lam) * (1 - x ^ 2) ^ (lam / 2) * ‖ultrasphPoly lam n x‖ <
       (2 : ℝ) ^ (1 - lam) / Real.Gamma lam := by
-  sorry
+  have hlamh : -1 / 2 < lam := by linarith
+  have hGl : 0 < Real.Gamma lam := Real.Gamma_pos_of_pos hlam
+  have hR : 0 < (2 : ℝ) ^ (1 - lam) / Real.Gamma lam := by positivity
+  set q := ultrasphPolyR lam n with hqdef
+  have hq (t : ℝ) : ultrasphPoly lam n t = ((q.eval t : ℝ) : ℂ) :=
+    (eval_ultrasphPolyR hlamh n t).symm
+  rw [hq, Complex.norm_real, Real.norm_eq_abs]
+  -- boundary points
+  rcases (abs_le.mp hx).1.lt_or_eq with hxl | hxl
+  swap
+  · rw [← hxl]; norm_num [Real.zero_rpow (by positivity : lam / 2 ≠ 0)]; exact hR
+  rcases (abs_le.mp hx).2.lt_or_eq with hxr | hxr
+  swap
+  · rw [hxr]; norm_num [Real.zero_rpow (by positivity : lam / 2 ≠ 0)]; exact hR
+  have hxa : |x| < 1 := abs_lt.mpr ⟨hxl, hxr⟩
+  -- the differential equation for `q`
+  have hode : ∀ t : ℝ, (1 - t ^ 2) * (derivative (derivative q)).eval t -
+      (2 * lam + 1) * t * (derivative q).eval t + n * (n + 2 * lam) * q.eval t = 0 := by
+    intro t
+    have h := jacobiPolyPR_ode (α := lam - 1 / 2) (by linarith) (lam - 1 / 2) n t
+    simp only [hqdef, ultrasphPolyR, derivative_C_mul, eval_mul, eval_C]
+    linear_combination (ultrasphCoeffR lam n) * h
+  have hS := opIneq_gegenbauer_sonine hlam hlam1 (n := n) (y := fun t => q.eval t)
+    (y' := fun t => (derivative q).eval t) (y'' := fun t => (derivative (derivative q)).eval t)
+    (fun t => q.hasDerivAt t) (fun t => (derivative q).hasDerivAt t) hode hxa
+
+  set N : ℝ := n + lam with hN
+  have hNpos : 0 < N := by positivity
+  set c := lam * (1 - lam) with hc
+  have hc0 : 0 < c := by have : 0 < 1 - lam := by linarith
+                         positivity
+  set S := q.eval 0 ^ 2 + (derivative q).eval 0 ^ 2 / (N ^ 2 + c) with hSdef
+  have h1x : 0 < 1 - x ^ 2 := by nlinarith [abs_lt.mp hxa]
+  set A := (1 - x ^ 2) ^ (lam / 2) * |q.eval x| with hA
+  have hA0 : 0 ≤ A := by positivity
+  have hA2 : A ^ 2 ≤ S := by
+    have : ((1 - x ^ 2) ^ (lam / 2)) ^ 2 = (1 - x ^ 2) ^ lam := by
+      rw [← Real.rpow_natCast, ← Real.rpow_mul h1x.le]; norm_num
+    rw [hA, mul_pow, this, sq_abs]; exact hS
+  -- it suffices to bound `N^(1-λ)² S`
+  suffices key : (N ^ (1 - lam)) ^ 2 * S < ((2 : ℝ) ^ (1 - lam) / Real.Gamma lam) ^ 2 by
+    rw [mul_assoc, ← hA]
+    have hNA : 0 ≤ N ^ (1 - lam) * A := by positivity
+    have : (N ^ (1 - lam) * A) ^ 2 < ((2 : ℝ) ^ (1 - lam) / Real.Gamma lam) ^ 2 := by
+      rw [mul_pow]
+      calc _ ≤ (N ^ (1 - lam)) ^ 2 * S := by gcongr
+        _ < _ := key
+    exact lt_of_pow_lt_pow_left₀ 2 hR.le this
+  have hrefl (t : ℝ) : q.eval (-t) = (-1) ^ n * q.eval t := by
+    have h := ultrasphPoly_reflection (lam := (lam : ℂ)) (by simpa using hlamh) n (t : ℂ)
+    rw [show -(t : ℂ) = ((-t : ℝ) : ℂ) by push_cast; ring, hq, hq] at h
+    exact_mod_cast h
+  have hasc (a : ℝ) (ha : 0 < a) (k : ℕ) :
+      (ascPochhammer ℝ k).eval a = Real.Gamma (k + a) / Real.Gamma a := by
+    rw [add_comm, opIneq_Gamma_add_nat ha, mul_div_assoc, div_self (Real.Gamma_pos_of_pos ha).ne',
+      mul_one]
+  have hNsq : (N ^ (1 - lam)) ^ 2 = N ^ (2 - 2 * lam) := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul hNpos.le]; norm_num; ring_nf
+  obtain ⟨m, hm | hm⟩ := Nat.even_or_odd' n
+  · -- even degree
+    subst hm
+    have hev (t : ℝ) : q.eval (-t) = q.eval t := by
+      rw [hrefl, pow_mul, neg_one_sq, one_pow, one_mul]
+    have hd0 := derivative_eval_zero_of_even hev
+    have hq0 : q.eval 0 = (-1) ^ m * ((ascPochhammer ℝ m).eval lam / m !) := by
+      have h := ultrasphPoly_even_at_zero (lam := (lam : ℂ)) (by simpa using hlamh) m
+      rw [show (0 : ℂ) = ((0 : ℝ) : ℂ) by simp, hq, poch_ofReal] at h
+      apply Complex.ofReal_injective
+      rw [h]; push_cast; ring
+    have hS0 : S = ((ascPochhammer ℝ m).eval lam / m !) ^ 2 := by
+      rw [hSdef, hd0, hq0, mul_pow, ← pow_mul, mul_comm m 2, pow_mul, neg_one_sq, one_pow]
+      ring
+    have hG := opIneq_Gamma_even hlam hlam1 m
+    rw [hasc lam hlam, ← Real.Gamma_nat_eq_factorial] at hS0
+    have hN2 : N = 2 * (m + lam / 2) := by rw [hN]; push_cast; ring
+    have hmpos : 0 < (m : ℝ) + lam / 2 := by positivity
+    have hlt : N ^ (1 - lam) * (Real.Gamma (m + lam) / Real.Gamma lam / Real.Gamma (m + 1)) <
+        (2 : ℝ) ^ (1 - lam) / Real.Gamma lam := by
+      rw [hN2, Real.mul_rpow (by norm_num) hmpos.le]
+      have hpow : ((m : ℝ) + lam / 2) ^ (1 - lam) * ((m : ℝ) + lam / 2) ^ (lam - 1) = 1 := by
+        rw [← Real.rpow_add hmpos]; norm_num
+      have h2 : (0 : ℝ) < 2 ^ (1 - lam) := by positivity
+      have h3 : (0 : ℝ) < ((m : ℝ) + lam / 2) ^ (1 - lam) := by positivity
+      rw [div_div, mul_comm (Real.Gamma lam), ← div_div]
+      rw [← mul_div_assoc, div_lt_div_iff_of_pos_right hGl]
+      calc 2 ^ (1 - lam) * ((m : ℝ) + lam / 2) ^ (1 - lam) *
+            (Real.Gamma (m + lam) / Real.Gamma (m + 1))
+          < 2 ^ (1 - lam) * ((m : ℝ) + lam / 2) ^ (1 - lam) * ((m : ℝ) + lam / 2) ^ (lam - 1) := by
+            gcongr
+        _ = 2 ^ (1 - lam) := by rw [mul_assoc, hpow, mul_one]
+    rw [hS0, ← mul_pow]
+    have h0 : 0 ≤ N ^ (1 - lam) * (Real.Gamma (m + lam) / Real.Gamma lam /
+        Real.Gamma (m + 1)) := by
+      have := Real.Gamma_pos_of_pos (show (0 : ℝ) < m + lam by positivity)
+      have := Real.Gamma_pos_of_pos (show (0 : ℝ) < m + 1 by positivity)
+      positivity
+    exact pow_lt_pow_left₀ hlt h0 two_ne_zero
+  · -- odd degree
+    subst hm
+    have hodd (t : ℝ) : q.eval (-t) = -q.eval t := by
+      rw [hrefl, pow_succ, pow_mul, neg_one_sq, one_pow, one_mul, neg_one_mul]
+    have hq0 : q.eval 0 = 0 := by have := hodd 0; rw [neg_zero] at this; linarith
+    -- the derivative at `0`
+    have hfun : ultrasphPoly (lam : ℂ) (2 * m + 1) = fun z => (q.map (algebraMap ℝ ℂ)).eval z :=
+      funext fun z => (eval_map_ultrasphPolyR hlamh _ z).symm
+    have hder : deriv (ultrasphPoly (lam : ℂ) (2 * m + 1)) 0 =
+        (((derivative q).eval 0 : ℝ) : ℂ) := by
+      rw [hfun, ((q.map (algebraMap ℝ ℂ)).hasDerivAt 0).deriv, derivative_map,
+        show (0 : ℂ) = ((0 : ℝ) : ℂ) by simp, eval_map_ofReal]
+    have hder' := ultrasphPoly_derivative (lam := (lam : ℂ)) (by simpa using hlamh) (2 * m) 0
+    rw [ultrasphPoly_even_at_zero (by simp; linarith), hder,
+      show (lam : ℂ) + 1 = ((lam + 1 : ℝ) : ℂ) by push_cast; ring, poch_ofReal] at hder'
+    have hlam1' : (0 : ℝ) < lam + 1 := by linarith
+    have hGl1 : Real.Gamma (lam + 1) = lam * Real.Gamma lam := Real.Gamma_add_one hlam.ne'
+    set r := Real.Gamma (m + 1 + lam) / Real.Gamma (m + 1) with hr
+    have hq'0 : (derivative q).eval 0 = (-1) ^ m * (2 * r / Real.Gamma lam) := by
+      apply Complex.ofReal_injective
+      have hf : ((m ! : ℕ) : ℂ) = ((Real.Gamma (m + 1) : ℝ) : ℂ) := by
+        rw [Real.Gamma_nat_eq_factorial]; push_cast; rfl
+      rw [hder', hasc (lam + 1) hlam1', hGl1, hf, hr,
+        show (m : ℝ) + (lam + 1) = m + 1 + lam by ring]
+      push_cast
+      have h1 : (Real.Gamma lam : ℂ) ≠ 0 := by exact_mod_cast hGl.ne'
+      have h2 : (Real.Gamma (m + 1) : ℂ) ≠ 0 := by
+        exact_mod_cast (Real.Gamma_pos_of_pos (by positivity : (0 : ℝ) < m + 1)).ne'
+      have h3 : (lam : ℂ) ≠ 0 := by exact_mod_cast hlam.ne'
+      field_simp
+    have hS0 : S = (2 * r / Real.Gamma lam) ^ 2 / (N ^ 2 + c) := by
+      rw [hSdef, hq0, hq'0, mul_pow, ← pow_mul, mul_comm m 2, pow_mul, neg_one_sq, one_pow]
+      ring
+    have hG := opIneq_Gamma_odd hlam hlam1 m
+    have hNe : N = 2 * m + 1 + lam := by rw [hN]; push_cast; ring
+    rw [← hNe, ← hc, ← hr] at hG
+    have hNc : 0 < N ^ 2 + c := by positivity
+    have hi2 : (N / 2) ^ (2 * lam) = N ^ (2 * lam) / 2 ^ (2 * lam) :=
+      Real.div_rpow hNpos.le (by norm_num) _
+    have hi3 : N ^ (2 - 2 * lam) * N ^ (2 * lam) = N ^ 2 := by
+      rw [← Real.rpow_add hNpos]; norm_num
+    have hi4 : ((2 : ℝ) ^ (1 - lam)) ^ 2 * 2 ^ (2 * lam) = 4 := by
+      rw [← Real.rpow_natCast, ← Real.rpow_mul (by norm_num), ← Real.rpow_add (by norm_num)]
+      rw [show (1 - lam) * ((2 : ℕ) : ℝ) + 2 * lam = (2 : ℝ) by push_cast; ring]
+      norm_num
+    have h2l : (0 : ℝ) < 2 ^ (2 * lam) := by positivity
+    have hNl : (0 : ℝ) < N ^ (2 * lam) := by positivity
+    rw [hi2] at hG
+    -- multiply out
+    have key : N ^ (2 - 2 * lam) * (2 * r) ^ 2 * N ^ 2 <
+        ((2 : ℝ) ^ (1 - lam)) ^ 2 * (N ^ 2 + c) * N ^ 2 := by
+      have e : ((2 : ℝ) ^ (1 - lam)) ^ 2 = 4 / 2 ^ (2 * lam) := by
+        rw [← hi4]; field_simp
+      rw [e]
+      have hpos : 0 < N ^ (2 - 2 * lam) := by positivity
+      have := mul_lt_mul_of_pos_left hG (show 0 < 4 * N ^ (2 - 2 * lam) by positivity)
+      calc N ^ (2 - 2 * lam) * (2 * r) ^ 2 * N ^ 2
+          = 4 * N ^ (2 - 2 * lam) * (r ^ 2 * N ^ 2) := by ring
+        _ < 4 * N ^ (2 - 2 * lam) * (N ^ (2 * lam) / 2 ^ (2 * lam) * (N ^ 2 + c)) := this
+        _ = 4 / 2 ^ (2 * lam) * (N ^ 2 + c) * (N ^ (2 - 2 * lam) * N ^ (2 * lam)) := by ring
+        _ = _ := by rw [hi3]
+    have hN2 : 0 < N ^ 2 := by positivity
+    have key2 : N ^ (2 - 2 * lam) * (2 * r) ^ 2 < ((2 : ℝ) ^ (1 - lam)) ^ 2 * (N ^ 2 + c) :=
+      lt_of_mul_lt_mul_right key hN2.le
+    rw [hS0, hNsq]
+    calc N ^ (2 - 2 * lam) * ((2 * r / Real.Gamma lam) ^ 2 / (N ^ 2 + c))
+        = N ^ (2 - 2 * lam) * (2 * r) ^ 2 / (N ^ 2 + c) / Real.Gamma lam ^ 2 := by ring
+      _ < ((2 : ℝ) ^ (1 - lam)) ^ 2 * (N ^ 2 + c) / (N ^ 2 + c) / Real.Gamma lam ^ 2 := by
+        gcongr
+      _ = ((2 : ℝ) ^ (1 - lam) / Real.Gamma lam) ^ 2 := by
+        field_simp
 
 /-- The parameter-zero Laguerre estimate is the norm bound for a positive cosine transform. -/
 lemma laguerrePolyL_zero_parameter_bound (n : ℕ) {x : ℝ} (hx : 0 ≤ x) :
@@ -462,11 +635,60 @@ theorem jacobi_turan {α β x : ℝ} (hα : -1 < α) (hαβ : α ≤ β) (hx : |
           * (jacobiPolyP α β (n + 2) x / jacobiPolyP α β (n + 2) 1).re := by
   sorry
 
+/-- Turán's inequality for Laguerre polynomials, via the identity
+`(n+2)Δₙ = (L_{n+1} - Lₙ)² + (n+α)Δ_{n-1}` for `Δₙ = L_{n+1}² - Lₙ L_{n+2}`.
+Stronger than DLMF: the hypothesis `0 ≤ x` is not used; the inequality holds for all real `x`. -/
 @[dlmf 18.14.E12]
 theorem laguerrePolyL_turan {α x : ℝ} (hα : 0 ≤ α) (hx : 0 ≤ x) (n : ℕ) :
     (laguerrePolyL α (n + 1) x).re ^ 2 ≥ (laguerrePolyL α n x).re
         * (laguerrePolyL α (n + 2) x).re := by
-  sorry
+  have _ := hx
+  have hα' : -1 < ((α : ℂ)).re := by simp; linarith
+  set L : ℕ → ℝ := fun k => (laguerrePolyLR α k).eval x with hL
+  have hreal (k : ℕ) : laguerrePolyL α k x = (L k : ℂ) := (eval_laguerrePolyLR α k x).symm
+  have hrec (k : ℕ) : ((k : ℝ) + 2) * L (k + 2) =
+      (2 * k + α + 3 - x) * L (k + 1) - (k + α + 1) * L k := by
+    have h := laguerrePolyL_recurrence hα' k x
+    rw [hreal, hreal, hreal] at h
+    apply Complex.ofReal_injective
+    push_cast
+    linear_combination h
+  have h0 : L 0 = 1 := by
+    apply Complex.ofReal_injective; rw [← hreal]; simp
+  have h1 : L 1 = α + 1 - x := by
+    apply Complex.ofReal_injective; rw [← hreal]
+    unfold laguerrePolyL
+    rw [DLMF.Confluent.kummerM_eq_sum_neg_nat]
+    have : (α : ℂ) + 1 ≠ 0 := by
+      intro h; have := congrArg Complex.re h; simp at this; linarith
+    simp [Finset.sum_range_succ, poch_one, poch_zero]
+    field_simp
+    ring
+  have hD (k : ℕ) : ((k : ℝ) + 3) * (L (k + 2) ^ 2 - L (k + 1) * L (k + 3)) =
+      (L (k + 2) - L (k + 1)) ^ 2 + (k + α + 1) * (L (k + 1) ^ 2 - L k * L (k + 2)) := by
+    have e1 := hrec k
+    have e2 := hrec (k + 1)
+    push_cast at e2
+    rw [show k + 1 + 2 = k + 3 by ring, show k + 1 + 1 = k + 2 by ring] at e2
+    linear_combination (-(L (k + 1))) * e2 + L (k + 2) * e1
+  have key : ∀ k : ℕ, 0 ≤ L (k + 1) ^ 2 - L k * L (k + 2) := by
+    intro k
+    induction k with
+    | zero =>
+      have e := hrec 0
+      simp only [Nat.cast_zero, zero_add, mul_zero, h0, h1] at e ⊢
+      have : L 2 = ((3 + α - x) * (α + 1 - x) - (α + 1)) / 2 := by linarith
+      rw [this]; nlinarith [sq_nonneg (α - x)]
+    | succ k ih =>
+      have h := hD k
+      have hk : (0 : ℝ) < (k : ℝ) + 3 := by positivity
+      have : 0 ≤ ((k : ℝ) + 3) * (L (k + 1 + 1) ^ 2 - L (k + 1) * L (k + 1 + 2)) := by
+        rw [show k + 1 + 1 = k + 2 by ring, show k + 1 + 2 = k + 3 by ring, h]
+        have : (0 : ℝ) ≤ k + α + 1 := by positivity
+        positivity
+      exact (mul_nonneg_iff_of_pos_left hk).mp this
+  simp only [hreal, Complex.ofReal_re]
+  linarith [key n]
 
 @[dlmf 18.14.E13]
 theorem hermitePolyH_turan (n : ℕ) (x : ℝ) :

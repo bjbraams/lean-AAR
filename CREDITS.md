@@ -966,3 +966,29 @@ convergence.
 The mathematical sources are DLMF Chapters 6, 7, 8, 11, 13 and 14; H. Alzer's bounds for the
 incomplete gamma function (DLMF 8.10.11); Pincherle's theorem on minimal solutions and continued
 fractions; and Tannery's theorem.
+
+## Round 12 (2026-10-22)
+
+The new ToMathlib file `Analysis/Asymptotics/LaplaceSaddle.lean`, the new DLMF files
+`Hypergeometric/SpecialValueTools.lean` and `OrthogonalPolynomials/InequalityTools.lean`, and the
+proofs of this round are original project work. They use Mathlib's Stirling formula, change of
+variables and dominated convergence, and the project's Watson lemma, inverse-series and
+Barnes-lemma results.
+
+The mathematical sources are DLMF Chapters 8, 9, 13, 14, 15 and 18; L. Lorch's inequality for
+ultraspherical polynomials (18.14.7); Kershaw-type Gamma-ratio bounds; the cubic transformations
+and special values of Gessel–Stanton and Karlsson cited by DLMF §15.4; Erdélyi's product
+integral (15.6.9); and N. M. Temme, *Special Functions* (Laplace and saddle-point methods for
+§8.11).
+
+## Round 13 (2026-10-22)
+
+The new DLMF files `Airy/SquareTools.lean`, `Hypergeometric/CubicTools.lean`,
+`ParabolicCylinder/ContourTools.lean` and `Struve/LargeOrderTools.lean`, and the proofs of this
+round are original project work. They use Mathlib's Gronwall inequality, Cauchy's theorem for
+rectangles, circle integrals, the Beta integral and dominated differentiation, TauCeti's real
+error function, and the project's Watson lemma, saddle substitution and Barnes residue results.
+
+The mathematical sources are DLMF Chapters 8, 9, 11, 12, 13, 14 and 15; Goursat's cubic
+transformations of the hypergeometric function; and the representation of Ai² as an integral of Ai
+(Reid; DLMF §9.11 context).

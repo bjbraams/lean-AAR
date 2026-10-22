@@ -6,6 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.Hypergeometric.FurtherTransformations
+public import DLMF.Hypergeometric.CubicTools
 public import ToMathlib.Analysis.Complex.SegmentPrimitive
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
@@ -16,6 +17,11 @@ The logarithmic formulas are stated on intersections of convergence regions.
 Nonintegrality assumptions avoid products involving the totalized value of
 digamma at its poles. They can later be weakened using the source's explicitly
 prescribed limits. Finite sums use `range m`, including the empty sum at `m = 0`.
+
+The cubic connection formula 15.8.32 is proved in the variable `u = 1/ζ` with the tools of
+`DLMF.Hypergeometric.CubicTools`: Goursat's cubic transformation near `u = 0`, the connection
+15.10.17 continued in `a`, the identity theorem on `{Im u > 0, |u| < 1}`, and a check of
+principal branches on the image of the ray `x < -1`.
 -/
 
 @[expose] public section
@@ -1328,6 +1334,7 @@ theorem logarithmic_connection_one_sub_inv {a b z : ℂ} (m : ℕ)
     (Z * (Gamma (a + m))⁻¹ * ∑ k ∈ Finset.range m,
       poch a k * ((m - k - 1).factorial : ℂ) / ((k.factorial : ℂ) * Gamma (b + m - k)) * v ^ k) * hgb'
 
+/-- DLMF 15.8.32 on the ray `x < -1`, for all `a` with `2a + 2/3, a + 1/3 ∉ -ℕ`. -/
 @[dlmf 15.8.E32]
 theorem cubic_connection {a : ℂ} {x : ℝ} (hx : x < -1)
     (hc : ∀ k : ℕ, 2 * a + 2 / 3 ≠ -(k : ℂ)) (ha : ∀ k : ℕ, a + 1 / 3 ≠ -(k : ℂ)) :
@@ -1340,6 +1347,57 @@ theorem cubic_connection {a : ℂ} {x : ℝ} (hx : x < -1)
       (3 : ℂ) ^ (3 * a / 2 + 1 / 2) * exp (a * Real.pi * I / 2) * Gamma (a + 1 / 3) * (1 - ζ) ^ a /
         (2 * Real.pi * Gamma (2 * a + 2 / 3) * (-ζ) ^ (2 * a)) * ₂F₁ (a + 1 / 3) (3 * a) (2 * a + 2 / 3) (1
           / ζ) := by
-  sorry
+  intro z ζ
+  simp only [ζ, z, hcub_exp_two_third, hcub_exp_four_third]
+  have ht : ((Real.sqrt 3 : ℂ) * I) ^ 2 = -3 := hcub_t_sq
+  set t : ℂ := (Real.sqrt 3 : ℂ) * I with htdef
+  set X : ℂ := (x : ℂ) with hXdef
+  have him_t : t.im = Real.sqrt 3 := by simp [htdef]
+  have hre_t : t.re = 0 := by simp [htdef]
+  have hω : -1 + t ≠ 0 := by
+    intro h; have := congrArg im h; simp [him_t] at this
+  have h1 : 1 - X ≠ 0 := by
+    intro h; have := congrArg re h; simp [hXdef] at this; linarith
+  have hxm : 2 * X + 1 + t ≠ 0 := by
+    intro h; have := congrArg im h; simp [him_t, hXdef] at this
+  have hX0 : X ≠ 0 := by rw [hXdef]; exact_mod_cast (show x ≠ 0 by linarith)
+  -- the point `u = 1/ζ`
+  set Y : ℝ := -(Real.sqrt 3 / 2) * (x + 1) / (1 - x) with hY
+  have hu : 1 / ((-1 + t) / 2 * (1 - X) / (X - (-1 - t) / 2)) = 1 / 2 - t / 2 * (X + 1) / (1 - X) :=
+    hcub_seg_u ht hω h1 hxm
+  set u : ℂ := 1 / 2 - t / 2 * (X + 1) / (1 - X) with hudef
+  have huY : u = 1 / 2 + (Y : ℂ) * I := by
+    rw [hudef, hY, htdef, hXdef]; push_cast; ring
+  have hY0 : 0 < Y := by
+    rw [hY]; apply div_pos _ (by linarith)
+    nlinarith [hcub_sqrt3_pos]
+  have hY1 : Y < Real.sqrt 3 / 2 := by
+    rw [hY, div_lt_iff₀ (by linarith)]; nlinarith [hcub_sqrt3_pos]
+  have hure : u.re = 1 / 2 := by rw [huY]; simp
+  have huim : 0 < u.im := by rw [huY]; simpa using hY0
+  have hun : ‖u‖ < 1 := by
+    have hns : normSq u < 1 := by
+      rw [huY, normSq_apply]; simp
+      nlinarith [hcub_sqrt3_sq, hcub_sqrt3_pos]
+    rw [normSq_eq_norm_sq] at hns
+    nlinarith [norm_nonneg u]
+  have hu0 : u ≠ 0 := by rintro h; rw [h] at huim; simp at huim
+  have hζ : (-1 + t) / 2 * (1 - X) / (X - (-1 - t) / 2) = 1 / u := by
+    rw [← hu, one_div_one_div]
+  rw [hu, hζ]
+  have hmain := hcub_main hc ha huim hun
+  rw [← htdef, hcub_seg_Z ht h1 hX0] at hmain
+  have hrel := hcub_seg_rel ht h1 hX0 hu0
+  have hcp := hcub_cpow (a := a) hx hure huim hun (by rw [← htdef]; exact hrel)
+  rw [← htdef] at hcp
+  have hB : ₂F₁ a (a + 1 / 3) (2 / 3) (X⁻¹ ^ 3) / (Gamma (a + 2 / 3) * Gamma (2 / 3)) +
+      exp (Real.pi * I / 3) / (X * Gamma a * Gamma (4 / 3)) *
+        ₂F₁ (a + 1 / 3) (a + 2 / 3) (4 / 3) (X⁻¹ ^ 3) =
+      Real.sqrt 3 * Gamma (a + 1 / 3) / (2 * π * Gamma (2 * a + 2 / 3)) *
+        (1 + (-1 - t) / 2 * u) ^ (3 * a) * ₂F₁ (a + 1 / 3) (3 * a) (2 * a + 2 / 3) u := by
+    rw [← hmain]; ring
+  rw [hB]
+  linear_combination (Gamma (a + 1 / 3) / (2 * π * Gamma (2 * a + 2 / 3)) *
+    ₂F₁ (a + 1 / 3) (3 * a) (2 * a + 2 / 3) u) * hcp
 
 end DLMF.Hypergeometric

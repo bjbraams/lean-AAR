@@ -45,6 +45,7 @@ public import ToMathlib.Analysis.Integral.PrincipalValue
 public import ToMathlib.Analysis.ODE.SturmCount
 public import ToMathlib.Analysis.ODE.SturmDeformation
 public import ToMathlib.Analysis.Asymptotics.StieltjesRemainder
+public import ToMathlib.Analysis.Asymptotics.LaplaceSaddle
 public import ToMathlib.Analysis.Calculus.InverseSeries
 
 /-!
@@ -74,6 +75,8 @@ the namespaces of the Mathlib APIs they extend. These modules import Mathlib onl
 * `ToMathlib.Analysis.BooleSummation`: Boole's alternating summation formula.
 * `ToMathlib.Analysis.Asymptotics.AsymptoticExpansion`: Poincaré asymptotic expansions.
 * `ToMathlib.Analysis.Asymptotics.Watson`: Watson's lemma for Laplace transforms.
+* `ToMathlib.Analysis.Asymptotics.LaplaceSaddle`: all-orders Laplace expansions at an interior
+  quadratic saddle through an analytic substitution (two-sided Gaussian form).
 * `ToMathlib.Analysis.Asymptotics.StationaryPhase`: oscillatory integrals with a cubic stationary
   point at an endpoint.
 * `ToMathlib.Analysis.Asymptotics.WatsonRotated`: rotation of Laplace rays, Watson's lemma along

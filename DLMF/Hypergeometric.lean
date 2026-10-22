@@ -39,6 +39,8 @@ public import DLMF.Hypergeometric.Clausen
 public import DLMF.Hypergeometric.SpecialCases
 public import DLMF.Hypergeometric.ParameterHolomorphy
 public import DLMF.Hypergeometric.MathlibCoverage
+public import DLMF.Hypergeometric.SpecialValueTools
+public import DLMF.Hypergeometric.CubicTools
 
 /-!
 # The hypergeometric function (AAR Chapters 2 and 3; DLMF Chapter 15)

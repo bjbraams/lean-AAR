@@ -5674,3 +5674,129 @@ Main results proved:
 - The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
   `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
 - No commit was made.
+
+## Round 12 (2026-10-22)
+
+Six parallel agents with file-level ownership, four of them sent back for a second pass. Starting
+from commit 4ac32e6: source census 261 → 229, compiled audit 267 → 235 (32 admissions proved, none
+added). No statement was changed. Moves, all verbatim (name, statement, attributes, docstring):
+`scorerGi_sin_integral` (9.12.19) from `Airy/Scorer.lean` to `Airy/IntegralRepresentations.lean`
+(coordinator-authorized; its proof uses 9.5.3, downstream of `Scorer`; a pointer comment marks the
+old place); `legFS_G`, `legFS_G_analyticAt`, `legFS_one_sub_sq_mem`, `legFS_olverQ_eq_G` from
+`Legendre/FourierTools.lean` to `Legendre/Continuation.lean` (round-11 helpers, needed by 14.24.2).
+Within-file reorderings: 9.5.1–3 after 9.5.5; 13.10.6 to the end of `Confluent/Integrals.lean`.
+The round-11 ζ helpers `legFS_root` … `legFS_zeta_mem_slitPlane` were deduplicated against their
+`legInt_` copies (three `legFS_` aliases remain for `Legendre/Series.lean`).
+
+Removals by area (audit): Legendre −8, Airy −7, Hypergeometric −6, incomplete Gamma −6,
+Confluent −3, orthogonal polynomials −2.
+
+New modules: `ToMathlib/Analysis/Asymptotics/LaplaceSaddle.lean` (all-orders Laplace expansion at
+an interior quadratic saddle through an analytic substitution; coefficient identification from
+O-bounds), `DLMF/Hypergeometric/SpecialValueTools.lean` (two cubic transformations of ₂F₁, Abel's
+theorem along a ray), `DLMF/OrthogonalPolynomials/InequalityTools.lean` (Sonine function for
+Gegenbauer polynomials, Kershaw-type Gamma-ratio bounds).
+
+Main results proved:
+
+- Airy: 9.5.1–9.5.3, 9.5.6–9.5.8 (`Airy/IntegralRepresentations.lean` admission-free), 9.12.19.
+- Incomplete Gamma: 8.11.5, 8.11.6, 8.11.13, 8.11.16, 8.11.17, 8.11.18.
+- Orthogonal polynomials: Lorch's bound 18.14.7; the Laguerre Turán inequality 18.14.12 (stronger
+  than DLMF: `hx` unused, all real x).
+- Hypergeometric: 15.4.31–15.4.34, 15.6.7 (Barnes's first lemma termwise), 15.6.9 (Erdélyi;
+  Chu–Vandermonde and Pfaff–Saalschütz regroupings) (`Elementary.lean`, `IntegralRepresentations.lean`
+  admission-free).
+- Confluent: 13.10.6, 13.10.13, 13.23.9 (`Confluent/Integrals.lean` admission-free).
+- Legendre: 14.12.1, 14.12.4 (`hν` implied by `hconv`), 14.12.6, 14.25.1, 14.25.2, 14.19.4, 14.19.5
+  (`Toroidal.lean` admission-free), 14.24.2 (explicit transport along the ellipse path).
+
+### Remaining blockers identified by the agents
+
+- 14.12.3: blocked only by import order; its proof (boundary values of 14.25.2 at cos θ ± i0 and
+  dominated convergence) needs `Continuation`/`FourierTools` results. A verbatim move of the
+  statement downstream would unblock it. 14.24.3: smoothness of `legendreOneLoop` at the junctions
+  and a continuous logarithm; 14.24.1, 14.24.4: continuity of `legendreTransport` in parameters.
+- 9.11.3, 9.11.15–18: the Ai² representation Ai(x)² = (2^{2/3}/π)∫₀^∞ Ai(2^{2/3}(x + t²)) dt
+  (checked to 15 digits) via the product equation 9.11.1, or the K_ν² Mellin transform via 10.32.17.
+- 8.11.12: sector and endpoint forms of the saddle expansion; 8.11.10–11: uniform central
+  expansion (pieces exist); 8.11.7: rotated-contour representations on the log plane.
+- 13.24.2: Hankel-loop representation of M_{κ,μ}; 13.8.2 for all a; 13.8.6–7, 13.8.17–18:
+  coalescing saddles.
+- 15.8.32: the cubic transformation of F(a+⅓, 3a; 2a+⅔; ·) with branch control (statement checked
+  to 1e-26); 15.12.3, 15.12.5 not attempted.
+- 18.14.3, 18.14.3_5, 18.14.9, 18.14.11, 18.14.25–27, 18.15.4: research-level sharp bounds
+  (Chow–Gatteschi–Wong, Carnicer et al., Indritz, Gasper, Askey–Gasper) and Darboux's method.
+
+### Validation
+
+- The ordinary build passes (10,029 jobs) with no errors; the source census finds 229 admissions.
+- A compiled audit of 12,629 `DLMF`/`ToMathlib` theorems finds 235 depending on `sorryAx` and no
+  other non-standard axiom.
+- The DLMF dump has 3,073 records (2,853 proved, 220 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
+  `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
+- No commit was made.
+
+## Round 13 (2026-10-22)
+
+Six parallel agents with file-level ownership, two of them sent back for a second pass. Starting
+from round 12 (uncommitted): source census 229 → 213, compiled audit 235 → 219 (16 admissions
+proved, none added). No statement was changed. Moves, all verbatim (name, statement, attributes):
+`ferrersQ_complex_integral` (14.12.3) from `Legendre/IntegralRepresentations.lean` to
+`Legendre/FourierTools.lean` (coordinator-authorized; its proof needs boundary values from
+`Continuation`, downstream of `IntegralRepresentations`; a pointer comment marks the old place).
+Within-file reorderings: `associatedP_ellipse_continuation` (14.24.1) after 14.24.2–3 in
+`Continuation.lean`; `gammaCentralFilter`, 8.11.10 and 8.11.11 to the end of
+`IncompleteGamma/Asymptotics.lean` (the 8.11.10 docstring gained a sentence on the method).
+
+Removals by area (audit): Legendre −4, parabolic cylinder −4, Struve −3, Hypergeometric −2,
+Airy −1, Confluent −1, incomplete Gamma −1.
+
+New modules: `DLMF/Airy/SquareTools.lean` (the representation
+Ai(x)² = (2^{2/3}/π)∫₀^∞ Ai(2^{2/3}(x + t²)) dt for real x, `airyAi_sq_eq_integral`, untagged: via
+the product equation 9.11.1, a Wronskian decomposition, decay and the value at 0),
+`DLMF/Hypergeometric/CubicTools.lean` (Goursat's cubic transformation of F(a+⅓, 3a; 2a+⅔; ·) and its
+continuation), `DLMF/ParabolicCylinder/ContourTools.lean` (vertical-line, horizontal-line and
+Hankel-loop integrals for U, a Barnes-shift kernel identity), `DLMF/Struve/LargeOrderTools.lean`
+(circle-integral form of the Anger–Weber coefficients, binomial remainder bounds).
+
+Main results proved:
+
+- Airy: 9.11.15 (Mellin transform of Ai²).
+- Legendre: 14.12.3, 14.24.1, 14.24.3, 14.24.4 (`Continuation.lean`, `FourierTools.lean`,
+  `IntegralRepresentations.lean` admission-free). New: continuity of the Legendre transport in
+  degree, order and initial data (`legTr_transport_tendsto`, Gronwall), and C¹ gluing of
+  `legendreOneLoop`.
+- Parabolic cylinder: 12.5.5, 12.5.6, 12.5.7, 12.12.3 (all a in the stated ranges, by the identity
+  theorem in a).
+- Struve: 11.6.6, 11.6.7, and the removable-singularity statement of §11.11(iii).
+- Hypergeometric: 15.8.32 (cubic connection), 15.12.3 for all parameters.
+- Confluent: 13.8.2 for all complex a (Watson base case, a product expansion valid for all a, and
+  the identity theorem for the coefficients).
+- Incomplete Gamma: 8.11.10 (uniform second-order central expansion; `igCen_core` raises
+  `maxHeartbeats`).
+
+### Remaining blockers identified by the agents
+
+- 9.11.3, 9.11.16–18: Fubini for conditionally convergent oscillatory integrals (damping and a
+  limit), a Fourier-convolution identity for Airy products, or a Barnes evaluation via 9.11.15.
+- 12.12.4: an identity for U² + Ū² (product formula, or the third-order product equation as for
+  Ai² in `SquareTools`).
+- 8.11.11: a real representation of γ*(1−a, −x) valid across integer a (derived, not formalized);
+  8.11.12: endpoint saddle expansion and the log-sector continuation; 8.11.7: rotated contours.
+- 11.6.9: Debye lower bound for I_ν(λν) on a complex sector; 11.11.8, 11.11.10: rotated-contour
+  Watson; 11.11.11, 11.11.13: complex-sector saddle expansions.
+- 13.24.2: a Lagrange–Bürmann identity for transcendental series (route sketched); 15.12.5 and
+  13.8.6–7, 13.8.17–18: uniform large-parameter (Bessel- or parabolic-type) asymptotics.
+
+### Validation
+
+- The ordinary build passes (10,037 jobs) with no errors; the source census finds 213 admissions.
+- A compiled audit of 12,932 `DLMF`/`ToMathlib` theorems finds 219 depending on `sorryAx` and no
+  other non-standard axiom.
+- The DLMF dump has 3,073 records (2,868 proved, 205 admitted, including 178 pointers); the
+  acquisition ledgers were regenerated from it.
+- The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
+  `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
+- No commit was made.

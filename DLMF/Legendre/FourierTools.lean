@@ -18,7 +18,8 @@ The hypergeometric form behind DLMF 14.13.1–14.13.2:
 with `ν + μ ≠ -1, -2, …`. Route:
 
 * the inverse Joukowski map `ζ(z) = z - √(z²-1)` on `ℂ ∖ (-∞, 1]` has `|ζ| < 1`, `ζ ∉ (-∞, 0]`
-  (`legFS_norm_zeta_lt_one`, `legFS_zeta_mem_slitPlane`);
+  (`legInt_norm_zeta_lt_one`, `legInt_zeta_mem_slitPlane` in
+  `DLMF.Legendre.IntegralRepresentations`);
 * the toroidal form DLMF 14.19.3 (`toroidalQ_hypergeometric`, `z = cosh ξ`, `ζ = e^{-ξ}`) extends
   by the identity theorem to `𝑸^μ_ν(z) = √π (1-ζ²)^μ ζ^{ν+1} 𝐅(μ+1/2, ν+μ+1; ν+3/2; ζ²)` on
   `ℂ ∖ (-∞, 1]` (`legFS_olverQ_eq_G`);
@@ -33,7 +34,10 @@ Also, for the continued fractions of DLMF §14.14:
   `HasContinuedFraction` from a backward solution `w`, in the terminating case and under a
   ratio limit `-w_k/(a_{k+1}w_{k+2}) → ρ`, `|ρ| > 1` (`GenContFract.pinch_cfConv_tendsto`).
 
-All helper names carry the prefix `legFS_`.
+Also DLMF 14.12.3 (`ferrersQ_complex_integral`), from the boundary values of DLMF 14.25.2 under
+dominated convergence (helpers `legTr_`).
+
+All other helper names carry the prefix `legFS_`.
 -/
 
 @[expose] public noncomputable section
@@ -43,187 +47,22 @@ open scoped Real Topology
 
 namespace DLMF.Legendre
 
-/-- The square root `√(z²-1)` continued from `z > 1` to `ℂ ∖ (-∞, 1]`. -/
-def legFS_root (z : ℂ) : ℂ := exp ((log (z-1) + log (z+1))/2)
+/-! The inverse Joukowski map `ζ(z) = z - √(z²-1)` and its properties are the `legInt_`
+helpers of `DLMF.Legendre.IntegralRepresentations` (`legInt_root`, `legInt_zeta`, …,
+`legInt_zeta_mem_slitPlane`). The names below are kept as aliases for downstream modules. -/
 
-/-- The inverse Joukowski map `ζ = z - √(z²-1)`, so that `z = (ζ + ζ⁻¹)/2` and `|ζ| < 1`. -/
-def legFS_zeta (z : ℂ) : ℂ := z - legFS_root z
+/-- The inverse Joukowski map `ζ = z - √(z²-1)`; an alias of `legInt_zeta`. -/
+abbrev legFS_zeta (z : ℂ) : ℂ := legInt_zeta z
 
-/-- `z+1 ∈ slitPlane` when `z-1 ∈ slitPlane`. -/
-lemma legFS_add_one {z : ℂ} (hz : z-1 ∈ slitPlane) : z+1 ∈ slitPlane := by
-  simpa [add_comm] using one_add_mem_slitPlane_of_sub_one hz
+/-- `ζ ≠ 0` on `ℂ ∖ (-∞, 1]`; an alias of `legInt_zeta_ne_zero`. -/
+lemma legFS_zeta_ne_zero {z : ℂ} (hz : z-1 ∈ slitPlane) : legFS_zeta z ≠ 0 :=
+  legInt_zeta_ne_zero hz
 
-/-- `(√(z²-1))² = z²-1`. -/
-lemma legFS_root_sq {z : ℂ} (hz : z-1 ∈ slitPlane) : legFS_root z ^ 2 = z^2 - 1 := by
-  rw [legFS_root, ← exp_nat_mul, show ((2:ℕ):ℂ) * ((log (z-1) + log (z+1))/2) =
-    log (z-1) + log (z+1) by push_cast; ring, exp_add, exp_log (slitPlane_ne_zero hz),
-    exp_log (slitPlane_ne_zero (legFS_add_one hz))]
-  ring
+/-- `|ζ| < 1` on `ℂ ∖ (-∞, 1]`; an alias of `legInt_norm_zeta_lt_one`. -/
+lemma legFS_norm_zeta_lt_one {z : ℂ} (hz : z-1 ∈ slitPlane) : ‖legFS_zeta z‖ < 1 :=
+  legInt_norm_zeta_lt_one hz
 
-/-- `ζ (z + √(z²-1)) = 1`, written as `ζ (2z - ζ) = 1`. -/
-lemma legFS_zeta_mul {z : ℂ} (hz : z-1 ∈ slitPlane) : legFS_zeta z * (2*z - legFS_zeta z) = 1 := by
-  have := legFS_root_sq hz
-  rw [legFS_zeta]; linear_combination -this
-
-/-- `ζ ≠ 0`. -/
-lemma legFS_zeta_ne_zero {z : ℂ} (hz : z-1 ∈ slitPlane) : legFS_zeta z ≠ 0 := by
-  intro h; have := legFS_zeta_mul hz; rw [h, zero_mul] at this; exact zero_ne_one this
-
-/-- `2z = ζ + ζ⁻¹`. -/
-lemma legFS_two_mul_eq {z : ℂ} (hz : z-1 ∈ slitPlane) :
-    2*z = legFS_zeta z + (legFS_zeta z)⁻¹ := by
-  have h0 := legFS_zeta_ne_zero hz
-  have := legFS_zeta_mul hz
-  field_simp
-  linear_combination this
-
-/-- A point of `ℂ ∖ (-∞, 1]` is not a real number `≤ 1`. -/
-lemma legFS_not_real_le_one {z : ℂ} (hz : z-1 ∈ slitPlane) {r : ℝ} (hr : r ≤ 1) : z ≠ r := by
-  rintro rfl
-  rw [mem_slitPlane_iff] at hz
-  simp at hz; linarith
-
-/-- `|ζ| ≠ 1` off `(-∞, 1]`: otherwise `z = Re ζ ∈ [-1, 1]`. -/
-lemma legFS_norm_zeta_ne_one {z : ℂ} (hz : z-1 ∈ slitPlane) : ‖legFS_zeta z‖ ≠ 1 := by
-  intro h1
-  set w := legFS_zeta z
-  have h0 : w ≠ 0 := legFS_zeta_ne_zero hz
-  have hinv : w⁻¹ = (starRingEnd ℂ) w := by
-    rw [inv_def, normSq_eq_norm_sq, h1]; simp
-  have h2 := legFS_two_mul_eq hz
-  rw [hinv, add_conj] at h2
-  have hz' : z = ((w.re:ℝ):ℂ) := by
-    push_cast at h2; linear_combination h2/2
-  refine legFS_not_real_le_one hz (r := w.re) ?_ hz'
-  have := re_le_norm w; linarith
-
-/-- For real `t > 1`, `ζ(t) = t - √(t²-1)`. -/
-lemma legFS_zeta_real {t : ℝ} (ht : 1 < t) : legFS_zeta t = ((t - Real.sqrt (t^2-1) : ℝ) : ℂ) := by
-  have hl : log ((t:ℂ)-1) + log ((t:ℂ)+1) = ((Real.log (t^2-1) : ℝ) : ℂ) := by
-    rw [show (t:ℂ)-1 = ((t-1:ℝ):ℂ) by push_cast; ring, show (t:ℂ)+1 = ((t+1:ℝ):ℂ) by push_cast; ring,
-      ← ofReal_log (by linarith), ← ofReal_log (by linarith), ← ofReal_add,
-      ← Real.log_mul (by linarith) (by linarith)]
-    congr 2; ring
-  rw [legFS_zeta, legFS_root, hl, show ((Real.log (t^2-1) : ℝ) : ℂ)/2 = ((Real.log (t^2-1)/2 : ℝ) : ℂ)
-    by push_cast; ring, ← ofReal_exp, Real.sqrt_eq_rpow, Real.rpow_def_of_pos (by nlinarith)]
-  push_cast; ring_nf
-
-/-- `ζ` is analytic on `ℂ ∖ (-∞, 1]`. -/
-lemma legFS_zeta_analyticAt {z : ℂ} (hz : z-1 ∈ slitPlane) : AnalyticAt ℂ legFS_zeta z := by
-  have h1 : AnalyticAt ℂ (fun w : ℂ => log (w-1)) z :=
-    (analyticAt_clog hz).comp_of_eq (f := fun w : ℂ => w - 1) (by fun_prop) rfl
-  have h2 : AnalyticAt ℂ (fun w : ℂ => log (w+1)) z :=
-    (analyticAt_clog (legFS_add_one hz)).comp_of_eq (f := fun w : ℂ => w + 1) (by fun_prop) rfl
-  exact analyticAt_id.sub ((h1.add h2).div_const.cexp)
-
-/-- `0 < t - √(t²-1) < 1` for `t > 1`. -/
-lemma legFS_real_bounds {t : ℝ} (ht : 1 < t) :
-    0 < t - Real.sqrt (t^2-1) ∧ t - Real.sqrt (t^2-1) < 1 := by
-  have h0 : 0 ≤ t^2 - 1 := by nlinarith
-  have hs := Real.sq_sqrt h0
-  have hs0 := Real.sqrt_nonneg (t^2-1)
-  constructor
-  · nlinarith
-  · have : 0 < Real.sqrt (t^2-1) := Real.sqrt_pos.mpr (by nlinarith)
-    nlinarith
-
-/-- `|ζ| < 1` on `ℂ ∖ (-∞, 1]` (connectedness and `|ζ| ≠ 1`). -/
-lemma legFS_norm_zeta_lt_one {z : ℂ} (hz : z-1 ∈ slitPlane) : ‖legFS_zeta z‖ < 1 := by
-  by_contra h
-  push Not at h
-  set D : Set ℂ := {w : ℂ | w-1 ∈ slitPlane}
-  have h2 : ((2:ℝ):ℂ) ∈ D := by show ((2:ℝ):ℂ) - 1 ∈ slitPlane; norm_num
-  have hc : ContinuousOn (fun w => ‖legFS_zeta w‖) D := fun w hw =>
-    (legFS_zeta_analyticAt hw).continuousAt.norm.continuousWithinAt
-  have hlt : ‖legFS_zeta ((2:ℝ):ℂ)‖ < 1 := by
-    obtain ⟨hp, hl⟩ := legFS_real_bounds (show (1:ℝ) < 2 by norm_num)
-    rw [legFS_zeta_real (by norm_num), norm_real, Real.norm_eq_abs, abs_of_pos hp]
-    exact hl
-  obtain ⟨w, hw, hw1⟩ := isPreconnected_sub_one_mem_slitPlane.intermediate_value h2 hz hc
-    ⟨hlt.le, h⟩
-  exact legFS_norm_zeta_ne_one hw hw1
-
-/-- `ζ ∉ (-∞, 0]` on `ℂ ∖ (-∞, 1]`. -/
-lemma legFS_zeta_mem_slitPlane {z : ℂ} (hz : z-1 ∈ slitPlane) : legFS_zeta z ∈ slitPlane := by
-  rw [mem_slitPlane_iff]
-  by_contra h
-  push Not at h
-  obtain ⟨hre, him⟩ := h
-  set w := legFS_zeta z
-  have h0 : w ≠ 0 := legFS_zeta_ne_zero hz
-  have hw : w = ((w.re:ℝ):ℂ) := by apply Complex.ext <;> simp [him]
-  have hre' : w.re < 0 := lt_of_le_of_ne hre (fun h => h0 (by rw [hw, h]; simp))
-  have h2 : 2*z = w + w⁻¹ := legFS_two_mul_eq hz
-  have hz' : z = (((w.re + (w.re)⁻¹)/2 : ℝ) : ℂ) := by
-    rw [hw] at h2
-    push_cast at h2 ⊢; linear_combination h2/2
-  refine legFS_not_real_le_one hz ?_ hz'
-  have : (w.re)⁻¹ < 0 := inv_lt_zero.mpr hre'
-  linarith
-
-
-/-- The right side of the `ζ`-form of `𝑸^μ_ν`:
-`√π (1-w²)^μ w^{ν+1} 𝐅(μ+1/2, ν+μ+1; ν+3/2; w²)`. -/
-def legFS_G (ν μ w : ℂ) : ℂ :=
-  Real.sqrt π * (1 - w^2)^μ * w^(ν+1) * regularizedGaussHG (μ+1/2) (ν+μ+1) (ν+3/2) (w^2)
-
-/-- `legFS_G ν μ` is analytic at `w` when `w ∉ (-∞, 0]` and `1 - w² ∉ (-∞, 0]`. -/
-lemma legFS_G_analyticAt (ν μ : ℂ) {w : ℂ} (hw : w ∈ slitPlane) (hw2 : 1 - w^2 ∈ slitPlane) :
-    AnalyticAt ℂ (legFS_G ν μ) w := by
-  have hF : AnalyticAt ℂ (fun w : ℂ => regularizedGaussHG (μ+1/2) (ν+μ+1) (ν+3/2) (w^2)) w :=
-    (analyticAt_regularizedGaussHG _ _ _ (show w^2 ∈ cutPlane from hw2)).comp_of_eq
-      (f := fun w : ℂ => w^2) (by fun_prop) rfl
-  have h1 : AnalyticAt ℂ (fun w : ℂ => (1 - w^2)^μ) w :=
-    (analyticAt_const.sub (analyticAt_id.pow 2)).cpow analyticAt_const hw2
-  have h2 : AnalyticAt ℂ (fun w : ℂ => w^(ν+1)) w := analyticAt_id.cpow analyticAt_const hw
-  exact ((analyticAt_const.mul h1).mul h2).mul hF
-
-/-- `1 - w² ∈ slitPlane` for `|w| < 1`. -/
-lemma legFS_one_sub_sq_mem {w : ℂ} (hw : ‖w‖ < 1) : 1 - w^2 ∈ slitPlane := by
-  rw [mem_slitPlane_iff]; left
-  have : (w^2).re ≤ ‖w‖^2 := by rw [← norm_pow]; exact re_le_norm _
-  simp only [sub_re, one_re]
-  nlinarith [norm_nonneg w]
-
-/-- The `ζ`-form of `𝑸^μ_ν` (the complex continuation of DLMF 14.19.3):
-`𝑸^μ_ν(z) = √π (1-ζ²)^μ ζ^{ν+1} 𝐅(μ+1/2, ν+μ+1; ν+3/2; ζ²)`, `ζ = z - √(z²-1)`, on `ℂ ∖ (-∞, 1]`. -/
-theorem legFS_olverQ_eq_G (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
-    olverQ ν μ z = legFS_G ν μ (legFS_zeta z) := by
-  set D : Set ℂ := {w : ℂ | w-1 ∈ slitPlane}
-  have hg : AnalyticOnNhd ℂ (fun w => legFS_G ν μ (legFS_zeta w)) D := fun w hw =>
-    (legFS_G_analyticAt ν μ (legFS_zeta_mem_slitPlane hw)
-      (legFS_one_sub_sq_mem (legFS_norm_zeta_lt_one hw))).comp (legFS_zeta_analyticAt hw)
-  have h2 : ((2 : ℝ) : ℂ) ∈ D := by show ((2 : ℝ) : ℂ) - 1 ∈ slitPlane; norm_num
-  refine (olverQ_analytic ν μ).eqOn_of_preconnected_of_frequently_eq hg
-    isPreconnected_sub_one_mem_slitPlane h2 ?_ hz
-  have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] (2 : ℝ)) (𝓝[≠] ((2 : ℝ) : ℂ)) := by
-    apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
-    · exact (continuous_ofReal.tendsto _).mono_left nhdsWithin_le_nhds
-    · filter_upwards [self_mem_nhdsWithin] with r hr
-      simpa only [Set.mem_compl_iff, Set.mem_singleton_iff, ofReal_inj] using hr
-  apply ht.frequently
-  apply Eventually.frequently
-  filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (show (1 : ℝ) < 2 by norm_num))] with t ht
-  have ht1 : (1:ℝ) < t := ht
-  set ξ := Real.arcosh t with hξ
-  have hξ0 : 0 < ξ := Real.arcosh_pos ht1
-  have hc : Real.cosh ξ = t := Real.cosh_arcosh ht1.le
-  have hζ : legFS_zeta t = ((Real.exp (-ξ) : ℝ) : ℂ) := by
-    rw [legFS_zeta_real ht1, Real.exp_neg, hξ, Real.exp_arcosh ht1.le,
-      Real.add_sqrt_self_sq_sub_one_inv ht1.le]
-  have key := toroidalQ_hypergeometric (ν+1/2) μ hξ0
-  rw [hc, show ν+1/2-1/2 = ν by ring] at key
-  show olverQ ν μ t = legFS_G ν μ (legFS_zeta t)
-  rw [key, hζ, legFS_G]
-  have he2 : ((Real.exp (-ξ) : ℝ) : ℂ)^2 = ((Real.exp (-2*ξ) : ℝ) : ℂ) := by
-    rw [← ofReal_pow, ← Real.exp_nat_mul]; push_cast; ring_nf
-  have hpow : ((Real.exp (-ξ) : ℝ) : ℂ)^(ν+1) = (exp ((ν+1/2+1/2)*ξ))⁻¹ := by
-    rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr (Real.exp_pos _).ne'), ← ofReal_log (Real.exp_pos _).le,
-      Real.log_exp, ← exp_neg]
-    congr 1; push_cast; ring
-  rw [he2, hpow, show ν+1/2+μ+1/2 = ν+μ+1 by ring, show ν+1/2+1 = ν+3/2 by ring]
-  ring
-
+/-! The `ζ`-form `legFS_olverQ_eq_G` of `𝑸^μ_ν` is in `DLMF.Legendre.Continuation`. -/
 
 /-- One-sided limit of `log(z-1)` at a point of `(-1, 1)` approached from the side `σ`. -/
 lemma legFS_log_sub_one_lim {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) {x : ℝ} (hx : x < 1) :
@@ -263,7 +102,7 @@ lemma legFS_log_sub_one_lim {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) {x : ℝ} (hx 
 /-- One-sided boundary values of `ζ = z - √(z²-1)` on `(-1, 1)`: from the side `σ`,
 `ζ(cos θ + σ i 0) = cos θ - σ i sin θ`. -/
 lemma legFS_zeta_lim {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) {θ : ℝ} (h0 : 0 < θ) (hπ : θ < π) :
-    Tendsto (fun ε : ℝ => legFS_zeta ((Real.cos θ:ℂ) + (σ:ℂ)*I*ε)) (𝓝[>] (0:ℝ))
+    Tendsto (fun ε : ℝ => legInt_zeta ((Real.cos θ:ℂ) + (σ:ℂ)*I*ε)) (𝓝[>] (0:ℝ))
       (𝓝 ((Real.cos θ:ℂ) - (σ:ℂ)*I*(Real.sin θ:ℂ))) := by
   set x := Real.cos θ with hxdef
   have hs : 0 < Real.sin θ := Real.sin_pos_of_pos_of_lt_pi h0 hπ
@@ -304,7 +143,7 @@ lemma legFS_zeta_lim {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) {θ : ℝ} (h0 : 0 < 
   rw [hlim] at hR
   have := hpath.sub hR
   refine this.congr' (Eventually.of_forall fun ε => ?_)
-  simp only [legFS_zeta, legFS_root]
+  simp only [legInt_zeta, legInt_root]
 
 
 
@@ -379,7 +218,7 @@ theorem legFS_PQ_hyp (ν μ : ℂ) (hr : LegendreQRegular ν μ) {θ : ℝ} (h0 
   rw [legFS_side_exp hs] at hζ
   have hG := (legFS_G_analyticAt ν μ hw0 hw2).continuousAt.tendsto.comp hζ
   have heq : (fun ε : ℝ => olverQ ν μ ((Real.cos θ:ℂ) + ((-s:ℝ):ℂ)*I*ε)) =ᶠ[𝓝[>] (0:ℝ)]
-      (legFS_G ν μ ∘ fun ε : ℝ => legFS_zeta ((Real.cos θ:ℂ) + ((-s:ℝ):ℂ)*I*ε)) := by
+      (legFS_G ν μ ∘ fun ε : ℝ => legInt_zeta ((Real.cos θ:ℂ) + ((-s:ℝ):ℂ)*I*ε)) := by
     filter_upwards [self_mem_nhdsWithin] with ε hε
     have hε' : (0:ℝ) < ε := hε
     refine legFS_olverQ_eq_G ν μ ?_
@@ -647,5 +486,280 @@ lemma legFS_hasCF_of_exists_zero {a b w : ℕ → ℂ} (hex : ∃ K, a K = 0)
     refine tendsto_const_nhds.congr fun N => ?_
     simp only [DLMF.cfTail, legFS_cfContinuants_fst_zero hK, zero_div]
   · exact legFS_hasCF_of_terminating h (fun k _ hk => Nat.find_min hex hk) hK hw hw0
+
+
+/-! ### DLMF 14.12.3 from the boundary values of DLMF 14.25.2 (prefix `legTr_`) -/
+
+section FerrersQIntegral
+
+open MeasureTheory
+
+/-- The kernel of DLMF 14.25.2 is integrable on `(0, ∞)` (Euler substitution). -/
+lemma legTr_integrableOn_kernel {ν μ : ℂ} (h0 : -1/2 < μ.re) (h1 : μ.re < (ν+1).re) {z : ℂ}
+    (hz : z-1 ∈ slitPlane) :
+    IntegrableOn (fun t : ℝ => (Real.sinh t:ℂ)^(2*μ)/(z+legInt_root z*Real.cosh t)^(ν+μ+1))
+      (Ioi 0) := by
+  have hx : (legInt_zeta z)^2 ∈ cutPlane := by
+    refine mem_cutPlane_of_norm_lt_one ?_
+    rw [norm_pow]; have := legInt_norm_zeta_lt_one hz; nlinarith [norm_nonneg (legInt_zeta z)]
+  have hb : 0 < (μ+1/2).re := by simp; linarith
+  have hcb : 0 < (ν+3/2-(μ+1/2)).re := by simp at h1 ⊢; linarith
+  have hg := intervalIntegrable_eulerKernel (a := ν+μ+1) hb hcb hx
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le zero_le_one,
+    integrableOn_Ioc_iff_integrableOn_Ioo] at hg
+  obtain ⟨hI, -⟩ := legInt_hs_cov hg
+  refine IntegrableOn.congr_fun (hI.const_mul (2^(2*μ) * (legInt_zeta z)^(ν+μ+1))) ?_ measurableSet_Ioi
+  intro t ht
+  exact (legInt_kernel_Q (ν := ν) (μ := μ) hz ht).symm
+
+/-- `√(z²-1)` at `z = 3`. -/
+lemma legTr_root_three : legInt_root 3 = ((Real.sqrt 8 : ℝ) : ℂ) := by
+  have h := legInt_zeta_real (t := 3) (by norm_num)
+  have : legInt_root ((3:ℝ):ℂ) = ((3:ℝ):ℂ) - legInt_zeta ((3:ℝ):ℂ) := by rw [legInt_zeta]; ring
+  rw [h] at this
+  have e : ((3:ℝ):ℂ) = 3 := by norm_num
+  rw [e] at this; rw [this]; norm_num
+
+
+/-- `‖w^{-a}‖ ≤ e^{π|Im a|} ‖w‖^{-Re a}`. -/
+lemma legTr_norm_inv_cpow_le {w a : ℂ} (hw : w ≠ 0) :
+    ‖1/w^a‖ ≤ Real.exp (π*|a.im|) * ‖w‖^(-a.re) := by
+  rw [norm_div, norm_one, norm_cpow_of_ne_zero hw, one_div_div, Real.rpow_neg (norm_nonneg _),
+    div_eq_mul_inv]
+  refine mul_le_mul_of_nonneg_right (Real.exp_le_exp.mpr ?_) (by positivity)
+  calc arg w * a.im ≤ |arg w * a.im| := le_abs_self _
+    _ = |arg w| * |a.im| := abs_mul _ _
+    _ ≤ π*|a.im| := by gcongr; exact abs_arg_le_pi w
+
+/-- The boundary integrand of DLMF 14.25.2 at `cos θ + σ i 0`. -/
+noncomputable def legTr_sideKernel (ν μ : ℂ) (σ θ t : ℝ) : ℂ :=
+  Real.sqrt π*exp (μ/2*((Real.log (1-Real.cos θ):ℂ)+σ*π*I+(Real.log (1+Real.cos θ):ℂ)))/
+    (2^μ*Gamma (μ+1/2)*Gamma (ν-μ+1))*((Real.sinh t:ℂ)^(2*μ)/
+      ((Real.cos θ:ℂ)+(σ:ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t)^(ν+μ+1))
+
+/-- DLMF 14.25.2 at `cos θ + σ i 0`, `σ = ±1`: the boundary integrand is integrable and its
+integral is the one-sided limit of `𝑸^μ_ν` (dominated convergence). -/
+lemma legTr_side {ν μ : ℂ} (hμ : -1/2 < μ.re) (ha : 0 < (ν+μ+1).re) (h1 : μ.re < (ν+1).re)
+    {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) {θ : ℝ} (hθ : 0 < θ) (hπ : θ < π) :
+    IntegrableOn (legTr_sideKernel ν μ σ θ) (Ioi 0) ∧
+    Tendsto (fun ε : ℝ => olverQ ν μ ((Real.cos θ:ℂ)+(σ:ℂ)*I*ε)) (𝓝[>] (0:ℝ))
+      (𝓝 (∫ t in Ioi 0, legTr_sideKernel ν μ σ θ t)) := by
+  set x := Real.cos θ with hxdef
+  have hs : 0 < Real.sin θ := Real.sin_pos_of_pos_of_lt_pi hθ hπ
+  have hx1 : x < 1 := by
+    have := Real.cos_lt_cos_of_nonneg_of_le_pi (le_refl 0) hπ.le hθ; rw [Real.cos_zero] at this
+    exact this
+  have hx2 : -1 < x := by
+    have := Real.cos_lt_cos_of_nonneg_of_le_pi hθ.le le_rfl hπ; rw [Real.cos_pi] at this
+    exact this
+  have hσ2 : σ*σ = 1 := by rcases hσ with rfl | rfl <;> norm_num
+  set z : ℝ → ℂ := fun ε => (x:ℂ)+(σ:ℂ)*I*ε with hzdef
+  have hpath : Tendsto z (𝓝[>] (0:ℝ)) (𝓝 (x : ℂ)) := by
+    have : Continuous z := by fun_prop
+    simpa [z] using (this.tendsto 0).mono_left nhdsWithin_le_nhds
+  have hL1 := legFS_log_sub_one_lim hσ hx1
+  have hL2 : Tendsto (fun ε : ℝ => log ((x:ℂ) + (σ:ℂ)*I*ε + 1)) (𝓝[>] (0:ℝ))
+      (𝓝 ((Real.log (1+x) : ℂ))) := by
+    have hm : ((x:ℂ) + 1) ∈ slitPlane := Or.inl (by simp; linarith)
+    have hc := (continuousAt_clog hm).tendsto.comp (hpath.add_const 1)
+    rw [show ((x:ℂ) + 1) = ((1 + x : ℝ) : ℂ) by push_cast; ring, ← ofReal_log (by linarith)] at hc
+    exact hc
+  set P : ℂ := exp (μ/2*((Real.log (1-x):ℂ)+σ*π*I+(Real.log (1+x):ℂ))) with hP
+  have hbp : Tendsto (fun ε => legendreBranchPower μ (z ε)) (𝓝[>] (0:ℝ)) (𝓝 P) :=
+    ((hL1.add hL2).const_mul (μ/2)).cexp
+  have hroot : Tendsto (fun ε => legInt_root (z ε)) (𝓝[>] (0:ℝ))
+      (𝓝 ((σ:ℂ)*I*(Real.sin θ:ℂ))) := by
+    have := hpath.sub (legFS_zeta_lim hσ hθ hπ)
+    rw [← hxdef, sub_sub_cancel] at this
+    refine this.congr' (Eventually.of_forall fun ε => ?_)
+    simp only [z, legInt_zeta]; ring
+  have hE1 : ∀ᶠ ε in 𝓝[>] (0:ℝ), ‖legendreBranchPower μ (z ε)‖ < ‖P‖+1 :=
+    hbp.norm.eventually (gt_mem_nhds (by linarith))
+  have hE2 : ∀ᶠ ε in 𝓝[>] (0:ℝ), Real.sin θ/2 < σ*(legInt_root (z ε)).im := by
+    have h := ((continuous_im.tendsto _).comp hroot).const_mul σ
+    have e : σ * ((σ:ℂ)*I*(Real.sin θ:ℂ)).im = Real.sin θ := by
+      simp [← mul_assoc, hσ2, sin_ofReal_re]
+    rw [Function.comp_def, e] at h
+    exact h.eventually (lt_mem_nhds (by linarith))
+  set a := ν+μ+1 with ha_def
+  set D : ℂ := 2^μ*Gamma (μ+1/2)*Gamma (ν-μ+1) with hD_def
+  set c : ℂ := Real.sqrt π/D with hc
+  set F : ℝ → ℝ → ℂ := fun ε t => Real.sqrt π*legendreBranchPower μ (z ε)/D*
+    ((Real.sinh t:ℂ)^(2*μ)/(z ε+exp ((log (z ε-1)+log (z ε+1))/2)*Real.cosh t)^a) with hF
+  set ρ := Real.sqrt 8 with hρ
+  have hρ0 : 0 ≤ ρ := Real.sqrt_nonneg _
+  set κ : ℝ := (Real.sin θ/2)/(3+ρ) with hκ
+  have hκ0 : 0 < κ := by positivity
+  set W3 : ℝ → ℝ := fun t => 3 + ρ*Real.cosh t with hW3
+  have hW3pos : ∀ t, 0 < W3 t := fun t => by
+    have := Real.cosh_pos t; simp only [W3]; positivity
+  set B : ℝ → ℝ := fun t => ‖c‖*(‖P‖+1)*Real.exp (π*|a.im|)*κ^(-a.re)*
+    (‖(Real.sinh t:ℂ)^(2*μ)‖*(W3 t)^(-a.re)) with hB
+  have hK3 := legTr_integrableOn_kernel (ν:=ν) (μ:=μ) hμ h1 (z := 3) (Or.inl (by norm_num))
+  have hBint : IntegrableOn B (Ioi 0) := by
+    refine IntegrableOn.congr_fun (Integrable.const_mul hK3.norm (‖c‖*(‖P‖+1)*Real.exp (π*|a.im|)*κ^(-a.re)))
+      (fun t _ => ?_) measurableSet_Ioi
+    simp only [B]
+    congr 1
+    rw [legTr_root_three, norm_div, show (3:ℂ) + ((ρ:ℝ):ℂ)*(Real.cosh t:ℂ) = ((W3 t:ℝ):ℂ) by
+      simp only [W3]; push_cast; ring, norm_cpow_eq_rpow_re_of_pos (hW3pos t),
+      Real.rpow_neg (hW3pos t).le, div_eq_mul_inv]
+  have hbound_pt : ∀ᶠ ε in 𝓝[>] (0:ℝ), ∀ t ∈ Ioi (0:ℝ), ‖F ε t‖ ≤ B t := by
+    filter_upwards [hE1, hE2, self_mem_nhdsWithin] with ε e1 e2 e3
+    intro t _
+    have e3' : (0:ℝ) < ε := e3
+    have hc1 : 1 ≤ Real.cosh t := Real.one_le_cosh t
+    set w := z ε + legInt_root (z ε) * Real.cosh t with hw
+    have hwim : w.im = σ*ε + (legInt_root (z ε)).im * Real.cosh t := by simp [w, z]
+    have hIm : Real.sin θ/2 * Real.cosh t ≤ σ * w.im := by
+      have e : σ * w.im = ε + (σ*(legInt_root (z ε)).im) * Real.cosh t := by
+        rw [hwim]; linear_combination ε*hσ2
+      rw [e]; nlinarith
+    have hwn : Real.sin θ/2 * Real.cosh t ≤ ‖w‖ := by
+      have h1' : σ * w.im ≤ |w.im| := by
+        rcases hσ with rfl | rfl
+        · simpa using le_abs_self w.im
+        · simpa using neg_le_abs w.im
+      linarith [abs_im_le_norm w]
+    have hW : κ * W3 t ≤ ‖w‖ := by
+      refine le_trans ?_ hwn
+      simp only [κ, W3]
+      rw [div_mul_eq_mul_div, div_le_iff₀ (by positivity)]
+      have : 3 + ρ*Real.cosh t ≤ (3+ρ)*Real.cosh t := by nlinarith
+      have hs2 : 0 ≤ Real.sin θ/2 := by positivity
+      nlinarith [mul_le_mul_of_nonneg_left this hs2]
+    have hw0 : w ≠ 0 := by
+      intro h; rw [h, norm_zero] at hW; have := hW3pos t; nlinarith
+    have e : F ε t = c*legendreBranchPower μ (z ε)*((Real.sinh t:ℂ)^(2*μ) * (1/w^a)) := by
+      simp only [F, c, w, legInt_root]; ring
+    rw [e, norm_mul, norm_mul, norm_mul]
+    have hpow : ‖w‖^(-a.re) ≤ (κ * W3 t)^(-a.re) :=
+      Real.rpow_le_rpow_of_nonpos (by have := hW3pos t; positivity) hW (by linarith)
+    rw [Real.mul_rpow hκ0.le (hW3pos t).le] at hpow
+    have hinv := legTr_norm_inv_cpow_le (a := a) hw0
+    calc ‖c‖ * ‖legendreBranchPower μ (z ε)‖ * (‖(Real.sinh t:ℂ)^(2*μ)‖ * ‖1/w^a‖)
+        ≤ ‖c‖ * (‖P‖+1) * (‖(Real.sinh t:ℂ)^(2*μ)‖ *
+          (Real.exp (π*|a.im|) * (κ^(-a.re) * (W3 t)^(-a.re)))) := by
+          gcongr
+          exact hinv.trans (mul_le_mul_of_nonneg_left hpow (by positivity))
+      _ = B t := by simp only [B]; ring
+  have hlim_pt : ∀ t : ℝ, Tendsto (fun ε => F ε t) (𝓝[>] (0:ℝ)) (𝓝 (legTr_sideKernel ν μ σ θ t)) := by
+    intro t
+    have hw : Tendsto (fun ε => z ε + legInt_root (z ε) * Real.cosh t) (𝓝[>] (0:ℝ))
+        (𝓝 ((x:ℂ) + (σ:ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t)) := hpath.add (hroot.mul_const _)
+    have hσ0 : σ ≠ 0 := by rcases hσ with rfl | rfl <;> norm_num
+    have hmem : (x:ℂ) + (σ:ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t ∈ slitPlane := by
+      refine mem_slitPlane_iff.mpr (Or.inr ?_)
+      have : ((x:ℂ) + (σ:ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t).im = σ*Real.sin θ*Real.cosh t := by
+        simp [sin_ofReal_re, cosh_ofReal_re]
+      rw [this]; have := Real.cosh_pos t; positivity
+    have hpw := (continuousAt_cpow_const (b := a) hmem).tendsto.comp hw
+    have hne : ((x:ℂ) + (σ:ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t)^a ≠ 0 := by
+      rw [cpow_def_of_ne_zero (slitPlane_ne_zero hmem)]; exact exp_ne_zero _
+    have h := ((hbp.const_mul (Real.sqrt π:ℂ)).div_const D).mul
+      ((tendsto_const_nhds (x := ((Real.sinh t:ℂ)^(2*μ)))).div hpw hne)
+    exact h
+  have hmeas' : ∀ ε, AEStronglyMeasurable (F ε) (volume.restrict (Ioi 0)) :=
+    fun ε => by
+      have : Measurable (F ε) := by simp only [F]; fun_prop
+      exact this.aestronglyMeasurable
+  have hmeas : ∀ᶠ ε in 𝓝[>] (0:ℝ), AEStronglyMeasurable (F ε) (volume.restrict (Ioi 0)) :=
+    Eventually.of_forall hmeas'
+  have hbound : ∀ᶠ ε in 𝓝[>] (0:ℝ), ∀ᵐ t ∂(volume.restrict (Ioi (0:ℝ))), ‖F ε t‖ ≤ B t :=
+    hbound_pt.mono fun ε h => (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall h)
+  have hDCT := tendsto_integral_filter_of_dominated_convergence B hmeas hbound hBint
+    (Eventually.of_forall hlim_pt)
+  have hval : ∀ᶠ ε in 𝓝[>] (0:ℝ), ∫ t in Ioi 0, F ε t = olverQ ν μ ((Real.cos θ:ℂ)+(σ:ℂ)*I*ε) := by
+    filter_upwards [hbound, self_mem_nhdsWithin] with ε hb e3
+    have hint : IntegrableOn (F ε) (Ioi 0) :=
+      Integrable.mono' hBint (hmeas' ε) hb
+    have e3' : (0:ℝ) < ε := e3
+    have hσ0 : σ ≠ 0 := by rcases hσ with rfl | rfl <;> norm_num
+    have hzs : z ε - 1 ∈ slitPlane := by
+      refine mem_slitPlane_iff.mpr (Or.inr ?_)
+      simp [z]; exact ⟨hσ0, e3'.ne'⟩
+    exact tendsto_nhds_unique (intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id)
+      (olverQ_complex_integral hμ h1 hzs)
+  refine ⟨?_, hDCT.congr' hval⟩
+  refine Integrable.mono' hBint ?_ ((ae_restrict_iff' measurableSet_Ioi).mpr
+    (Eventually.of_forall fun t ht => le_of_tendsto (hlim_pt t).norm
+      (hbound_pt.mono fun ε h => h t ht)))
+  have : Measurable (legTr_sideKernel ν μ σ θ) := by unfold legTr_sideKernel; fun_prop
+  exact this.aestronglyMeasurable
+
+/-- `exp(μ/2 (ln(1-cos θ) + σπi + ln(1+cos θ))) = e^{σμπi/2} sin^μ θ`. -/
+lemma legTr_side_exp (μ : ℂ) {σ : ℝ} {θ : ℝ} (hθ : 0 < θ) (hπ : θ < π) :
+    exp (μ/2*((Real.log (1-Real.cos θ):ℂ)+σ*π*I+(Real.log (1+Real.cos θ):ℂ))) =
+      exp (σ*μ*π*I/2)*(Real.sin θ:ℂ)^μ := by
+  have hs : 0 < Real.sin θ := Real.sin_pos_of_pos_of_lt_pi hθ hπ
+  have hc1 : Real.cos θ < 1 := by
+    have := Real.cos_lt_cos_of_nonneg_of_le_pi (le_refl 0) hπ.le hθ; rwa [Real.cos_zero] at this
+  have hc2 : -1 < Real.cos θ := by
+    have := Real.cos_lt_cos_of_nonneg_of_le_pi hθ.le le_rfl hπ; rwa [Real.cos_pi] at this
+  have hl : Real.log (1-Real.cos θ) + Real.log (1+Real.cos θ) = 2*Real.log (Real.sin θ) := by
+    rw [← Real.log_mul (by linarith) (by linarith),
+      show (1-Real.cos θ)*(1+Real.cos θ) = Real.sin θ^2 by rw [Real.sin_sq]; ring, Real.log_pow]
+    norm_num
+  rw [cpow_def_of_ne_zero (by exact_mod_cast hs.ne'), ← ofReal_log hs.le, ← exp_add]
+  congr 1
+  have hl' : (Real.log (1-Real.cos θ):ℂ) + (Real.log (1+Real.cos θ):ℂ) = 2*(Real.log (Real.sin θ):ℂ) := by
+    exact_mod_cast hl
+  linear_combination μ/2*hl'
+
+/-- ferrersQ complex integral.
+
+Moved here from `DLMF.Legendre.IntegralRepresentations` (round 13): the proof takes the
+boundary values of DLMF 14.25.2 at `cos θ ± i0` (`olverQ_boundary_upper`/`lower`) under
+dominated convergence. -/
+@[dlmf 14.12.E3]
+theorem ferrersQ_complex_integral {ν μ : ℂ} (hμ : -1/2 < μ.re) (h0 : -1 < (ν+μ).re) (h1 : -1 < (ν-μ).re) {θ : ℝ} (hθ : 0 < θ) (hπ : θ < π) :
+    HasIntegralAtTop (fun t : ℝ => Real.sqrt π*Gamma (ν+μ+1)*(Real.sin θ:ℂ)^μ/(2^(μ+1)*Gamma (μ+1/2)*Gamma (ν-μ+1))*(Real.sinh t:ℂ)^(2*μ)*(1/(Real.cos θ+I*Real.sin θ*Real.cosh t)^(ν+μ+1)+1/(Real.cos θ-I*Real.sin θ*Real.cosh t)^(ν+μ+1))) 0 (ferrersQ ν μ (Real.cos θ)) := by
+  have ha : 0 < (ν+μ+1).re := by simp at h0 ⊢; linarith
+  have h1' : μ.re < (ν+1).re := by simp at h1 ⊢; linarith
+  obtain ⟨hIp, hTp⟩ := legTr_side hμ ha h1' (σ := 1) (Or.inl rfl) hθ hπ
+  obtain ⟨hIm, hTm⟩ := legTr_side hμ ha h1' (σ := -1) (Or.inr rfl) hθ hπ
+  have hx : Real.cos θ ∈ Ioo (-1:ℝ) 1 := by
+    constructor
+    · have := Real.cos_lt_cos_of_nonneg_of_le_pi hθ.le le_rfl hπ; rwa [Real.cos_pi] at this
+    · have := Real.cos_lt_cos_of_nonneg_of_le_pi (le_refl 0) hπ.le hθ; rwa [Real.cos_zero] at this
+  have hr : LegendreQRegular ν μ := fun n hn => by
+    have := congrArg re hn; have h0' := h0; simp at this h0'; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
+  have hG : Gamma (ν+μ+1) ≠ 0 := Gamma_ne_zero_of_re_pos ha
+  rw [show ((1:ℝ):ℂ) = 1 from ofReal_one] at hTp
+  rw [show ((-1:ℝ):ℂ) = -1 by push_cast; ring] at hTm
+  have ep := tendsto_nhds_unique hTp (olverQ_boundary_upper ν μ hr hx)
+  have em := tendsto_nhds_unique hTm (olverQ_boundary_lower ν μ hr hx)
+  set E := exp (μ*π*I/2) with hE
+  have hE0 : E ≠ 0 := exp_ne_zero _
+  have e1 : exp ((1:ℂ)*μ*π*I/2) = E := by rw [hE]; ring_nf
+  have e2 : exp ((-1:ℂ)*μ*π*I/2) = E⁻¹ := by rw [hE, ← exp_neg]; ring_nf
+  have e3 : exp (-μ*π*I/2) = E⁻¹ := by rw [hE, ← exp_neg]; ring_nf
+  have e1' : exp (((1:ℝ):ℂ)*μ*π*I/2) = E := by rw [ofReal_one]; exact e1
+  have e2' : exp (((-1:ℝ):ℂ)*μ*π*I/2) = E⁻¹ := by rw [show ((-1:ℝ):ℂ) = -1 by push_cast; ring]; exact e2
+  have h2 : (2:ℂ)^(μ+1) = 2^μ*2 := by rw [cpow_add _ _ two_ne_zero, cpow_one]
+  have hfun : (fun t : ℝ => Real.sqrt π*Gamma (ν+μ+1)*(Real.sin θ:ℂ)^μ/(2^(μ+1)*Gamma (μ+1/2)*Gamma (ν-μ+1))*(Real.sinh t:ℂ)^(2*μ)*(1/(Real.cos θ+I*Real.sin θ*Real.cosh t)^(ν+μ+1)+1/(Real.cos θ-I*Real.sin θ*Real.cosh t)^(ν+μ+1))) =
+      fun t => Gamma (ν+μ+1)/2*(E⁻¹*legTr_sideKernel ν μ 1 θ t + E*legTr_sideKernel ν μ (-1) θ t) := by
+    funext t
+    unfold legTr_sideKernel
+    rw [legTr_side_exp μ hθ hπ, legTr_side_exp μ hθ hπ, e1', e2',
+      show (Real.cos θ:ℂ)+((1:ℝ):ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t = Real.cos θ+I*Real.sin θ*Real.cosh t by
+        push_cast; ring,
+      show (Real.cos θ:ℂ)+((-1:ℝ):ℂ)*I*(Real.sin θ:ℂ)*Real.cosh t = Real.cos θ-I*Real.sin θ*Real.cosh t by
+        push_cast; ring, h2]
+    field_simp
+  rw [hfun]
+  have hint : IntegrableOn (fun t => Gamma (ν+μ+1)/2*(E⁻¹*legTr_sideKernel ν μ 1 θ t +
+      E*legTr_sideKernel ν μ (-1) θ t)) (Ioi 0) :=
+    ((hIp.const_mul _).add (hIm.const_mul _)).const_mul _
+  have hlim := intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id
+  have hv : ∫ t in Ioi 0, Gamma (ν+μ+1)/2*(E⁻¹*legTr_sideKernel ν μ 1 θ t +
+      E*legTr_sideKernel ν μ (-1) θ t) = ferrersQ ν μ (Real.cos θ) := by
+    rw [integral_const_mul, integral_add (hIp.const_mul _) (hIm.const_mul _), integral_const_mul,
+      integral_const_mul, ep, em, e1, e2]
+    field_simp
+    ring
+  rw [hv] at hlim
+  exact hlim
+end FerrersQIntegral
 
 end DLMF.Legendre
