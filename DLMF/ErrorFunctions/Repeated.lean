@@ -20,7 +20,7 @@ derivative ladder, retaining reciprocal-Gamma zeros in all higher coefficients.
 
 @[expose] public noncomputable section
 open Complex Filter Set MeasureTheory Asymptotics DLMF.Hypergeometric DLMF
-open scoped Real Topology Nat
+open scoped Real Topology Nat Interval
 namespace DLMF.Confluent
 
 /-- Repeated complementary Gaussian tail; only indices at least -1 have mathematical meaning. -/
@@ -785,10 +785,230 @@ theorem iteratedErfc_continuedFraction (n : ℕ) {z : ℂ} (hz : 0 < z.re) :
     field_simp
     ring
 
+/-- Integrability of the weighted Gaussian kernel `tⁿ e^{-t²/4}` along a ray `|arg t| < π/4`,
+against any real exponential. -/
+lemma erfInv_integrableOn_pow_gauss_rotate (n : ℕ) (c : ℝ) {θ : ℝ} (hθ : |θ| < π / 4) :
+    IntegrableOn (fun r : ℝ => Real.exp (-c * r) •
+      ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)))) (Ioi 0) := by
+  obtain ⟨K, hK0, hK⟩ := exists_rpow_mul_exp_neg_le' (n : ℝ) one_pos
+  have hint := (integrableOn_gauss_rotate (c - 1) hθ).norm.const_mul (max 1 K)
+  refine hint.mono' (by
+    refine ContinuousOn.aestronglyMeasurable ?_ measurableSet_Ioi
+    fun_prop) ?_
+  refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun r hr => ?_)
+  have hr : (0 : ℝ) < r := hr
+  have hbound : r ^ n * Real.exp (-r) ≤ max 1 K := by
+    rcases le_or_gt r 1 with h1 | h1
+    · have : r ^ n ≤ 1 := pow_le_one₀ hr.le h1
+      have : Real.exp (-r) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+      calc r ^ n * Real.exp (-r) ≤ 1 * 1 := by gcongr
+        _ ≤ _ := by simp
+    · have := hK r h1.le
+      rw [Real.rpow_natCast, neg_one_mul] at this
+      exact this.trans (le_max_right _ _)
+  rw [norm_smul, norm_smul, norm_mul, norm_pow, norm_mul, Complex.norm_real, norm_exp_ofReal_mul_I,
+    mul_one, Real.norm_of_nonneg hr.le, Real.norm_of_nonneg (Real.exp_pos _).le,
+    Real.norm_of_nonneg (Real.exp_pos _).le]
+  have he : Real.exp (-c * r) = (r ^ n * Real.exp (-r)) * Real.exp (-(c - 1) * r) / r ^ n := by
+    rw [mul_assoc, ← Real.exp_add]
+    field_simp
+    ring_nf
+  have hrn : 0 < r ^ n := pow_pos hr n
+  calc Real.exp (-c * r) * (r ^ n * ‖cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4))‖)
+      = (r ^ n * Real.exp (-r)) * (Real.exp (-(c - 1) * r) *
+          ‖cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4))‖) := by
+        rw [he]; field_simp
+    _ ≤ max 1 K * (Real.exp (-(c - 1) * r) * ‖cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4))‖) := by
+        gcongr
+/-- Laplace form of the repeated erfc integral:
+`iⁿerfc z = 2 π^{-1/2} e^{-z²} / (2^{n+1} n!) ∫₀^∞ e^{-zs} sⁿ e^{-s²/4} ds`. -/
+lemma erfInv_iteratedErfc_eq_laplace (n : ℕ) (z : ℂ) :
+    iteratedErfc n z = 2 / Real.sqrt π * cexp (-z ^ 2) / (2 ^ (n + 1) * (n.factorial : ℂ)) *
+      ∫ s in Ioi (0 : ℝ), cexp (-(z * s)) * ((s : ℂ) ^ n * cexp (-((s : ℂ) ^ 2 / 4))) := by
+  have hn1 : (n : ℤ) ≠ -1 := by omega
+  have hn0 : ¬ (n : ℤ) < 0 := by omega
+  simp only [iteratedErfc, hn1, hn0, ↓reduceIte, Int.toNat_natCast]
+  have h2 := integral_comp_mul_left_Ioi
+    (fun t : ℝ => cexp (-(z * t)) * ((t : ℂ) ^ n * cexp (-((t : ℂ) ^ 2 / 4)))) 0
+    (two_pos : (0 : ℝ) < 2)
+  rw [mul_zero] at h2
+  have hcomp : ∫ s in Ioi (0 : ℝ), cexp (-(z * ((2 * s : ℝ) : ℂ))) *
+      ((((2 * s : ℝ) : ℂ)) ^ n * cexp (-((((2 * s : ℝ) : ℂ)) ^ 2 / 4))) =
+      ∫ s in Ioi (0 : ℝ), (2 ^ n * (n.factorial : ℂ) * cexp (z ^ 2)) *
+        ((s : ℂ) ^ n / (n.factorial : ℂ) * cexp (-(z + s) ^ 2)) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun s _ => ?_
+    have hf : (n.factorial : ℂ) ≠ 0 := by exact_mod_cast n.factorial_ne_zero
+    push_cast
+    rw [mul_pow]
+    field_simp
+    have he : cexp (-(z * 2 * s)) * cexp (-(2 ^ 2 * (s : ℂ) ^ 2 / 4)) =
+        cexp (z ^ 2) * cexp (-(z + s) ^ 2) := by
+      rw [← Complex.exp_add, ← Complex.exp_add]; ring_nf
+    linear_combination (s : ℂ) ^ n * he
+  rw [hcomp, integral_const_mul] at h2
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hf : (n.factorial : ℂ) ≠ 0 := by exact_mod_cast n.factorial_ne_zero
+  have hE : cexp (-z ^ 2) * cexp (z ^ 2) = 1 := by rw [← Complex.exp_add]; simp
+  rw [Complex.real_smul] at h2
+  generalize (∫ s in Ioi (0 : ℝ), cexp (-(z * s)) * ((s : ℂ) ^ n * cexp (-((s : ℂ) ^ 2 / 4)))) = I2
+    at h2 ⊢
+  generalize (∫ t in Ioi (0 : ℝ), (t : ℂ) ^ n / (n.factorial : ℂ) * cexp (-(z + t) ^ 2)) = I1
+    at h2 ⊢
+  push_cast at h2
+  have hI2 : I2 = 2 * (2 ^ n * (n.factorial : ℂ) * cexp (z ^ 2) * I1) := by
+    rw [h2]; ring
+  rw [hI2]
+  field_simp
+  linear_combination (-(2 * 2 ^ n * I1)) * hE
+
+/-- Rotated Laplace form of the repeated erfc integral, valid for every complex `z` and
+`|θ| < π/4`. -/
+lemma erfInv_iteratedErfc_eq_rotate (n : ℕ) {θ : ℝ} (hθ : |θ| < π / 4) (z : ℂ) :
+    iteratedErfc n z = 2 / Real.sqrt π * cexp (-z ^ 2) / (2 ^ (n + 1) * (n.factorial : ℂ)) *
+      (exp (θ * I) * ∫ r in Ioi (0 : ℝ), cexp (-(z * exp (θ * I) * r)) *
+        ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)))) := by
+  have hL : Differentiable ℂ (fun w : ℂ => ∫ r in Ioi (0 : ℝ), cexp (-(w * r)) •
+      ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)))) := fun w =>
+    (differentiableOn_integral_cexp_neg_mul_smul
+      (erfInv_integrableOn_pow_gauss_rotate n (w.re - 1) hθ)).differentiableAt
+      ((isOpen_lt continuous_const continuous_re).mem_nhds (by simp))
+  simp only [smul_eq_mul] at hL
+  have hd2 : Differentiable ℂ (fun z : ℂ => 2 / Real.sqrt π * cexp (-z ^ 2) /
+      (2 ^ (n + 1) * (n.factorial : ℂ)) * (exp (θ * I) * ∫ r in Ioi (0 : ℝ),
+        cexp (-(z * exp (θ * I) * r)) *
+        ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4))))) := by
+    have := hL.comp (differentiable_id.mul_const (exp (θ * I)))
+    exact (((differentiable_const _).mul (by fun_prop)).div_const _).mul
+      ((differentiable_const _).mul this)
+  have hreal : ∀ x : ℝ, 0 < x → iteratedErfc n x = 2 / Real.sqrt π * cexp (-(x : ℂ) ^ 2) /
+      (2 ^ (n + 1) * (n.factorial : ℂ)) * (exp (θ * I) * ∫ r in Ioi (0 : ℝ),
+        cexp (-((x : ℂ) * exp (θ * I) * r)) *
+        ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)))) := by
+    intro x hx
+    rw [erfInv_iteratedErfc_eq_laplace n x]
+    congr 1
+    have hy : ∀ y ∈ [[0, θ]], |y| ≤ π / 4 := fun y hy =>
+      (abs_le_abs_of_mem_uIcc_zero hy).trans hθ.le
+    refine integral_cexp_neg_mul_mul_eq_rotate (F := fun t => t ^ n * cexp (-(t ^ 2 / 4)))
+      (σ := 1) (C := 1) (k := n) one_pos (fun r _ y _ => by fun_prop)
+      (fun r hr hr1 y hy' => ?_) (fun r hr y hy' => ?_) (fun y hy' => ?_)
+    · rw [sub_self, Real.rpow_zero, mul_one, norm_mul, norm_pow, norm_mul, Complex.norm_real,
+        norm_exp_ofReal_mul_I, mul_one, Real.norm_of_nonneg hr.le]
+      have h1 : r ^ n ≤ 1 := pow_le_one₀ hr.le hr1
+      have h2 := norm_cexp_neg_ofReal_mul_exp_ofReal_mul_I_sq_le_one r (hy y hy')
+      calc r ^ n * _ ≤ 1 * 1 := by gcongr
+        _ = 1 := one_mul 1
+    · rw [one_mul, Real.rpow_natCast, norm_mul, norm_pow, norm_mul, Complex.norm_real,
+        norm_exp_ofReal_mul_I, mul_one, Real.norm_of_nonneg (by linarith)]
+      have h2 := norm_cexp_neg_ofReal_mul_exp_ofReal_mul_I_sq_le_one r (hy y hy')
+      calc r ^ n * _ ≤ r ^ n * 1 := by gcongr
+        _ = r ^ n := mul_one _
+    · rw [re_ofReal_mul, exp_ofReal_mul_I_re]
+      have := hy y hy'
+      exact mul_pos hx (Real.cos_pos_of_mem_Ioo ⟨by linarith [neg_abs_le y, Real.pi_pos],
+        by linarith [le_abs_self y, Real.pi_pos]⟩)
+  have hfreq : ∃ᶠ w in 𝓝[≠] (1 : ℂ), iteratedErfc n w = 2 / Real.sqrt π * cexp (-w ^ 2) /
+      (2 ^ (n + 1) * (n.factorial : ℂ)) * (exp (θ * I) * ∫ r in Ioi (0 : ℝ),
+        cexp (-(w * exp (θ * I) * r)) *
+        ((((r : ℂ) * exp (θ * I)) ^ n) * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)))) := by
+    have ht : Tendsto (fun r : ℝ => (r : ℂ)) (𝓝[≠] (1 : ℝ)) (𝓝[≠] (1 : ℂ)) := by
+      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+      · have := (continuous_ofReal.tendsto (1 : ℝ)).mono_left
+          (nhdsWithin_le_nhds (s := ({1}ᶜ : Set ℝ)))
+        rwa [ofReal_one] at this
+      · filter_upwards [self_mem_nhdsWithin] with r hr
+        simpa using hr
+    apply ht.frequently
+    apply Eventually.frequently
+    filter_upwards [nhdsWithin_le_nhds (Ioi_mem_nhds (zero_lt_one' ℝ))] with r hr
+    exact hreal r hr
+  exact ((differentiable_iteratedErfc n).differentiableOn.analyticOnNhd isOpen_univ
+    ).eqOn_of_preconnected_of_frequently_eq
+    (hd2.differentiableOn.analyticOnNhd isOpen_univ) isPreconnected_univ (mem_univ _) hfreq
+    (mem_univ z)
+
+/-- Taylor remainders of `tⁿ e^{-t²/4}` along a ray, in the form required by Watson's lemma
+with `μ = n + 1`. -/
+lemma erfInv_pow_gauss_sub_sum_isBigO (n : ℕ) (θ : ℝ) (N : ℕ) :
+    (fun r : ℝ => ((r : ℂ) * exp (θ * I)) ^ n * cexp (-(((r : ℂ) * exp (θ * I)) ^ 2 / 4)) -
+      ∑ k ∈ Finset.range N,
+        (((r : ℂ) * exp (θ * I)) ^ ((k : ℂ) + ((n : ℂ) + 1) - 1)) • gaussQuarterCoeff k)
+      =O[𝓝[>] 0] fun r => r ^ ((N : ℝ) + ((n : ℂ) + 1).re - 1) := by
+  have h1 : (fun r : ℝ => ((r : ℂ) * exp (θ * I)) ^ n) =O[𝓝[>] 0] fun r : ℝ => r ^ n := by
+    refine IsBigO.of_bound 1 (Eventually.of_forall fun r => ?_)
+    rw [norm_pow, norm_mul, Complex.norm_real, norm_exp_ofReal_mul_I, mul_one, norm_pow, one_mul]
+  have h := h1.mul (gauss_sub_sum_isBigO θ N)
+  refine h.congr' (Eventually.of_forall fun r => ?_) ?_
+  · simp only [add_sub_cancel_right, cpow_natCast, smul_eq_mul, mul_sub,
+      Finset.mul_sum]
+    congr 1
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [show (k : ℂ) + ((n : ℂ) + 1) - 1 = ((k + n : ℕ) : ℂ) by push_cast; ring, cpow_natCast,
+      pow_add]
+    ring
+  · filter_upwards [self_mem_nhdsWithin] with r hr
+    have hr : (0 : ℝ) < r := hr
+    simp only [one_re, add_sub_cancel_right, add_re, natCast_re]
+    rw [← Real.rpow_natCast, ← Real.rpow_add hr]
+    congr 1
+    ring
+
+/-- `iⁿerfc z ~ 2π^{-1/2} e^{-z²} ∑ (-1)ᵐ (2m+n)!/(n! m!) (2z)^{-n-1-2m}` in a rotated sector. -/
+lemma erfInv_iteratedErfc_rotSector (n : ℕ) {θ δ : ℝ} (hθ : |θ| < π / 4) (hδ : 0 < δ) :
+    HasAsymptoticExpansion (comap (fun z : ℂ => z * exp (θ * I)) (sectorAtTop δ))
+      (fun m z => 2 / Real.sqrt π * exp (-z ^ 2) / (2 * z) ^ (n + 1 + 2 * m))
+      (fun m => (-1 : ℂ) ^ m * (2 * m + n).factorial / ((n.factorial : ℂ) * m.factorial))
+      (iteratedErfc n) := by
+  have hθ' : |θ| < π / 2 := by linarith [Real.pi_pos]
+  have hW := hasAsymptoticExpansion_integral_cexp_smul_rotate_comap
+    (F := fun t => t ^ n * cexp (-(t ^ 2 / 4))) (a := gaussQuarterCoeff) (μ := (n : ℂ) + 1)
+    (c := 0) hθ' (by simp; positivity) hδ (erfInv_integrableOn_pow_gauss_rotate n 0 hθ)
+    (erfInv_pow_gauss_sub_sum_isBigO n θ)
+  have hE := hW.even (fun m => by
+    have : ¬ Even (2 * m + 1) := by simp
+    simp [gaussQuarterCoeff, this])
+  set c0 : ℂ := 2 / Real.sqrt π / (2 ^ (n + 1) * (n.factorial : ℂ)) with hc0
+  have h3 := (hE.const_smul c0).mul_left (fun z : ℂ => cexp (-z ^ 2))
+  have hπ : (Real.sqrt π : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hf : (n.factorial : ℂ) ≠ 0 := by exact_mod_cast n.factorial_ne_zero
+  refine ((h3.congr' (Eventually.of_forall fun z => ?_)).smul_scale
+    (κ := fun m => (Real.sqrt π / 2 : ℂ) * 2 ^ (n + 1 + 2 * m))
+    (ψ := fun m z => 2 / Real.sqrt π * exp (-z ^ 2) / (2 * z) ^ (n + 1 + 2 * m))
+    fun m => Eventually.of_forall fun z => ?_).congr_coeff ?_
+  · simp only [Pi.smul_apply, smul_eq_mul]
+    rw [erfInv_iteratedErfc_eq_rotate n hθ z, hc0]
+    ring
+  · simp only
+    rw [show -(((2 * m : ℕ) : ℂ) + ((n : ℂ) + 1)) = -((n + 1 + 2 * m : ℕ) : ℂ) by push_cast; ring,
+      cpow_neg, cpow_natCast, mul_pow]
+    field_simp
+  · funext m
+    have hm : (m.factorial : ℂ) ≠ 0 := by exact_mod_cast m.factorial_ne_zero
+    simp only [Pi.smul_apply, smul_eq_mul, gaussQuarterCoeff, even_two_mul, ite_true,
+      show 2 * m / 2 = m by omega, hc0]
+    rw [show ((2 * m : ℕ) : ℂ) + ((n : ℂ) + 1) = ((2 * m + n : ℕ) : ℂ) + 1 by push_cast; ring,
+      Complex.Gamma_nat_eq_factorial]
+    rw [div_pow, pow_add 2 (n + 1), pow_mul]
+    have h4 : (4 : ℂ) ^ m ≠ 0 := pow_ne_zero _ (by norm_num)
+    norm_num
+    field_simp
+
 /-- iteratedErfc asymptotic. -/
 @[dlmf 7.18.E14]
 theorem iteratedErfc_asymptotic (n : ℕ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 3*π/4) :
     HasAsymptoticExpansion (sector (3*π/4-δ)) (fun m z => 2/Real.sqrt π*exp (-z^2)/(2*z)^(n+1+2*m)) (fun m => (-1 : ℂ)^m*(2*m+n).factorial/((n.factorial : ℂ)*m.factorial)) (iteratedErfc n) := by
-  sorry
+  set d := min δ (π / 4) with hd
+  have hd0 : 0 < d := lt_min hδ (by positivity)
+  have hdδ : d ≤ δ := min_le_left _ _
+  have hdπ : d ≤ π / 4 := min_le_right _ _
+  have hcov := le_sup_comap_rotate (α := 3 * π / 4 - δ) (β := π / 4 - d / 2) (γ := π / 2 - d / 2)
+    (by linarith) (by linarith) (by linarith) (by linarith)
+  have hcos : 0 < Real.cos (π / 2 - d / 2) :=
+    Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos], by linarith⟩
+  have hβ : |π / 4 - d / 2| < π / 4 := by
+    rw [abs_lt]; constructor <;> linarith
+  have h1 := erfInv_iteratedErfc_rotSector n (θ := -(π / 4 - d / 2)) (by rwa [abs_neg]) hcos
+  have h2 := erfInv_iteratedErfc_rotSector n (θ := π / 4 - d / 2) hβ hcos
+  exact (h1.sup h2).mono hcov
 
 end DLMF.Confluent
