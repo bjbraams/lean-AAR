@@ -111,7 +111,7 @@ lemma div_sub_one_cpow_lower {z : ℂ} (hi : z.im < 0) (y : ℂ) :
     (im_log_div_sub_one_lower hi).1 (im_log_div_sub_one_lower hi).2 y
 
 /-- `(1 - 1/z)^y` in the upper half-plane. -/
-lemma one_sub_inv_cpow_upper {z : ℂ} (hi : 0 < z.im) (y : ℂ) :
+lemma one_sub_recip_cpow_upper {z : ℂ} (hi : 0 < z.im) (y : ℂ) :
     (1 - 1 / z) ^ y = exp ((log (1 - z) - log z + Real.pi * I) * y) := by
   have hz0 : z ≠ 0 := by rintro rfl; simp at hi
   have hz1 : 1 - z ≠ 0 := by intro h; have := congrArg im h; simp at this; linarith
@@ -376,7 +376,7 @@ theorem kummer_five_representations
   have hleft : kummerFive a b c z = kummerFiveLeft a b c z := by
     simp only [kummerFive, infinityFirst, kummerFiveLeft]
     rw [pfaff_transformation_of_ne_neg_nat hc hwn hwn', hww,
-      show a - b + 1 - (a - c + 1) = c - b by ring, one_sub_inv_cpow_upper hi,
+      show a - b + 1 - (a - c + 1) = c - b by ring, one_sub_recip_cpow_upper hi,
       cpow_eq_exp_log hz0, cpow_eq_exp_log h1z]
     have e : exp (↑a * ↑Real.pi * I) * (exp (log z * -a) *
         exp ((log (1 - z) - log z + ↑Real.pi * I) * -a)) = exp (log (1 - z) * -a) := by
@@ -387,7 +387,7 @@ theorem kummer_five_representations
   · simp only [kummerFive, infinityFirst]
     rw [euler_transformation_of_ne_neg_nat hc hwn, show a - b + 1 - a - (a - c + 1) = c - a - b by
       ring, show a - b + 1 - a = 1 - b by ring, show a - b + 1 - (a - c + 1) = c - b by ring,
-      one_sub_inv_cpow_upper hi, cpow_eq_exp_log hz0, cpow_eq_exp_log hz0, cpow_eq_exp_log h1z]
+      one_sub_recip_cpow_upper hi, cpow_eq_exp_log hz0, cpow_eq_exp_log hz0, cpow_eq_exp_log h1z]
     have e : exp (↑a * ↑Real.pi * I) * (exp (log z * -a) *
         exp ((log (1 - z) - log z + ↑Real.pi * I) * (c - a - b))) =
         exp ((c - b) * ↑Real.pi * I) * exp (log z * (b - c)) * exp (log (1 - z) * (c - a - b)) := by
@@ -538,7 +538,7 @@ theorem kummer_five_connection_one {a b c z : ℂ} (_hc : ∀ k : ℤ, c ≠ (k 
   simp only [oneFirst, oneSecond]
   rw [show a + (a - c + 1) - (a - b + 1) + 1 = a + b - c + 1 by ring,
     show a - b + 1 - a - (a - c + 1) = c - a - b by ring, show a - b + 1 - a = 1 - b by ring,
-    show a - b + 1 - (a - c + 1) = c - b by ring, one_sub_inv_cpow_upper hi,
+    show a - b + 1 - (a - c + 1) = c - b by ring, one_sub_recip_cpow_upper hi,
     cpow_eq_exp_log hz0 (-a), cpow_eq_exp_log hz0 (b - c), cpow_eq_exp_log h1z (c - a - b)]
   have e : exp (↑a * ↑Real.pi * I) * (exp (log z * -a) *
       exp ((log (1 - z) - log z + ↑Real.pi * I) * (c - a - b))) =

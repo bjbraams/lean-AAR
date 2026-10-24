@@ -303,7 +303,7 @@ lemma scorerPrim_integral_euler {x : ℝ} (hx : 0 < x) :
   · simp_rw [hpt]; exact hgi.const_mul x
   · simp_rw [hpt]
     rw [integral_const_mul, integral_comp_mul_left_Ioi g 0 hx, mul_zero, smul_eq_mul,
-      ← mul_assoc, mul_inv_cancel₀ hx.ne', one_mul, DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add]
+      ← mul_assoc, mul_inv_cancel₀ hx.ne', one_mul, DLMF.Gamma.eulerMascheroni_eq_integral_recip_one_add]
 
 /-- `∫₀^∞ (e^{-v³/3} - (1+v³/3)⁻¹)/v dv = -γ/3`, with integrability. -/
 lemma scorerPrim_integral_cube :
@@ -318,7 +318,7 @@ lemma scorerPrim_integral_cube :
   have hgv : ∫ y in Ioi (0 : ℝ), g y = 3 * Real.eulerMascheroniConstant := by
     simp only [g]
     rw [integral_comp_mul_left_Ioi φ 0 (by norm_num : (0 : ℝ) < 1 / 3), mul_zero, smul_eq_mul,
-      ← DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add]
+      ← DLMF.Gamma.eulerMascheroni_eq_integral_recip_one_add]
     norm_num
   have hpt : ∀ v : ℝ, 0 < v → (Real.exp (-(v ^ 3 / 3)) - 1 / (1 + v ^ 3 / 3)) / v =
       -(1 / 9) * ((|(3 : ℝ)| * v ^ ((3 : ℝ) - 1)) • g (v ^ (3 : ℝ))) := by

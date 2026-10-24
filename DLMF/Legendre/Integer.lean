@@ -29,7 +29,7 @@ noncomputable section
 namespace DLMF.Legendre
 
 /-- `1/Γ(z) = z/Γ(z+1)` for every `z`. -/
-lemma inv_Gamma_succ' (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
+lemma recip_Gamma_succ' (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
   have h := one_div_Gamma_eq_self_mul_one_div_Gamma_add_one z
   simpa [one_div] using h
 
@@ -62,7 +62,7 @@ lemma regularizedGaussHGFun_legendreQ (a b : ℂ) {u : ℂ} (hu : ‖u‖ < 1) :
           (n.factorial : ℂ) * (Gamma (c + 1 + n))⁻¹)) = fun _ => 0 := by
     funext n
     have hG : (Gamma (c - 1 + ((n + 1 : ℕ) : ℂ)))⁻¹ = (c + n) * (Gamma (c + 1 + n))⁻¹ := by
-      rw [show c - 1 + ((n + 1 : ℕ) : ℂ) = c + n by push_cast; ring, inv_Gamma_succ' (c + n),
+      rw [show c - 1 + ((n + 1 : ℕ) : ℂ) = c + n by push_cast; ring, recip_Gamma_succ' (c + n),
         show c + n + 1 = c + 1 + n by ring]
     have hG' : (Gamma (c + ((n + 1 : ℕ) : ℂ)))⁻¹ = (Gamma (c + 1 + n))⁻¹ := by
       rw [show c + ((n + 1 : ℕ) : ℂ) = c + 1 + n by push_cast; ring]
@@ -83,7 +83,7 @@ lemma regularizedGaussHGFun_legendreQ (a b : ℂ) {u : ℂ} (hu : ‖u‖ < 1) :
         ((0 : ℕ).factorial : ℂ) * (Gamma (c + ((0 : ℕ) : ℂ)))⁻¹) = 0 := by
     simp only [ascPochhammer_zero, Polynomial.eval_one, pow_zero, Nat.factorial_zero,
       Nat.cast_one, Nat.cast_zero, add_zero, div_one, one_mul]
-    rw [inv_Gamma_succ' (c - 1), sub_add_cancel]; ring
+    rw [recip_Gamma_succ' (c - 1), sub_add_cancel]; ring
   linear_combination h0 + hT
 
 
@@ -108,7 +108,7 @@ theorem legendreQ_recurrence {ν : ℂ} (hν : ν ≠ 0) {z : ℂ} (hz : z - 1 �
     (ν + 1) * legendreQ (ν + 1) z - (2 * ν + 1) * z * legendreQ ν z +
       ν * legendreQ (ν - 1) z = 0 := by
   have hz0 := slitPlane_ne_zero (mem_slitPlane_of_sub_one hz)
-  have hu := inv_sq_mem_cutPlane hz
+  have hu := recip_sq_mem_cutPlane hz
   set a := (ν + 2) / 2
   set b := (ν + 1) / 2
   have hid := regularizedGaussHG_legendreQ a b hu
@@ -165,7 +165,7 @@ lemma regularizedGaussHG_zero_left (b c : ℂ) {u : ℂ} (hu : u ∈ cutPlane) :
 theorem legendreQ_one {z : ℂ} (hz : z - 1 ∈ slitPlane) :
     legendreQ 1 z = z * legendreQ 0 z - 1 := by
   have hz0 := slitPlane_ne_zero (mem_slitPlane_of_sub_one hz)
-  have hu := inv_sq_mem_cutPlane hz
+  have hu := recip_sq_mem_cutPlane hz
   have hid := regularizedGaussHG_legendreQ 1 (1 / 2) hu
   rw [show (1 : ℂ) - 1 = 0 by ring, show (1 : ℂ) + 1 / 2 - 1 = 1 / 2 by norm_num,
     regularizedGaussHG_zero_left _ _ hu, show (1 : ℂ) + 1 / 2 = 3 / 2 by norm_num,

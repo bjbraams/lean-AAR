@@ -8,17 +8,27 @@ module
 public import DLMF.IncompleteGamma.Asymptotics
 public import DLMF.Gamma.Asymptotics
 public import ToMathlib.Analysis.Complex.StarPrimitive
+public import Mathlib.Analysis.Calculus.InverseFunctionTheorem.Analytic
+public import Mathlib.Analysis.Complex.TaylorSeries
+public import Mathlib.Topology.Homotopy.Lifting
+public import Mathlib.Analysis.Convex.Contractible
+public import TauCeti.Topology.Covering.Proper
 
 /-!
 # Uniform incomplete-Gamma expansions and inversion, DLMF §8.12
 
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
-New theorem statements are initially admitted and are not completed proofs.
+The inverse continues to the full Maclaurin disk through Mathlib's covering-space
+lifting theorem and the Tau Ceti contributors' proper local-homeomorphism criterion
+(`TauCeti.Topology.Covering.Proper`). Compact sublevel estimates keep its preimages
+inside the zero-free strip. The local inverse uses Mathlib's analytic inverse-function
+theorem, and its series uses `Complex.hasSum_taylorSeries_on_ball`.
+Uniform remainder estimates and further coefficient statements remain admitted.
 -/
 
 @[expose] public noncomputable section
-open Complex Filter Set MeasureTheory Asymptotics DLMF.Hypergeometric DLMF
+open Topology Complex Filter Set MeasureTheory Asymptotics DLMF.Hypergeometric DLMF
 open scoped Real Topology Nat ENNReal
 namespace DLMF.Confluent
 
@@ -567,6 +577,44 @@ theorem gammaUniformC_first {w : ℂ} (hw : |w.im| < 2*π) (hw0 : w ≠ 0) :
     gammaUniformC 0 w=1/(exp w-1)-1/gammaUniformEtaOnLog w ∧ gammaUniformC 1 w=1/gammaUniformEtaOnLog w^3-1/(exp w-1)^3-1/(exp w-1)^2-1/(12*(exp w-1)) :=
   incG_gammaUniformC_first hw hw0
 
+/-- The normalized η coordinate is holomorphic throughout the zero-free strip. -/
+theorem incG_gammaUniformEta_analyticOnNhd :
+    AnalyticOnNhd ℂ gammaUniformEtaOnLog incG_strip := by
+  refine (show DifferentiableOn ℂ gammaUniformEtaOnLog incG_strip from ?_).analyticOnNhd
+    incG_strip_isOpen
+  intro w hw
+  by_cases hw0 : w = 0
+  · subst w
+    exact gammaUniformEta_normalization.1.differentiableAt.differentiableWithinAt
+  · exact (gammaUniformEta_derivative hw hw0).differentiableAt.differentiableWithinAt
+
+/-- The derivative of η has no zeros in the strip. -/
+theorem incG_gammaUniformEta_deriv_ne_zero {w : ℂ} (hw : w ∈ incG_strip) :
+    deriv gammaUniformEtaOnLog w ≠ 0 := by
+  by_cases hw0 : w = 0
+  · subst w
+    rw [gammaUniformEta_normalization.1.deriv]
+    exact one_ne_zero
+  · rw [(gammaUniformEta_derivative hw hw0).deriv]
+    exact div_ne_zero (incG_exp_sub_one_ne_zero hw hw0)
+      (incG_gammaUniformEta_ne_zero hw hw0)
+
+/-- η has a normalized analytic inverse in some neighborhood of zero. -/
+theorem incG_gammaUniformEta_exists_local_inverse :
+    ∃ f : ℂ → ℂ, AnalyticAt ℂ f 0 ∧ HasDerivAt f 1 0 ∧ f 0 = 0 ∧
+      (∀ᶠ w in 𝓝 (0 : ℂ), f (gammaUniformEtaOnLog w) = w) ∧
+      ∀ᶠ η in 𝓝 (0 : ℂ), gammaUniformEtaOnLog (f η) = η := by
+  have ha := incG_gammaUniformEta_analyticOnNhd 0 incG_zero_mem_strip
+  have hd := incG_gammaUniformEta_deriv_ne_zero incG_zero_mem_strip
+  have hs := ha.hasStrictDerivAt
+  have hl := hs.eventually_left_inverse hd
+  refine ⟨hs.localInverse _ _ _ hd, ?_, ?_, ?_, hl, ?_⟩
+  · simpa only [gammaUniformEta_normalization.2] using ha.analyticAt_localInverse hd
+  · simpa only [gammaUniformEta_normalization.1.deriv,
+      gammaUniformEta_normalization.2, inv_one] using (hs.to_localInverse hd).hasDerivAt
+  · simpa only [gammaUniformEta_normalization.2] using hl.self_of_nhds
+  · simpa only [gammaUniformEta_normalization.2] using hs.eventually_right_inverse hd
+
 /-- Uniform large-a filter with independently bounded log arguments of a and λ. -/
 def gammaUniformFilter (α β : ℝ) : Filter (ℂ × ℂ) :=
   comap (fun p : ℂ × ℂ => Real.exp p.1.re) atTop ⊓ 𝓟 {p : ℂ × ℂ | |p.1.im| ≤ α ∧ |p.2.im| ≤ β}
@@ -595,11 +643,181 @@ def gammaUniformAlpha (n : ℕ) : ℂ :=
 def gammaUniformD (k n : ℕ) : ℂ :=
   iteratedDeriv n (fun η => gammaUniformC k (gammaUniformInverseLog η)) 0/(n.factorial : ℂ)
 
+/-- A bounded image of the saddle coordinate in the closed strip has bounded preimage. -/
+lemma gammaInv_norm_bound {w : ℂ} {M : ℝ} (hw : |w.im| ≤ 2*π) (hF : ‖exp w-1-w‖ ≤ M) :
+    ‖w‖ ≤ M+4*π+2 := by
+  have hnorm := norm_le_abs_re_add_abs_im w
+  have hexp : Real.exp w.re ≤ M+1+‖w‖ := by
+    rw [← norm_exp]
+    calc ‖exp w‖ = ‖(exp w-1-w)+(1+w)‖ := by ring_nf
+      _ ≤ ‖exp w-1-w‖+‖1+w‖ := norm_add_le _ _
+      _ ≤ M+(1+‖w‖) := add_le_add hF (by simpa using norm_add_le (1:ℂ) w)
+      _ = _ := by ring
+  rcases le_or_gt w.re 0 with hx | hx
+  · have h0 : ‖w‖ ≤ Real.exp w.re+1+M := by
+      calc ‖w‖ = ‖exp w-1-(exp w-1-w)‖ := by ring_nf
+        _ ≤ ‖exp w-1‖+‖exp w-1-w‖ := norm_sub_le _ _
+        _ ≤ (‖exp w‖+‖(1:ℂ)‖)+M := add_le_add (norm_sub_le _ _) hF
+        _ = _ := by rw [norm_exp, norm_one]
+    have he : Real.exp w.re ≤ 1 := Real.exp_le_one_iff.mpr hx
+    linarith [Real.pi_pos]
+  · have hn : ‖w‖ ≤ w.re+2*π := by
+      calc ‖w‖ ≤ |w.re|+|w.im| := hnorm
+        _ ≤ w.re+2*π := by rw [abs_of_pos hx]; linarith
+    have hq := Real.quadratic_le_exp_of_nonneg hx.le
+    have hxB : w.re ≤ M+2*π+1 := by nlinarith [sq_nonneg (M+2*π)]
+    linarith
+
+/-- Points on the strip boundary map outside the Maclaurin disk. -/
+lemma gammaInv_boundary_norm {w : ℂ} (hw : |w.im|=2*π) :
+    2*π ≤ ‖exp w-1-w‖ := by
+  have hsin : Real.sin w.im = 0 := by
+    rcases abs_eq (by positivity : (0:ℝ) ≤ 2*π) |>.mp hw with h | h
+    · rw [h, Real.sin_two_pi]
+    · rw [h, Real.sin_neg, Real.sin_two_pi, neg_zero]
+  have hi := abs_im_le_norm (exp w-1-w)
+  simpa [Complex.exp_im, hsin, hw] using hi
+
+/-- A sublevel set below the first critical image stays compactly inside the strip. -/
+lemma gammaInv_compact_sublevel {M : ℝ} (_hM : 0 ≤ M) (hMπ : M < 2*π) :
+    IsCompact {w : ℂ | |w.im| ≤ 2*π ∧ ‖exp w-1-w‖ ≤ M} ∧
+      {w : ℂ | |w.im| ≤ 2*π ∧ ‖exp w-1-w‖ ≤ M} ⊆ incG_strip := by
+  have hc : IsClosed {w : ℂ | |w.im| ≤ 2*π ∧ ‖exp w-1-w‖ ≤ M} :=
+    (isClosed_le (f := fun w : ℂ => |w.im|) (g := fun _ => 2*π)
+      (by fun_prop) continuous_const).inter
+      (isClosed_le (f := fun w : ℂ => ‖exp w-1-w‖) (g := fun _ => M)
+        (by fun_prop) continuous_const)
+  constructor
+  · refine Metric.isCompact_iff_isClosed_bounded.mpr ⟨hc, ?_⟩
+    refine (Metric.isBounded_closedBall (x := (0:ℂ)) (r := M+4*π+2)).subset ?_
+    intro w hw
+    simpa using gammaInv_norm_bound hw.1 hw.2
+  · intro w hw
+    change |w.im| < 2*π
+    exact lt_of_le_of_ne hw.1 (fun he => not_le.mpr hMπ ((gammaInv_boundary_norm he).trans hw.2))
+
+/-- Compact subsets of the inverse disk have compact preimage in the strip. -/
+lemma gammaInv_compact_preimage {K : Set ℂ}
+    (hKsub : K ⊆ Metric.ball (0:ℂ) (2*Real.sqrt π)) (hK : IsCompact K) :
+    IsCompact (incG_strip ∩ gammaUniformEtaOnLog ⁻¹' K) := by
+  rcases K.eq_empty_or_nonempty with rfl | hne
+  · simp
+  obtain ⟨η₀, hη₀, hmax⟩ := hK.exists_isMaxOn hne continuous_norm.continuousOn
+  have hB : ‖η₀‖ < 2*Real.sqrt π := by simpa using hKsub hη₀
+  let M : ℝ := ‖η₀‖^2/2
+  have hM : 0 ≤ M := by positivity
+  have hMπ : M < 2*π := by
+    have hsq := Real.sq_sqrt Real.pi_pos.le
+    have hs := Real.sqrt_nonneg π
+    have hn := norm_nonneg η₀
+    dsimp [M]; nlinarith
+  let C : Set ℂ := {w : ℂ | |w.im| ≤ 2*π ∧ ‖exp w-1-w‖ ≤ M}
+  obtain ⟨hCc, hCs⟩ := gammaInv_compact_sublevel hM hMπ
+  let S : Set ℂ := incG_strip ∩ gammaUniformEtaOnLog ⁻¹' K
+  have hSC : S ⊆ C := by
+    intro w hw
+    refine ⟨hw.1.le, ?_⟩
+    rw [← incG_gammaUniformEta_sq hw.1, norm_div, norm_pow, Complex.norm_two]
+    dsimp [M]
+    exact div_le_div_of_nonneg_right
+      (pow_le_pow_left₀ (norm_nonneg _) (hmax hw.2) 2) (by norm_num)
+  have hclosed : IsClosed S := by
+    refine isClosed_of_closure_subset fun w hw => ?_
+    have hwC : w ∈ C := hCc.isClosed.closure_subset_iff.mpr hSC hw
+    have hws : w ∈ incG_strip := hCs hwC
+    refine ⟨hws, ?_⟩
+    have hcont := (incG_gammaUniformEta_analyticOnNhd w hws).continuousAt
+    have hi := mem_closure_image hcont hw
+    have hmap : gammaUniformEtaOnLog '' S ⊆ K := by
+      rintro _ ⟨v, hv, rfl⟩
+      exact hv.2
+    change gammaUniformEtaOnLog w ∈ K
+    simpa only [hK.isClosed.closure_eq] using closure_mono hmap hi
+  exact Metric.isCompact_iff_isClosed_bounded.mpr ⟨hclosed, hCc.isBounded.subset hSC⟩
+
+/-- The saddle coordinate is locally a homeomorphism on its zero-free strip. -/
+lemma gammaInv_isLocalHomeomorphOn : IsLocalHomeomorphOn gammaUniformEtaOnLog incG_strip := by
+  refine IsLocalHomeomorphOn.mk _ _ fun w hw => ?_
+  have hs := (incG_gammaUniformEta_analyticOnNhd w hw).hasStrictDerivAt
+  have hd := incG_gammaUniformEta_deriv_ne_zero hw
+  have he := hs.hasStrictFDerivAt_equiv hd
+  exact ⟨he.toOpenPartialHomeomorph _, he.mem_toOpenPartialHomeomorph_source,
+    fun v _ => by rw [he.toOpenPartialHomeomorph_coe]⟩
+
+/-- The saddle coordinate is a covering over the entire Maclaurin disk, using the
+Tau Ceti contributors' proper local-homeomorphism criterion. -/
+lemma gammaInv_isCoveringMapOn :
+    IsCoveringMapOn (fun w : incG_strip => gammaUniformEtaOnLog w)
+      (Metric.ball (0:ℂ) (2*Real.sqrt π)) := by
+  have hl : IsLocalHomeomorph (fun w : incG_strip => gammaUniformEtaOnLog w) :=
+    isLocalHomeomorph_iff_isLocalHomeomorphOn_univ.mpr <|
+      gammaInv_isLocalHomeomorphOn.comp
+        incG_strip_isOpen.isOpenEmbedding_subtypeVal.isLocalHomeomorph.isLocalHomeomorphOn
+        (fun w _ => w.property)
+  refine IsCoveringMapOn.of_isLocalHomeomorph_of_isCompact_preimage Metric.isOpen_ball
+    (hl.isLocalHomeomorphOn.mono (subset_univ _)) fun K hKs hK => ?_
+  rw [IsEmbedding.subtypeVal.isCompact_iff]
+  have heq : Subtype.val '' ((fun w : incG_strip => gammaUniformEtaOnLog w) ⁻¹' K) =
+      incG_strip ∩ gammaUniformEtaOnLog ⁻¹' K := by
+    ext w
+    constructor
+    · rintro ⟨v, hv, rfl⟩; exact ⟨v.property, hv⟩
+    · rintro ⟨hw, hη⟩; exact ⟨⟨w, hw⟩, hη, rfl⟩
+  rw [heq]
+  exact gammaInv_compact_preimage hKs hK
+
+/-- The local inverse continues single-valuedly over its full Maclaurin disk. -/
+lemma gammaInv_exists_global : ∃ f : ℂ → ℂ,
+    f 0=0 ∧ deriv f 0=1 ∧ ∀ η : ℂ, ‖η‖ < 2*Real.sqrt π →
+      DifferentiableAt ℂ f η ∧ |(f η).im| < 2*π ∧ gammaUniformEtaOnLog (f η)=η := by
+  classical
+  let D : Set ℂ := Metric.ball 0 (2*Real.sqrt π)
+  have hR : (0:ℝ) < 2*Real.sqrt π := by positivity
+  have h0 : (0:ℂ) ∈ D := by simpa [D] using hR
+  have : ContractibleSpace D := (convex_ball (0:ℂ) (2*Real.sqrt π)).contractibleSpace ⟨0,h0⟩
+  have : LocallyPathConnectedSpace D := Metric.isOpen_ball.locallyPathConnectedSpace
+  let g : C(D,ℂ) := ⟨Subtype.val,continuous_subtype_val⟩
+  let d₀ : D := ⟨0,h0⟩
+  let e₀ : incG_strip := ⟨0,incG_zero_mem_strip⟩
+  have he : gammaUniformEtaOnLog e₀ = g d₀ := gammaUniformEta_normalization.2
+  obtain ⟨G,⟨hG0,hG⟩,_⟩ := gammaInv_isCoveringMapOn.existsUnique_continuousMap_lifts g he
+    (fun η => η.property)
+  let f : ℂ → ℂ := fun η => if hη : η ∈ D then (G ⟨η,hη⟩ : ℂ) else 0
+  have hf (η : ℂ) (hη : η ∈ D) : f η = (G ⟨η,hη⟩ : ℂ) := by simp only [f, dite_eq_left hη]
+  have hfc : ContinuousOn f D := by
+    rw [continuousOn_iff_continuous_domRestrict]
+    convert continuous_subtype_val.comp G.continuous using 1
+    funext η
+    exact hf η η.property
+  have hf0 : f 0 = 0 := by
+    rw [hf 0 h0]
+    exact congrArg Subtype.val hG0
+  have hspec (η : ℂ) (hη : η ∈ D) :
+      |(f η).im| < 2*π ∧ gammaUniformEtaOnLog (f η)=η := by
+    rw [hf η hη]
+    refine ⟨(G ⟨η,hη⟩).property, ?_⟩
+    exact congrFun hG ⟨η,hη⟩
+  have hderiv (η : ℂ) (hη : η ∈ D) :
+      HasStrictDerivAt f (deriv gammaUniformEtaOnLog (f η))⁻¹ η := by
+    have hws : f η ∈ incG_strip := (hspec η hη).1
+    have hs := (incG_gammaUniformEta_analyticOnNhd (f η) hws).hasStrictDerivAt
+    refine HasStrictDerivAt.of_local_left_inverse
+      (hfc.continuousAt (Metric.isOpen_ball.mem_nhds hη)) hs
+      (incG_gammaUniformEta_deriv_ne_zero hws) ?_
+    filter_upwards [Metric.isOpen_ball.mem_nhds hη] with v hv
+    exact (hspec v hv).2
+  refine ⟨f,hf0,?_,?_⟩
+  · rw [(hderiv 0 h0).hasDerivAt.deriv, hf0, gammaUniformEta_normalization.1.deriv, inv_one]
+  · intro η hη
+    have hη' : η ∈ D := by simpa [D] using hη
+    exact ⟨(hderiv η hη').hasDerivAt.differentiableAt, hspec η hη'⟩
+
+
 /-- gammaUniformInverseLog spec. -/
 @[dlmf 8.12.E13]
 theorem gammaUniformInverseLog_spec  :
     gammaUniformInverseLog 0=0 ∧ deriv gammaUniformInverseLog 0=1 ∧ ∀ η : ℂ, ‖η‖ < 2*Real.sqrt π → DifferentiableAt ℂ gammaUniformInverseLog η ∧ |(gammaUniformInverseLog η).im| < 2*π ∧ gammaUniformEtaOnLog (gammaUniformInverseLog η)=η := by
-  sorry
+  exact Classical.epsilon_spec gammaInv_exists_global
 
 /-- gammaUniformC maclaurin. -/
 @[dlmf 8.12.E11]
@@ -617,13 +835,94 @@ theorem gammaUniformD_recurrence (k n : ℕ) :
 @[dlmf 8.12.E13]
 theorem gammaUniformAlpha_hasSum {η : ℂ} (hη : ‖η‖ < 2*Real.sqrt π) :
     HasSum (fun n : ℕ => gammaUniformAlpha n*η^n) (exp (gammaUniformInverseLog η)) := by
-  sorry
+  have hd : DifferentiableOn ℂ (fun η => exp (gammaUniformInverseLog η))
+      (Metric.ball 0 (2*Real.sqrt π)) := by
+    intro z hz
+    have hz' : ‖z‖ < 2*Real.sqrt π := by simpa using hz
+    exact ((gammaUniformInverseLog_spec.2.2 z hz').1.cexp).differentiableWithinAt
+  have h := Complex.hasSum_taylorSeries_on_ball hd (by simpa using hη)
+  convert h using 1
+  funext n
+  simp only [gammaUniformAlpha, sub_zero, smul_eq_mul, div_eq_mul_inv]
+  ring
 
 /-- gammaUniformAlpha printed. -/
 @[dlmf 8.12.E14]
 theorem gammaUniformAlpha_printed  :
     ∀ n < 6, gammaUniformAlpha (n+3)=([1/36,-1/270,1/4320,1/17010,-139/5443200,1/204120] : List ℂ)[n]! := by
-  sorry
+  have hode {η : ℂ} (hη : ‖η‖ < 2*Real.sqrt π) :
+      deriv (fun η => exp (gammaUniformInverseLog η)) η *
+        (exp (gammaUniformInverseLog η)-1) = η*exp (gammaUniformInverseLog η) := by
+    have hf := (gammaUniformInverseLog_spec.2.2 η hη).1.hasDerivAt
+    have h1 := ((hf.cexp.sub_const 1).sub hf)
+    have he : (fun z => exp (gammaUniformInverseLog z)-1-gammaUniformInverseLog z) =ᶠ[𝓝 η]
+        fun z => z^2/2 := by
+      filter_upwards [Metric.isOpen_ball.mem_nhds (show η ∈ Metric.ball 0 (2*Real.sqrt π) by simpa using hη)] with z hz
+      obtain ⟨_, hs, he⟩ := gammaUniformInverseLog_spec.2.2 z (by simpa using hz)
+      simpa only [he] using (gammaUniformEta_equation hs).symm
+    have h2 : HasDerivAt (fun z : ℂ => z^2/2) η η := by
+      convert ((hasDerivAt_id η).fun_pow 2).div_const 2 using 1 <;> simp
+    have h := h1.unique (h2.congr_of_eventuallyEq he)
+    rw [hf.cexp.deriv]
+    linear_combination exp (gammaUniformInverseLog η)*h
+  let f : ℂ → ℂ := fun η => exp (gammaUniformInverseLog η)
+  have hd : DifferentiableOn ℂ f (Metric.ball 0 (2*Real.sqrt π)) := by
+    intro z hz
+    exact ((gammaUniformInverseLog_spec.2.2 z (by simpa using hz)).1.cexp).differentiableWithinAt
+  have ha : AnalyticAt ℂ f 0 := hd.analyticOnNhd Metric.isOpen_ball 0 (by
+    simpa using (show (0:ℝ) < 2*Real.sqrt π by positivity))
+  have hzero : f 0 = 1 := by simp [f, gammaUniformInverseLog_spec.1]
+  have hone : deriv f 0 = 1 := by
+    have h := (gammaUniformInverseLog_spec.2.2 0 (by simp; positivity)).1.hasDerivAt.cexp
+    simpa only [gammaUniformInverseLog_spec.1, gammaUniformInverseLog_spec.2.1,
+      Complex.exp_zero, mul_one] using h.deriv
+  have he : (fun z => deriv f z * (f z - 1)) =ᶠ[𝓝 0] fun z => z*f z := by
+    filter_upwards [Metric.ball_mem_nhds (0:ℂ) (show (0:ℝ) < 2*Real.sqrt π by positivity)] with z hz
+    exact hode (by simpa using hz)
+  have hrec (n : ℕ) :
+      (∑ i ∈ Finset.range (n+1), (n.choose i : ℂ)*iteratedDeriv (i+1) f 0 *
+        (iteratedDeriv (n-i) f 0 - if n-i=0 then 1 else 0)) =
+      ∑ i ∈ Finset.range (n+1), (n.choose i : ℂ)*(if i=1 then 1 else 0)*
+        iteratedDeriv (n-i) f 0 := by
+    have h := he.iteratedDeriv_eq n
+    rw [iteratedDeriv_fun_mul (f := deriv f) (g := fun z => f z - 1)
+      ha.deriv.contDiffAt (ha.sub analyticAt_const).contDiffAt,
+      iteratedDeriv_fun_mul (f := fun z => z) (g := f) contDiffAt_id ha.contDiffAt] at h
+    simpa only [← iteratedDeriv_succ', iteratedDeriv_fun_sub ha.contDiffAt contDiffAt_const,
+      iteratedDeriv_const, iteratedDeriv_fun_id_zero] using h
+  have h0 : iteratedDeriv 0 f 0 = 1 := hzero
+  have h1 : iteratedDeriv 1 f 0 = 1 := by simpa only [iteratedDeriv_one] using hone
+  have h2 : iteratedDeriv 2 f 0 = 2/3 := by
+    have h := hrec 2
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1] at h
+    linear_combination h/3
+  have h3 : iteratedDeriv 3 f 0 = 1/6 := by
+    have h := hrec 3
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2] at h
+    linear_combination h/4
+  have h4 : iteratedDeriv 4 f 0 = -4/45 := by
+    have h := hrec 4
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2, h3] at h
+    linear_combination h/5
+  have h5 : iteratedDeriv 5 f 0 = 1/36 := by
+    have h := hrec 5
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2, h3, h4] at h
+    linear_combination h/6
+  have h6 : iteratedDeriv 6 f 0 = 8/189 := by
+    have h := hrec 6
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2, h3, h4, h5] at h
+    linear_combination h/7
+  have h7 : iteratedDeriv 7 f 0 = -139/1080 := by
+    have h := hrec 7
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2, h3, h4, h5, h6] at h
+    linear_combination h/8
+  have h8 : iteratedDeriv 8 f 0 = 16/81 := by
+    have h := hrec 8
+    norm_num [Finset.sum_range_succ, Nat.choose, h0, h1, h2, h3, h4, h5, h6, h7] at h
+    linear_combination h/9
+  dsimp only [f] at h3 h4 h5 h6 h7 h8
+  intro n hn
+  interval_cases n <;> norm_num [gammaUniformAlpha, h3, h4, h5, h6, h7, h8, Nat.factorial]
 
 /-- gammaUniformC at zero printed. -/
 @[dlmf 8.12.E17]

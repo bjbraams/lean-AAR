@@ -391,49 +391,7 @@ lemma ballPoissonIntegral_reproduces {n : ℕ} (hn : n ≠ 0)
     (hf : HarmonicOnNhd f (ball 0 1)) (hcont : ContinuousOn f (closedBall 0 1))
     {x : EuclideanSpace ℝ (Fin n)} (hx : ‖x‖ < 1) :
     TauCeti.ballPoissonIntegral (fun y : sphere (0 : EuclideanSpace ℝ (Fin n)) 1 => f y) x = f x := by
-  classical
-  have : Nonempty (Fin n) := ⟨⟨0, Nat.pos_of_ne_zero hn⟩⟩
-  let g : sphere (0 : EuclideanSpace ℝ (Fin n)) 1 → ℝ := fun y => f y
-  have hg : Continuous g := (hcont.mono sphere_subset_closedBall).comp_continuous
-    continuous_subtype_val (fun y => y.2)
-  have hgi : Integrable g volume.toSphere :=
-    hg.integrable_of_hasCompactSupport (.of_compactSpace g)
-  let u : EuclideanSpace ℝ (Fin n) → ℝ := fun z =>
-    if hz : z ∈ sphere (0 : EuclideanSpace ℝ (Fin n)) 1 then g ⟨z, hz⟩
-    else TauCeti.ballPoissonIntegral g z
-  have hball : ∀ z ∈ ball (0 : EuclideanSpace ℝ (Fin n)) 1, z ∉ sphere 0 1 := fun z hz hs =>
-    (mem_ball_zero_iff.mp hz).ne (mem_sphere_zero_iff_norm.mp hs)
-  have hu : EqOn u (TauCeti.ballPoissonIntegral g) (ball 0 1) :=
-    fun z hz => dite_eq_right (hball z hz)
-  have hP : HarmonicOnNhd (TauCeti.ballPoissonIntegral g) (ball 0 1) :=
-    (TauCeti.harmonicOnNhd_ballPoissonIntegral hgi).mono hball
-  have huP : ∀ z ∈ ball (0 : EuclideanSpace ℝ (Fin n)) 1,
-      u =ᶠ[𝓝 z] TauCeti.ballPoissonIntegral g :=
-    fun z hz => Filter.eventually_of_mem (isOpen_ball.mem_nhds hz) hu
-  have hhu : HarmonicOnNhd u (ball 0 1) :=
-    fun z hz => (harmonicAt_congr_nhds (huP z hz)).2 (hP z hz)
-  have hcu : ContinuousOn u (closedBall 0 1) := by
-    rw [← ball_union_sphere]
-    intro z hz
-    rcases hz with hz | hz
-    · exact ((hP z hz).1.continuousAt.congr (huP z hz).symm).continuousWithinAt
-    · have huz : u z = g ⟨z, hz⟩ := dite_eq_left hz
-      refine continuousWithinAt_union.2 ⟨?_, ?_⟩
-      · rw [ContinuousWithinAt, huz]
-        exact (TauCeti.tendsto_ballPoissonIntegral hg ⟨z, hz⟩).congr'
-          (Filter.eventually_of_mem self_mem_nhdsWithin fun y hy => (hu hy).symm)
-      · have hres : (sphere (0 : EuclideanSpace ℝ (Fin n)) 1).domRestrict u = g :=
-          funext fun y => dite_eq_left y.2
-        exact (continuousOn_iff_continuous_domRestrict.2 (hres ▸ hg)) z hz
-  have he : EqOn u f (closedBall 0 1) :=
-    TauCeti.eqOn_of_harmonicOnNhd_of_eqOn_frontier (isCompact_closedBall _ _) hcu hcont
-      (by simpa only [interior_closedBall _ one_ne_zero] using hhu)
-      (by simpa only [interior_closedBall _ one_ne_zero] using hf) (by
-        intro z hz
-        have hz' : z ∈ sphere (0 : EuclideanSpace ℝ (Fin n)) 1 := by simpa only [frontier_closedBall _ one_ne_zero] using hz
-        exact dite_eq_left hz')
-  exact (hu (mem_ball_zero_iff.mpr hx)).symm.trans
-    (he (mem_closedBall_zero_iff.mpr hx.le))
+  exact zonal_poisson hn hf hcont hx
 
 /-- The unnormalized AAR kernel is sphere area times the Tau Ceti kernel. -/
 lemma poissonKernelBall_eq_area_mul {n : ℕ} (hn : n ≠ 0) (x y : EuclideanSpace ℝ (Fin n)) :

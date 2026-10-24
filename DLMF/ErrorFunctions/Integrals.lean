@@ -300,7 +300,7 @@ theorem erfc_rational_gaussian_integral {z : ℂ} (hz : |arg z| ≤ π/4) :
 /-! ### Tools for DLMF 7.7.2 -/
 
 /-- `1/(t-z) = i ∫₀^∞ e^{i(z-t)s} ds` for `Im z > 0`. -/
-lemma erfInt_inv_sub_eq_integral {z : ℂ} (hz : 0 < z.im) (t : ℝ) :
+lemma erfInt_recip_sub_eq_integral {z : ℂ} (hz : 0 < z.im) (t : ℝ) :
     1/((t:ℂ)-z) = I * ∫ s in Ioi (0:ℝ), exp (I*(z-t)*s) := by
   have hre : (I*(z-t)).re < 0 := by simp; linarith
   have hne : z - (t:ℂ) ≠ 0 := fun h => by
@@ -362,7 +362,7 @@ lemma erfInt_faddeeva_cauchy {z : ℂ} (hz : 0 < z.im) :
       · simp
   have hinner : ∀ t : ℝ, exp (-(t : ℂ)^2)/(t-z) = I * ∫ s in Ioi (0:ℝ), F t s := by
     intro t
-    rw [div_eq_mul_one_div, erfInt_inv_sub_eq_integral hz t, hF]
+    rw [div_eq_mul_one_div, erfInt_recip_sub_eq_integral hz t, hF]
     simp only
     rw [integral_const_mul]; ring
   simp_rw [hinner]
@@ -440,6 +440,177 @@ theorem faddeevaW_cauchy_integral {z : ℂ} (hz : 0 < z.im) :
     (∫ t : ℝ, exp (-(t : ℂ)^2)/(t-z))=π*I*faddeevaW z ∧ (∫ t : ℝ in Ioi 0, exp (-(t : ℂ)^2)/((t : ℂ)^2-z^2))=π*I/(2*z)*faddeevaW z :=
   erfInt_faddeeva_cauchy_both hz
 
+/-- The Gaussian rational integral with numerator `2t` is an exponential integral. -/
+lemma erfInt_goodwin_gaussian_e1 {z : ℂ} (hr : 0 < z.re) (hi : 0 < z.im) :
+    (∫ t : ℝ in Ioi 0, (2*(t:ℂ))*exp (-(t:ℂ)^2)/((t:ℂ)^2-z^2)) =
+      exp (-z^2)*genExpIntE 1 (-z^2) := by
+  have hzi : 0 < (z^2).im := by
+    simp only [pow_two, mul_im]
+    positivity
+  have hm : -z^2 ∈ slitPlane := Or.inr (by simpa using hzi.ne')
+  have hne (u : ℝ) : (u:ℂ)-z^2 ≠ 0 := by
+    intro h
+    have := congrArg im h
+    simp only [sub_im, ofReal_im, zero_sub, zero_im, neg_eq_zero] at this
+    exact hzi.ne' this
+  have hbound (u : ℝ) : (z^2).im ≤ ‖(u:ℂ)-z^2‖ := by
+    have h := abs_im_le_norm ((u:ℂ)-z^2)
+    simpa [abs_of_pos hzi] using h
+  have hint : IntegrableOn (fun u : ℝ => exp (-(u:ℂ))/((u:ℂ)-z^2)) (Ioi 0) := by
+    refine ((exp_neg_integrableOn_Ioi 0 (by norm_num : (0:ℝ) < 1)).div_const (z^2).im).mono' ?_ ?_
+    · exact (Continuous.div (by fun_prop) (by fun_prop) hne).aestronglyMeasurable
+    · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun u _ => ?_)
+      simp only [norm_div, Complex.norm_exp, neg_re, ofReal_re]
+      simpa using div_le_div_of_nonneg_left (Real.exp_pos (-u)).le hzi (hbound u)
+  have hH := (expIntE1_horizontal_integral hm).const_mul (exp (-z^2))
+  have hH' : HasIntegralAtTop (fun u : ℝ => exp (-(u:ℂ))/((u:ℂ)-z^2)) 0
+      (exp (-z^2)*genExpIntE 1 (-z^2)) := hH.congr fun u _ => by
+    rw [← mul_div_assoc, ← Complex.exp_add,
+      show -z^2 + -(-z^2+(u:ℂ)) = -(u:ℂ) by ring,
+      show -z^2+(u:ℂ) = (u:ℂ)-z^2 by ring]
+  have he := tendsto_nhds_unique (intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id) hH'
+  have hsub := integral_comp_rpow_Ioi_of_pos (p := 2)
+    (g := fun u : ℝ => exp (-(u:ℂ))/((u:ℂ)-z^2)) (by norm_num)
+  rw [← he, ← hsub]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+  simp only [Real.rpow_two, show (2:ℝ)-1 = 1 by norm_num, Real.rpow_one, real_smul,
+    ofReal_mul, ofReal_ofNat, ofReal_pow]
+  ring
+
+/-- Splitting the nonsingular upper-half-plane kernels gives the Goodwin integral. -/
+lemma goodwinStatonG_eq_E1_of_re_pos_of_im_pos {z : ℂ} (hr : 0 < z.re) (hi : 0 < z.im) :
+    goodwinStatonG z = exp (-z^2)/2*genExpIntE 1 (-z^2)-π*I/2*faddeevaW z := by
+  let A := ∫ t : ℝ in Ioi 0, exp (-(t:ℂ)^2)/((t:ℂ)-z)
+  have hA := (erfInt_integrable_gauss_div hi).integrableOn (s := Ioi (0:ℝ))
+  have hB := goodwinStatonG_integrable (z := z) (Or.inl hr)
+  have hne (t : ℝ) : (t:ℂ)-z ≠ 0 := by
+    intro h
+    have := congrArg im h
+    simp at this
+    exact hi.ne' this
+  have hne' (t : ℝ) : (t:ℂ)+z ≠ 0 := by
+    intro h
+    have := congrArg im h
+    simp at this
+    exact hi.ne' this
+  have hsum : A + goodwinStatonG z = exp (-z^2)*genExpIntE 1 (-z^2) := by
+    dsimp only [A]
+    rw [goodwinStatonG, ← integral_add hA hB, ← erfInt_goodwin_gaussian_e1 hr hi]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
+    have hden : (t:ℂ)^2-z^2 ≠ 0 := by
+      rw [sq_sub_sq]; exact mul_ne_zero (hne' t) (hne t)
+    field_simp [hne t, hne' t]
+    ring
+  have hneg : (∫ t : ℝ in Iic 0, exp (-(t:ℂ)^2)/((t:ℂ)-z)) = -goodwinStatonG z := by
+    have h := integral_comp_neg_Ioi (0:ℝ) (fun t : ℝ => exp (-(t:ℂ)^2)/((t:ℂ)-z))
+    simp only [neg_zero] at h
+    rw [← h, goodwinStatonG, ← integral_neg]
+    refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
+    simp only [ofReal_neg, neg_sq]
+    rw [show -(t:ℂ)-z = -((t:ℂ)+z) by ring, div_neg]
+  have hdiff : A-goodwinStatonG z = π*I*faddeevaW z := by
+    dsimp only [A]
+    rw [sub_eq_add_neg, ← hneg, add_comm,
+      intervalIntegral.integral_Iic_add_Ioi (erfInt_integrable_gauss_div hi).integrableOn hA,
+      erfInt_faddeeva_cauchy hi]
+  linear_combination (hsum-hdiff)/2
+
+/-- The principal logarithm needed when approaching the positive axis from above. -/
+lemma erfInt_goodwin_log_neg_sq {z : ℂ} (hr : 0 < z.re) (hi : 0 < z.im) :
+    log (-z^2) = 2*log z-π*I := by
+  have hz : z ≠ 0 := fun h => by simp [h] at hr
+  have ha : 0 < arg z := lt_of_le_of_ne (arg_nonneg_iff.mpr hi.le)
+    (fun h => hi.ne' (arg_eq_zero_iff.mp h.symm).2)
+  have hb : arg z < π/2 := arg_lt_pi_div_two_iff.mpr (Or.inl hr)
+  have he : exp (2*log z-π*I) = -z^2 := by
+    rw [Complex.exp_sub, show (2:ℂ)*log z=(2:ℕ)*log z by norm_num, Complex.exp_nat_mul, Complex.exp_log hz, Complex.exp_pi_mul_I]
+    ring
+  rw [← he, Complex.log_exp]
+  · simp [mul_im, log_im]; linarith
+  · simp [mul_im, log_im]; linarith [Real.pi_pos]
+
+/-- Goodwin's logarithmic expression before taking the real boundary value. -/
+lemma goodwinStatonG_eq_Ein_of_re_pos_of_im_pos {z : ℂ} (hr : 0 < z.re) (hi : 0 < z.im) :
+    goodwinStatonG z = Real.sqrt π*dawsonF z - exp (-z^2)/2*
+      (Real.eulerMascheroniConstant+2*log z-expIntEin (-z^2)) := by
+  have hz : z ≠ 0 := fun h => by simp [h] at hr
+  rw [goodwinStatonG_eq_E1_of_re_pos_of_im_pos hr hi, expIntE1_eq_Ein_complex (neg_ne_zero.mpr (pow_ne_zero 2 hz)),
+    erfInt_goodwin_log_neg_sq hr hi, (dawsonF_faddeeva z).1]
+  have hsq : (Real.sqrt π:ℂ)^2 = π := by exact_mod_cast Real.sq_sqrt Real.pi_pos.le
+  linear_combination -(I/2*(exp (-z^2)-faddeevaW z))*hsq
+
+
+/-- Dominated continuity of the defining integral along a vertical line in the right half-plane. -/
+lemma tendsto_goodwinStatonG_vertical {x : ℝ} (hx : 0 < x) :
+    Tendsto (fun ε : ℝ => goodwinStatonG ((x:ℂ)+I*ε)) (𝓝 0) (𝓝 (goodwinStatonG x)) := by
+  unfold goodwinStatonG
+  refine tendsto_integral_filter_of_dominated_convergence (fun t => Real.exp (-t^2)/x)
+    (Eventually.of_forall fun ε => (goodwinStatonG_integrable (z := (x:ℂ)+I*ε)
+      (Or.inl (by simpa using hx))).aestronglyMeasurable) ?_ ?_ ?_
+  · refine Eventually.of_forall fun ε => (ae_restrict_iff' measurableSet_Ioi).mpr
+      (ae_of_all _ fun t ht => ?_)
+    have hb : x ≤ ‖(t:ℂ)+((x:ℂ)+I*ε)‖ := by
+      have h := re_le_norm ((t:ℂ)+((x:ℂ)+I*ε))
+      simp only [add_re, ofReal_re, mul_re, I_re, I_im, ofReal_im, mul_zero, zero_mul,
+        sub_zero, add_zero] at h
+      have ht : 0 < t := ht
+      linarith
+    rw [norm_div, Complex.norm_exp]
+    simp only [← ofReal_pow, neg_re, ofReal_re]
+    exact div_le_div_of_nonneg_left (Real.exp_pos _).le hx hb
+  · convert ((integrable_exp_neg_mul_sq one_pos).div_const x).integrableOn (s := Ioi (0:ℝ)) using 1; norm_num [IntegrableOn]
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ fun t ht => ?_)
+    have ht : 0 < t := ht
+    have hn : (t:ℂ)+(x:ℂ) ≠ 0 := by exact_mod_cast (show t+x ≠ 0 by linarith)
+    have hc : ContinuousAt (fun ε : ℝ => exp (-(t:ℂ)^2)/((t:ℂ)+((x:ℂ)+I*ε))) 0 := by
+      apply ContinuousAt.div continuousAt_const (by fun_prop)
+      simpa using hn
+    simpa using hc.tendsto
+
+/-- The Goodwin–Staton integral in terms of Dawson's function and the exponential integral. -/
+@[dlmf 7.5.E13]
+theorem goodwinStatonG_dawson {x : ℝ} (hx : 0 < x) :
+    goodwinStatonG x=Real.sqrt π*dawsonF x-Real.exp (-x^2)/2*Real.expIntEi (x^2) := by
+  let p : ℝ → ℂ := fun ε => (x:ℂ)+I*ε
+  let F : ℂ → ℂ := fun z => Real.sqrt π*dawsonF z - exp (-z^2)/2*
+    (Real.eulerMascheroniConstant+2*log z-expIntEin (-z^2))
+  have hp : Continuous p := by dsimp [p]; fun_prop
+  have hlog : ContinuousAt (fun ε => log (p ε)) 0 := by
+    apply ContinuousAt.comp (g := log) ?_ hp.continuousAt
+    apply continuousAt_clog
+    left
+    simpa [p] using hx
+  have hc : ContinuousAt (fun ε => F (p ε)) 0 := by
+    have hD : Continuous (fun ε => dawsonF (p ε)) := dawsonF_entire.continuous.comp hp
+    have hE : Continuous (fun ε => expIntEin (-(p ε)^2)) :=
+      expIntEin_entire.continuous.comp (by fun_prop)
+    dsimp only [F]
+    exact (continuousAt_const.mul hD.continuousAt).sub
+      ((show ContinuousAt (fun ε => exp (-(p ε)^2)/2) 0 by fun_prop).mul
+        ((continuousAt_const.add (continuousAt_const.mul hlog)).sub hE.continuousAt))
+  have hR : Tendsto (fun ε => F (p ε)) (𝓝 0) (𝓝 (F x)) := by
+    simpa [p] using hc.tendsto
+  have he : (fun ε : ℝ => goodwinStatonG (p ε)) =ᶠ[𝓝[>] 0] fun ε => F (p ε) := by
+    filter_upwards [self_mem_nhdsWithin] with ε hε
+    apply goodwinStatonG_eq_Ein_of_re_pos_of_im_pos
+    · simpa [p] using hx
+    · simpa [p] using hε
+  have h := tendsto_nhds_unique ((tendsto_goodwinStatonG_vertical hx).mono_left nhdsWithin_le_nhds)
+    ((hR.mono_left nhdsWithin_le_nhds).congr' he.symm)
+  have hEi : (Real.expIntEi (x^2):ℂ) =
+      Real.eulerMascheroniConstant+2*log (x:ℂ)-expIntEin (-(x:ℂ)^2) := by
+    have he := Real.expIntEi_Ein (sq_pos_of_pos hx) (ε := 1) (Or.inl rfl)
+    simp only [one_mul, neg_one_mul] at he
+    rw [Real.log_pow] at he
+    rw [← ofReal_log hx.le]
+    rw [show -(x:ℂ)^2 = ((-x^2:ℝ):ℂ) by push_cast; rfl, expIntEin_ofReal]
+    push_cast at he ⊢
+    linear_combination he
+  rw [h]
+  dsimp only [F]
+  rw [← hEi]
+  push_cast
+  rfl
 /-- gaussian fourier halfLine. -/
 @[dlmf 7.7.E3]
 theorem gaussian_fourier_halfLine {a : ℂ} (ha : 0 < a.re) (z : ℂ) :
@@ -2778,7 +2949,7 @@ theorem integral_exp_mul_eq_of_antideriv {a : ℂ} (ha : 0 < a.re) {u u' G : ℝ
   simp [hF, hu0, hG0]
 
 /-- Derivative of `w⁻¹ erf(w √t)`: it equals `e^{-w² t}/√(π t)`. -/
-theorem hasDerivAt_inv_mul_erf_sqrt {w : ℂ} (hw : w ≠ 0) {t : ℝ} (ht : 0 < t) :
+theorem hasDerivAt_recip_mul_erf_sqrt {w : ℂ} (hw : w ≠ 0) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (fun t : ℝ => w⁻¹*erf (w*(Real.sqrt t : ℂ)))
       (exp (-(w^2*t))/((Real.sqrt π:ℂ)*(Real.sqrt t:ℂ))) t := by
   have hs : HasDerivAt (fun t : ℝ => ((Real.sqrt t:ℝ):ℂ)) ((1/(2*Real.sqrt t):ℝ):ℂ) t :=
@@ -2793,7 +2964,7 @@ theorem hasDerivAt_inv_mul_erf_sqrt {w : ℂ} (hw : w ≠ 0) {t : ℝ} (ht : 0 <
   field_simp
 
 /-- `w⁻¹ erf(w √t) → w⁻¹` as `t → ∞` when `Re w > 0` and `Re w² > 0`. -/
-theorem tendsto_inv_mul_erf_sqrt {w : ℂ} (hw : 0 < w.re) (hw2 : 0 < (w^2).re) :
+theorem tendsto_recip_mul_erf_sqrt {w : ℂ} (hw : 0 < w.re) (hw2 : 0 < (w^2).re) :
     Tendsto (fun t : ℝ => w⁻¹*erf (w*(Real.sqrt t : ℂ))) atTop (𝓝 (w⁻¹*1)) := by
   refine Tendsto.const_mul _ ?_
   have h0 : Tendsto (fun t : ℝ => erfc (w*(Real.sqrt t : ℂ))) atTop (𝓝 0) := by
@@ -2990,8 +3161,8 @@ theorem fresnelCosInt_sqrt_laplace {a : ℂ} (ha : 0 < a.re) :
       k*(u1⁻¹*erf (u1*(Real.sqrt t:ℂ)) + v1⁻¹*erf (v1*(Real.sqrt t:ℂ)))).continuousWithinAt)
     (by simp [erf_zero])
     (fun t ht => by
-      have h := (((hasDerivAt_inv_mul_erf_sqrt hu10 ht).add
-        (hasDerivAt_inv_mul_erf_sqrt hv10 ht)).const_mul k)
+      have h := (((hasDerivAt_recip_mul_erf_sqrt hu10 ht).add
+        (hasDerivAt_recip_mul_erf_sqrt hv10 ht)).const_mul k)
       refine h.congr_deriv ?_
       rw [hu1, hv1, pi_mul_sqrt_two_mul_div_pi ht.le]
       have hst : (Real.sqrt t:ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr ht).ne'
@@ -3003,7 +3174,7 @@ theorem fresnelCosInt_sqrt_laplace {a : ℂ} (ha : 0 < a.re) :
       simp only [k]
       push_cast
       field_simp)
-    (((tendsto_inv_mul_erf_sqrt hu1r hu1r2).add (tendsto_inv_mul_erf_sqrt hv1r hv1r2)).const_mul k)
+    (((tendsto_recip_mul_erf_sqrt hu1r hu1r2).add (tendsto_recip_mul_erf_sqrt hv1r hv1r2)).const_mul k)
   rw [key]
   have huv : (a^2+1)^(1/2 : ℂ) = u1*v1 := by
     rw [show a^2+1 = (u1*v1)^2 by rw [mul_pow, hu1, hv1]; ring_nf; rw [I_sq]; ring]
@@ -3081,8 +3252,8 @@ theorem fresnelSinInt_sqrt_laplace {a : ℂ} (ha : 0 < a.re) :
       k*(u1⁻¹*erf (u1*(Real.sqrt t:ℂ)) - v1⁻¹*erf (v1*(Real.sqrt t:ℂ)))).continuousWithinAt)
     (by simp [erf_zero])
     (fun t ht => by
-      have h := (((hasDerivAt_inv_mul_erf_sqrt hu10 ht).sub
-        (hasDerivAt_inv_mul_erf_sqrt hv10 ht)).const_mul k)
+      have h := (((hasDerivAt_recip_mul_erf_sqrt hu10 ht).sub
+        (hasDerivAt_recip_mul_erf_sqrt hv10 ht)).const_mul k)
       refine h.congr_deriv ?_
       rw [hu1, hv1, pi_mul_sqrt_two_mul_div_pi ht.le]
       have hst : (Real.sqrt t:ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr ht).ne'
@@ -3097,7 +3268,7 @@ theorem fresnelSinInt_sqrt_laplace {a : ℂ} (ha : 0 < a.re) :
       ring_nf
       rw [I_sq]
       ring)
-    (((tendsto_inv_mul_erf_sqrt hu1r hu1r2).sub (tendsto_inv_mul_erf_sqrt hv1r hv1r2)).const_mul k)
+    (((tendsto_recip_mul_erf_sqrt hu1r hu1r2).sub (tendsto_recip_mul_erf_sqrt hv1r hv1r2)).const_mul k)
   rw [key]
   have huv : (a^2+1)^(1/2 : ℂ) = u1*v1 := by
     rw [show a^2+1 = (u1*v1)^2 by rw [mul_pow, hu1, hv1]; ring_nf; rw [I_sq]; ring]

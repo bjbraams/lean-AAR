@@ -925,7 +925,7 @@ lemma incRep_Gamma_bound (X : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, 0 ≤ C ∧ ∀ x ∈ Icc (-X) X, ∀ y : ℝ,
       ‖Gamma (x + I*y)‖ * |Real.sin (π*x)| ≤ C * (1+|y|)^K * Real.exp (-(π*|y|)/2) ∧
       (1 ≤ |y| → ‖Gamma (x + I*y)‖ ≤ C * (1+|y|)^K * Real.exp (-(π*|y|)/2)) := by
-  obtain ⟨C, K, hC⟩ := DLMF.Gamma.exists_norm_inv_Gamma_le (X+1)
+  obtain ⟨C, K, hC⟩ := DLMF.Gamma.exists_norm_recip_Gamma_le (X+1)
   set C0 : ℝ := max C 0
   refine ⟨4*π*C0, K, by positivity, fun x hx y => ?_⟩
   set E : ℝ := Real.exp (π*|y|/2) with hE

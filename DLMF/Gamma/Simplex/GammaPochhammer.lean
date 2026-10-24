@@ -27,11 +27,11 @@ along natural shifts.
   multiply by rising factorials (Mathlib's `Complex.Gamma_add_nat_div_Gamma_eq`).
 * `Real.Gamma_add_nat_div_Gamma_eq_ascPochhammer`: The real quotient form, away from the
   nonpositive integers.
-* `Complex.norm_inv_Gamma_add_nat_le`: Reciprocal Gamma gains at least factorial decay under
+* `Complex.norm_recip_Gamma_add_nat_le`: Reciprocal Gamma gains at least factorial decay under
   positive integer shifts in the half-plane `1 ≤ re s`.
-* `Complex.exists_uniform_norm_inv_Gamma_add_nat`: Reciprocal Gamma has uniform factorial decay
+* `Complex.exists_uniform_norm_recip_Gamma_add_nat`: Reciprocal Gamma has uniform factorial decay
   after a common natural shift on any compact set of complex arguments.
-* `Complex.exists_uniform_norm_inv_Gamma_sum_add_nat`: Uniform factorial decay for reciprocal
+* `Complex.exists_uniform_norm_recip_Gamma_sum_add_nat`: Uniform factorial decay for reciprocal
   Gamma after sufficiently many shifts of the total parameter on a compact set.
 
 ## References
@@ -66,7 +66,7 @@ theorem one_div_Gamma_eq_ascPochhammer_mul_one_div_Gamma_add_nat (z : ℂ) (n : 
 
 /-- Reciprocal Gamma after a natural shift, as a product of reciprocals, provided none of the
 factors `s + k`, for `k < n`, is zero. -/
-theorem inv_Gamma_add_nat_of_ne_zero {s : ℂ} {n : ℕ}
+theorem recip_Gamma_add_nat_of_ne_zero {s : ℂ} {n : ℕ}
     (h : ∀ k < n, s + k ≠ 0) :
     (Gamma (s + n))⁻¹ = (Gamma s)⁻¹ * ∏ k ∈ range n, (s + k)⁻¹ := by
   induction n with
@@ -160,7 +160,7 @@ theorem IsGammaRegular.ascPochhammer_ne_zero {w : ℂ}
 
 /-- Reciprocal Gamma gains at least factorial decay under positive integer shifts
 in the half-plane `1 ≤ re s`. -/
-theorem norm_inv_Gamma_add_nat_le {s : ℂ} (hs : 1 ≤ s.re) (n : ℕ) :
+theorem norm_recip_Gamma_add_nat_le {s : ℂ} (hs : 1 ≤ s.re) (n : ℕ) :
     ‖(Gamma (s + n))⁻¹‖ ≤ ‖(Gamma s)⁻¹‖ / (n.factorial : ℝ) := by
   induction n with
   | zero => simp
@@ -190,7 +190,7 @@ public noncomputable section
 
 /-- Reciprocal Gamma has uniform factorial decay after a common natural shift on any
 compact set of complex arguments. -/
-theorem exists_uniform_norm_inv_Gamma_add_nat {K : Set ℂ} (hK : IsCompact K) :
+theorem exists_uniform_norm_recip_Gamma_add_nat {K : Set ℂ} (hK : IsCompact K) :
     ∃ m : ℕ, ∃ C : ℝ, 0 ≤ C ∧ ∀ b ∈ K, ∀ n : ℕ,
       ‖(Gamma (b + (n + m)))⁻¹‖ ≤ C / n.factorial := by
   obtain ⟨B, hB⟩ := hK.bddAbove_image continuous_id.norm.continuousOn
@@ -204,19 +204,19 @@ theorem exists_uniform_norm_inv_Gamma_add_nat {K : Set ℂ} (hK : IsCompact K) :
     differentiable_one_div_Gamma.continuous.comp (continuous_id.add continuous_const)
   obtain ⟨C, hC⟩ := hK.bddAbove_image hc.norm.continuousOn
   refine ⟨m, max C 0, le_max_right _ _, fun b hb n => ?_⟩
-  have h := (Complex.norm_inv_Gamma_add_nat_le (hre b hb) n).trans
+  have h := (Complex.norm_recip_Gamma_add_nat_le (hre b hb) n).trans
     (div_le_div_of_nonneg_right ((hC (mem_image_of_mem _ hb)).trans (le_max_left C 0))
       (by positivity))
   simpa [Nat.cast_add, add_assoc, add_comm, add_left_comm] using h
 
 /-- Uniform factorial decay for reciprocal Gamma after sufficiently many shifts
 of the total parameter on a compact set. -/
-theorem exists_uniform_norm_inv_Gamma_sum_add_nat {ι : Type*} [Fintype ι]
+theorem exists_uniform_norm_recip_Gamma_sum_add_nat {ι : Type*} [Fintype ι]
     {K : Set (ι → ℂ)} (hK : IsCompact K) :
     ∃ m : ℕ, ∃ C : ℝ, 0 ≤ C ∧ ∀ b ∈ K, ∀ n : ℕ,
       ‖(Gamma ((∑ i, b i) + (n + m)))⁻¹‖ ≤ C / n.factorial := by
   have hS : Continuous (fun b : ι → ℂ => ∑ i, b i) := by fun_prop
-  obtain ⟨m, C, hC, hbound⟩ := exists_uniform_norm_inv_Gamma_add_nat (hK.image hS)
+  obtain ⟨m, C, hC, hbound⟩ := exists_uniform_norm_recip_Gamma_add_nat (hK.image hS)
   exact ⟨m, C, hC, fun b hb n => hbound _ (Set.mem_image_of_mem _ hb) n⟩
 
 end

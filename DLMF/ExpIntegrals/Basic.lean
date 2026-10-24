@@ -728,7 +728,7 @@ lemma liPV_tendsto_sub :
   simpa using hL.sub hE
 
 /-- Real.logIntLi principalValue. -/
-@[dlmf 6.2.E8]
+@[dlmf 6.2.E8, dlmf 4.10.E7]
 theorem Real.logIntLi_principalValue {x : ℝ} (hx : 1 < x) :
     Tendsto (fun ε : ℝ => (∫ t in (0 : ℝ)..(1-ε), 1/Real.log t) + ∫ t in (1+ε)..x, 1/Real.log t) (𝓝[>] (0 : ℝ)) (𝓝 (Real.logIntLi x)) := by
   have hleft : ∀ ε : ℝ, 0 < ε → ε < 1 →

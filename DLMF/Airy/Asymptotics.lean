@@ -10,6 +10,7 @@ public import DLMF.Airy.Relations
 public import ToMathlib.Analysis.Asymptotics.WatsonRotated
 public import Mathlib.MeasureTheory.Integral.Gamma
 public import DLMF.Airy.StieltjesForm
+public import DLMF.Confluent.Integrals
 
 /-!
 # Airy asymptotic expansions and error bounds, DLMF §9.7
@@ -1142,7 +1143,7 @@ lemma airyRot_exp_third_three_halves :
       exp_mul_I]
     simp
 
-lemma airyRot_I_pow_inv_even (j : ℕ) :
+lemma airyRot_I_pow_recip_even (j : ℕ) :
     ((I ^ (2 * j))⁻¹ + ((-I) ^ (2 * j))⁻¹) / 2 = (-1) ^ j ∧
       ((I ^ (2 * j))⁻¹ - ((-I) ^ (2 * j))⁻¹) / (2 * I) = 0 := by
   have h1 : I ^ (2 * j) = (-1) ^ j := by rw [pow_mul, I_sq]
@@ -1152,7 +1153,7 @@ lemma airyRot_I_pow_inv_even (j : ℕ) :
   · rw [← inv_pow, inv_neg, inv_one]; ring
   · simp
 
-lemma airyRot_I_pow_inv_odd (j : ℕ) :
+lemma airyRot_I_pow_recip_odd (j : ℕ) :
     ((I ^ (2 * j + 1))⁻¹ + ((-I) ^ (2 * j + 1))⁻¹) / 2 = 0 ∧
       ((I ^ (2 * j + 1))⁻¹ - ((-I) ^ (2 * j + 1))⁻¹) / (2 * I) = -(-1) ^ j := by
   have h1 : I ^ (2 * j + 1) = (-1) ^ j * I := by rw [pow_succ, pow_mul, I_sq]
@@ -1197,11 +1198,11 @@ lemma airyRot_even_expansion {F : ℂ → ℂ} {c : ℕ → ℂ} {δ : ℝ} (hδ
       simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul, airyRot_even]; ring)
   have h' := h.even (fun j => by
     simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
-    have := (airyRot_I_pow_inv_odd j).1
+    have := (airyRot_I_pow_recip_odd j).1
     linear_combination (c (2 * j + 1)) * this)
   refine h'.congr_coeff (funext fun j => ?_)
   simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
-  have := (airyRot_I_pow_inv_even j).1
+  have := (airyRot_I_pow_recip_even j).1
   linear_combination (c (2 * j)) * this
 
 /-- The odd part has the odd subseries `-∑ (-1)^j c_{2j+1} ζ^{-2j-1}`. -/
@@ -1217,11 +1218,11 @@ lemma airyRot_odd_expansion {F : ℂ → ℂ} {c : ℕ → ℂ} {δ : ℝ} (hδ 
       simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul, airyRot_odd]; ring)
   have h' := h.odd (fun j => by
     simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
-    have := (airyRot_I_pow_inv_even j).2
+    have := (airyRot_I_pow_recip_even j).2
     linear_combination (c (2 * j)) * this)
   refine h'.congr_coeff (funext fun j => ?_)
   simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
-  have := (airyRot_I_pow_inv_odd j).2
+  have := (airyRot_I_pow_recip_odd j).2
   linear_combination (c (2 * j + 1)) * this
 
 /-! ### The oscillatory error envelope -/
@@ -1231,7 +1232,7 @@ lemma airyRot_norm_exp_mul_I_le (w : ℂ) :
   constructor <;> rw [Complex.norm_exp] <;> apply Real.exp_le_exp.mpr <;> simp <;>
     [exact le_abs_self _; exact neg_le_abs _]
 
-lemma airyRot_norm_inv_pow (w : ℂ) (k : ℕ) : ‖(w ^ k)⁻¹‖ = ‖w‖ ^ (-(k : ℤ)) := by
+lemma airyRot_norm_recip_pow (w : ℂ) (k : ℕ) : ‖(w ^ k)⁻¹‖ = ‖w‖ ^ (-(k : ℤ)) := by
   rw [norm_inv, norm_pow, zpow_neg, zpow_natCast]
 
 /-- **The oscillatory envelope.** If `X = pref (a E + b O)` and `Y = pref (a P + b Q)` with
@@ -1272,7 +1273,7 @@ lemma airyRot_osc_bound {l : Filter ℂ} {E O P Q pref X Y : ℂ → ℂ} {N M :
   have heq : pref z * (A * E z + B * O z) - pref z * (A * P z + B * Q z) =
       pref z * (A * (E z - P z) + B * (O z - Q z)) := by ring
   rw [heq]
-  rw [airyRot_norm_inv_pow] at hz1 hz2
+  rw [airyRot_norm_recip_pow] at hz1 hz2
   have hr1 : (0 : ℝ) ≤ ‖ζ‖ ^ (-(2 * N : ℤ)) := by positivity
   have hr2 : (0 : ℝ) ≤ ‖ζ‖ ^ (-(2 * M + 1 : ℤ)) := by positivity
   have hex := Real.exp_pos |ζ.im|
@@ -1327,9 +1328,9 @@ lemma airyRot_third_data {z : ℂ} (hz0 : z ≠ 0) (hz : |arg z| < 2 * π / 3) :
   · rw [Complex.cpow_mul_exp_ofReal_mul_I hz0 a1 a2]; congr 2; push_cast; ring
   · rw [Complex.cpow_mul_exp_ofReal_mul_I hz0 b1 b2, ← exp_neg]; congr 2; push_cast; ring
 
-/-- DLMF 9.2.14, restated here so that this module does not import `DLMF.Airy.Equation`
-(which uses the asymptotics of this file for the numerically satisfactory pairs). -/
-private lemma airyRot_neg_connection_ai (z : ℂ) :
+/-- DLMF 9.2.14, shared with `DLMF.Airy.Equation` from this earlier module.
+The equation module uses the asymptotics here for its numerically satisfactory pairs. -/
+lemma airyRot_neg_connection_ai (z : ℂ) :
     airyAi (-z) = exp (π * I / 3) * airyAi (z * exp (π * I / 3)) +
       exp (-π * I / 3) * airyAi (z * exp (-π * I / 3)) := by
   have h := airyAi_add_omega (-z)
@@ -1344,8 +1345,8 @@ private lemma airyRot_neg_connection_ai (z : ℂ) :
   linear_combination h + airyAi (z * exp (π * I / 3)) * e1 +
     airyAi (z * exp (-π * I / 3)) * e2
 
-/-- DLMF 9.2.15, restated here for the same reason. -/
-private lemma airyRot_neg_connection_bi (z : ℂ) :
+/-- DLMF 9.2.15, shared with the equation module for the same reason. -/
+lemma airyRot_neg_connection_bi (z : ℂ) :
     airyBi (-z) = exp (-π * I / 6) * airyAi (z * exp (π * I / 3)) +
       exp (π * I / 6) * airyAi (z * exp (-π * I / 3)) := by
   have h := airyBi_eq_airyAi_omega (-z)
@@ -3665,11 +3666,269 @@ theorem airy_bi_bound {x : ℝ} (hx : 0 < x) :
     _ ≤ ‖airyPrefactor .bi x‖ * (1 + (airyChi (7 / 6) + 1) * 5 / (72 * airyZeta x)) := by gcongr
     _ = _ := by rw [airySt_norm_prefactor_bi hx]
 
-/-- airy biDeriv bound (DLMF 9.7.16). -/
+/-- A linear upper bound for the Chi multiplier above one. -/
+lemma airyDer_chi_le {s : ℝ} (hs : 1 ≤ s) : airyChi s ≤ π*s/2 := by
+  have hs0 : 0 < s := by linarith
+  have h1 := airySt_chi_integral hs0 (show (0:ℝ)<1 by norm_num)
+  have h0 := airySt_chi_integral (show (0:ℝ)<1 by norm_num) (show (0:ℝ)<1 by norm_num)
+  have hChi : airySt_chi 1 = π/2 := by
+    unfold airySt_chi
+    have hG : Real.Gamma (3/2:ℝ) = Real.sqrt π/2 := by
+      rw [show (3/2:ℝ)=(1/2)+1 by norm_num, Real.Gamma_add_one (by norm_num), Real.Gamma_one_half_eq]
+      ring
+    norm_num only
+    rw [hG, Real.Gamma_one]
+    nlinarith [Real.sq_sqrt Real.pi_pos.le]
+  have hI : (∫ t : ℝ in Ioi 0, (1^2+t^2)^(-(s+1)/2)) ≤
+      ∫ t : ℝ in Ioi 0, (1^2+t^2)^(-((1:ℝ)+1)/2) := by
+    have hi : ∀ q : ℝ, 0 < q → IntegrableOn (fun t : ℝ => (1^2+t^2)^(-(q+1)/2)) (Ioi 0) := by
+      intro q hq
+      have hh := TauCeti.integrable_one_add_sq_rpow (s := (q+1)/2) (by linarith)
+      have he : (fun t : ℝ => (1^2+t^2)^(-(q+1)/2)) =
+          (fun t : ℝ => (1+t^2)^(-((q+1)/2))) := by
+        funext t; congr 1 <;> ring
+      rw [he]
+      exact hh.integrableOn
+    refine setIntegral_mono_on (hi s hs0) (hi 1 one_pos) measurableSet_Ioi fun t ht => ?_
+    exact Real.rpow_le_rpow_of_exponent_le (by nlinarith [sq_nonneg t]) (by linarith)
+  rw [hChi] at h0
+  simp only [one_pow, Real.one_rpow, Real.Gamma_one, one_mul, mul_one] at h0 h1 hI
+  rw [Real.Gamma_add_one hs0.ne'] at h1
+  change s*Real.Gamma s * _ = Real.Gamma s * airyChi s at h1
+  have hGs := Real.Gamma_pos_of_pos hs0
+  have hG2 : Real.Gamma ((1:ℝ)+1)=1 := by norm_num [Real.Gamma_add_one]
+  rw [hG2, one_mul] at h0
+  rw [h0] at hI
+  have he : airyChi s = s * ∫ t : ℝ in Ioi 0, (1+t^2)^(-(s+1)/2) := by
+    apply (mul_left_cancel₀ hGs.ne')
+    linear_combination -h1
+  rw [he]
+  nlinarith [mul_le_mul_of_nonneg_left hI hs0.le]
+
+/-- A coarse Gamma bound used only for the derivative's real-axis estimate. -/
+lemma airyDer_Gamma_third : (5/2:ℝ) ≤ Real.Gamma (1/3) := by
+  have hG : 0 < Real.Gamma (1/3:ℝ) := Real.Gamma_pos_of_pos (by norm_num)
+  have hrec : Real.Gamma (4/3:ℝ) = Real.Gamma (1/3)/3 := by
+    rw [show (4/3:ℝ)=(1/3)+1 by norm_num, Real.Gamma_add_one (by norm_num)]
+    ring
+  have hbin := DLMF.Gamma.log_Gamma_eq_add_binetIntegral (x := (4/3:ℝ)) (by norm_num)
+  have hbin0 := (DLMF.Gamma.binetIntegral_mem (x := (4/3:ℝ)) (by norm_num)).1
+  rw [hrec, Real.log_div hG.ne' (by norm_num)] at hbin
+  have hlog : 6*Real.log 3 + 5*Real.log (4/3:ℝ) + 3*Real.log (2*π) - 8 ≤
+      6*Real.log (Real.Gamma (1/3:ℝ)) := by linarith
+  have hexp := Real.exp_le_exp.mpr hlog
+  have heq : Real.exp (6*Real.log 3 + 5*Real.log (4/3:ℝ) + 3*Real.log (2*π) - 8) =
+      24576*π^3/Real.exp 8 := by
+    rw [Real.exp_sub, Real.exp_add, Real.exp_add,
+      show 6*Real.log 3 = (6:ℕ)*Real.log 3 by norm_num,
+      show 5*Real.log (4/3:ℝ) = (5:ℕ)*Real.log (4/3:ℝ) by norm_num,
+      show 3*Real.log (2*π) = (3:ℕ)*Real.log (2*π) by norm_num,
+      Real.exp_nat_mul, Real.exp_nat_mul, Real.exp_nat_mul,
+      Real.exp_log (by norm_num), Real.exp_log (by norm_num), Real.exp_log (by positivity)]
+    ring
+  rw [heq, show 6*Real.log (Real.Gamma (1/3:ℝ)) = (6:ℕ)*Real.log (Real.Gamma (1/3:ℝ)) by norm_num,
+    Real.exp_nat_mul, Real.exp_log hG] at hexp
+  have he : Real.exp 8 ≤ (49/18:ℝ)^8 := by
+    rw [show (8:ℝ)=(8:ℕ)*1 by norm_num, Real.exp_nat_mul]
+    exact pow_le_pow_left₀ (Real.exp_pos _).le (by linarith [Real.exp_one_lt_d9]) _
+  have hpi : (25/8:ℝ)^3 ≤ π^3 := pow_le_pow_left₀ (by norm_num) (by linarith [Real.pi_gt_d6]) _
+  rw [div_le_iff₀ (Real.exp_pos _)] at hexp
+  by_contra h
+  have hlt : Real.Gamma (1/3:ℝ)^6 < (5/2:ℝ)^6 :=
+    pow_lt_pow_left₀ (not_le.mp h) hG.le (by omega)
+  have hh := mul_le_mul_of_nonneg_left he (pow_nonneg hG.le 6)
+  nlinarith
+
+/-- The Airy energy on the positive axis is bounded by its initial value. -/
+lemma airyDer_energy {x : ℝ} (hx : 0 ≤ x) :
+    airyBiDerivReal x^2 ≤ x*airyBiReal x^2 + airyBiDerivReal 0^2 := by
+  have hf (t : ℝ) : HasDerivAt airyBiReal (airyBiDerivReal t) t :=
+    (hasDerivAt_airyBi t).real_of_complex
+  have hg (t : ℝ) : HasDerivAt airyBiDerivReal (t*airyBiReal t) t := by
+    exact ((hasDerivAt_airyBiDeriv t).real_of_complex).congr_deriv (by simp [airyBiReal])
+  have hd (t : ℝ) : HasDerivAt (fun t => airyBiDerivReal t^2-t*airyBiReal t^2)
+      (-airyBiReal t^2) t := by
+    convert ((hg t).pow 2).sub ((hasDerivAt_id t).mul ((hf t).pow 2)) using 1
+    · funext u; rfl
+    · simp only [Pi.pow_apply, id_eq]; ring
+  have hm := antitone_of_deriv_nonpos (fun t => (hd t).differentiableAt)
+    (fun t => by rw [(hd t).deriv]; exact neg_nonpos.mpr (sq_nonneg _))
+  have h := hm hx
+  simp only [zero_mul, sub_zero] at h
+  linarith
+
+/-- A coarse bound on the initial derivative. -/
+lemma airyDer_initial_sq : airyBiDerivReal 0^2 ≤ (52/225:ℝ) := by
+  have hG := airyDer_Gamma_third
+  have hG0 := Real.Gamma_pos_of_pos (show (0:ℝ)<1/3 by norm_num)
+  have hr : ((3:ℝ)^(1/3:ℝ))^3 = 3 := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul (by norm_num)]
+    norm_num
+  have hroot : (3:ℝ)^(1/3:ℝ) ≤ 13/9 := by
+    apply (pow_le_pow_iff_left₀ (Real.rpow_nonneg (by norm_num) _) (by norm_num) (by omega : 3≠0)).mp
+    rw [hr]; norm_num
+  have hq : ((3:ℝ)^(1/6:ℝ))^2 = (3:ℝ)^(1/3:ℝ) := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul (by norm_num)]; congr 1; norm_num
+  have hz : airyBiDerivReal 0 = (3:ℝ)^(1/6:ℝ)/Real.Gamma (1/3) := by
+    rw [airyBiDerivReal, ofReal_zero, airyBiDeriv_zero,
+      show (1/3:ℂ)=((1/3:ℝ):ℂ) by norm_num, Complex.Gamma_ofReal, ← ofReal_div, ofReal_re]
+  rw [hz, div_pow, hq, div_le_iff₀ (pow_pos hG0 2)]
+  nlinarith
+
+/-- Real power identities in the Airy saddle variable. -/
+lemma airyDer_power_data {x : ℝ} (hx : 0 < x) :
+    airyZeta x=2/3*(Real.sqrt x)^3 ∧ (x^(1/4:ℝ))^2=Real.sqrt x := by
+  constructor
+  · rw [airyZeta, Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul hx.le]
+    congr 2; norm_num
+  · rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul hx.le]
+    congr 1; norm_num
+
+/-- A polynomial certificate for the elementary exponential envelope. -/
+lemma airyDer_envelope_poly {u : ℝ} (hu : 0 ≤ u) :
+    (181/2916:ℝ)*u^12 +
+      (2155529/13436928:ℝ)*u^9 +
+      (1529993/5971968:ℝ)*u^6 +
+      (-1144/1575:ℝ)*u^5 +
+      (904457/3981312:ℝ)*u^3 +
+      (278921/5308416:ℝ) ≥ 0 := by
+  by_cases hsmall : u ≤ 1/2
+  · have hu3 : 0 ≤ u^3 := pow_nonneg hu 3
+    have hu2 : u^2 ≤ (1/4:ℝ) := by nlinarith
+    have hu5 : u^5 ≤ u^3/4 := by nlinarith [mul_le_mul_of_nonneg_left hu2 hu3]
+    nlinarith [pow_nonneg hu 6, pow_nonneg hu 9, pow_nonneg hu 12]
+  · have hu1 : (1/2:ℝ) ≤ u := le_of_lt (not_le.mp hsmall)
+    let Q : ℝ := (181/2916:ℝ)*u^10 +
+      (1991/17496:ℝ)*u^9 +
+      (21901/139968:ℝ)*u^8 +
+      (14175739/40310784:ℝ)*u^7 +
+      (124132877/241864704:ℝ)*u^6 +
+      (1248860723/1934917632:ℝ)*u^5 +
+      (17557622459/17414258688:ℝ)*u^4 +
+      (84803311431641/146279772979200:ℝ)*u^3 +
+      (21030123845489/97519848652800:ℝ)*u^2 +
+      (2852020772397883/21064287309004800:ℝ)*u +
+      (1058802953579899/15798215481753600:ℝ)
+    have hq : 0 ≤ Q := by dsimp only [Q]; positivity
+    have hrem : 0 ≤ (1840275079998707/202217158166446080:ℝ)*u + (-8582440901337379/2274943029372518400:ℝ) := by linarith
+    have he : (181/2916:ℝ)*u^12 +
+      (2155529/13436928:ℝ)*u^9 +
+      (1529993/5971968:ℝ)*u^6 +
+      (-1144/1575:ℝ)*u^5 +
+      (904457/3981312:ℝ)*u^3 +
+      (278921/5308416:ℝ) =
+        (u-11/12)^2*Q+((1840275079998707/202217158166446080:ℝ)*u + (-8582440901337379/2274943029372518400:ℝ)) := by dsimp only [Q]; ring
+    rw [he]
+    positivity
+
+/-- An elementary gap between two positive exponential envelopes. -/
+lemma airyDer_envelope_gap {x : ℝ} (hx : 0 < x) :
+    (52/225:ℝ) ≤ Real.exp (2*airyZeta x)*Real.sqrt x/π *
+      ((1+(287/1152:ℝ)/airyZeta x)^2-(1+(85/432:ℝ)/airyZeta x)^2) := by
+  set u := Real.sqrt x with huDef
+  have hu : 0 < u := Real.sqrt_pos.mpr hx
+  have hz := (airyDer_power_data hx).1
+  set z := airyZeta x with hzDef
+  have hz0 : 0 < z := airyZeta_pos hx
+  have hzEq : z=2/3*u^3 := hz
+  set T : ℝ := 1+2*z+2*z^2+4*z^3/3
+  set D : ℝ := (1+(287/1152:ℝ)/z)^2-(1+(85/432:ℝ)/z)^2
+  have hD : 0 ≤ D := by
+    have hh : 0 ≤ 1+(85/432:ℝ)/z := by positivity
+    have hle : 1+(85/432:ℝ)/z ≤ 1+(287/1152:ℝ)/z := by
+      have hh : (85/432:ℝ)/z ≤ (287/1152:ℝ)/z :=
+        div_le_div_of_nonneg_right (by norm_num) hz0.le
+      linarith
+    dsimp only [D]
+    nlinarith
+  have hT : T ≤ Real.exp (2*z) := by
+    have h := Real.sum_le_exp_of_nonneg (by positivity : 0 ≤ 2*z) 4
+    norm_num [Finset.sum_range_succ] at h
+    dsimp only [T]
+    nlinarith
+  have hpoly := airyDer_envelope_poly hu.le
+  have he : T*u*D-(22/7:ℝ)*(52/225) = ((181/2916:ℝ)*u^12+(2155529/13436928:ℝ)*u^9+(1529993/5971968:ℝ)*u^6+(-1144/1575:ℝ)*u^5+(904457/3981312:ℝ)*u^3+(278921/5308416:ℝ))/u^5 := by
+    dsimp only [T,D]
+    rw [hzEq]
+    field_simp
+    ring
+  have hmain : (22/7:ℝ)*(52/225) ≤ T*u*D := by
+    rw [← sub_nonneg, he]
+    exact div_nonneg hpoly (pow_nonneg hu.le 5)
+  change (52/225:ℝ) ≤ Real.exp (2*z)*u/π*D
+  rw [div_mul_eq_mul_div, le_div_iff₀ Real.pi_pos]
+  calc (52/225:ℝ)*π ≤ (22/7:ℝ)*(52/225) := by nlinarith [Real.pi_lt_d6]
+    _ ≤ T*u*D := hmain
+    _ ≤ Real.exp (2*z)*u*D := mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_right hT hu.le) hD
+
+
+
+/-- The real-axis Bi derivative bound, DLMF 9.7.16. -/
 @[dlmf 9.7.E16]
 theorem airy_biDeriv_bound {x : ℝ} (hx : 0 < x) :
-    airyBiDerivReal x ≤ x ^ (1 / 4 : ℝ) * Real.exp (airyZeta x) / Real.sqrt π * (1 + (π / 2 + 1) * 7 / (72 * airyZeta x)) := by
-  sorry
+    airyBiDerivReal x ≤ x^(1/4:ℝ)*Real.exp (airyZeta x)/Real.sqrt π *
+      (1+(π/2+1)*7/(72*airyZeta x)) := by
+  have hz := airyZeta_pos hx
+  have hπ := Real.pi_pos
+  have hq : 0 < x^(1/4:ℝ) := Real.rpow_pos_of_pos hx _
+  have hS := Real.sqrt_pos.mpr hπ
+  have hc : (airyChi (7/6)+1)*5/72 ≤ (85/432:ℝ) := by
+    have h := airyDer_chi_le (s := (7/6:ℝ)) (by norm_num)
+    have hp : π ≤ (22/7:ℝ) := by linarith [Real.pi_lt_d6]
+    nlinarith
+  have hA : (287/1152:ℝ) ≤ (π/2+1)*7/72 := by linarith [Real.pi_gt_d6]
+  set P := x^(1/4:ℝ)*Real.exp (airyZeta x)/Real.sqrt π
+  set B := Real.exp (airyZeta x)/(Real.sqrt π*x^(1/4:ℝ)) *
+    (1+(85/432:ℝ)/airyZeta x)
+  have hP0 : 0 < P := by dsimp [P]; positivity
+  have hB0 : 0 < B := by dsimp [B]; positivity
+  have hB : airyBiReal x ≤ B := by
+    have h := airy_bi_bound hx
+    have he : (airyChi (7/6)+1)*5/(72*airyZeta x) =
+        ((airyChi (7/6)+1)*5/72)/airyZeta x := by ring
+    rw [he] at h
+    refine h.trans ?_
+    dsimp only [B]
+    apply mul_le_mul_of_nonneg_left _ (by positivity)
+    linarith [div_le_div_of_nonneg_right hc hz.le]
+  have hBi0 : 0 ≤ airyBiReal x := by
+    obtain ⟨r, hr, he⟩ := airyBi_ofReal_pos hx.le
+    simpa [airyBiReal, he] using hr.le
+  have hBiSq : airyBiReal x^2 ≤ B^2 := by nlinarith
+  have hq4 : (x^(1/4:ℝ))^4=x := by
+    calc (x^(1/4:ℝ))^4 = ((x^(1/4:ℝ))^2)^2 := by ring
+      _ = x := by rw [(airyDer_power_data hx).2, Real.sq_sqrt hx.le]
+  have hbase : x*(Real.exp (airyZeta x)/(Real.sqrt π*x^(1/4:ℝ)))^2=P^2 := by
+    dsimp only [P]
+    nth_rw 1 [← hq4]
+    field_simp
+  have hBsq : x*B^2 = P^2*(1+(85/432:ℝ)/airyZeta x)^2 := by
+    dsimp only [B]
+    rw [mul_pow, ← mul_assoc, hbase]
+  have hPsq : P^2=Real.exp (2*airyZeta x)*Real.sqrt x/π := by
+    dsimp only [P]
+    rw [div_pow, mul_pow, (airyDer_power_data hx).2, Real.sq_sqrt hπ.le,
+      ← Real.exp_nat_mul]
+    norm_num only
+    ring
+  have hgap := airyDer_envelope_gap hx
+  rw [← hPsq] at hgap
+  have hsquares : airyBiDerivReal x^2 ≤ (P*(1+(287/1152:ℝ)/airyZeta x))^2 := by
+    have henergy := airyDer_energy hx.le
+    have hzero := airyDer_initial_sq
+    have hBB := mul_le_mul_of_nonneg_left hBiSq hx.le
+    rw [hBsq] at hBB
+    nlinarith
+  have hR0 : 0 ≤ P*(1+(287/1152:ℝ)/airyZeta x) := by positivity
+  have hresult : airyBiDerivReal x ≤ P*(1+(287/1152:ℝ)/airyZeta x) := by nlinarith
+  refine hresult.trans ?_
+  change P*(1+(287/1152:ℝ)/airyZeta x) ≤ P*(1+(π/2+1)*7/(72*airyZeta x))
+  have he : (π/2+1)*7/(72*airyZeta x) = ((π/2+1)*7/72)/airyZeta x := by ring
+  rw [he]
+  apply mul_le_mul_of_nonneg_left _ hP0.le
+  linarith [div_le_div_of_nonneg_right hA hz.le]
+
 
 /-- airy ai complex error (DLMF 9.7.17). -/
 @[dlmf 9.7.E17]
@@ -3811,7 +4070,7 @@ function at `x e^{±iπ/3}` are the real components of 9.7.9–9.7.12 (`airyDer_
 `airyDer_comp_true`); their truncation errors are real and equal to `Ā` times the first
 neglected term, which gives the bound together with its sign. Helper names carry the prefix
 `airyDer_`. -/
-lemma airyDer_re_inv_mem {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
+lemma airyDer_re_recip_mem {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
     0 ≤ ((1 + (s : ℂ) * exp (θ * I))⁻¹).re ∧ ((1 + (s : ℂ) * exp (θ * I))⁻¹).re ≤ 1 := by
   set w := 1 + (s : ℂ) * exp (θ * I) with hw
   have hre : w.re = 1 + s * Real.cos θ := by simp [hw, exp_ofReal_mul_I_re]
@@ -3821,7 +4080,7 @@ lemma airyDer_re_inv_mem {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 
   refine ⟨div_nonneg (by linarith) hns.le, (div_le_one hns).mpr ?_⟩
   rw [normSq_apply]; nlinarith [mul_self_nonneg w.im]
 
-lemma airyDer_norm_inv_le {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
+lemma airyDer_norm_recip_le {θ : ℝ} (hθ : 0 ≤ Real.cos θ) {s : ℝ} (hs : 0 ≤ s) :
     ‖(1 + (s : ℂ) * exp (θ * I))⁻¹‖ ≤ 1 := by
   rw [norm_inv]; exact inv_le_one_of_one_le₀ (Complex.one_le_norm_one_add_ofReal_mul_exp hs hθ)
 
@@ -3838,7 +4097,7 @@ lemma airyDer_integrableOn_inner {g : ℝ → ℝ} (hgm : Measurable g) (hgi : I
   · refine (ae_restrict_iff' measurableSet_Ioo).mpr (Eventually.of_forall fun τ hτ => ?_)
     rw [norm_mul, Complex.norm_real, airyDer_one_add_eq]
     calc ‖g τ‖ * ‖(1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹‖ ≤ ‖g τ‖ * 1 :=
-          mul_le_mul_of_nonneg_left (airyDer_norm_inv_le hcos (mul_nonneg hr hτ.1.le))
+          mul_le_mul_of_nonneg_left (airyDer_norm_recip_le hcos (mul_nonneg hr hτ.1.le))
             (norm_nonneg _)
       _ = ‖g τ‖ := mul_one _
 
@@ -3889,7 +4148,7 @@ theorem airyDer_ray_ratio {b W θ : ℝ} (hb : 0 < b) (hW : 0 < W) (hθ : |θ| <
     refine (ae_restrict_iff' measurableSet_Ioo).mpr (Eventually.of_forall fun τ hτ => ?_)
     rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg (hg0 τ hτ), airyDer_one_add_eq]
     calc g τ * ‖(1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹‖ ≤ g τ * 1 :=
-          mul_le_mul_of_nonneg_left (airyDer_norm_inv_le hcos (mul_nonneg hr hτ.1.le)) (hg0 τ hτ)
+          mul_le_mul_of_nonneg_left (airyDer_norm_recip_le hcos (mul_nonneg hr hτ.1.le)) (hg0 τ hτ)
       _ = g τ := mul_one _
   have hqre : ∀ r : ℝ, 0 ≤ r → 0 ≤ (q r).re ∧ (q r).re ≤ C := by
     intro r hr
@@ -3908,10 +4167,10 @@ theorem airyDer_ray_ratio {b W θ : ℝ} (hb : 0 < b) (hW : 0 < W) (hθ : |θ| <
       rw [airyDer_one_add_eq, re_ofReal_mul]
     constructor
     · exact setIntegral_nonneg measurableSet_Ioo fun τ hτ =>
-        mul_nonneg (hg0 τ hτ) (airyDer_re_inv_mem hcos (mul_nonneg hr hτ.1.le)).1
+        mul_nonneg (hg0 τ hτ) (airyDer_re_recip_mem hcos (mul_nonneg hr hτ.1.le)).1
     · refine setIntegral_mono_on hi' hgi measurableSet_Ioo fun τ hτ => ?_
       calc g τ * ((1 + ((r * τ : ℝ) : ℂ) * exp (θ * I))⁻¹).re ≤ g τ * 1 :=
-            mul_le_mul_of_nonneg_left (airyDer_re_inv_mem hcos (mul_nonneg hr hτ.1.le)).2
+            mul_le_mul_of_nonneg_left (airyDer_re_recip_mem hcos (mul_nonneg hr hτ.1.le)).2
               (hg0 τ hτ)
         _ = g τ := mul_one _
   -- integrability of ρ q
@@ -5141,4 +5400,288 @@ lemma airyChi_two_mul_add_one (m : ℕ) :
       airyChi_add_two (by positivity)]
     congr 1; ring_nf
 
+/-! ### A positive Stieltjes representation for the derivative error kernel
+
+The two positive-parameter instances of DLMF 13.4.5 below combine by contiguous
+relations to give the sharp-parameter density for the sigma-zero Airy derivative bounds.
+The final error estimates still require the Laplace-mixture and branch-continuation steps.
+-/
+
+/-- The normalized Kummer form of the Airy derivative. -/
+def airyDer_normalizedU (z : ℂ) : ℂ := z^(-(1/6):ℂ)*kummerU (-(1/6)) (-(1/3)) z
+
+/-- Integrable Cauchy transforms of the kernels used below. -/
+lemma airyDer_integrable_cauchy {f : ℝ → ℂ} (hf : IntegrableOn f (Ioi 0)) {z : ℂ}
+    (hz : z ∈ slitPlane) : IntegrableOn (fun t : ℝ => f t/((t:ℂ)+z)) (Ioi 0) := by
+  obtain ⟨δ, hδ, hδb⟩ := exists_forall_le_norm_add_of_mem_slitPlane hz
+  have hm : AEStronglyMeasurable (fun t : ℝ => f t/((t:ℂ)+z)) (volume.restrict (Ioi 0)) :=
+    hf.aestronglyMeasurable.mul (by fun_prop : Measurable fun t : ℝ => ((t:ℂ)+z)⁻¹).aestronglyMeasurable
+  refine (hf.norm.const_mul δ⁻¹).mono' hm ?_
+  filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+  have hb := hδb t (le_of_lt ht) z (Metric.mem_ball_self hδ)
+  rw [norm_div]
+  calc ‖f t‖/‖(t:ℂ)+z‖ ≤ ‖f t‖/δ := div_le_div_of_nonneg_left (norm_nonneg _) hδ hb
+    _ = _ := by ring
+
+/-- A contiguous relation lowering the first parameter from its positive domain. -/
+lemma airyDer_U_lower {z : ℂ} (hz : z ≠ 0) :
+    kummerU (-(1/6)) (-(1/3)) z = z*kummerU (5/6) (2/3) z+(7/6:ℂ)*kummerU (5/6) (-(1/3)) z := by
+  have h1 := kummerU_contiguous_mixed (-(1/6)) (-(1/3)) z hz
+  have h2 := kummerU_contiguous_a_b (-(1/6)) (2/3) z hz
+  norm_num at h1 h2
+  linear_combination -6*h1-6*z*h2
+
+/-- The kernel relation used to combine the two positive-parameter transforms. -/
+lemma airyDer_U_kernel {t : ℂ} (ht : t ≠ 0) :
+    kummerU (-(7/6)) (-(1/3)) t = t*kummerU (-(1/6)) (2/3) t+(1/6:ℂ)*kummerU (-(1/6)) (-(1/3)) t := by
+  have h := kummerU_contiguous_shift_a (-(1/6)) (-(1/3)) t ht
+  norm_num at h
+  linear_combination h
+
+/-- The exactly evaluated constant term in the continued Stieltjes formula. -/
+lemma airyDer_constant_moment :
+    (∫ t : ℝ in Ioi 0, exp (-(t:ℂ))*(t:ℂ)^(-(1/6):ℂ)*kummerU (-(1/6)) (2/3) t) =
+      Gamma (5/6)*Gamma (7/6) := by
+  have h := laplace_kummerU (a := (-(1/6):ℂ)) (b := 5/6) (c := 2/3) (z := 1)
+    (by norm_num) (by norm_num) (by norm_num)
+  norm_num at h
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ (by norm_num),
+    regularizedGaussHGFun_eq_div_Gamma (fun k => by
+      have hk : (0:ℝ) ≤ k := Nat.cast_nonneg k
+      intro he
+      have := congrArg Complex.re he
+      norm_num at this
+      linarith), ordinaryHypergeometric_zero, Gamma_one] at h
+  simpa using h
+
+/-- The Airy derivative's normalized Kummer function has a positive Stieltjes remainder. -/
+lemma airyDer_stieltjes {z : ℂ} (hz : z ∈ slitPlane) :
+    airyDer_normalizedU z = 1 + 1/(2*π:ℂ)*
+      ∫ t : ℝ in Ioi 0, exp (-(t:ℂ))*airyDer_normalizedU t/((t:ℂ)+z) := by
+  have hz0 := slitPlane_ne_zero hz
+  have h1 := kummerU_stieltjes (a := (5/6:ℂ)) (b := 2/3) hz (by norm_num) (by norm_num)
+  have h2 := kummerU_stieltjes (a := (5/6:ℂ)) (b := -(1/3)) hz (by norm_num) (by norm_num)
+  norm_num at h1 h2
+  have hG : Gamma (13/6:ℂ) = (7/6:ℂ)*Gamma (7/6) := by
+    rw [show (13/6:ℂ)=(7/6)+1 by norm_num, Gamma_add_one (7/6) (by norm_num)]
+  have hG1 : Gamma (5/6:ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
+  have hG2 : Gamma (7/6:ℂ) ≠ 0 := Gamma_ne_zero_of_re_pos (by norm_num)
+  let f : ℝ → ℂ := fun t => exp (-(t:ℂ))*(t:ℂ)^(-(1/6):ℂ)*kummerU (-(1/6)) (2/3) t
+  let g : ℝ → ℂ := fun t => exp (-(t:ℂ))*(t:ℂ)^(-(1/6):ℂ)*kummerU (-(7/6)) (-(1/3)) t
+  let p : ℝ → ℂ := fun t => exp (-(t:ℂ))*airyDer_normalizedU t
+  have hf : IntegrableOn f (Ioi 0) := by
+    have h := (laplace_kummerU_gauss (a := (-(1/6):ℂ)) (b := 5/6) (c := 2/3) (z := 1)
+      (by norm_num) (by norm_num) (by norm_num)).1
+    convert h using 1
+    funext t
+    simp only [tricomiLaplaceKernel, f]
+    norm_num
+  have hg : IntegrableOn g (Ioi 0) := by
+    have h := (laplace_kummerU_gauss (a := (-(7/6):ℂ)) (b := 5/6) (c := -(1/3)) (z := 1)
+      (by norm_num) (by norm_num) (by norm_num)).1
+    convert h using 1
+    funext t
+    simp only [tricomiLaplaceKernel, g]
+    norm_num
+  have hp : IntegrableOn p (Ioi 0) := by
+    have h := (laplace_kummerU_gauss (a := (-(1/6):ℂ)) (b := 5/6) (c := -(1/3)) (z := 1)
+      (by norm_num) (by norm_num) (by norm_num)).1
+    convert h using 1
+    funext t
+    simp only [tricomiLaplaceKernel, p, airyDer_normalizedU]
+    norm_num
+    ring
+  have hpt : ∀ t ∈ Ioi (0:ℝ),
+      z*(f t/((t:ℂ)+z))+g t/((t:ℂ)+z) = f t+(1/6:ℂ)*(p t/((t:ℂ)+z)) := by
+    intro t ht
+    have ht0 : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr (ne_of_gt ht)
+    have hd : (t:ℂ)+z ≠ 0 := by
+      obtain ⟨δ,hδ,hδb⟩ := exists_forall_le_norm_add_of_mem_slitPlane hz
+      exact norm_pos_iff.mp (hδ.trans_le (hδb t (le_of_lt ht) z (Metric.mem_ball_self hδ)))
+    dsimp only [f,g,p,airyDer_normalizedU]
+    rw [airyDer_U_kernel ht0]
+    field_simp
+    ring
+  have hint : z*(∫ t in Ioi (0:ℝ), f t/((t:ℂ)+z))+
+      (∫ t in Ioi (0:ℝ), g t/((t:ℂ)+z)) =
+      Gamma (5/6)*Gamma (7/6)+(1/6:ℂ)*(∫ t in Ioi (0:ℝ), p t/((t:ℂ)+z)) := by
+    rw [← integral_const_mul, ← integral_add ((airyDer_integrable_cauchy hf hz).const_mul _) (airyDer_integrable_cauchy hg hz),
+      setIntegral_congr_fun measurableSet_Ioi hpt, integral_add hf ((airyDer_integrable_cauchy hp hz).const_mul _), integral_const_mul]
+    rw [show (∫ t in Ioi (0:ℝ), f t)=Gamma (5/6)*Gamma (7/6) from airyDer_constant_moment]
+  have hu := airyDer_U_lower hz0
+  rw [h1,h2,hG] at hu
+  have hI1 : (∫ t in Ioi (0:ℝ), kummerU (-(1/6)) (2/3) t*exp (-(t:ℂ))*(t:ℂ)^(-(1/6):ℂ)/((t:ℂ)+z)) =
+      ∫ t in Ioi (0:ℝ), f t/((t:ℂ)+z) := by
+    apply setIntegral_congr_fun measurableSet_Ioi; intro t ht; dsimp only [f]; ring
+  have hI2 : (∫ t in Ioi (0:ℝ), kummerU (-(7/6)) (-(1/3)) t*exp (-(t:ℂ))*(t:ℂ)^(-(1/6):ℂ)/((t:ℂ)+z)) =
+      ∫ t in Ioi (0:ℝ), g t/((t:ℂ)+z) := by
+    apply setIntegral_congr_fun measurableSet_Ioi; intro t ht; dsimp only [g]; ring
+  rw [hI1,hI2] at hu
+  have hpow : z^(-(1/6):ℂ)*z^(1/6:ℂ)=1 := by rw [← cpow_add _ _ hz0]; norm_num
+  have hgamma : 6*Gamma (5/6:ℂ)*Gamma (7/6)=2*π := by
+    have h := Gamma_mul_Gamma_one_sub (1/6:ℂ)
+    have hg := Gamma_add_one (1/6:ℂ) (by norm_num)
+    rw [show π*(1/6:ℂ)=((Real.pi/6:ℝ):ℂ) by push_cast; ring, ← ofReal_sin, Real.sin_pi_div_six] at h
+    norm_num at h hg
+    linear_combination h+(6*Gamma (5/6:ℂ))*hg
+  have hu' : kummerU (-(1/6)) (-(1/3)) z =
+      z^(1/6:ℂ)/(Gamma (5/6)*Gamma (7/6)) *
+        (z*(∫ t in Ioi (0:ℝ), f t/((t:ℂ)+z))+
+          (∫ t in Ioi (0:ℝ), g t/((t:ℂ)+z))) := by
+    rw [hu]
+    field_simp
+  change z^(-(1/6):ℂ)*kummerU (-(1/6)) (-(1/3)) z =
+    1+1/(2*π:ℂ)*(∫ t in Ioi (0:ℝ), p t/((t:ℂ)+z))
+  rw [hu', hint]
+  calc
+    _ = 1+1/(6*Gamma (5/6:ℂ)*Gamma (7/6))*
+        (∫ t in Ioi (0:ℝ), p t/((t:ℂ)+z)) := by
+      field_simp
+      linear_combination (6*Gamma (5/6:ℂ)*Gamma (7/6)+
+        (∫ t in Ioi (0:ℝ), p t/((t:ℂ)+z)))*hpow
+    _ = _ := by rw [hgamma]
+
+/-- Positive real Laplace representation of the normalized derivative kernel. -/
+lemma airyDer_normalizedU_real {t : ℝ} (ht : 0 < t) :
+    airyDer_normalizedU t = ((t^(7/6:ℝ)/Real.Gamma (7/6) *
+      ∫ u : ℝ in Ioi 0, Real.exp (-t*u)*u^(1/6:ℝ)*(1+u)^(1/6:ℝ) : ℝ):ℂ) := by
+  have ht0 : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+  have h := kummerU_kummer_transform_all (-(1/6):ℂ) (-(1/3)) ht0
+  norm_num at h
+  have hp : (t:ℂ)^(-(1/6):ℂ)*(t:ℂ)^(4/3:ℂ)=(t:ℂ)^(7/6:ℂ) := by
+    rw [← cpow_add _ _ ht0]
+    norm_num
+  rw [airyDer_normalizedU, h, ← mul_assoc, hp, kummerU_laplace (by norm_num) (by simpa using ht)]
+  rw [show (7/6:ℂ)-1=1/6 by norm_num, show (7/3:ℂ)-7/6-1=1/6 by norm_num]
+  have hI : (∫ u : ℝ in Ioi 0, exp (-(t:ℂ)*u)*(u:ℂ)^(1/6:ℂ)*(1+(u:ℂ))^(1/6:ℂ)) =
+      ((∫ u : ℝ in Ioi 0, Real.exp (-t*u)*u^(1/6:ℝ)*(1+u)^(1/6:ℝ) : ℝ):ℂ) := by
+    rw [← integral_complex_ofReal]
+    apply setIntegral_congr_fun measurableSet_Ioi
+    intro u hu
+    dsimp only
+    have hu0 : 0 < u := hu
+    push_cast
+    rw [ofReal_cpow hu0.le, ofReal_cpow (by linarith : 0 ≤ 1+u)]
+    push_cast
+    ring
+  rw [hI]
+  push_cast
+  rw [ofReal_cpow ht.le]
+  have hGamma : Gamma (7/6:ℂ)=(Real.Gamma (7/6:ℝ):ℂ) := by
+    convert Gamma_ofReal (7/6) using 1; norm_num
+  rw [hGamma]
+  push_cast
+  ring
+
+/-- The derivative Stieltjes kernel is real and nonnegative on the positive axis. -/
+lemma airyDer_normalizedU_nonneg {t : ℝ} (ht : 0 < t) :
+    0 ≤ (airyDer_normalizedU t).re ∧ (airyDer_normalizedU t).im=0 := by
+  rw [airyDer_normalizedU_real ht]
+  simp only [ofReal_re, ofReal_im, and_true]
+  have hi : 0 ≤ ∫ u : ℝ in Ioi 0, Real.exp (-t*u)*u^(1/6:ℝ)*(1+u)^(1/6:ℝ) := by
+    apply setIntegral_nonneg measurableSet_Ioi
+    intro u hu
+    have hu0 : 0 < u := hu
+    have : 0 ≤ 1+u := by linarith
+    positivity
+  exact mul_nonneg (div_nonneg (Real.rpow_nonneg ht.le _) (Real.Gamma_pos_of_pos (by norm_num)).le) hi
+
+/-- The real density of the Airy derivative Stieltjes transform. -/
+def airyDer_density (t : ℝ) : ℝ := Real.exp (-t)*(airyDer_normalizedU t).re
+
+/-- Complex and real forms of the derivative Stieltjes density agree. -/
+lemma airyDer_density_coe {t : ℝ} (ht : 0 < t) :
+    (airyDer_density t:ℂ)=exp (-(t:ℂ))*airyDer_normalizedU t := by
+  rw [airyDer_density, ofReal_mul, ofReal_exp]
+  push_cast
+  congr 1
+  apply Complex.ext <;> simp [(airyDer_normalizedU_nonneg ht).2]
+
+/-- The Airy derivative Stieltjes density is nonnegative. -/
+lemma airyDer_density_nonneg {t : ℝ} (ht : 0 < t) : 0 ≤ airyDer_density t :=
+  mul_nonneg (Real.exp_pos _).le (airyDer_normalizedU_nonneg ht).1
+
+/-- The regularized Gauss function at zero, on its positive parameter half-plane. -/
+lemma airyDer_regularizedGaussHG_zero (a b c : ℂ) (hc : 0 < c.re) :
+    regularizedGaussHG a b c 0 = 1/Gamma c := by
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ (by norm_num),
+    regularizedGaussHGFun_eq_div_Gamma (fun k => by
+      intro he
+      have := congrArg Complex.re he
+      simp only [neg_re, natCast_re] at this
+      linarith [Nat.cast_nonneg (α := ℝ) k]), ordinaryHypergeometric_zero]
+
+/-- The moments of the complex derivative Stieltjes density. -/
+lemma airyDer_density_moment_complex (k : ℕ) :
+    IntegrableOn (fun t : ℝ => (t:ℂ)^k*exp (-(t:ℂ))*airyDer_normalizedU t) (Ioi 0) ∧
+    (∫ t : ℝ in Ioi 0, (t:ℂ)^k*exp (-(t:ℂ))*airyDer_normalizedU t) =
+      Gamma ((k:ℂ)+5/6)*Gamma ((k:ℂ)+13/6)/Gamma ((k:ℂ)+2) := by
+  have h := laplace_kummerU_gauss (a := (-(1/6):ℂ)) (b := (k:ℂ)+5/6) (c := -(1/3)) (z := 1)
+    (by norm_num; linarith [Nat.cast_nonneg (α := ℝ) k])
+    (by norm_num; linarith [Nat.cast_nonneg (α := ℝ) k]) (by norm_num)
+  have hpt (t : ℝ) (ht : t ∈ Ioi (0:ℝ)) :
+      (t:ℂ)^k*exp (-(t:ℂ))*airyDer_normalizedU t =
+        tricomiLaplaceKernel (-(1/6)) ((k:ℂ)+5/6) (-(1/3)) 1 t := by
+    dsimp only [airyDer_normalizedU, tricomiLaplaceKernel]
+    have ht0 : (t:ℂ) ≠ 0 := ofReal_ne_zero.mpr ht.ne'
+    rw [show (k:ℂ)+5/6-1=(k:ℂ)+(-(1/6)) by ring, cpow_add _ _ ht0, cpow_natCast]
+    ring
+  constructor
+  · exact h.1.congr_fun (fun t ht => (hpt t ht).symm) measurableSet_Ioi
+  · rw [setIntegral_congr_fun measurableSet_Ioi hpt, h.2]
+    norm_num
+    rw [show (k:ℂ)+5/6+1/3+1=(k:ℂ)+13/6 by ring,
+      show -(1/6:ℂ)+((k:ℂ)+5/6)+1/3+1=(k:ℂ)+2 by ring,
+      airyDer_regularizedGaussHG_zero _ _ _ (by simp; positivity)]
+    ring
+
+/-- The real moments of the positive derivative Stieltjes density. -/
+lemma airyDer_density_moment (k : ℕ) :
+    IntegrableOn (fun t : ℝ => t^k*airyDer_density t) (Ioi 0) ∧
+    (∫ t : ℝ in Ioi 0, t^k*airyDer_density t) =
+      Real.Gamma ((k:ℝ)+5/6)*Real.Gamma ((k:ℝ)+13/6)/Real.Gamma ((k:ℝ)+2) := by
+  have heq (t : ℝ) (ht : t ∈ Ioi (0:ℝ)) :
+      ((t^k*airyDer_density t:ℝ):ℂ)=(t:ℂ)^k*exp (-(t:ℂ))*airyDer_normalizedU t := by
+    push_cast
+    rw [airyDer_density_coe ht]
+    ring
+  have h := airyDer_density_moment_complex k
+  have hc : IntegrableOn (fun t : ℝ => ((t^k*airyDer_density t:ℝ):ℂ)) (Ioi 0) :=
+    h.1.congr_fun (fun t ht => (heq t ht).symm) measurableSet_Ioi
+  constructor
+  · simpa only [RCLike.re_to_complex, ofReal_re] using hc.re
+  · apply ofReal_injective
+    rw [← integral_complex_ofReal, setIntegral_congr_fun measurableSet_Ioi heq, h.2]
+    have hGamma (a : ℝ) : (Real.Gamma a:ℂ)=Gamma (a:ℂ) := (Gamma_ofReal a).symm
+    push_cast
+    simp only [hGamma]
+    push_cast
+    rfl
+
+/-- Kummer's positive-parameter form of the normalized derivative. -/
+lemma airyDer_normalizedU_positive {z : ℂ} (hz : z ≠ 0) :
+    airyDer_normalizedU z=z^(7/6:ℂ)*kummerU (7/6) (7/3) z := by
+  have h := kummerU_kummer_transform_all (-(1/6):ℂ) (-(1/3)) hz
+  norm_num at h
+  rw [airyDer_normalizedU,h,← mul_assoc,← cpow_add _ _ hz]
+  norm_num
+
+/-- The normalized Airy derivative is the positive Stieltjes function on its principal sector. -/
+lemma airyDer_normalizedU_eq {z : ℂ} (hz : z ≠ 0) (harg : |arg z|<2*π/3) :
+    airyAiDeriv z/airyPrefactor .aiDeriv z = airyDer_normalizedU (2*airyZetaComplex z) := by
+  have hW : 2*airyZetaComplex z ≠ 0 := mul_ne_zero two_ne_zero (airySt_zeta_ne_zero hz)
+  rw [airyDer_normalizedU_positive hW, airySt_two_zeta_cpow hz harg,
+    airyAiDeriv_eq_kummerU hz harg, airyPrefactor]
+  have hπ : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hq : z^(1/4:ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hz)
+  rw [exp_sub]
+  have hN := airyDer_norm_const hz
+  have hE : exp (-airyZetaComplex z) ≠ 0 := exp_ne_zero _
+  field_simp
+  have hEE : exp (airyZetaComplex z)*exp (-airyZetaComplex z)=1 := by
+    rw [← exp_add]; simp
+  ring_nf at hN ⊢
+  linear_combination kummerU (7/6) (7/3) (airyZetaComplex z*2)*hN -
+    kummerU (7/6) (7/3) (airyZetaComplex z*2)*z^(1/4:ℂ)*
+      exp (airyLogZeta z*(7/6)+log 2*(7/6))*hEE
 end DLMF.Airy

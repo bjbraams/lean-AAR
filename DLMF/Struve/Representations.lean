@@ -543,7 +543,7 @@ The loop integral is a rectangle boundary integral minus its right side. The res
 rectangles with one simple pole (proved directly from the rectangle Cauchy theorem and the
 explicit boundary integral of `(s - p)⁻¹`) gives the partial sums of the residue series on
 `[c, N + 1/2] × [-h, h]`; the right sides tend to `0` by the uniform bounds for `1/Γ` on
-right-shifted lines (`DLMF.Gamma.shiftB_norm_inv_Gamma_le`, `DLMF.Gamma.shiftB_Gamma_ge`), and the
+right-shifted lines (`DLMF.Gamma.shiftB_norm_recip_Gamma_le`, `DLMF.Gamma.shiftB_Gamma_ge`), and the
 horizontal integrals converge absolutely. -/
 
 section StruveLoop
@@ -557,13 +557,13 @@ def struveLoop_rect (F : ℂ → ℂ) (a b h : ℝ) : ℂ :=
     I • (∫ y : ℝ in (-h)..h, F (b + y * I)) - I • ∫ y : ℝ in (-h)..h, F (a + y * I)
 
 /-- The rectangle boundary integral of `(s - p)⁻¹` around a real point `p` is `2πi`. -/
-lemma struveLoop_rect_inv {a b p h : ℝ} (ha : a < p) (hb : p < b) (hh : 0 < h) :
+lemma struveLoop_rect_recip {a b p h : ℝ} (ha : a < p) (hb : p < b) (hh : 0 < h) :
     struveLoop_rect (fun s => (s - p)⁻¹) a b h = 2 * π * I := by
   unfold struveLoop_rect
   have hv : ∀ d : ℝ, d ≠ p → ∫ y : ℝ in (-h)..h, (((d : ℂ) + y * I) - p)⁻¹ =
       2 * (Real.arctan (h / (d - p)) : ℂ) := by
     intro d hd
-    rw [← Complex.barnesRes_integral_inv (c := d - p) (sub_ne_zero.mpr hd) h]
+    rw [← Complex.barnesRes_integral_recip (c := d - p) (sub_ne_zero.mpr hd) h]
     congr 1; funext y; push_cast; ring_nf
   have hne : ∀ (x t : ℝ), t ≠ 0 → ((x : ℂ) + t * I - p) ≠ 0 := by
     intro x t ht h0; apply ht; simpa using congrArg Complex.im h0
@@ -734,7 +734,7 @@ lemma struveLoop_rect_pole {F Φ : ℂ → ℂ} {a b p h : ℝ} (ha : a < p) (hb
   have hinv : ContinuousOn (fun s : ℂ => Φ p * (s - p)⁻¹) (struveLoop_bdry a b h) :=
     continuousOn_const.mul (ContinuousOn.inv₀ (by fun_prop) fun s hs => sub_ne_zero.mpr (hne s hs))
   rw [struveLoop_rect_congr hdec, struveLoop_rect_add hinv (hg.continuousOn.mono sdiff_subset),
-    struveLoop_rect_const_mul (fun s => (s - p)⁻¹), struveLoop_rect_inv ha hb hh]
+    struveLoop_rect_const_mul (fun s => (s - p)⁻¹), struveLoop_rect_recip ha hb hh]
   have h0 := integral_boundary_rect_eq_zero_of_differentiableOn g ⟨a, -h⟩ ⟨b, h⟩ hg
   have : struveLoop_rect g a b h = 0 := h0
   rw [this]; ring
@@ -853,7 +853,7 @@ lemma struveLoop_tail_bound (ν : ℂ) {w : ℂ} (hw : w ≠ 0) (h : ℝ) :
       Real.exp (π * h / 2) * (A ^ (-(1 / 2 : ℝ)) * Real.exp (A + 1)) * (A ^ x)⁻¹ := by
     have e : (3 / 2 : ℂ) + (x + y * I) = ((3 / 2 + x : ℝ) : ℂ) + y * I := by push_cast; ring
     rw [e]
-    refine (DLMF.Gamma.shiftB_norm_inv_Gamma_le (by linarith) y).trans ?_
+    refine (DLMF.Gamma.shiftB_norm_recip_Gamma_le (by linarith) y).trans ?_
     have hg := DLMF.Gamma.shiftB_Gamma_ge (t := 3 / 2 + x) (by linarith) hA0
     have hGp : 0 < Real.Gamma (3 / 2 + x) := Real.Gamma_pos_of_pos (by linarith)
     rw [div_le_iff₀ hGp]
@@ -880,7 +880,7 @@ lemma struveLoop_tail_bound (ν : ℂ) {w : ℂ} (hw : w ≠ 0) (h : ℝ) :
     have e : (3 / 2 : ℂ) + ν + (x + y * I) = ((3 / 2 + ν.re + x : ℝ) : ℂ) + (ν.im + y : ℝ) * I := by
       apply Complex.ext <;> simp
     rw [e]
-    refine (DLMF.Gamma.shiftB_norm_inv_Gamma_le (by linarith) _).trans ?_
+    refine (DLMF.Gamma.shiftB_norm_recip_Gamma_le (by linarith) _).trans ?_
     have hg := DLMF.Gamma.shiftB_Gamma_ge (t := 3 / 2 + ν.re + x) (by linarith) one_pos
     rw [Real.one_rpow, one_mul, show (1 : ℝ) + 1 = 2 by norm_num] at hg
     have hGp : 0 < Real.Gamma (3 / 2 + ν.re + x) := Real.Gamma_pos_of_pos (by linarith)
@@ -1220,7 +1220,7 @@ lemma struveBar_norm_F_neg (ν : ℂ) {x : ℝ} (hx : 0 < x) (t y : ℝ) :
 
 /-- **The horizontal sides vanish.** If `‖G h t‖` is the modulus of the 11.5.8 integrand at
 `t ± ih` (with shift `m = ±Im ν`), then `∫_{(c,∞)} G h → 0` as `h → ∞`: dominated convergence
-with the uniform bounds `DLMF.Gamma.shiftB_norm_inv_Gamma_le` and the pointwise Stirling decay
+with the uniform bounds `DLMF.Gamma.shiftB_norm_recip_Gamma_le` and the pointwise Stirling decay
 `struveBar_isBigO`. -/
 lemma struveBar_tendsto_horizontal (ν : ℂ) {x c : ℝ} (hx : 0 < x) (hc : -1 < c) (hc0 : c < 0)
     (hv : -1 < ν.re + 2 * c) (m : ℝ) (G : ℝ → ℝ → ℂ)
@@ -1248,8 +1248,8 @@ lemma struveBar_tendsto_horizontal (ν : ℂ) {x c : ℝ} (hx : 0 < x) (hc : -1 
     have hb : 1 / 2 ≤ 3 / 2 + ν.re + t := by linarith
     have hGa := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < 3 / 2 + t)
     have hGb := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < 3 / 2 + ν.re + t)
-    have g1 := DLMF.Gamma.shiftB_norm_inv_Gamma_le ha h
-    have g2 := DLMF.Gamma.shiftB_norm_inv_Gamma_le hb (h + m)
+    have g1 := DLMF.Gamma.shiftB_norm_recip_Gamma_le ha h
+    have g2 := DLMF.Gamma.shiftB_norm_recip_Gamma_le hb (h + m)
     rw [norm_inv] at g1 g2
     have e : ((h : ℂ) + m) = ((h + m : ℝ) : ℂ) := by push_cast; ring
     rw [e]
@@ -2764,7 +2764,7 @@ theorem sq_add_mem_slitPlane {a : ℂ} (ha : 0 < a.re) {u : ℝ} (hu : 0 ≤ u) 
     exact mul_ne_zero (mul_ne_zero two_ne_zero ha.ne') him
 
 /-- `∫₀¹ du/(b²-u²) = log((1+b)/a)/b` with `b = (1+a²)^{1/2}`, `Re a > 0`. -/
-theorem integral_inv_one_add_sq_sub_sq {a : ℂ} (ha : 0 < a.re) :
+theorem integral_recip_one_add_sq_sub_sq {a : ℂ} (ha : 0 < a.re) :
     (∫ u : ℝ in 0..1, 1/((1+a^2) - (u:ℂ)^2)) =
       log ((1+(1+a^2)^(1/2:ℂ))/a) / (1+a^2)^(1/2:ℂ) := by
   set b : ℂ := (1+a^2)^(1/2:ℂ) with hbdef
@@ -2841,7 +2841,7 @@ theorem integral_poissonWeight_mul_div_sq_add {a : ℂ} (ha : 0 < a.re) :
       log ((1+(1+a^2)^(1/2:ℂ))/a) / (1+a^2)^(1/2:ℂ) := by
   have h := integral_poissonWeight_eq_trig 0 (fun s : ℝ => (s:ℂ)/(a^2+(s:ℂ)^2))
   rw [show (0:ℂ)-1/2 = -1/2 by ring] at h
-  rw [h, ← integral_inv_one_add_sq_sub_sq ha]
+  rw [h, ← integral_recip_one_add_sq_sub_sq ha]
   simp only [mul_zero, cpow_zero, mul_one]
   set g : ℝ → ℂ := fun u => 1/((1+a^2) - (u:ℂ)^2)
   have hsub := intervalIntegral.integral_deriv_smul_comp' (a := 0) (b := π/2) (f := Real.sin)
@@ -2907,7 +2907,7 @@ theorem sq_sub_one_add_mem_slitPlane {a : ℂ} (ha : 1 < a.re) {u : ℝ} (hu : 0
     rw [this]
     exact mul_ne_zero (mul_ne_zero two_ne_zero (by linarith)) him
 
-theorem one_sub_inv_sq_mem_slitPlane {a : ℂ} (ha : 1 < a.re) : 1 - 1/a^2 ∈ slitPlane := by
+theorem one_sub_recip_sq_mem_slitPlane {a : ℂ} (ha : 1 < a.re) : 1 - 1/a^2 ∈ slitPlane := by
   have ha0 : a ≠ 0 := fun h => by rw [h] at ha; simp at ha; linarith
   rw [mem_slitPlane_iff]
   by_cases him : a.im = 0
@@ -2939,7 +2939,7 @@ theorem cpow_half_sq_sub_one {a : ℂ} (ha : 1 < a.re) :
     have h1 : ContinuousAt (fun z : ℂ => 1 - 1/z^2) z :=
       continuousAt_const.sub (continuousAt_const.div (by fun_prop) (pow_ne_zero 2 (hz0 z hz)))
     exact (continuousAt_id.mul (h1.cpow continuousAt_const
-      (one_sub_inv_sq_mem_slitPlane hz))).continuousWithinAt
+      (one_sub_recip_sq_mem_slitPlane hz))).continuousWithinAt
   have hsq : EqOn ((fun z : ℂ => (z^2-1)^(1/2:ℂ))^2) ((fun z : ℂ => z * (1-1/z^2)^(1/2:ℂ))^2) S := by
     intro z hz
     simp only [Pi.pow_apply, mul_pow, cpow_half_sq]
@@ -2947,7 +2947,7 @@ theorem cpow_half_sq_sub_one {a : ℂ} (ha : 1 < a.re) :
   have hne : ∀ {z : ℂ}, z ∈ S → z * (1-1/z^2)^(1/2:ℂ) ≠ 0 := by
     intro z hz
     refine mul_ne_zero (hz0 z hz) fun h => ?_
-    have := re_cpow_half_pos (one_sub_inv_sq_mem_slitPlane hz)
+    have := re_cpow_half_pos (one_sub_recip_sq_mem_slitPlane hz)
     rw [h] at this; simp at this
   have h2 : (2:ℂ) ∈ S := by simp [S]
   rcases hS.eq_or_eq_neg_of_sq_eq hf hg hsq hne with h | h
@@ -2955,7 +2955,7 @@ theorem cpow_half_sq_sub_one {a : ℂ} (ha : 1 < a.re) :
   · exfalso
     have h1 := h h2
     have hp1 := re_cpow_half_pos (hslit1 2 h2)
-    have hp2 := re_cpow_half_pos (one_sub_inv_sq_mem_slitPlane (a := 2) (by simp))
+    have hp2 := re_cpow_half_pos (one_sub_recip_sq_mem_slitPlane (a := 2) (by simp))
     simp only [Pi.neg_apply] at h1
     rw [h1] at hp1
     simp only [neg_re, mul_re, re_ofNat, im_ofNat, zero_mul, sub_zero] at hp1
@@ -2980,7 +2980,7 @@ theorem sq_sub_one_add_sq_ne_zero {a : ℂ} (ha : 1 < a.re) (u : ℝ) :
   convert this using 1; push_cast; ring
 
 /-- Logarithmic form of `∫₀¹ du/(c²+u²)`, `c = (a²-1)^{1/2}`. -/
-theorem integral_inv_sq_sub_one_add_sq_log {a : ℂ} (ha : 1 < a.re) :
+theorem integral_recip_sq_sub_one_add_sq_log {a : ℂ} (ha : 1 < a.re) :
     (∫ u : ℝ in 0..1, 1/((a^2-1) + (u:ℂ)^2)) =
       -I*log (I/a+(1-1/a^2)^(1/2:ℂ)) / (a^2-1)^(1/2:ℂ) := by
   set c : ℂ := (a^2-1)^(1/2:ℂ) with hcdef
@@ -3049,7 +3049,7 @@ theorem integral_inv_sq_sub_one_add_sq_log {a : ℂ} (ha : 1 < a.re) :
   ring
 
 /-- Arctangent form of `∫₀¹ du/(c²+u²)`, `c = (a²-1)^{1/2}`. -/
-theorem integral_inv_sq_sub_one_add_sq_arctan {a : ℂ} (ha : 1 < a.re) :
+theorem integral_recip_sq_sub_one_add_sq_arctan {a : ℂ} (ha : 1 < a.re) :
     (∫ u : ℝ in 0..1, 1/((a^2-1) + (u:ℂ)^2)) =
       arctan (1/((a^2-1)^(1/2:ℂ))) / (a^2-1)^(1/2:ℂ) := by
   set c : ℂ := (a^2-1)^(1/2:ℂ) with hcdef
@@ -3312,7 +3312,7 @@ theorem struve_laplace_14 {a : ℂ} (ha : 0 < a.re) :
 theorem struve_laplace_15 {a : ℂ} (ha : 1 < a.re) :
     HasIntegralAtTop (fun t : ℝ => exp (-a*t)*struveL 0 t) 0 (2/(π*((a^2-1)^(1/2:ℂ)))*(-I*log (I/a+(1-1/a^2)^(1/2:ℂ)))) := by
   have h := struveL_zero_laplace_aux ha
-  rw [integral_inv_sq_sub_one_add_sq_log ha] at h
+  rw [integral_recip_sq_sub_one_add_sq_log ha] at h
   convert h using 1
   ring
 
@@ -3323,7 +3323,7 @@ theorem struve_laplace_16 {a : ℂ} (ha : 1 < a.re) :
   set L : ℂ := 2/π * (arctan (1/((a^2-1)^(1/2:ℂ))) / (a^2-1)^(1/2:ℂ))
   have h15 : Tendsto (fun R : ℝ => ∫ t in (0:ℝ)..R, exp (-a*t)*struveL 0 t) atTop (𝓝 L) := by
     have h := struveL_zero_laplace_aux ha
-    rwa [integral_inv_sq_sub_one_add_sq_arctan ha] at h
+    rwa [integral_recip_sq_sub_one_add_sq_arctan ha] at h
   have ha0' : 0 < a.re := by linarith
   have hre : (-a).re < 0 := by simp; linarith
   have hexp : Tendsto (fun R : ℝ => ∫ t in (0:ℝ)..R, exp (-a*t)) atTop (𝓝 (1/a)) := by

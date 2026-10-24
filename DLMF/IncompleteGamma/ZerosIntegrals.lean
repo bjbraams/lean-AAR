@@ -883,7 +883,36 @@ theorem upperIncGamma_mellin_laplace {a b s : ℂ} (hs : -1 < s.re) (hab : 0 < (
 @[dlmf 8.15.E1]
 theorem lowerIncGamma_multiplication_hasSum {a : ℂ} (ha : ∀ n : ℕ, a ≠ -n) (u v : ℂ) :
     HasSum (fun k : ℕ => exp (a*v)*lowerIncGammaOnLog (a+k) u*(1-exp v)^k/(k.factorial : ℂ)) (lowerIncGammaOnLog a (u+v)) := by
-  sorry
+  have hsc (b z : ℂ) : scIncGamma b z = regularizedHGFun {b} {b+1} (-z) := by
+    simpa only [add_comm 1 b] using (scIncGamma_regularized_pair b z).2
+  have hf : Differentiable ℂ (regularizedHGFun {a} {a+1}) :=
+    fun z => differentiableAt_regularizedConfluent _ _ z
+  have ht := (Complex.hasSum_taylorSeries_of_entire hf (-exp u) (-exp (u+v))).mul_left
+    (Gamma a * exp (a*(u+v)))
+  have hv : Gamma a * exp (a*(u+v)) * regularizedHGFun {a} {a+1} (-exp (u+v)) =
+      lowerIncGammaOnLog a (u+v) := by
+    rw [lowerIncGammaOnLog, hsc]
+  rw [hv] at ht
+  refine ht.congr_fun fun k => ?_
+  rw [iteratedDeriv_regularizedConfluent,
+    show a+1+(k:ℂ) = (a+k)+1 by ring,
+    ← hsc]
+  have hg : Gamma a * poch a k = Gamma (a+k) := by
+    rw [poch, ← Gamma_add_nat_div_Gamma_eq a ha]
+    field_simp [Gamma_ne_zero ha]
+  have he : exp (a*(u+v)) * exp u ^ k = exp (a*v) * exp ((a+k)*u) := by
+    rw [← exp_nat_mul, ← exp_add, ← exp_add]
+    congr 1
+    ring
+  have hd : -exp (u+v) - -exp u = exp u * (1-exp v) := by
+    rw [exp_add]
+    ring
+  simp only [smul_eq_mul, hd, mul_pow, lowerIncGammaOnLog]
+  symm
+  calc
+    _ = (Gamma a * poch a k) * (exp (a*(u+v)) * exp u ^ k) *
+        scIncGamma (a+k) (exp u) * (1-exp v)^k / k.factorial := by ring
+    _ = _ := by rw [hg, he]; ring
 
 /-- Complex-argument Hurwitz zeta by Euler–Maclaurin continuation; used only for 8.15.2. -/
 def hurwitzZetaComplex (s z : ℂ) : ℂ :=

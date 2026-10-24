@@ -2,7 +2,9 @@
 
 Reviewed against the live [NIST DLMF Chapter 13](https://dlmf.nist.gov/13) on
 2026-09-17 (Version 1.2.8, release 2026-09-15) and the project's local Mathlib
-**v4.34.0** sources. The project has since moved to Mathlib v4.35.0-rc2; this inventory was not re-reviewed against it.
+**v4.34.0** sources. The current toolchain and pinned Mathlib revision are listed in the
+[README](../../README.md#dependencies-and-upstream-reuse); this acquisition inventory
+was not re-reviewed in full against those newer sources.
 
 This inventory covers numbered equations in §§13.2–13.26. Notation §13.1,
 applications §§13.27–13.28, and computation §§13.29–13.32 were not acquired.
@@ -18,8 +20,9 @@ Existing project theorems were tagged rather than copied. Statements already
 supplied by Mathlib are identified in [MathlibCoverage.lean](MathlibCoverage.lean)
 and below, without duplicate project declarations.
 
-Newly acquired identities are admitted (`sorry`) unless they were already proved
-in `Basic.lean` or `Whittaker.lean`. No AAR source statement was changed.
+At acquisition, the new identities were admitted (`sorry`) unless they were already
+proved in `Basic.lean` or `Whittaker.lean`. Subsequent proof rounds have removed most
+of those admissions. No AAR source statement was changed.
 
 ## Interpretation and domain restrictions
 
@@ -167,9 +170,18 @@ remaining connection formulas 12.2.18–19, and the uniform expansions of §§12
 | [12.8.E8](https://dlmf.nist.gov/12.8.E8) | [pcfV_deriv_recurrence](ParabolicCylinder.lean) (line 1568) | proved |
 | [12.9.E1](https://dlmf.nist.gov/12.9.E1) | [hasAsymptoticExpansion_pcfU](ParabolicCylinder.lean) (line 266) | proved |
 
-## Modules
+## Current proof status (2026-10-24)
 
-| Module | Theorems | Definitions | Current `sorry`s |
+There are **9 explicit source admissions** in `DLMF/Confluent/`. The Whittaker
+series 13.24.2 now has proved absolute convergence and branch cancellation; its
+Buchholz transform identity remains open. See the
+[parallel proof round](../../REVIEW.md#parallel-admission-removal-and-reuse-round-2026-10-24)
+for validation and the latest reuse work. The module counts and inline line
+numbers below are historical acquisition data.
+
+## Module snapshot (2026-10-17)
+
+| Module | Theorems | Definitions | `sorry`s on 2026-10-17 |
 | --- | ---: | ---: | ---: |
 | [Basic.lean](Basic.lean) | 29 | 5 | 1 (pre-existing parabolic zero-free region) |
 | [BasicProperties.lean](BasicProperties.lean) | 35 | 1 | 6 |
@@ -198,9 +210,9 @@ The acquisition introduced Tricomi's `U` and complementary error/incomplete-gamm
   `Series.lean` (proved; all a, b, z, stronger than DLMF). The printed J form
   `regularizedHGFun_besselJ_series` was false as stated off the principal branch and is now
   proved under z ≠ 0, b − 2a ≠ 0 and ph z + ph(b − 2a) ∈ (−π, π] (REVIEW.md).
-- [13.2.E9](https://dlmf.nist.gov/13.2.E9): `kummerU_nat_denom_invGamma` and
-  `kummerU_nat_log_invGamma` in `BasicProperties.lean` (proved; all a, stronger than DLMF),
-  via `tricomiLogSeriesInvGamma` (`LogSeries.lean`) and
-  `tricomi_numerator_nat_series_invGamma` (`ParameterDerivatives.lean`).
-- [13.2.E19](https://dlmf.nist.gov/13.2.E19): `isBigO_kummerU_at_zero_b_one_invGamma`
+- [13.2.E9](https://dlmf.nist.gov/13.2.E9): `kummerU_nat_denom_recipGamma` and
+  `kummerU_nat_log_recipGamma` in `BasicProperties.lean` (proved; all a, stronger than DLMF),
+  via `tricomiLogSeriesRecipGamma` (`LogSeries.lean`) and
+  `tricomi_numerator_nat_series_recipGamma` (`ParameterDerivatives.lean`).
+- [13.2.E19](https://dlmf.nist.gov/13.2.E19): `isBigO_kummerU_at_zero_b_one_recipGamma`
   (proved; all a).

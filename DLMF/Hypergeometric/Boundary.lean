@@ -13,7 +13,7 @@ public import DLMF.Hypergeometric.Identities
 # Gauss summation for regularized coefficients on the boundary
 
 At a singular denominator parameter, the zero initial coefficients are removed
-before applying the proved ordinary Gauss summation theorem. The inverse Gamma
+before applying the proved ordinary Gauss summation theorem. The reciprocal Gamma
 recurrence avoids division by a possibly vanishing numerator Pochhammer symbol.
 -/
 
@@ -81,7 +81,7 @@ lemma hasSum_regularizedGauss_one {a b c : ℂ} (h : 0 < (c - a - b).re) :
   · symm
     rw [Gamma_nat_eq_factorial]
     have href (u : ℂ) : poch u N / Gamma (1 - u) = (-1 : ℂ) ^ N / Gamma (-(m : ℂ) - u) := by
-      have hi := inv_Gamma_eq_poch_mul m (-(m : ℂ) - u)
+      have hi := recip_Gamma_eq_poch_mul m (-(m : ℂ) - u)
       rw [show -(m : ℂ) - u + ((m + 1 : ℕ) : ℂ) = 1 - u by push_cast; ring,
         show -(m : ℂ) - u = 1 - u - (N : ℂ) by dsimp [N]; push_cast; ring,
         poch_one_sub_nat] at hi
@@ -97,5 +97,25 @@ lemma hasSum_regularizedGauss_one {a b c : ℂ} (h : 0 < (c - a - b).re) :
       _ = Gamma (-(m : ℂ) - a - b) *
           ((poch a N / Gamma (1 - a)) * (poch b N / Gamma (1 - b))) := by field_simp
       _ = _ := by rw [href, href]; simp only [div_mul_div_comm, hn, one_div]; ring
+
+/-- The left boundary limit of the continued regularized Gauss function, for every denominator
+parameter. Mathlib's Abel limit theorem applies to `hasSum_regularizedGauss_one`, so exceptional
+parameters require no separate continuation argument. -/
+theorem tendsto_regularizedGaussHG_left_one {a b c : ℂ} (h : 0 < (c - a - b).re) :
+    Tendsto (fun x : ℝ => regularizedGaussHG a b c x) (𝓝[<] 1)
+      (𝓝 (Gamma (c - a - b) / (Gamma (c - a) * Gamma (c - b)))) := by
+  have hA := Complex.tendsto_tsum_powerSeries_nhdsWithin_lt
+    (hasSum_regularizedGauss_one h).tendsto_sum_nat
+  rw [Filter.tendsto_map'_iff] at hA
+  refine hA.congr' ?_
+  filter_upwards [Ioo_mem_nhdsLT (show (-1 : ℝ) < 1 by norm_num)] with x hx
+  have hx' : ‖(x : ℂ)‖ < 1 := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_lt]
+    exact hx
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hx', regularizedGaussHGFun_eq_tsum]
+  apply tsum_congr
+  intro n
+  simp only [poch]
+  ring
 
 end DLMF.Hypergeometric

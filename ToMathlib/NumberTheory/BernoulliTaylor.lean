@@ -18,8 +18,8 @@ cotangent's partial fractions as a geometric series and interchanging the double
 `πz cot(πz) = 1 - 2 ∑ ζ(2k) z^{2k}` for `0 < ‖z‖ < 1` (Duverney (2.50)). The convergent Taylor
 series follow:
 * `hasSum_pi_mul_cot_bernoulli`: `πz cot(πz) = ∑ₖ (-1)ᵏ B₂ₖ (2πz)^{2k}/(2k)!` (DLMF 4.19.6);
-* `hasSum_pi_mul_tan_bernoulli`: `πz tan(πz)`, from `tan z = cot z - 2 cot 2z` (DLMF 4.19.4);
-* `hasSum_pi_mul_div_sin_bernoulli`: `πz/sin(πz)`, from `csc z = cot(z/2) - cot z` (DLMF 4.19.5);
+* `hasSum_pi_mul_tan_bernoulli`: `πz tan(πz)`, from `tan z = cot z - 2 cot 2z` (DLMF 4.19.3);
+* `hasSum_pi_mul_div_sin_bernoulli`: `πz/sin(πz)`, from `csc z = cot(z/2) - cot z` (DLMF 4.19.4);
 * `hasSum_bernoulli_mul_pow_div`: `z/(eᶻ - 1) = ∑ Bₙ zⁿ/n!` for `0 < ‖z‖ < 2π` (DLMF 24.2.1,
   Duverney (2.46)), from the cotangent at `iz/(2π)`.
 -/
@@ -220,9 +220,9 @@ lemma mem_integerComplement_of_norm_lt_one {z : ℂ} (hz : ‖z‖ < 1) (hz0 : z
       rw [← hn, Complex.norm_intCast]; exact_mod_cast Int.one_le_abs hn0
     linarith
 
-/-- **Tangent Taylor series** (Duverney (2.51), DLMF 4.19.4): for `0 < ‖z‖ < ½`,
+/-- **Tangent Taylor series** (Duverney (2.51), DLMF 4.19.3): for `0 < ‖z‖ < ½`,
 `πz tan(πz) = ∑ₖ (-1)ᵏ B₂ₖ (1 - 4ᵏ) (2πz)^{2k}/(2k)!`. -/
-@[dlmf 4.19.E4]
+@[dlmf 4.19.E3]
 theorem hasSum_pi_mul_tan_bernoulli {z : ℂ} (hz : ‖z‖ < 1 / 2) (hz0 : z ≠ 0) :
     HasSum (fun k : ℕ => (-1) ^ k * (bernoulli (2 * k) : ℂ) * (1 - 4 ^ k) *
       (2 * π * z) ^ (2 * k) / (2 * k)!) (π * z * tan (π * z)) := by
@@ -247,9 +247,9 @@ theorem hasSum_pi_mul_tan_bernoulli {z : ℂ} (hz : ‖z‖ < 1 / 2) (hz0 : z �
     pow_mul (2 : ℂ), show (2 : ℂ) ^ 2 = 4 by norm_num]
   ring
 
-/-- **Taylor series of `z/sin z`** (Duverney (2.53), DLMF 4.19.5): for `0 < ‖z‖ < 1`,
+/-- **Taylor series of `z/sin z`** (Duverney (2.53), DLMF 4.19.4): for `0 < ‖z‖ < 1`,
 `πz/sin(πz) = ∑ₖ (-1)ᵏ B₂ₖ (2 - 4ᵏ) (πz)^{2k}/(2k)!`. -/
-@[dlmf 4.19.E5]
+@[dlmf 4.19.E4]
 theorem hasSum_pi_mul_div_sin_bernoulli {z : ℂ} (hz : ‖z‖ < 1) (hz0 : z ≠ 0) :
     HasSum (fun k : ℕ => (-1) ^ k * (bernoulli (2 * k) : ℂ) * (2 - 4 ^ k) *
       (π * z) ^ (2 * k) / (2 * k)!) (π * z / sin (π * z)) := by

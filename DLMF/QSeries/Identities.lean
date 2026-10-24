@@ -360,6 +360,7 @@ def basicHG (a b : List ℂ) (q z : ℂ) : ℂ :=
         ((b.map fun bi => qPochhammer bi q n).prod * qPochhammer q q n) * z ^ n
 
 /-- Heine's transformation of `₂φ₁` (AAR §10.10). -/
+@[dlmf 17.6.E6 "exact: both actual series disks, nonzero b, and all literal lower exclusions; local notation adapter proved"]
 theorem heine_transformation {a b c q z : ℂ}
     (hq : ‖q‖ < 1) (hz : ‖z‖ < 1) (hb : ‖b‖ < 1) (hb0 : b ≠ 0)
     (hc : ∀ k : ℕ, c * q ^ k ≠ 1) (haz : ∀ k : ℕ, a * z * q ^ k ≠ 1) :

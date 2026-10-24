@@ -96,25 +96,7 @@ theorem associated_hypergeometric_9 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPl
 @[dlmf 14.3.E15]
 theorem associated_hypergeometric_15 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     associatedP ν (-μ) z=2^(-μ)*legendreBranchPower μ z*regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) := by
-  have hw := mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hz)
-  have h1 : z+1 ≠ 0 := by
-    simpa [add_comm] using slitPlane_ne_zero (one_add_mem_slitPlane_of_sub_one hz)
-  have hl2 : log (2:ℂ) = (Real.log 2:ℂ) := by
-    rw [show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
-  have hp : (1-(1-z)/2)^μ = exp ((log (z+1) - Real.log 2)*μ) := by
-    rw [show 1-(1-z)/2 = (z+1)*((1/2:ℝ):ℂ) by push_cast; ring,
-      cpow_def_of_ne_zero (mul_ne_zero h1 (by norm_num)), log_mul_ofReal _ (by norm_num) _ h1,
-      one_div, Real.log_inv]
-    push_cast; ring_nf
-  have h2 : (2:ℂ)^(-μ) = exp (Real.log 2 * (-μ)) := by
-    rw [cpow_def_of_ne_zero (by norm_num), hl2]
-  unfold associatedP legendreBranchPower
-  rw [show 1-(-μ) = μ+1 by ring, regularizedGaussHG_euler _ _ _ hw, show μ+1-(ν+1)-(-ν) = μ by ring,
-    show μ+1-(ν+1) = μ-ν by ring, show μ+1-(-ν) = ν+μ+1 by ring, hp, h2]
-  have he : exp (-μ/2*(log (z+1)-log (z-1))) * exp ((log (z+1) - Real.log 2)*μ) =
-      exp (Real.log 2 * (-μ)) * exp (μ/2*(log (z-1)+log (z+1))) := by
-    rw [← exp_add, ← exp_add]; congr 1; ring
-  linear_combination regularizedGaussHG (μ-ν) (ν+μ+1) (μ+1) ((1-z)/2) * he
+  exact associatedP_neg_euler ν μ hz
 
 /-- associated hypergeometric 16. -/
 @[dlmf 14.3.E16]
@@ -141,7 +123,7 @@ theorem associated_hypergeometric_16 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitP
       · left; simp at h; linarith
       · right; simpa using h
     exact ⟨h1, h2, h3, mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one h2),
-      one_sub_inv_sq_mem_slitPlane_of_sub_one h2⟩
+      one_sub_recip_sq_mem_slitPlane_of_sub_one h2⟩
   have hf : AnalyticOnNhd ℂ (fun z => cos (ν*π)*associatedP ν (-μ) z) D := by
     refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
     obtain ⟨h1, h2, -, h4, -⟩ := hmem w hw
@@ -449,6 +431,18 @@ lemma legHyp_norm_w {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) : ‖((1-x)/2:ℂ)‖ 
     abs_lt]
   constructor <;> linarith [hx.1, hx.2]
 
+/-- The degree-derivative series converges throughout its complex argument disk. -/
+lemma legHyp_hasSum_A_complex {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (μ : ℂ) {z : ℂ} (hz : ‖(1-z)/2‖ < 1) :
+    HasSum (fun k : ℕ => ((1-z)/2)^k*Gamma (k-ν)*Gamma (k+ν+1)/((k.factorial:ℂ)*Gamma (k-μ+1))*
+        (digamma (k+ν+1)-digamma (k-ν)))
+      (π / sin (π*ν) * (-cos (π*ν) * (-(π / sin (π*ν)) *
+        regularizedGaussHGFun (ν+1) (-ν) (1-μ) ((1-z)/2))
+        - deriv (fun ν' => regularizedGaussHGFun (ν'+1) (-ν') (1-μ) ((1-z)/2)) ν)) := by
+  obtain ⟨-, hR⟩ := legHyp_hasSum_R (1-μ) _ hz hν
+  refine hR.congr_fun fun k => ?_
+  rw [show (k:ℂ)-ν = -ν+k by ring, show (k:ℂ)+ν+1 = ν+1+k by ring, show (k:ℂ)-μ+1 = 1-μ+k by ring]
+  simp only [div_eq_mul_inv, mul_inv]; ring
+
 /-- The series inside `A^μ_ν(x)` (DLMF 14.11.3) converges, with the value given by the degree
 derivative of `𝐅(ν+1, -ν; 1-μ; (1-x)/2)`. -/
 lemma legHyp_hasSum_A {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (μ : ℂ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
@@ -457,13 +451,10 @@ lemma legHyp_hasSum_A {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (μ : ℂ) {x : �
       (π / sin (π*ν) * (-cos (π*ν) * (-(π / sin (π*ν)) *
         regularizedGaussHGFun (ν+1) (-ν) (1-μ) ((1-x)/2:ℂ))
         - deriv (fun ν' => regularizedGaussHGFun (ν'+1) (-ν') (1-μ) ((1-x)/2:ℂ)) ν)) := by
-  obtain ⟨-, hR⟩ := legHyp_hasSum_R (1-μ) _ (legHyp_norm_w hx) hν
-  refine hR.congr_fun fun k => ?_
-  rw [show (k:ℂ)-ν = -ν+k by ring, show (k:ℂ)+ν+1 = ν+1+k by ring, show (k:ℂ)-μ+1 = 1-μ+k by ring]
-  simp only [div_eq_mul_inv, mul_inv]; ring
+  simpa using legHyp_hasSum_A_complex hν μ (legHyp_norm_w hx)
 
 /-- `(1/Γ)' = -ψ/Γ` away from the poles. -/
-lemma legHyp_hasDerivAt_invGamma {s : ℂ} (hs : ∀ m : ℕ, s ≠ -m) :
+lemma legHyp_hasDerivAt_recipGamma {s : ℂ} (hs : ∀ m : ℕ, s ≠ -m) :
     HasDerivAt (fun t => (Gamma t)⁻¹) (-digamma s * (Gamma s)⁻¹) s := by
   have h := (legHyp_hasDerivAt_Gamma hs).inv (Gamma_ne_zero hs)
   refine h.congr_deriv ?_
@@ -479,7 +470,7 @@ lemma legHyp_order_deriv {p a b Q : ℂ → ℂ} {ν D : ℂ} (hν : ∀ m : ℕ
       2/π * sin (μ*π) * (b μ * Q μ)) :
     b 0 * Q 0 = (Gamma (ν+1))⁻¹ * (D - digamma (ν+1) * p 0) := by
   have hπ : (π:ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
-  have hI := legHyp_hasDerivAt_invGamma hν
+  have hI := legHyp_hasDerivAt_recipGamma hν
   have h1 : HasDerivAt (fun μ : ℂ => (Gamma (ν+μ+1))⁻¹) (-digamma (ν+1) * (Gamma (ν+1))⁻¹ * 1) 0 :=
     hI.comp_of_eq (0:ℂ) (((hasDerivAt_id' (0:ℂ)).const_add ν).add_const 1) (by ring)
   have h2 : HasDerivAt (fun μ : ℂ => (Gamma (ν-μ+1))⁻¹) (-digamma (ν+1) * (Gamma (ν+1))⁻¹ * (-1)) 0 :=
@@ -559,7 +550,7 @@ lemma legHyp_differentiable_ferrersP_order (ν : ℂ) {x : ℝ} (hx : x ∈ Ioo 
   exact fun μ => ((differentiableAt_id.div_const 2).const_cpow (Or.inl hr)).mul (hF μ)
 
 /-- `1/Γ(ν+μ+1) ≠ 0` gives the regularity of `(ν, μ)` for `Q`. -/
-lemma legHyp_regular_of_inv {ν μ : ℂ} (h : (Gamma (ν+μ+1))⁻¹ ≠ 0) : LegendreQRegular ν μ := by
+lemma legHyp_regular_of_recip {ν μ : ℂ} (h : (Gamma (ν+μ+1))⁻¹ ≠ 0) : LegendreQRegular ν μ := by
   intro n hn
   apply h
   rw [show ν+μ+1 = -(n:ℂ) by linear_combination hn, Complex.Gamma_neg_nat_eq_zero, inv_zero]
@@ -567,14 +558,14 @@ lemma legHyp_regular_of_inv {ν μ : ℂ} (h : (Gamma (ν+μ+1))⁻¹ ≠ 0) : L
 /-- Near `μ = 0`, both `(ν, μ)` and `(ν, -μ)` are regular when `ν+1` is not a pole. -/
 lemma legHyp_eventually_regular {ν : ℂ} (hν : ∀ m : ℕ, ν+1 ≠ -m) :
     ∀ᶠ μ in 𝓝 (0:ℂ), LegendreQRegular ν μ ∧ LegendreQRegular ν (-μ) := by
-  have hinv : Continuous fun s : ℂ => (Gamma s)⁻¹ := continuous_inv_Gamma
+  have hinv : Continuous fun s : ℂ => (Gamma s)⁻¹ := continuous_recip_Gamma
   have h0 : (Gamma (ν+1))⁻¹ ≠ 0 := inv_ne_zero (Gamma_ne_zero hν)
   have o1 : IsOpen {μ : ℂ | (Gamma (ν+μ+1))⁻¹ ≠ 0} :=
     isOpen_ne_fun (hinv.comp (by fun_prop)) continuous_const
   have o2 : IsOpen {μ : ℂ | (Gamma (ν+-μ+1))⁻¹ ≠ 0} :=
     isOpen_ne_fun (hinv.comp (by fun_prop)) continuous_const
   filter_upwards [o1.mem_nhds (by simpa using h0), o2.mem_nhds (by simpa using h0)] with μ h1 h2
-  exact ⟨legHyp_regular_of_inv h1, legHyp_regular_of_inv h2⟩
+  exact ⟨legHyp_regular_of_recip h1, legHyp_regular_of_recip h2⟩
 
 /-- Regularity at order zero keeps `ν+1` off the poles of `Γ`. -/
 lemma legHyp_nu {ν : ℂ} (hν : LegendreQRegular ν 0) : ∀ m : ℕ, ν+1 ≠ -m := fun m h =>
@@ -677,7 +668,7 @@ theorem ferrersP_order_deriv_zero {ν : ℂ} (hν : LegendreQRegular ν 0) {x : 
     have := ((hasDerivAt_id' (0:ℂ)).mul_const (π:ℂ)).ccos
     simpa using this
   have hb : ContinuousAt (fun μ : ℂ => (Gamma (ν-μ+1))⁻¹) 0 :=
-    (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)).continuousAt
+    (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)).continuousAt
   have hQ : ContinuousAt (fun μ : ℂ => ferrersQ ν (-μ) x) 0 :=
     ContinuousAt.comp (g := fun μ => ferrersQ ν μ x) (x := (0:ℂ))
       (by rw [neg_zero]; exact continuousAt_ferrersQ_order hν hx) continuousAt_neg
@@ -706,7 +697,7 @@ theorem ferrersQ_order_deriv_zero {ν : ℂ} (hν : LegendreQRegular ν 0) {x : 
     have := ((hasDerivAt_id' (0:ℂ)).mul_const (π:ℂ)).ccos
     simpa using this
   have hb : ContinuousAt (fun μ : ℂ => (Gamma (ν-μ+1))⁻¹) 0 :=
-    (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)).continuousAt
+    (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)).continuousAt
   have hQ : ContinuousAt (fun μ : ℂ => -(π:ℂ)^2/4 * ferrersP ν (-μ) x) 0 :=
     continuousAt_const.mul (((legHyp_differentiable_ferrersP_order ν hx).continuous.comp
       continuous_neg).continuousAt)

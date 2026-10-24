@@ -9,6 +9,7 @@ public import DLMF.OrthogonalPolynomials.Topics
 public import DLMF.Hypergeometric.Continuation
 public import DLMF.Hypergeometric.FiniteConvolution
 public import DLMF.OrthogonalPolynomials.HahnMoments
+public import DLMF.OrthogonalPolynomials.PollaczekMoments
 public import DLMF.Confluent.Recurrence
 public import DLMF.OrthogonalPolynomials.BinomialSeries
 public import Mathlib.Tactic.CrossRefAttribute
@@ -175,13 +176,84 @@ theorem continuousHahn_orthogonal {a b : ℂ} (ha : 0 < a.re) (hb : 0 < b.re) {m
   rw [integral_congr_ae (Eventually.of_forall he), integral_const_mul,
     HahnMoments.hahnSum_orthogonal ha hb (by simpa using ha) (by simpa using hb) hmn, mul_zero]
 
+/-- The angular parameter gives the transform scale. -/
+lemma pollaczek_scale_angle (phi : ℝ) : PollaczekMoments.scale (2*phi-π) = 2*sin (phi:ℂ) := by
+  dsimp only [PollaczekMoments.scale]
+  rw [show (2*phi-π)/2 = phi-π/2 by ring, Real.cos_sub_pi_div_two]
+  push_cast
+  rfl
+/-- The angular phase agrees with the usual Pollaczek phase. -/
+lemma pollaczek_phase_angle (phi : ℝ) : exp (I*(phi:ℂ)) = I*PollaczekMoments.phase (2*phi-π) := by
+  dsimp only [PollaczekMoments.phase]
+  have he : I*(phi:ℂ) = π/2*I+I*((2*phi-π:ℝ):ℂ)/2 := by
+    push_cast
+    ring
+  rw [he, Complex.exp_add, exp_pi_div_two_mul_I]
+/-- The hypergeometric argument is the scale divided by the transform phase. -/
+lemma pollaczek_argument_angle (phi : ℝ) :
+    1-exp (-2*I*(phi:ℂ)) = PollaczekMoments.scale (2*phi-π)/PollaczekMoments.phase (2*phi-π) := by
+  let θ := 2*phi-π
+  have hscale : PollaczekMoments.scale θ = exp (I*θ/2)+exp (-I*θ/2) := by
+    dsimp only [PollaczekMoments.scale]
+    push_cast
+    rw [Complex.two_cos]
+    congr 1 <;> congr 1 <;> ring
+  have hphase : PollaczekMoments.phase θ ≠ 0 := Complex.exp_ne_zero _
+  change 1-exp (-2*I*(phi:ℂ)) = PollaczekMoments.scale θ/PollaczekMoments.phase θ
+  apply (eq_div_iff hphase).mpr
+  rw [hscale]
+  dsimp only [PollaczekMoments.phase]
+  have he : exp (-2*I*(phi:ℂ))*exp (I*θ/2) = -exp (-I*θ/2) := by
+    rw [← Complex.exp_add, ← neg_one_mul (exp (-I*θ/2)), ← exp_neg_pi_mul_I, ← Complex.exp_add]
+    congr 1
+    dsimp only [θ]
+    push_cast
+    ring
+  rw [sub_mul, one_mul, he]
+  ring
+/-- The standard terminating definition equals the transform-adapted finite sum. -/
+lemma meixnerPollaczek_eq_poly (lam phi : ℝ) (n : ℕ) (x : ℝ) :
+    meixnerPollaczek lam phi n x =
+      (poch (2*(lam:ℂ)) n/n.factorial*(I*PollaczekMoments.phase (2*phi-π))^n)*
+        PollaczekMoments.poly lam (2*phi-π) n x := by
+  have he : exp (I*(n:ℂ)*(phi:ℂ)) = (I*PollaczekMoments.phase (2*phi-π))^n := by
+    rw [← pollaczek_phase_angle, ← Complex.exp_nat_mul]
+    congr 1
+    ring
+  rw [meixnerPollaczek, he, pollaczek_argument_angle]
+  congr 1
+  unfold terminatingHG PollaczekMoments.poly
+  apply Finset.sum_congr rfl
+  intro k hk
+  simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+  rw [poch_neg_coe_nat, Nat.descFactorial_eq_factorial_mul_choose]
+  push_cast
+  have hf : (k.factorial:ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
+  field_simp
+
 @[dlmf 18.19.E9]
 theorem meixnerPollaczek_orthogonality {lam phi : ℝ} (hlam : 0 < lam) (hphi : 0 < phi) (hphiπ : phi < Real.pi) (m n : ℕ) :
     ∫ x : ℝ, meixnerPollaczek lam phi m x * meixnerPollaczek lam phi n x *
       meixnerPollaczekWeight lam phi x =
       if m = n then 2 * Real.pi * Gamma (n + 2 * (lam : ℂ)) /
         ((2 * sin (phi : ℂ)) ^ (2 * (lam : ℂ)) * n.factorial) else 0 := by
-  sorry
+  have hθ : |2*phi-π| < π := by rw [abs_lt]; constructor <;> linarith
+  let C (k : ℕ) : ℂ := poch (2*(lam:ℂ)) k/k.factorial*(I*PollaczekMoments.phase (2*phi-π))^k
+  have he (x : ℝ) : meixnerPollaczek lam phi m x*meixnerPollaczek lam phi n x*
+      meixnerPollaczekWeight lam phi x = (C m*C n)*
+      (PollaczekMoments.poly lam (2*phi-π) m x*PollaczekMoments.poly lam (2*phi-π) n x*
+        PollaczekMoments.weight lam (2*phi-π) x) := by
+    rw [meixnerPollaczek_eq_poly, meixnerPollaczek_eq_poly]
+    dsimp only [C, meixnerPollaczekWeight, PollaczekMoments.weight]
+    push_cast
+    ring
+  rw [integral_congr_ae (Eventually.of_forall he), integral_const_mul]
+  by_cases hmn : m = n
+  · subst m
+    rw [ite_eq_left rfl, ← pow_two]
+    change (poch (2*(lam:ℂ)) n/n.factorial*(I*PollaczekMoments.phase (2*phi-π))^n)^2 * _ = _
+    rw [PollaczekMoments.normalized_square hlam hθ, pollaczek_scale_angle, add_comm (n:ℂ)]
+  · rw [ite_eq_right hmn, PollaczekMoments.poly_orthogonal hlam hθ hmn, mul_zero]
 
 /-- A two-numerator terminating sum is a terminating Gauss series. -/
 lemma terminatingHG_eq_ordinaryHypergeometric (n : ℕ) (b c z : ℂ) :
@@ -863,7 +935,7 @@ lemma meixnerPollaczek_zero (lam phi x : ℂ) : meixnerPollaczek lam phi 0 x = 1
   simp [meixnerPollaczek, terminatingHG, poch_zero]
 
 /-- `e^{iφ} + e^{-iφ} = 2 cos φ` and `e^{-iφ} - e^{iφ} = -2 i sin φ`, in the form used below. -/
-lemma exp_I_mul_add_inv (phi : ℂ) :
+lemma exp_I_mul_add_recip (phi : ℂ) :
     exp (I * phi) + (exp (I * phi))⁻¹ = 2 * cos phi ∧
       exp (I * phi) - (exp (I * phi))⁻¹ = 2 * I * sin phi := by
   rw [← Complex.exp_neg, Complex.cos, Complex.sin]
@@ -879,7 +951,7 @@ theorem meixnerPollaczek_generating_function {lam : ℂ} (hlam : 0 < lam.re) (ph
   have hu0 : u ≠ 0 := Complex.exp_ne_zero _
   have hu1 : ‖u‖ = 1 := by rw [hu, mul_comm, Complex.norm_exp_ofReal_mul_I]
   have hlam0 : lam ≠ 0 := fun h => by rw [h, Complex.zero_re] at hlam; exact lt_irrefl _ hlam
-  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_inv (phi : ℂ)
+  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_recip (phi : ℂ)
   have hcoeff : ∀ n, meixnerPollaczek lam phi n x =
       PowerSeries.coeff n (binomProductSeries (lam - I * x) (lam + I * x) u) := by
     refine eq_coeff_binomProductSeries hu0 (meixnerPollaczek_zero _ _ _) ?_ ?_

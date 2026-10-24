@@ -562,7 +562,7 @@ lemma airyInt_norm_div_zeta (kind : AiryKind) {x : ℝ} (hx : 0 < x) :
     ‖airyPrefactor kind x / airyZetaComplex x‖ =
       3 / 2 * x ^ (-(3 / 2) : ℝ) * ‖airyPrefactor kind x‖ := by
   rw [norm_div, airyReal_zeta_ofReal hx, norm_real, Real.norm_of_nonneg (airyZeta_pos hx).le,
-    div_eq_mul_inv, airyInt_airyZeta_inv hx]
+    div_eq_mul_inv, airyInt_airyZeta_recip hx]
   ring
 
 /-- Elementary identities for the powers `x^{1/4}, x^{1/2}, x^{3/4}`. -/

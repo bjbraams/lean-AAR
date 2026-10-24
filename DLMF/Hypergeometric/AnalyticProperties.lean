@@ -323,7 +323,7 @@ lemma tendsto_ordinaryHypergeometric_one_sub_left (p q r : ℂ) :
   simpa [Function.comp_def, ordinaryHypergeometric_zero] using this
 
 /-- `(-log(1-x))⁻¹ → 0` as `x → 1⁻`. -/
-lemma tendsto_inv_neg_log_one_sub_left :
+lemma tendsto_recip_neg_log_one_sub_left :
     Tendsto (fun x : ℝ => ((-Real.log (1 - x) : ℝ) : ℂ)⁻¹) (𝓝[<] 1) (𝓝 0) := by
   have h1 : Tendsto (fun x : ℝ => 1 - x) (𝓝[<] 1) (𝓝[>] 0) := by
     have hc : Tendsto (fun x : ℝ => 1 - x) (𝓝[<] 1) (𝓝 0) := by
@@ -344,7 +344,7 @@ lemma tendsto_inv_neg_log_one_sub_left :
 theorem zero_balanced_limit {a b : ℂ} (hc : ∀ k : ℕ, a + b ≠ -(k : ℂ)) :
     Tendsto (fun x : ℝ => ₂F₁ a b (a + b) (x : ℂ) / (-Real.log (1 - x) : ℂ))
       (𝓝[<] 1) (𝓝 (Gamma (a + b) / (Gamma a * Gamma b))) := by
-  have hL := tendsto_inv_neg_log_one_sub_left
+  have hL := tendsto_recip_neg_log_one_sub_left
   have hev : ∀ᶠ x : ℝ in 𝓝[<] 1, x ∈ Set.Ioo (0 : ℝ) 1 := Ioo_mem_nhdsLT (by norm_num)
   by_cases hab : (∀ k : ℕ, a ≠ -(k : ℂ)) ∧ (∀ k : ℕ, b ≠ -(k : ℂ))
   · obtain ⟨ha, hb⟩ := hab

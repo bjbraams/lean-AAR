@@ -59,23 +59,11 @@ def airyPhaseSum (derivative : Bool) (N : ℕ) (x : ℝ) : ℝ :=
 
 /-- `Ai'` is real on the real axis. -/
 lemma airyAiDeriv_ofReal_im (x : ℝ) : (airyAiDeriv x).im = 0 := by
-  have h := ((hasDerivAt_airyAi x).comp_ofReal).hasFDerivAt.restrictScalars ℝ
-  have h1 : HasDerivAt (fun t : ℝ => (airyAi t).im) (airyAiDeriv x).im x := by
-    have := (Complex.imCLM.hasFDerivAt.comp x h).hasDerivAt
-    simpa [Function.comp_def] using this
-  have h0 : (fun t : ℝ => (airyAi t).im) = fun _ => 0 := funext airyAi_ofReal_im
-  rw [h0] at h1
-  exact (h1.unique (hasDerivAt_const x 0))
+  exact airyDer_aiDeriv_ofReal_im x
 
 /-- `Bi'` is real on the real axis. -/
 lemma airyBiDeriv_ofReal_im (x : ℝ) : (airyBiDeriv x).im = 0 := by
-  have h := ((hasDerivAt_airyBi x).comp_ofReal).hasFDerivAt.restrictScalars ℝ
-  have h1 : HasDerivAt (fun t : ℝ => (airyBi t).im) (airyBiDeriv x).im x := by
-    have := (Complex.imCLM.hasFDerivAt.comp x h).hasDerivAt
-    simpa [Function.comp_def] using this
-  have h0 : (fun t : ℝ => (airyBi t).im) = fun _ => 0 := funext airyBi_ofReal_im
-  rw [h0] at h1
-  exact (h1.unique (hasDerivAt_const x 0))
+  exact airyDer_biDeriv_ofReal_im x
 
 /-- `Ai(x)` as the cast of its real part. -/
 lemma airyAi_ofReal_eq (x : ℝ) : airyAi x = (airyAiReal x : ℂ) :=
@@ -2733,7 +2721,7 @@ lemma airyMod_expansion_of_deriv {G g : ℝ → ℝ} {c : ℕ → ℝ}
 
 /-- The reciprocal of the formal series `∑ c_k X^k` with `c₀ = 1` has coefficients
 `airyReciprocalCoeff c`. -/
-lemma airyMod_coeff_inv_mk {c : ℕ → ℝ} (hc : c 0 = 1) (n : ℕ) :
+lemma airyMod_coeff_recip_mk {c : ℕ → ℝ} (hc : c 0 = 1) (n : ℕ) :
     PowerSeries.coeff n (PowerSeries.mk c)⁻¹ = airyReciprocalCoeff c n := by
   have h0 : PowerSeries.constantCoeff (PowerSeries.mk c) ≠ 0 := by
     simp [← PowerSeries.coeff_zero_eq_constantCoeff_apply, hc]
@@ -2799,13 +2787,13 @@ lemma airyMod_integrand_expansion {F p g : ℝ → ℝ} {c : ℕ → ℝ}
     rw [zpow_neg, show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, neg_pow]; ring_nf
   have h0 : PowerSeries.constantCoeff (PowerSeries.mk c) ≠ 0 := by
     simp [← PowerSeries.coeff_zero_eq_constantCoeff_apply, hc]
-  have hi := ((airyMod_powerSeries_of_expansion hF hp).inv hw h0) N
+  have hi := ((airyMod_powerSeries_of_expansion hF hp).recip hw h0) N
   have hz : ∀ (s : ℝ) (k : ℕ), (-s) ^ (-(3 * k : ℤ)) = ((-s) ^ (-(3 : ℤ))) ^ k := fun s k => by
     rw [← zpow_natCast, ← zpow_mul]; congr 1
   have h := (isBigO_refl (fun s : ℝ => s ^ (1 / 2 : ℝ)) atTop).mul hi
   refine h.congr' ?_ ?_
   · filter_upwards [eventually_gt_atTop 0] with s hs
-    simp only [smul_eq_mul, airyMod_coeff_inv_mk hc, hg s hs]
+    simp only [smul_eq_mul, airyMod_coeff_recip_mk hc, hg s hs]
     rw [mul_sub, Finset.mul_sum]
     congr 1
     refine Finset.sum_congr rfl fun k _ => ?_

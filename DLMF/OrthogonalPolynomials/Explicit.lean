@@ -262,15 +262,12 @@ theorem jacobi_at_one {α β : ℂ} (hα : -1 < α.re) (n : ℕ) :
     jacobiPolyP α β n 1 = poch (α + 1) n / n.factorial := by
   simp [jacobiPolyP]
 
-private lemma jacobi_at_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) :
-    jacobiPolyP α β n 1 ≠ 0 := by
+/-- Jacobi polynomials do not vanish at `x = 1` for `Re α > -1`. -/
+lemma jacobiPolyP_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) : jacobiPolyP α β n 1 ≠ 0 := by
   rw [jacobi_at_one hα]
-  apply div_ne_zero
-  · apply poch_ne_zero_of_not_neg_nat
-    apply not_neg_nat_of_re_pos
+  exact div_ne_zero (poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos (by
     simp only [Complex.add_re, Complex.one_re]
-    linarith
-  · exact Nat.cast_ne_zero.mpr n.factorial_ne_zero
+    linarith)) n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
 
 @[dlmf 18.6.T1]
 theorem ultrasphPoly_at_one {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) :
@@ -322,12 +319,12 @@ theorem hermitePolyH_even_at_zero (n : ℕ) :
 
 @[dlmf 18.6.T1]
 theorem chebyshevV_at_one (n : ℕ) : chebyshevV n 1 = 1 := by
-  exact div_self (jacobi_at_one_ne_zero (by norm_num) n)
+  exact div_self (jacobiPolyP_one_ne_zero (by norm_num) n)
 
 @[dlmf 18.6.T1]
 theorem chebyshevW_at_one (n : ℕ) : chebyshevW n 1 = 2 * n + 1 := by
   unfold chebyshevW
-  exact mul_div_cancel_right₀ _ (jacobi_at_one_ne_zero (by norm_num) n)
+  exact mul_div_cancel_right₀ _ (jacobiPolyP_one_ne_zero (by norm_num) n)
 
 @[dlmf 18.7.E9]
 theorem legendre_eq_ultrasphPoly (n : ℕ) (x : ℂ) : legendrePolyP n x

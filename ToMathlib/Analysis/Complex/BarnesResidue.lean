@@ -34,7 +34,7 @@ kernel in TauCeti, `TauCeti.NumberTheory.ArithmeticDirichletSeries.Perron.Basic`
 
 ## Main results
 
-* `Complex.barnesRes_integral_inv`: `∫_{-T}^{T} (c + it)⁻¹ dt = 2 arctan (T / c)`.
+* `Complex.barnesRes_integral_recip`: `∫_{-T}^{T} (c + it)⁻¹ dt = 2 arctan (T / c)`.
 * `Complex.barnesRes_vertical_shift`: the residue formula for moving a vertical line past a pole.
 * `Complex.barnesRes_vertical_shift_of_differentiableOn`: the pole-free version.
 * `Complex.barnesRes_sq_norm_sin` and the lower bounds `|sinh y| ≤ ‖sin (x + iy)‖`,
@@ -85,23 +85,23 @@ theorem barnesRes_hasDerivAt_primitive {c : ℝ} (hc : c ≠ 0) (t : ℝ) :
   ring
 
 /-- `t ↦ (c + it)⁻¹` is continuous for `c ≠ 0`. -/
-theorem barnesRes_continuous_inv {c : ℝ} (hc : c ≠ 0) :
+theorem barnesRes_continuous_recip {c : ℝ} (hc : c ≠ 0) :
     Continuous fun t : ℝ => ((c : ℂ) + t * I)⁻¹ :=
   Continuous.inv₀ (by fun_prop) fun t h => hc (by simpa using congrArg re h)
 
 /-- `∫_{-T}^{T} (c + it)⁻¹ dt = 2 arctan (T / c)` for `c ≠ 0`. -/
-theorem barnesRes_integral_inv {c : ℝ} (hc : c ≠ 0) (T : ℝ) :
+theorem barnesRes_integral_recip {c : ℝ} (hc : c ≠ 0) (T : ℝ) :
     ∫ t in -T..T, ((c : ℂ) + t * I)⁻¹ = 2 * (Real.arctan (T / c) : ℂ) := by
   rw [intervalIntegral.integral_eq_sub_of_hasDerivAt
     (fun u _ => barnesRes_hasDerivAt_primitive hc u)
-    ((barnesRes_continuous_inv hc).intervalIntegrable _ _), neg_div, Real.arctan_neg, neg_sq]
+    ((barnesRes_continuous_recip hc).intervalIntegrable _ _), neg_div, Real.arctan_neg, neg_sq]
   push_cast; ring
 
 /-- `∫_{-T}^{T} (c + it)⁻¹ dt → π sign c` as `T → ∞`. -/
-theorem barnesRes_tendsto_integral_inv {c : ℝ} (hc : c ≠ 0) :
+theorem barnesRes_tendsto_integral_recip {c : ℝ} (hc : c ≠ 0) :
     Tendsto (fun T : ℝ => ∫ t in -T..T, ((c : ℂ) + t * I)⁻¹) atTop
       (𝓝 (if 0 < c then (π : ℂ) else -π)) := by
-  simp_rw [barnesRes_integral_inv hc]
+  simp_rw [barnesRes_integral_recip hc]
   have key : Tendsto (fun T : ℝ => Real.arctan (T / c)) atTop
       (𝓝 (if 0 < c then π / 2 else -(π / 2))) := by
     split_ifs with h
@@ -118,7 +118,7 @@ theorem barnesRes_tendsto_integral_inv {c : ℝ} (hc : c ≠ 0) :
   exact this
 
 /-- The bound `‖∫_{c₁}^{c₂} (x + iy - p)⁻¹ dx‖ ≤ (c₂ - c₁) / |y - Im p|`. -/
-theorem barnesRes_norm_horizontal_inv_le {c₁ c₂ : ℝ} (h : c₁ ≤ c₂) (p : ℂ) {y : ℝ}
+theorem barnesRes_norm_horizontal_recip_le {c₁ c₂ : ℝ} (h : c₁ ≤ c₂) (p : ℂ) {y : ℝ}
     (hy : y ≠ p.im) :
     ‖∫ x in c₁..c₂, ((x : ℂ) + y * I - p)⁻¹‖ ≤ (c₂ - c₁) * |y - p.im|⁻¹ := by
   have hb : ∀ x : ℝ, ‖((x : ℂ) + y * I - p)⁻¹‖ ≤ |y - p.im|⁻¹ := by
@@ -229,7 +229,7 @@ theorem barnesRes_vertical_shift {φ : ℂ → ℂ} {c₁ c₂ : ℝ} {p : ℂ} 
         (𝓝 (∫ y : ℝ, f (c + y * I))) :=
     fun c hi => intervalIntegral_tendsto_integral hi hTt hTt'
   have hLHS := ((hvert c₂ hi₂).sub (hvert c₁ hi₁)).const_mul I
-  -- the inverse-function rectangle integral
+  -- the reciprocal-kernel rectangle integral
   have hshift : ∀ (c : ℝ) (T : ℝ), ∫ y in β - T..β + T, ((c : ℂ) + y * I - p)⁻¹ =
       ∫ t in -T..T, (((c - p.re : ℝ) : ℂ) + t * I)⁻¹ := by
     intro c T
@@ -240,8 +240,8 @@ theorem barnesRes_vertical_shift {φ : ℂ → ℂ} {c₁ c₂ : ℝ} {p : ℂ} 
     refine intervalIntegral.integral_congr fun t _ => ?_
     congr 1
     apply Complex.ext <;> simp [hβ]
-  have hinv2 := barnesRes_tendsto_integral_inv (c := c₂ - p.re) (by linarith)
-  have hinv1 := barnesRes_tendsto_integral_inv (c := c₁ - p.re) (by linarith)
+  have hinv2 := barnesRes_tendsto_integral_recip (c := c₂ - p.re) (by linarith)
+  have hinv1 := barnesRes_tendsto_integral_recip (c := c₁ - p.re) (by linarith)
   simp only [show (0:ℝ) < c₂ - p.re by linarith, ↓reduceIte] at hinv2
   simp only [show ¬ (0:ℝ) < c₁ - p.re by linarith, ↓reduceIte] at hinv1
   have hhinv : ∀ (s : ℝ → ℝ), Tendsto s atTop (atBot ⊔ atTop) → (∀ᶠ T in atTop, s T ≠ β) →
@@ -250,7 +250,7 @@ theorem barnesRes_vertical_shift {φ : ℂ → ℂ} {c₁ c₂ : ℝ} {p : ℂ} 
     intro s _ hs hlim
     refine squeeze_zero_norm' ?_ (by simpa using hlim.const_mul (c₂ - c₁))
     filter_upwards [hs] with T hT
-    exact barnesRes_norm_horizontal_inv_le hc p hT
+    exact barnesRes_norm_horizontal_recip_le hc p hT
   have hb1 : Tendsto (fun T : ℝ => ∫ x in c₁..c₂, ((x : ℂ) + (β - T : ℝ) * I - p)⁻¹) atTop
       (𝓝 0) := by
     refine hhinv (fun T => β - T) (hTt.mono_right le_sup_left) ?_ ?_

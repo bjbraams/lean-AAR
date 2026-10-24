@@ -25,7 +25,7 @@ public import ToMathlib.Analysis.Asymptotics.WatsonSector
 Euler's integral 5.2.1 is Mathlib `Gamma_eq_integral`. Real-line Laplace,
 Fourier, and Binet-type integrals are acquired below. The Hankel loop 5.9.2
 and the Mellin–Barnes formulae 5.9.11, 5.9.17 are deferred; the Hankel loop on its
-steepest-descent path, `inv_Gamma_binet`, is proved without contour deformation
+steepest-descent path, `recip_Gamma_binet`, is proved without contour deformation
 (section `BinetLoop`).
 
 The digamma integrals 5.9.12, 5.9.13 and 5.9.16 are proved from the digamma series by
@@ -902,7 +902,7 @@ lemma binetW_mul_Gamma {a : ℝ} (ha : 0 < a) : binetW a * Real.Gamma a = π := 
 end BinetLoop
 
 @[dlmf 5.9.E2_5]
-theorem inv_Gamma_binet {x : ℝ} (hx : 0 < x) :
+theorem recip_Gamma_binet {x : ℝ} (hx : 0 < x) :
     (Real.Gamma x)⁻¹ =
       Real.exp x * x ^ (1 - x) / (2 * π) *
         ∫ t : ℝ in (-π)..π, Real.exp (-x * binetPhi t) := by
@@ -1450,7 +1450,7 @@ lemma integral_rpow_div_one_add_sq {a : ℝ} (ha0 : 0 < a) (ha2 : a < 2) :
   linarith
 
 /-- `t^{x-1} = Γ(1-x)⁻¹ ∫₀^∞ s^{-x} e^{-ts} ds` for `x < 1`, `t > 0`. -/
-lemma rpow_eq_inv_Gamma_mul_integral {x t : ℝ} (hx : x < 1) (ht : 0 < t) :
+lemma rpow_eq_recip_Gamma_mul_integral {x t : ℝ} (hx : x < 1) (ht : 0 < t) :
     t ^ (x - 1) = (Real.Gamma (1 - x))⁻¹ *
       ∫ s in Ioi (0 : ℝ), s ^ (-x) * Real.exp (-(t * s)) := by
   have h := Real.integral_rpow_mul_exp_neg_mul_Ioi (a := 1 - x) (r := t) (by linarith) ht
@@ -1478,7 +1478,7 @@ lemma integral_rpow_mul_eq {x R : ℝ} (hx : x < 1) (hR : 0 ≤ R) {g : ℝ → 
   have hinner : ∀ t : ℝ, 0 < t → ∫ s in Ioi (0 : ℝ), s ^ (-x) * Real.exp (-(t * s)) =
       Real.Gamma (1 - x) * t ^ (x - 1) := by
     intro t ht
-    rw [rpow_eq_inv_Gamma_mul_integral hx ht]
+    rw [rpow_eq_recip_Gamma_mul_integral hx ht]
     field_simp
   have hmeas : AEStronglyMeasurable (Function.uncurry F) (μ.prod ν) :=
     (by fun_prop : Measurable fun p : ℝ × ℝ =>
@@ -2622,7 +2622,7 @@ lemma hasSum_binetBeta_div {s : ℝ} (hs : 0 < s) :
   field_simp
 
 /-- `1/(e^{2πt} - 1) = ∑ₘ e^{-2π(m+1)t}`. -/
-lemma hasSum_inv_exp_two_pi_sub_one {t : ℝ} (ht : 0 < t) :
+lemma hasSum_recip_exp_two_pi_sub_one {t : ℝ} (ht : 0 < t) :
     HasSum (fun m : ℕ => Real.exp (-(2 * π * (m + 1)) * t))
       (1 / (Real.exp (2 * π * t) - 1)) := by
   set q := Real.exp (-(2 * π * t)) with hq
@@ -2789,7 +2789,7 @@ lemma integral_exp_div_sq_add_sq_nonneg {x a : ℝ} :
   setIntegral_nonneg measurableSet_Ioi fun s _ => by positivity
 
 /-- `∑ₘ 1/(aₘ² x)` is summable. -/
-lemma summable_inv_sq_two_pi {x : ℝ} :
+lemma summable_recip_sq_two_pi {x : ℝ} :
     Summable fun m : ℕ => 1 / ((2 * π * (m + 1)) ^ 2 * x) := by
   have h := (summable_nat_add_iff 1).mpr (Real.summable_one_div_nat_pow.mpr one_lt_two)
   convert h.mul_left (1 / (4 * π ^ 2 * x)) using 1
@@ -2816,7 +2816,7 @@ lemma hasSum_binetIntegral {x : ℝ} (hx : 0 < x) :
       (fun m => by
         have := integral_exp_div_sq_add_sq_le hx (ha m)
         exact mul_le_mul_of_nonneg_left this zero_le_two)
-      (summable_inv_sq_two_pi.mul_left 2)
+      (summable_recip_sq_two_pi.mul_left 2)
   have key := integral_tsum_of_summable_integral_norm hint hsum
   have hsum' : Summable fun m => ∫ s in Ioi (0 : ℝ), F m s := hsum.congr hnorm
   simp_rw [hF, MeasureTheory.integral_const_mul] at hsum' key
@@ -2922,7 +2922,7 @@ theorem log_Gamma_binet_arctan {x : ℝ} (hx : 0 < x) :
   rw [tsum_mul_left, key, ← MeasureTheory.integral_const_mul]
   refine setIntegral_congr_fun measurableSet_Ioi fun t ht => ?_
   simp only [hF]
-  rw [tsum_mul_left, (hasSum_inv_exp_two_pi_sub_one ht).tsum_eq]
+  rw [tsum_mul_left, (hasSum_recip_exp_two_pi_sub_one ht).tsum_eq]
   ring
 
 @[dlmf 5.9.E10_1]
@@ -3174,7 +3174,7 @@ lemma tendsto_log_add_log_one_sub_exp :
   field_simp
 
 /-- `γ = ∫₀^∞ ((1+t)⁻¹ - e^{-t})/t dt`. -/
-lemma eulerMascheroni_eq_integral_inv_one_add :
+lemma eulerMascheroni_eq_integral_recip_one_add :
     Real.eulerMascheroniConstant = ∫ t in Ioi (0 : ℝ), (1 / (1 + t) - Real.exp (-t)) / t := by
   set ε : ℕ → ℝ := fun n => 1 / ((n : ℝ) + 1) with hε
   have hεpos : ∀ n, 0 < ε n := fun n => by positivity
@@ -3284,7 +3284,7 @@ theorem digamma_frullani {x : ℝ} (hx : 0 < x) :
   have hψ : Real.digamma x = (Real.digamma x + Real.eulerMascheroniConstant) -
       Real.eulerMascheroniConstant := by ring
   rw [hψ, digamma_add_euler_Ioi hx, ← heq]
-  conv_lhs => rw [eulerMascheroni_eq_integral_inv_one_add]
+  conv_lhs => rw [eulerMascheroni_eq_integral_recip_one_add]
   rw [← integral_sub hint integrableOn_eulerIntegrand]
   refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
   ring
@@ -3368,7 +3368,7 @@ theorem digamma_coth {x : ℝ} (hx : 0 < x) :
     simp_rw [hnormG]
     exact Summable.of_nonneg_of_le (fun m => setIntegral_nonneg measurableSet_Ioi fun u hu => by
       have : (0 : ℝ) < u := hu; positivity) hboundG
-      ((summable_inv_sq_two_pi (x := x ^ 2)).mul_left 2)
+      ((summable_recip_sq_two_pi (x := x ^ 2)).mul_left 2)
   have hsumF : Summable fun m => ∫ t in Ioi (0 : ℝ), ‖F m t‖ :=
     hsumG.congr fun m => by rw [hnormG m, hnormF m, hFG m]
   have keyF := integral_tsum_of_summable_integral_norm hintF hsumF
@@ -3387,7 +3387,7 @@ theorem digamma_coth {x : ℝ} (hx : 0 < x) :
     rw [← MeasureTheory.integral_const_mul]
     refine setIntegral_congr_fun measurableSet_Ioi fun u hu => ?_
     have hu' : (0 : ℝ) < u := hu
-    have hs := (hasSum_inv_exp_two_pi_sub_one hu').mul_left (2 * (u / (u ^ 2 + x ^ 2)))
+    have hs := (hasSum_recip_exp_two_pi_sub_one hu').mul_left (2 * (u / (u ^ 2 + x ^ 2)))
     have hG' : (fun m => G m u) = fun m : ℕ =>
         2 * (u / (u ^ 2 + x ^ 2)) * Real.exp (-(2 * π * (m + 1)) * u) := by
       funext m; simp only [hG]; ring
@@ -3414,7 +3414,7 @@ theorem eulerMascheroni_integrals :
       -∫ t : ℝ in Set.Ioi 0, Real.exp (-t) * Real.log t ∧
     Real.eulerMascheroniConstant =
       ∫ t : ℝ in Set.Ioi 0, (1 / (1 + t) - Real.exp (-t)) / t := by
-  refine ⟨?_, eulerMascheroni_eq_integral_inv_one_add⟩
+  refine ⟨?_, eulerMascheroni_eq_integral_recip_one_add⟩
   rw [Real.eulerMascheroniConstant_eq_neg_integral_log]
   congr 1
   exact setIntegral_congr_fun measurableSet_Ioi fun t _ => mul_comm _ _

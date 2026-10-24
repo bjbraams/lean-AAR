@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.ScalarSeries
 public import DLMF.Hypergeometric.Continuation
 public import DLMF.Hypergeometric.EulerIntegral
 public import DLMF.Gamma.Pochhammer
@@ -28,42 +29,6 @@ noncomputable section
 
 namespace DLMF.Hypergeometric
 
-/-- Recover a scalar power series from its sums on the unit disk (a copy of
-`DLMF.OrthogonalPolynomials.scalarSeries_unique`, which lives later in the import order). -/
-private lemma scalarSeries_unique' {c d : ℕ → ℂ} {f : ℂ → ℂ}
-    (hc : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => c n * z ^ n) (f z))
-    (hd : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => d n * z ^ n) (f z)) : c = d := by
-  have series {e : ℕ → ℂ}
-      (he : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => e n * z ^ n) (f z)) :
-      HasFPowerSeriesOnBall f (FormalMultilinearSeries.ofScalars ℂ e) 0
-        ((1 / 2 : NNReal) : ENNReal) := by
-    refine ⟨?_, by norm_num, ?_⟩
-    · apply FormalMultilinearSeries.le_radius_of_summable_norm
-      simpa [FormalMultilinearSeries.ofScalars_norm, norm_mul, norm_pow] using
-        (he (1 / 2) (by norm_num)).summable.norm
-    · intro z hz
-      have hzNN : ‖z‖₊ < (1 / 2 : NNReal) := by
-        simpa only [Metric.mem_eball, edist_zero_right, enorm_lt_coe] using hz
-      have hz' : ‖z‖ < (1 / 2 : ℝ) := by exact_mod_cast hzNN
-      simpa [FormalMultilinearSeries.ofScalars_apply_eq, smul_eq_mul, mul_comm] using
-        he z (by linarith)
-  exact FormalMultilinearSeries.ofScalars_series_injective ℂ ℂ
-    ((series hc).hasFPowerSeriesAt.eq_formalMultilinearSeries (series hd).hasFPowerSeriesAt)
-
-/-- Cauchy product of scalar series as a coefficient convolution. -/
-private lemma hasSum_convolution' {c d : ℕ → ℂ} {z u v : ℂ}
-    (hc : HasSum (fun n => c n * z ^ n) u) (hd : HasSum (fun n => d n * z ^ n) v) :
-    HasSum (fun n => (∑ k ∈ Finset.range (n + 1), c k * d (n - k)) * z ^ n) (u * v) := by
-  have h := hasSum_sum_range_mul_of_summable_norm hc.summable.norm hd.summable.norm
-  rw [hc.tsum_eq, hd.tsum_eq] at h
-  refine h.congr_fun fun n => ?_
-  rw [Finset.sum_mul]
-  apply Finset.sum_congr rfl
-  intro k hk
-  have hk' : k ≤ n := by simpa using Finset.mem_range.mp hk
-  rw [show z ^ n = z ^ k * z ^ (n - k) by rw [← pow_add, Nat.add_sub_cancel' hk']]
-  ring
-
 /-- The coefficients of `𝐅(a,b;c;z)`: `(a)ₙ (b)ₙ / (n! Γ(c+n))`. -/
 lemma hasSum_regularizedGaussHGFun_coeff (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => poch a n * poch b n / (n ! * Gamma (c + n)) * z ^ n)
@@ -76,15 +41,7 @@ lemma hasSum_regularizedGaussHGFun_coeff (a b c : ℂ) {z : ℂ} (hz : ‖z‖ <
 /-- The binomial series `(1-z)^{-d} = ∑ (d)ₘ zᵐ/m!` on the unit disk. -/
 lemma hasSum_one_sub_cpow_neg (d : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => poch d n / n ! * z ^ n) ((1 - z) ^ (-d)) := by
-  have h1 : ∀ k : ℕ, (1 : ℂ) ≠ -(k : ℂ) := fun k h => by
-    have := congrArg re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
-  have h := hasSum_regularizedGaussHGFun_coeff d 1 1 hz
-  rw [regularizedGaussHGFun_eq_div_Gamma h1, Gamma_one, div_one,
-    ordinaryHypergeometric_eq_one_sub_neg_cpow (fun k hk => h1 k (by rw [hk]; ring)) hz] at h
-  refine h.congr_fun fun n => ?_
-  rw [show (1 : ℂ) + n = ((n : ℕ) : ℂ) + 1 by ring, Gamma_nat_eq_factorial, poch_nat_one]
-  have hf : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
-  field_simp
+  exact hasSum_poch_div_factorial hz
 
 /-- **Regularized Pfaff–Saalschütz convolution**, valid for all parameters: comparing coefficients
 in Euler's transformation `𝐅(c-a,c-b;c;z) = (1-z)^{a+b-c} 𝐅(a,b;c;z)` gives
@@ -93,12 +50,12 @@ theorem regularized_saalschutz_convolution (a b c : ℂ) (n : ℕ) :
     ∑ k ∈ Finset.range (n + 1), poch a k * poch b k / (k ! * Gamma (c + k)) *
         (poch (c - a - b) (n - k) / (n - k)!) =
       poch (c - a) n * poch (c - b) n / (n ! * Gamma (c + n)) := by
-  have h := scalarSeries_unique' (f := regularizedGaussHGFun (c - a) (c - b) c)
+  have h := Complex.powerSeries_coefficients_unique (f := regularizedGaussHGFun (c - a) (c - b) c)
     (c := fun n => ∑ k ∈ Finset.range (n + 1), poch a k * poch b k / (k ! * Gamma (c + k)) *
         (poch (c - a - b) (n - k) / (n - k)!))
     (d := fun n => poch (c - a) n * poch (c - b) n / (n ! * Gamma (c + n)))
     (fun z hz => by
-      have hconv := hasSum_convolution' (hasSum_regularizedGaussHGFun_coeff a b c hz)
+      have hconv := Complex.hasSum_powerSeries_convolution (hasSum_regularizedGaussHGFun_coeff a b c hz)
         (hasSum_one_sub_cpow_neg (c - a - b) hz)
       rw [regularizedGaussHGFun_euler (c - a) (c - b) c hz,
         show c - (c - a) - (c - b) = -(c - a - b) by ring,

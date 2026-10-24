@@ -5,12 +5,14 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.TaylorParameter
+
 public import DLMF.Hypergeometric.Solutions
 public import DLMF.Bessel.Modified
 public import Mathlib.Analysis.SpecialFunctions.Arcosh
 public import Mathlib.Analysis.Complex.TaylorSeries
 public import DLMF.Gamma.Asymptotics
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 public import ToMathlib.Analysis.Asymptotics.Watson
 public import ToMathlib.Analysis.Complex.ParametricHolomorphy
 
@@ -321,59 +323,7 @@ lemma hcub_differentiable_iteratedDeriv {G : ℂ → ℂ → ℂ} {r : ℝ} (hr 
     (hdt : ∀ a : ℂ, DifferentiableOn ℂ (G a) (Metric.closedBall 0 r))
     (hda : ∀ t : ℂ, ‖t‖ = r → Differentiable ℂ (fun a => G a t)) (N : ℕ) :
     Differentiable ℂ (fun a => iteratedDeriv N (G a) 0) := by
-  set c : ℝ → ℂ := circleMap 0 r with hc
-  have hcn : ∀ θ, ‖c θ‖ = r := fun θ => by simp [hc, abs_of_pos hr]
-  have hc0 : ∀ θ, c θ ≠ 0 := fun θ h => by
-    have := hcn θ; rw [h, norm_zero] at this; linarith
-  set Φ : ℂ → ℝ → ℂ := fun a θ => (c θ * I) • ((1 / (c θ - 0) ^ (N + 1)) • G a (c θ)) with hΦ
-  have hcc : Continuous c := continuous_circleMap 0 r
-  have hcont' : Continuous fun p : ℂ × ℝ => Φ p.1 p.2 := by
-    refine continuous_iff_continuousAt.mpr fun p => ?_
-    have hG : ContinuousAt (fun p : ℂ × ℝ => G p.1 (c p.2)) p := by
-      have h1 := hcont p.1 (c p.2) (hcn p.2)
-      exact h1.comp (f := fun p : ℂ × ℝ => (p.1, c p.2))
-        (continuous_fst.prodMk (hcc.comp continuous_snd)).continuousAt
-    simp only [hΦ, smul_eq_mul]
-    refine ContinuousAt.mul ((hcc.comp continuous_snd).continuousAt.mul continuousAt_const)
-      (ContinuousAt.mul ?_ hG)
-    exact (continuousAt_const.div ((hcc.comp continuous_snd).continuousAt.sub
-      continuousAt_const |>.pow _) (pow_ne_zero _ (by simpa using hc0 p.2)))
-  have hint : Differentiable ℂ (fun a => ∫ θ in (0 : ℝ)..2 * π, Φ a θ) := by
-    have : IsFiniteMeasure (volume.restrict (uIoc (0 : ℝ) (2 * π))) :=
-      isFiniteMeasure_restrict.mpr (by rw [uIoc_of_le (by positivity)]; exact measure_Ioc_lt_top.ne)
-    have hD := Complex.differentiableOn_intervalIntegral_of_locally_dominated (Φ := Φ) (U := univ)
-      isOpen_univ (ν := volume) 0 (2 * π)
-      (fun a _ => (hcont'.comp (Continuous.prodMk_right a)).aestronglyMeasurable)
-      (Eventually.of_forall fun θ => fun a _ => by
-        simp only [hΦ, smul_eq_mul]
-        exact ((differentiableAt_const _).mul ((differentiableAt_const _).mul
-          (hda (c θ) (hcn θ) a))).differentiableWithinAt)
-      (fun x _ => by
-        have hK : IsCompact (Metric.closedBall x 1 ×ˢ Icc (0 : ℝ) (2 * π)) :=
-          (isCompact_closedBall x 1).prod isCompact_Icc
-        obtain ⟨M, hM⟩ := hK.exists_bound_of_continuousOn hcont'.continuousOn
-        refine ⟨Metric.closedBall x 1, Metric.closedBall_mem_nhds _ one_pos, fun _ => M,
-          integrable_const _, ?_⟩
-        refine (ae_restrict_iff' measurableSet_uIoc).mpr (Eventually.of_forall fun θ hθ y hy => ?_)
-        have hθ' : θ ∈ Icc (0 : ℝ) (2 * π) := by
-          rw [uIoc_of_le (by positivity)] at hθ; exact ⟨hθ.1.le, hθ.2⟩
-        exact hM (y, θ) ⟨hy, hθ'⟩)
-    exact fun a0 => (hD a0 (mem_univ _)).differentiableAt Filter.univ_mem
-  have heq : (fun a => iteratedDeriv N (G a) 0) =
-      fun a => ((N ! : ℂ) / (2 * π * I)) * ∫ θ in (0 : ℝ)..2 * π, Φ a θ := by
-    funext a
-    have h := (hdt a).circleIntegral_one_div_sub_center_pow_smul hr N
-    rw [circleIntegral] at h
-    have h' : (∫ θ in (0 : ℝ)..2 * π, Φ a θ) = (2 * π * I / N !) * iteratedDeriv N (G a) 0 := by
-      rw [smul_eq_mul] at h
-      rw [← h]
-      simp only [deriv_circleMap, hΦ, hc]
-    rw [h']
-    have : (N ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
-    have h2 : (2 * π * I : ℂ) ≠ 0 := two_pi_I_ne_zero
-    field_simp
-  rw [heq]
-  exact (differentiable_const _).mul hint
+  exact Complex.differentiable_iteratedDeriv_param hr hcont hdt hda N
 
 
 /-- `(re C)_n ≤ ‖(C)_n‖` when `re C ≥ 0`. -/
@@ -607,7 +557,7 @@ theorem hcub_largeDen_base (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) (hb : 0 < 
     · field_simp
     · refine Finset.sum_congr rfl fun s _ => ?_
       have hp : Gamma ((s : ℂ) + b) = Gamma b * poch b s := by
-        have h1 := DLMF.Gamma.poch_mul_inv_Gamma_add_nat b s
+        have h1 := DLMF.Gamma.poch_mul_recip_Gamma_add_nat b s
         have h2 : Gamma (b + s) ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos (by simp; positivity))
         rw [add_comm]
         field_simp at h1
@@ -666,7 +616,7 @@ theorem hcub_largeDen_mix (a b c : ℂ) {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
       poch a k * poch b k * z ^ k / k ! *
         ((l : ℂ) ^ b * Gamma ((l : ℂ) + (c - b)) / Gamma ((l : ℂ) + (c + k))) := by
     intro k _
-    have h := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (c + l) k
+    have h := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (c + l) k
     have hp : poch (c + l) k ≠ 0 := poch_ne_zero_of_not_neg_nat hcl' k
     have hGs : Gamma (c + l + k) ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos (by
       simp at hcl ⊢; positivity))

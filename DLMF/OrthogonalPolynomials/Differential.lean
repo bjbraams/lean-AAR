@@ -995,13 +995,6 @@ theorem chebyshevV_cos (n : ℕ) (θ : ℂ) :
     rw [hV, hT]
     linear_combination -hsum - ih
 
-/-- Jacobi polynomials do not vanish at `x = 1` for `Re α > -1`. -/
-lemma jacobiPolyP_one_ne_zero {α β : ℂ} (hα : -1 < α.re) (n : ℕ) : jacobiPolyP α β n 1 ≠ 0 := by
-  rw [jacobi_at_one hα]
-  exact div_ne_zero (poch_ne_zero_of_not_neg_nat (not_neg_nat_of_re_pos (by
-    simp only [Complex.add_re, Complex.one_re]
-    linarith)) n) (Nat.cast_ne_zero.mpr n.factorial_ne_zero)
-
 /-- The companion of 18.9.5 raising `α`:
 `(2n+α+β+3) P^{(α,β)}_{n+1} = (n+α+β+2) P^{(α+1,β)}_{n+1} - (n+β+1) P^{(α+1,β)}_n`. -/
 theorem jacobi_raise_alpha {α β : ℂ} (hα : -1 < α.re) (n : ℕ) (x : ℂ) :

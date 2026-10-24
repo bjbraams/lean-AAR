@@ -11,7 +11,7 @@ public import DLMF.Bessel.SphericalSeriesTools
 public import DLMF.Bessel.SphericalProductTools
 
 /-!
-# Power, inverse factorial and spherical Bessel series, DLMF §§6.6 and 6.10–6.11
+# Power, reciprocal factorial and spherical Bessel series, DLMF §§6.6 and 6.10–6.11
 
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
@@ -74,45 +74,45 @@ theorem hasSum_Ci_complex (z : ℂ) :
   · simp only [cosInt, cosIntCin]
     ring
 
-/-- Inverse factorial coefficients, with the recurrence of DLMF 6.10.3. -/
+/-- Reciprocal factorial coefficients, with the recurrence of DLMF 6.10.3. -/
 @[dlmf 6.10.E3]
-def expIntInverseFactorialCoeff : ℕ → ℂ
+def expIntReciprocalFactorialCoeff : ℕ → ℂ
   | 0 => 1
-  | k+1 => -∑ j ∈ Finset.range (k+1), expIntInverseFactorialCoeff (k-j) / (j+1 : ℂ)
+  | k+1 => -∑ j ∈ Finset.range (k+1), expIntReciprocalFactorialCoeff (k-j) / (j+1 : ℂ)
 termination_by k => k
 
-/-- expIntInverseFactorialCoeff initial. -/
+/-- expIntReciprocalFactorialCoeff initial. -/
 @[dlmf 6.10.E2]
-theorem expIntInverseFactorialCoeff_initial  :
-    ∀ k < 5, expIntInverseFactorialCoeff k = ([1,-1,1/2,-1/3,1/6] : List ℂ)[k]! := by
+theorem expIntReciprocalFactorialCoeff_initial  :
+    ∀ k < 5, expIntReciprocalFactorialCoeff k = ([1,-1,1/2,-1/3,1/6] : List ℂ)[k]! := by
   intro k hk
-  interval_cases k <;> norm_num [expIntInverseFactorialCoeff, Finset.sum_range_succ]
+  interval_cases k <;> norm_num [expIntReciprocalFactorialCoeff, Finset.sum_range_succ]
 
 /-- The normalised falling polynomial `(-t)_k / k!`. -/
-noncomputable def invFac_g (k : ℕ) (t : ℝ) : ℝ := ∏ i ∈ Finset.range k, ((i:ℝ) - t) / ((i:ℝ) + 1)
+noncomputable def recipFac_g (k : ℕ) (t : ℝ) : ℝ := ∏ i ∈ Finset.range k, ((i:ℝ) - t) / ((i:ℝ) + 1)
 
-lemma invFac_g_zero (t : ℝ) : invFac_g 0 t = 1 := by simp [invFac_g]
+lemma recipFac_g_zero (t : ℝ) : recipFac_g 0 t = 1 := by simp [recipFac_g]
 
-lemma invFac_g_succ (k : ℕ) (t : ℝ) :
-    invFac_g (k+1) t = invFac_g k t * (((k:ℝ) - t) / ((k:ℝ) + 1)) := by
-  simp only [invFac_g, Finset.prod_range_succ]
+lemma recipFac_g_succ (k : ℕ) (t : ℝ) :
+    recipFac_g (k+1) t = recipFac_g k t * (((k:ℝ) - t) / ((k:ℝ) + 1)) := by
+  simp only [recipFac_g, Finset.prod_range_succ]
 
-lemma invFac_g_at_zero (k : ℕ) : invFac_g (k+1) 0 = 0 := by
-  rw [invFac_g, Finset.prod_eq_zero (i := 0) (by simp) (by simp)]
+lemma recipFac_g_at_zero (k : ℕ) : recipFac_g (k+1) 0 = 0 := by
+  rw [recipFac_g, Finset.prod_eq_zero (i := 0) (by simp) (by simp)]
 
-lemma invFac_g_continuous (k : ℕ) : Continuous (invFac_g k) := by
-  unfold invFac_g
+lemma recipFac_g_continuous (k : ℕ) : Continuous (recipFac_g k) := by
+  unfold recipFac_g
   fun_prop
 
-lemma invFac_hasDerivAt_g (k : ℕ) (t : ℝ) :
-    HasDerivAt (invFac_g k) (-∑ i ∈ Finset.range k, invFac_g i t / ((k:ℝ) - i)) t := by
+lemma recipFac_hasDerivAt_g (k : ℕ) (t : ℝ) :
+    HasDerivAt (recipFac_g k) (-∑ i ∈ Finset.range k, recipFac_g i t / ((k:ℝ) - i)) t := by
   induction k with
   | zero =>
-    have : invFac_g 0 = fun _ => (1:ℝ) := by funext s; exact invFac_g_zero s
+    have : recipFac_g 0 = fun _ => (1:ℝ) := by funext s; exact recipFac_g_zero s
     rw [this]; simpa using hasDerivAt_const t (1:ℝ)
   | succ k ih =>
-    have hf : (invFac_g (k+1)) = fun s => invFac_g k s * (((k:ℝ) - s) / ((k:ℝ) + 1)) := by
-      funext s; exact invFac_g_succ k s
+    have hf : (recipFac_g (k+1)) = fun s => recipFac_g k s * (((k:ℝ) - s) / ((k:ℝ) + 1)) := by
+      funext s; exact recipFac_g_succ k s
     rw [hf]
     have h2 : HasDerivAt (fun s : ℝ => ((k:ℝ) - s) / ((k:ℝ) + 1)) (-1 / ((k:ℝ)+1)) t := by
       simpa using ((hasDerivAt_id t).const_sub (k:ℝ)).div_const ((k:ℝ)+1)
@@ -127,42 +127,42 @@ lemma invFac_hasDerivAt_g (k : ℕ) (t : ℝ) :
       have : (i:ℝ) < k + 1 := by exact_mod_cast Finset.mem_range.1 hi
       linarith
     push_cast
-    have A : (∑ i ∈ Finset.range (k+1), invFac_g i t / ((k:ℝ) + 1 - i)) * ((k:ℝ)+1) =
-        (∑ i ∈ Finset.range (k+1), invFac_g i t) +
-          ∑ i ∈ Finset.range (k+1), (i:ℝ) * invFac_g i t / ((k:ℝ) + 1 - i) := by
+    have A : (∑ i ∈ Finset.range (k+1), recipFac_g i t / ((k:ℝ) + 1 - i)) * ((k:ℝ)+1) =
+        (∑ i ∈ Finset.range (k+1), recipFac_g i t) +
+          ∑ i ∈ Finset.range (k+1), (i:ℝ) * recipFac_g i t / ((k:ℝ) + 1 - i) := by
       rw [Finset.sum_mul, ← Finset.sum_add_distrib]
       refine Finset.sum_congr rfl fun i hi => ?_
       have := hlt' i hi
       field_simp
       ring
-    have B : (∑ i ∈ Finset.range (k+1), (i:ℝ) * invFac_g i t / ((k:ℝ) + 1 - i)) =
-        ∑ i ∈ Finset.range k, ((i:ℝ)+1) * invFac_g (i+1) t / ((k:ℝ) - i) := by
+    have B : (∑ i ∈ Finset.range (k+1), (i:ℝ) * recipFac_g i t / ((k:ℝ) + 1 - i)) =
+        ∑ i ∈ Finset.range k, ((i:ℝ)+1) * recipFac_g (i+1) t / ((k:ℝ) - i) := by
       rw [Finset.sum_range_succ']
       simp only [Nat.cast_zero, zero_mul, zero_div, add_zero]
       refine Finset.sum_congr rfl fun i _ => ?_
       push_cast; ring_nf
-    have C : (∑ i ∈ Finset.range k, invFac_g i t / ((k:ℝ) - i)) * ((k:ℝ) - t) =
-        (∑ i ∈ Finset.range k, ((i:ℝ)+1) * invFac_g (i+1) t / ((k:ℝ) - i)) +
-          ∑ i ∈ Finset.range k, invFac_g i t := by
+    have C : (∑ i ∈ Finset.range k, recipFac_g i t / ((k:ℝ) - i)) * ((k:ℝ) - t) =
+        (∑ i ∈ Finset.range k, ((i:ℝ)+1) * recipFac_g (i+1) t / ((k:ℝ) - i)) +
+          ∑ i ∈ Finset.range k, recipFac_g i t := by
       rw [Finset.sum_mul, ← Finset.sum_add_distrib]
       refine Finset.sum_congr rfl fun i hi => ?_
       have := hlt i hi
-      rw [invFac_g_succ]
+      rw [recipFac_g_succ]
       field_simp
       ring
-    have D : (∑ i ∈ Finset.range (k+1), invFac_g i t) =
-        (∑ i ∈ Finset.range k, invFac_g i t) + invFac_g k t := Finset.sum_range_succ _ _
-    have E : (∑ i ∈ Finset.range (k+1), invFac_g i t / ((k:ℝ) + 1 - i)) * ((k:ℝ)+1) =
-        (∑ i ∈ Finset.range k, invFac_g i t / ((k:ℝ) - i)) * ((k:ℝ) - t) + invFac_g k t := by
+    have D : (∑ i ∈ Finset.range (k+1), recipFac_g i t) =
+        (∑ i ∈ Finset.range k, recipFac_g i t) + recipFac_g k t := Finset.sum_range_succ _ _
+    have E : (∑ i ∈ Finset.range (k+1), recipFac_g i t / ((k:ℝ) + 1 - i)) * ((k:ℝ)+1) =
+        (∑ i ∈ Finset.range k, recipFac_g i t / ((k:ℝ) - i)) * ((k:ℝ) - t) + recipFac_g k t := by
       rw [A, B, C, D]; ring
     field_simp
     linear_combination -E
 
-lemma invFac_abs_g_le_choose {t : ℝ} :
-    ∀ k ≤ ⌈t⌉₊, |invFac_g k t| ≤ (⌈t⌉₊.choose k : ℝ) := by
+lemma recipFac_abs_g_le_choose {t : ℝ} :
+    ∀ k ≤ ⌈t⌉₊, |recipFac_g k t| ≤ (⌈t⌉₊.choose k : ℝ) := by
   intro k
   induction k with
-  | zero => intro _; simp [invFac_g_zero]
+  | zero => intro _; simp [recipFac_g_zero]
   | succ k ih =>
     intro hk
     have hk' : k < ⌈t⌉₊ := hk
@@ -172,7 +172,7 @@ lemma invFac_abs_g_le_choose {t : ℝ} :
     have hc' : ((⌈t⌉₊.choose (k+1) : ℕ) : ℝ) * ((k:ℝ)+1) =
         (⌈t⌉₊.choose k : ℝ) * ((⌈t⌉₊ : ℝ) - k) := by
       rw [← Nat.cast_sub hk'.le]; exact_mod_cast hc
-    rw [invFac_g_succ, abs_mul, abs_div, abs_of_neg (by linarith : (k:ℝ) - t < 0),
+    rw [recipFac_g_succ, abs_mul, abs_div, abs_of_neg (by linarith : (k:ℝ) - t < 0),
       abs_of_pos (by positivity : (0:ℝ) < k + 1)]
     have hpos : (0:ℝ) < k + 1 := by positivity
     rw [show (⌈t⌉₊.choose (k+1) : ℝ) = (⌈t⌉₊.choose k : ℝ) * ((⌈t⌉₊ : ℝ) - k) / ((k:ℝ)+1) by
@@ -181,81 +181,81 @@ lemma invFac_abs_g_le_choose {t : ℝ} :
     exact mul_le_mul (ih hk'.le) (div_le_div_of_nonneg_right (by linarith) hpos.le)
       (div_nonneg (by linarith) hpos.le) (Nat.cast_nonneg _)
 
-lemma invFac_mul_abs_g_succ_le {t : ℝ} (ht : 0 ≤ t) {k : ℕ} (hk : t ≤ k) :
-    ((k:ℝ)+1) * |invFac_g (k+1) t| ≤ k * |invFac_g k t| := by
-  rw [invFac_g_succ, abs_mul, abs_div, abs_of_nonneg (by linarith : (0:ℝ) ≤ k - t),
+lemma recipFac_mul_abs_g_succ_le {t : ℝ} (ht : 0 ≤ t) {k : ℕ} (hk : t ≤ k) :
+    ((k:ℝ)+1) * |recipFac_g (k+1) t| ≤ k * |recipFac_g k t| := by
+  rw [recipFac_g_succ, abs_mul, abs_div, abs_of_nonneg (by linarith : (0:ℝ) ≤ k - t),
     abs_of_pos (by positivity : (0:ℝ) < k + 1)]
   have hpos : (0:ℝ) < k + 1 := by positivity
   field_simp
-  have := abs_nonneg (invFac_g k t)
+  have := abs_nonneg (recipFac_g k t)
   nlinarith
 
-lemma invFac_mul_abs_g_le_of_ceil_le {t : ℝ} (ht : 0 ≤ t) :
-    ∀ k, ⌈t⌉₊ ≤ k → (k:ℝ) * |invFac_g k t| ≤ ⌈t⌉₊ := by
+lemma recipFac_mul_abs_g_le_of_ceil_le {t : ℝ} (ht : 0 ≤ t) :
+    ∀ k, ⌈t⌉₊ ≤ k → (k:ℝ) * |recipFac_g k t| ≤ ⌈t⌉₊ := by
   intro k hk
   induction k, hk using Nat.le_induction with
   | base =>
-    have h := invFac_abs_g_le_choose ⌈t⌉₊ le_rfl
+    have h := recipFac_abs_g_le_choose ⌈t⌉₊ le_rfl
     rw [Nat.choose_self, Nat.cast_one] at h
     have : (0:ℝ) ≤ ⌈t⌉₊ := by positivity
     nlinarith
   | succ k hk ih =>
     have htk : t ≤ k := (Nat.le_ceil t).trans (by exact_mod_cast hk)
-    have := invFac_mul_abs_g_succ_le ht htk
+    have := recipFac_mul_abs_g_succ_le ht htk
     push_cast
     linarith
 
 /-- The bound `(t+1) 2^(t+1)` controlling `k |(−t)_k/k!|`. -/
-noncomputable def invFac_B (t : ℝ) : ℝ := (t + 1) * Real.exp ((t + 1) * Real.log 2)
+noncomputable def recipFac_B (t : ℝ) : ℝ := (t + 1) * Real.exp ((t + 1) * Real.log 2)
 
-lemma invFac_mul_abs_g_le {t : ℝ} (ht : 0 ≤ t) (k : ℕ) :
-    (k:ℝ) * |invFac_g k t| ≤ invFac_B t := by
+lemma recipFac_mul_abs_g_le {t : ℝ} (ht : 0 ≤ t) (k : ℕ) :
+    (k:ℝ) * |recipFac_g k t| ≤ recipFac_B t := by
   have hm : (⌈t⌉₊ : ℝ) ≤ t + 1 := (Nat.ceil_lt_add_one ht).le
   have h2 : ((2:ℝ) ^ ⌈t⌉₊) ≤ Real.exp ((t + 1) * Real.log 2) := by
     rw [← Real.rpow_natCast, Real.rpow_def_of_pos (by norm_num), mul_comm]
     gcongr
   have h2' : (1:ℝ) ≤ 2 ^ ⌈t⌉₊ := one_le_pow₀ (by norm_num)
   have hm0 : (0:ℝ) ≤ ⌈t⌉₊ := by positivity
-  have hB : (⌈t⌉₊ : ℝ) * 2 ^ ⌈t⌉₊ ≤ invFac_B t := by
-    unfold invFac_B; gcongr
+  have hB : (⌈t⌉₊ : ℝ) * 2 ^ ⌈t⌉₊ ≤ recipFac_B t := by
+    unfold recipFac_B; gcongr
   rcases le_or_gt k ⌈t⌉₊ with hk | hk
-  · have h := invFac_abs_g_le_choose k hk
+  · have h := recipFac_abs_g_le_choose k hk
     have hc : (⌈t⌉₊.choose k : ℝ) ≤ 2 ^ ⌈t⌉₊ := by exact_mod_cast Nat.choose_le_two_pow _ _
     have hkm : (k:ℝ) ≤ ⌈t⌉₊ := by exact_mod_cast hk
-    calc (k:ℝ) * |invFac_g k t| ≤ ⌈t⌉₊ * 2 ^ ⌈t⌉₊ := by
+    calc (k:ℝ) * |recipFac_g k t| ≤ ⌈t⌉₊ * 2 ^ ⌈t⌉₊ := by
           gcongr
           · exact h.trans hc
       _ ≤ _ := hB
-  · have h := invFac_mul_abs_g_le_of_ceil_le ht k hk.le
+  · have h := recipFac_mul_abs_g_le_of_ceil_le ht k hk.le
     nlinarith
 
-lemma invFac_abs_g_le {t : ℝ} (ht : 0 ≤ t) (k : ℕ) : |invFac_g k t| ≤ invFac_B t := by
+lemma recipFac_abs_g_le {t : ℝ} (ht : 0 ≤ t) (k : ℕ) : |recipFac_g k t| ≤ recipFac_B t := by
   rcases k with _ | k
-  · rw [invFac_g_zero, abs_one]
-    unfold invFac_B
+  · rw [recipFac_g_zero, abs_one]
+    unfold recipFac_B
     have : (1:ℝ) ≤ Real.exp ((t + 1) * Real.log 2) :=
       Real.one_le_exp (by have := Real.log_pos (by norm_num : (1:ℝ) < 2); positivity)
     nlinarith
-  · have h := invFac_mul_abs_g_le ht (k+1)
+  · have h := recipFac_mul_abs_g_le ht (k+1)
     have : (1:ℝ) ≤ (k+1:ℕ) := by exact_mod_cast Nat.succ_pos k
-    have := abs_nonneg (invFac_g (k+1) t)
+    have := abs_nonneg (recipFac_g (k+1) t)
     nlinarith
 
-lemma invFac_b_pos : 0 < 1 - Real.log 2 := by
+lemma recipFac_b_pos : 0 < 1 - Real.log 2 := by
   have := Real.log_two_lt_d9; linarith
 
-lemma invFac_exp_mul_B (t : ℝ) :
-    Real.exp (-t) * invFac_B t =
+lemma recipFac_exp_mul_B (t : ℝ) :
+    Real.exp (-t) * recipFac_B t =
       2 * (t * Real.exp (-(1 - Real.log 2) * t) + Real.exp (-(1 - Real.log 2) * t)) := by
-  unfold invFac_B
+  unfold recipFac_B
   have : Real.exp (-t) * Real.exp ((t + 1) * Real.log 2) =
       2 * Real.exp (-(1 - Real.log 2) * t) := by
     rw [← Real.exp_add, show -t + (t + 1) * Real.log 2 = Real.log 2 + (-(1 - Real.log 2) * t) by
       ring, Real.exp_add, Real.exp_log (by norm_num)]
   linear_combination (t + 1) * this
 
-lemma invFac_integrable_B : IntegrableOn (fun t => Real.exp (-t) * invFac_B t) (Ioi 0) := by
-  have hb := invFac_b_pos
+lemma recipFac_integrable_B : IntegrableOn (fun t => Real.exp (-t) * recipFac_B t) (Ioi 0) := by
+  have hb := recipFac_b_pos
   have h1 : IntegrableOn (fun t : ℝ => t * Real.exp (-(1 - Real.log 2) * t)) (Ioi 0) := by
     refine (integrableOn_rpow_mul_exp_neg_mul_rpow (s := 1) (p := 1) (by norm_num) one_pos hb).congr_fun
       (fun t ht => ?_) measurableSet_Ioi
@@ -264,75 +264,75 @@ lemma invFac_integrable_B : IntegrableOn (fun t => Real.exp (-t) * invFac_B t) (
   have h3 : IntegrableOn (fun t : ℝ => 2 * (t * Real.exp (-(1 - Real.log 2) * t) +
       Real.exp (-(1 - Real.log 2) * t))) (Ioi 0) := (h1.add h2).const_mul 2
   refine h3.congr_fun (fun t _ => ?_) measurableSet_Ioi
-  simp only [invFac_exp_mul_B]
+  simp only [recipFac_exp_mul_B]
 
-lemma invFac_tendsto_B : Tendsto (fun t => Real.exp (-t) * invFac_B t) atTop (𝓝 0) := by
-  have hb := invFac_b_pos
+lemma recipFac_tendsto_B : Tendsto (fun t => Real.exp (-t) * recipFac_B t) atTop (𝓝 0) := by
+  have hb := recipFac_b_pos
   have h1 := tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero 1 _ hb
   have h0 := tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero 0 _ hb
   have := (h1.add h0).const_mul 2
   simp only [Real.rpow_one, Real.rpow_zero, one_mul, add_zero, mul_zero] at this
   refine this.congr fun t => ?_
-  rw [invFac_exp_mul_B]
+  rw [recipFac_exp_mul_B]
 
-lemma invFac_integrable_g (k : ℕ) :
-    IntegrableOn (fun t => Real.exp (-t) * invFac_g k t) (Ioi 0) := by
-  refine invFac_integrable_B.mono' ?_ ?_
+lemma recipFac_integrable_g (k : ℕ) :
+    IntegrableOn (fun t => Real.exp (-t) * recipFac_g k t) (Ioi 0) := by
+  refine recipFac_integrable_B.mono' ?_ ?_
   · exact ((Real.continuous_exp.comp continuous_neg).mul
-      (invFac_g_continuous k)).aestronglyMeasurable
+      (recipFac_g_continuous k)).aestronglyMeasurable
   · refine (ae_restrict_iff' measurableSet_Ioi).2 (Eventually.of_forall fun t ht => ?_)
     rw [norm_mul, Real.norm_eq_abs, Real.abs_exp, Real.norm_eq_abs]
     gcongr
-    exact invFac_abs_g_le (le_of_lt ht) k
+    exact recipFac_abs_g_le (le_of_lt ht) k
 
 /-- The moments `∫₀^∞ e^{-t} (−t)_k/k! dt`. -/
-noncomputable def invFac_d (k : ℕ) : ℝ := ∫ t in Ioi 0, Real.exp (-t) * invFac_g k t
+noncomputable def recipFac_d (k : ℕ) : ℝ := ∫ t in Ioi 0, Real.exp (-t) * recipFac_g k t
 
-lemma invFac_d_succ (k : ℕ) :
-    invFac_d (k+1) = -∑ i ∈ Finset.range (k+1), invFac_d i / ((k:ℝ) + 1 - i) := by
-  set f : ℝ → ℝ := fun t => -(Real.exp (-t) * invFac_g (k+1) t)
-  set f' : ℝ → ℝ := fun t => Real.exp (-t) * invFac_g (k+1) t +
-      ∑ i ∈ Finset.range (k+1), Real.exp (-t) * invFac_g i t / ((k:ℝ) + 1 - i)
+lemma recipFac_d_succ (k : ℕ) :
+    recipFac_d (k+1) = -∑ i ∈ Finset.range (k+1), recipFac_d i / ((k:ℝ) + 1 - i) := by
+  set f : ℝ → ℝ := fun t => -(Real.exp (-t) * recipFac_g (k+1) t)
+  set f' : ℝ → ℝ := fun t => Real.exp (-t) * recipFac_g (k+1) t +
+      ∑ i ∈ Finset.range (k+1), Real.exp (-t) * recipFac_g i t / ((k:ℝ) + 1 - i)
   have hderiv : ∀ t, HasDerivAt f (f' t) t := by
     intro t
     have he : HasDerivAt (fun s : ℝ => Real.exp (-s)) (-Real.exp (-t)) t := by
       simpa using (hasDerivAt_neg t).exp
-    have h := (he.mul (invFac_hasDerivAt_g (k+1) t)).neg
+    have h := (he.mul (recipFac_hasDerivAt_g (k+1) t)).neg
     convert h using 1
     simp only [f']
     push_cast
     rw [mul_neg, Finset.mul_sum]
     simp only [mul_div_assoc]
     ring
-  have hint : ∀ i, IntegrableOn (fun t => Real.exp (-t) * invFac_g i t / ((k:ℝ) + 1 - i)) (Ioi 0) :=
-    fun i => (invFac_integrable_g i).div_const _
+  have hint : ∀ i, IntegrableOn (fun t => Real.exp (-t) * recipFac_g i t / ((k:ℝ) + 1 - i)) (Ioi 0) :=
+    fun i => (recipFac_integrable_g i).div_const _
   have f'int : IntegrableOn f' (Ioi 0) :=
-    (invFac_integrable_g (k+1)).add (integrable_finsetSum _ fun i _ => hint i)
+    (recipFac_integrable_g (k+1)).add (integrable_finsetSum _ fun i _ => hint i)
   have hlim : Tendsto f atTop (𝓝 0) := by
-    have h := invFac_tendsto_B
-    have : Tendsto (fun t => Real.exp (-t) * invFac_g (k+1) t) atTop (𝓝 0) := by
+    have h := recipFac_tendsto_B
+    have : Tendsto (fun t => Real.exp (-t) * recipFac_g (k+1) t) atTop (𝓝 0) := by
       refine squeeze_zero_norm' ?_ h
       filter_upwards [eventually_ge_atTop 0] with t ht
       rw [norm_mul, Real.norm_eq_abs, Real.abs_exp, Real.norm_eq_abs]
       gcongr
-      exact invFac_abs_g_le ht _
+      exact recipFac_abs_g_le ht _
     simpa [f] using this.neg
   have h := integral_Ioi_of_hasDerivAt_of_tendsto (hderiv 0).continuousAt.continuousWithinAt
     (fun t _ => hderiv t) f'int hlim
-  simp only [f, invFac_g_at_zero, mul_zero, neg_zero, sub_zero, f'] at h
-  rw [integral_add (invFac_integrable_g (k+1)) (integrable_finsetSum _ fun i _ => hint i),
+  simp only [f, recipFac_g_at_zero, mul_zero, neg_zero, sub_zero, f'] at h
+  rw [integral_add (recipFac_integrable_g (k+1)) (integrable_finsetSum _ fun i _ => hint i),
     integral_finsetSum _ fun i _ => hint i] at h
   simp only [integral_div] at h
-  unfold invFac_d
+  unfold recipFac_d
   linarith
 
-lemma invFac_coeff_eq_d (k : ℕ) : expIntInverseFactorialCoeff k = (invFac_d k : ℂ) := by
+lemma recipFac_coeff_eq_d (k : ℕ) : expIntReciprocalFactorialCoeff k = (recipFac_d k : ℂ) := by
   induction k using Nat.strong_induction_on with
   | _ k ih =>
     rcases k with _ | k
-    · rw [expIntInverseFactorialCoeff]
-      simp only [invFac_d, invFac_g_zero, mul_one, integral_exp_neg_Ioi_zero, ofReal_one]
-    · rw [expIntInverseFactorialCoeff, invFac_d_succ]
+    · rw [expIntReciprocalFactorialCoeff]
+      simp only [recipFac_d, recipFac_g_zero, mul_one, integral_exp_neg_Ioi_zero, ofReal_one]
+    · rw [expIntReciprocalFactorialCoeff, recipFac_d_succ]
       push_cast
       congr 1
       rw [← Finset.sum_range_reflect]
@@ -342,7 +342,7 @@ lemma invFac_coeff_eq_d (k : ℕ) : expIntInverseFactorialCoeff k = (invFac_d k 
         Nat.cast_sub hj']
       ring
 
-lemma invFac_norm_poch_ge {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
+lemma recipFac_norm_poch_ge {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
     ∏ j ∈ Finset.range n, (z.re + j) ≤ ‖poch z n‖ := by
   induction n with
   | zero => simp [poch_zero]
@@ -352,13 +352,13 @@ lemma invFac_norm_poch_ge {z : ℂ} (hz : 0 < z.re) (n : ℕ) :
       have := Complex.re_le_norm (z + n); simpa using this
     exact mul_le_mul ih h1 (by positivity) (norm_nonneg _)
 
-lemma invFac_poch_ne_zero {z : ℂ} (hz : 0 < z.re) (n : ℕ) : poch z n ≠ 0 := by
-  have h := invFac_norm_poch_ge hz n
+lemma recipFac_poch_ne_zero {z : ℂ} (hz : 0 < z.re) (n : ℕ) : poch z n ≠ 0 := by
+  have h := recipFac_norm_poch_ge hz n
   have : 0 < ∏ j ∈ Finset.range n, (z.re + j) :=
     Finset.prod_pos fun j _ => by positivity
   exact norm_pos_iff.1 (this.trans_le h)
 
-lemma invFac_poch_bound {z : ℂ} (hz : 0 < z.re) :
+lemma recipFac_poch_bound {z : ℂ} (hz : 0 < z.re) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ,
       ‖(((k+1).factorial : ℕ) : ℂ) / poch z (k+2)‖ ≤ C * ((k:ℝ)+1) ^ (-z.re) := by
   obtain ⟨C, hC⟩ := (Real.GammaSeq_tendsto_Gamma z.re).bddAbove_range
@@ -369,7 +369,7 @@ lemma invFac_poch_bound {z : ℂ} (hz : 0 < z.re) :
   rw [norm_div, Complex.norm_natCast]
   calc (((k+1).factorial : ℕ) : ℝ) / ‖poch z (k+2)‖
       ≤ (((k+1).factorial : ℕ) : ℝ) / ∏ j ∈ Finset.range (k+2), (z.re + j) :=
-        div_le_div_of_nonneg_left (by positivity) hprod (invFac_norm_poch_ge hz _)
+        div_le_div_of_nonneg_left (by positivity) hprod (recipFac_norm_poch_ge hz _)
     _ = Real.GammaSeq z.re (k+1) * ((k:ℝ)+1) ^ (-z.re) := by
         rw [Real.GammaSeq, Real.rpow_neg hk.le]
         push_cast
@@ -379,83 +379,83 @@ lemma invFac_poch_bound {z : ℂ} (hz : 0 < z.re) :
         gcongr
         exact (hC ⟨k+1, rfl⟩).trans (le_max_left _ _)
 
-/-- The integrand terms of the inverse factorial series. -/
-noncomputable def invFac_F (z : ℂ) (k : ℕ) (t : ℝ) : ℂ :=
-  ((Real.exp (-t) * invFac_g k t : ℝ) : ℂ) * ((k.factorial : ℂ) / poch z (k+1))
+/-- The integrand terms of the reciprocal factorial series. -/
+noncomputable def recipFac_F (z : ℂ) (k : ℕ) (t : ℝ) : ℂ :=
+  ((Real.exp (-t) * recipFac_g k t : ℝ) : ℂ) * ((k.factorial : ℂ) / poch z (k+1))
 
-lemma invFac_norm_F_succ_le {z : ℂ} {C : ℝ}
+lemma recipFac_norm_F_succ_le {z : ℂ} {C : ℝ}
     (hC : ∀ k : ℕ, ‖(((k+1).factorial : ℕ) : ℂ) / poch z (k+2)‖ ≤ C * ((k:ℝ)+1) ^ (-z.re))
     {t : ℝ} (ht : 0 ≤ t) (k : ℕ) :
-    ‖invFac_F z (k+1) t‖ ≤ Real.exp (-t) * invFac_B t * (C * ((k:ℝ)+1) ^ (-z.re - 1)) := by
+    ‖recipFac_F z (k+1) t‖ ≤ Real.exp (-t) * recipFac_B t * (C * ((k:ℝ)+1) ^ (-z.re - 1)) := by
   have hk : (0:ℝ) < (k:ℝ) + 1 := by positivity
-  have hg : |invFac_g (k+1) t| ≤ invFac_B t / ((k:ℝ)+1) := by
+  have hg : |recipFac_g (k+1) t| ≤ recipFac_B t / ((k:ℝ)+1) := by
     rw [le_div_iff₀ hk, mul_comm]
-    have := invFac_mul_abs_g_le ht (k+1); push_cast at this; exact this
-  rw [invFac_F, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_mul, Real.abs_exp,
+    have := recipFac_mul_abs_g_le ht (k+1); push_cast at this; exact this
+  rw [recipFac_F, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_mul, Real.abs_exp,
     Real.rpow_sub_one hk.ne']
-  calc Real.exp (-t) * |invFac_g (k+1) t| * ‖(((k+1).factorial : ℕ) : ℂ) / poch z (k+1+1)‖
-      ≤ Real.exp (-t) * (invFac_B t / ((k:ℝ)+1)) * (C * ((k:ℝ)+1) ^ (-z.re)) := by
-        have hB : 0 ≤ invFac_B t := (abs_nonneg _).trans (invFac_abs_g_le ht 0)
+  calc Real.exp (-t) * |recipFac_g (k+1) t| * ‖(((k+1).factorial : ℕ) : ℂ) / poch z (k+1+1)‖
+      ≤ Real.exp (-t) * (recipFac_B t / ((k:ℝ)+1)) * (C * ((k:ℝ)+1) ^ (-z.re)) := by
+        have hB : 0 ≤ recipFac_B t := (abs_nonneg _).trans (recipFac_abs_g_le ht 0)
         exact mul_le_mul (mul_le_mul_of_nonneg_left hg (Real.exp_pos _).le) (hC k) (norm_nonneg _)
           (by positivity)
     _ = _ := by ring
 
-lemma invFac_summable_u {z : ℂ} (hz : 0 < z.re) (C : ℝ) :
+lemma recipFac_summable_u {z : ℂ} (hz : 0 < z.re) (C : ℝ) :
     Summable (fun k : ℕ => C * ((k:ℝ)+1) ^ (-z.re - 1)) := by
   have h := (summable_nat_add_iff 1).2 (Real.summable_nat_rpow.2 (by linarith : -z.re - 1 < -1))
   exact (h.mul_left C).congr fun k => by push_cast; rfl
 
-lemma invFac_hasSum_F {z : ℂ} (hz : 0 < z.re) {t : ℝ} (ht : 0 ≤ t) :
-    HasSum (fun k => invFac_F z k t) (Complex.exp (-(t:ℂ)) / ((t:ℂ) + z)) := by
-  obtain ⟨C, hC0, hC⟩ := invFac_poch_bound hz
-  have hsum : Summable (fun k => invFac_F z k t) := by
+lemma recipFac_hasSum_F {z : ℂ} (hz : 0 < z.re) {t : ℝ} (ht : 0 ≤ t) :
+    HasSum (fun k => recipFac_F z k t) (Complex.exp (-(t:ℂ)) / ((t:ℂ) + z)) := by
+  obtain ⟨C, hC0, hC⟩ := recipFac_poch_bound hz
+  have hsum : Summable (fun k => recipFac_F z k t) := by
     rw [← summable_nat_add_iff 1]
-    refine Summable.of_norm_bounded ((invFac_summable_u hz C).mul_left
-      (Real.exp (-t) * invFac_B t)) fun k => ?_
-    exact invFac_norm_F_succ_le hC ht k
+    refine Summable.of_norm_bounded ((recipFac_summable_u hz C).mul_left
+      (Real.exp (-t) * recipFac_B t)) fun k => ?_
+    exact recipFac_norm_F_succ_le hC ht k
   have hzt : (t:ℂ) + z ≠ 0 := by
     intro h
     have := congrArg Complex.re h
     simp at this; linarith
   -- telescoping
-  set T : ℕ → ℂ := fun n => ((n.factorial : ℂ) * (invFac_g n t : ℂ)) / poch z n with hT
-  have htel : ∀ k, invFac_F z k t = (Real.exp (-t) : ℂ) * ((T k - T (k+1)) / ((t:ℂ) + z)) := by
+  set T : ℕ → ℂ := fun n => ((n.factorial : ℂ) * (recipFac_g n t : ℂ)) / poch z n with hT
+  have htel : ∀ k, recipFac_F z k t = (Real.exp (-t) : ℂ) * ((T k - T (k+1)) / ((t:ℂ) + z)) := by
     intro k
-    have h1 := invFac_poch_ne_zero hz k
+    have h1 := recipFac_poch_ne_zero hz k
     have h2 : z + k ≠ 0 := by
       intro h; have := congrArg Complex.re h; simp at this; linarith
-    simp only [invFac_F, hT, poch_succ, invFac_g_succ, Nat.factorial_succ]
+    simp only [recipFac_F, hT, poch_succ, recipFac_g_succ, Nat.factorial_succ]
     push_cast
     field_simp
     ring
-  have hpart : ∀ N, ∑ k ∈ Finset.range N, invFac_F z k t =
+  have hpart : ∀ N, ∑ k ∈ Finset.range N, recipFac_F z k t =
       (Real.exp (-t) : ℂ) * ((1 - T N) / ((t:ℂ) + z)) := by
     intro N
     simp only [htel, ← Finset.mul_sum, ← Finset.sum_div, Finset.sum_range_sub']
-    simp [hT, invFac_g_zero, poch_zero]
+    simp [hT, recipFac_g_zero, poch_zero]
   have hTlim : Tendsto T atTop (𝓝 0) := by
     rw [← tendsto_add_atTop_iff_nat 2]
-    have hlim : Tendsto (fun k : ℕ => invFac_B t * (C * ((k:ℝ)+1) ^ (-z.re))) atTop (𝓝 0) := by
+    have hlim : Tendsto (fun k : ℕ => recipFac_B t * (C * ((k:ℝ)+1) ^ (-z.re))) atTop (𝓝 0) := by
       have h := (tendsto_rpow_neg_atTop hz).comp
         (tendsto_atTop_add_const_right _ 1 tendsto_natCast_atTop_atTop)
-      simpa using (h.const_mul C).const_mul (invFac_B t)
+      simpa using (h.const_mul C).const_mul (recipFac_B t)
     refine squeeze_zero_norm (fun k => ?_) hlim
     simp only [hT]
-    have hg := invFac_mul_abs_g_le ht (k+2)
+    have hg := recipFac_mul_abs_g_le ht (k+2)
     rw [norm_div, norm_mul, Complex.norm_natCast, Complex.norm_real, Real.norm_eq_abs]
     have hb := hC k
     rw [norm_div, Complex.norm_natCast] at hb
-    have hp : 0 < ‖poch z (k+2)‖ := norm_pos_iff.2 (invFac_poch_ne_zero hz _)
+    have hp : 0 < ‖poch z (k+2)‖ := norm_pos_iff.2 (recipFac_poch_ne_zero hz _)
     rw [div_le_iff₀ hp] at hb ⊢
-    have e : (((k+2).factorial : ℕ) : ℝ) * |invFac_g (k+2) t| =
-        ((k+1).factorial : ℕ) * (((k+2 : ℕ) : ℝ) * |invFac_g (k+2) t|) := by
+    have e : (((k+2).factorial : ℕ) : ℝ) * |recipFac_g (k+2) t| =
+        ((k+1).factorial : ℕ) * (((k+2 : ℕ) : ℝ) * |recipFac_g (k+2) t|) := by
       rw [Nat.factorial_succ (k+1)]; push_cast; ring
     rw [e]
-    calc (((k+1).factorial : ℕ) : ℝ) * (((k+2 : ℕ) : ℝ) * |invFac_g (k+2) t|)
-        ≤ ((k+1).factorial : ℕ) * invFac_B t := by gcongr
-      _ = invFac_B t * ((k+1).factorial : ℕ) := mul_comm _ _
-      _ ≤ invFac_B t * (C * ((k:ℝ)+1) ^ (-z.re) * ‖poch z (k+2)‖) := by
-          have : 0 ≤ invFac_B t := ((abs_nonneg _).trans (invFac_abs_g_le ht 0))
+    calc (((k+1).factorial : ℕ) : ℝ) * (((k+2 : ℕ) : ℝ) * |recipFac_g (k+2) t|)
+        ≤ ((k+1).factorial : ℕ) * recipFac_B t := by gcongr
+      _ = recipFac_B t * ((k+1).factorial : ℕ) := mul_comm _ _
+      _ ≤ recipFac_B t * (C * ((k:ℝ)+1) ^ (-z.re) * ‖poch z (k+2)‖) := by
+          have : 0 ≤ recipFac_B t := ((abs_nonneg _).trans (recipFac_abs_g_le ht 0))
           gcongr
       _ = _ := by ring
   rw [hsum.hasSum_iff_tendsto_nat]
@@ -465,34 +465,34 @@ lemma invFac_hasSum_F {z : ℂ} (hz : 0 < z.re) {t : ℝ} (ht : 0 ≤ t) :
   convert this using 2
   rw [sub_zero, Complex.ofReal_exp, Complex.ofReal_neg]; ring
 
-/-- expIntE1 inverse factorial series. -/
+/-- expIntE1 reciprocal factorial series. -/
 @[dlmf 6.10.E1]
-theorem expIntE1_inverse_factorial_series {z : ℂ} (hz : 0 < z.re) :
-    HasSum (fun k : ℕ => (k.factorial : ℂ)*expIntInverseFactorialCoeff k / poch z (k+1)) (exp z*genExpIntE 1 z) := by
-  obtain ⟨C, hC0, hC⟩ := invFac_poch_bound hz
-  have hint : ∀ k, Integrable (invFac_F z k) (volume.restrict (Ioi 0)) := fun k =>
-    ((invFac_integrable_g k).ofReal).mul_const _
-  have hnorm : Summable (fun k => ∫ t in Ioi 0, ‖invFac_F z k t‖) := by
+theorem expIntE1_reciprocal_factorial_series {z : ℂ} (hz : 0 < z.re) :
+    HasSum (fun k : ℕ => (k.factorial : ℂ)*expIntReciprocalFactorialCoeff k / poch z (k+1)) (exp z*genExpIntE 1 z) := by
+  obtain ⟨C, hC0, hC⟩ := recipFac_poch_bound hz
+  have hint : ∀ k, Integrable (recipFac_F z k) (volume.restrict (Ioi 0)) := fun k =>
+    ((recipFac_integrable_g k).ofReal).mul_const _
+  have hnorm : Summable (fun k => ∫ t in Ioi 0, ‖recipFac_F z k t‖) := by
     rw [← summable_nat_add_iff 1]
     refine Summable.of_nonneg_of_le (fun k => integral_nonneg fun t => norm_nonneg _)
-      (fun k => ?_) ((invFac_summable_u hz C).mul_left (∫ t in Ioi 0, Real.exp (-t) * invFac_B t))
+      (fun k => ?_) ((recipFac_summable_u hz C).mul_left (∫ t in Ioi 0, Real.exp (-t) * recipFac_B t))
     rw [← integral_mul_const]
     refine integral_mono_of_nonneg (Eventually.of_forall fun t => norm_nonneg _)
-      (invFac_integrable_B.mul_const _) ?_
+      (recipFac_integrable_B.mul_const _) ?_
     refine (ae_restrict_iff' measurableSet_Ioi).2 (Eventually.of_forall fun t ht => ?_)
-    exact invFac_norm_F_succ_le hC (le_of_lt ht) k
+    exact recipFac_norm_F_succ_le hC (le_of_lt ht) k
   have h := hasSum_integral_of_summable_integral_norm hint hnorm
-  have hI : (∫ t in Ioi 0, ∑' k, invFac_F z k t) =
+  have hI : (∫ t in Ioi 0, ∑' k, recipFac_F z k t) =
       ∫ t : ℝ in Ioi 0, exp (-t : ℂ)/(t+z) :=
-    setIntegral_congr_fun measurableSet_Ioi fun t ht => (invFac_hasSum_F hz (le_of_lt ht)).tsum_eq
+    setIntegral_congr_fun measurableSet_Ioi fun t ht => (recipFac_hasSum_F hz (le_of_lt ht)).tsum_eq
   rw [hI] at h
   have hE : exp z * genExpIntE 1 z = ∫ t : ℝ in Ioi 0, exp (-t : ℂ)/(t+z) := by
     rw [expIntE1_stieltjes (Complex.mem_slitPlane_iff.2 (Or.inl hz)), ← mul_assoc, ← Complex.exp_add,
       add_neg_cancel, Complex.exp_zero, one_mul]
   rw [hE]
   refine h.congr_fun fun k => ?_
-  simp only [invFac_F]
-  rw [integral_mul_const, integral_complex_ofReal, invFac_coeff_eq_d, invFac_d]
+  simp only [recipFac_F]
+  rw [integral_mul_const, integral_complex_ofReal, recipFac_coeff_eq_d, recipFac_d]
   ring
 
 /-- Spherical-Bessel expansion coefficients. -/

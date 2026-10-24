@@ -372,7 +372,7 @@ lemma pcfUDeriv_zero' (a : ℂ) :
   simp [pcfUDeriv, pcfEvenDeriv_zero, pcfOddDeriv_zero]
 
 /-- `s / Γ(s + 1) = 1 / Γ(s)` for every complex `s`, with Mathlib's totalized `Γ`. -/
-lemma mul_inv_Gamma_add_one' (s : ℂ) : s * (Gamma (s + 1))⁻¹ = (Gamma s)⁻¹ := by
+lemma mul_recip_Gamma_add_one' (s : ℂ) : s * (Gamma (s + 1))⁻¹ = (Gamma s)⁻¹ := by
   rcases eq_or_ne s 0 with rfl | hs
   · simp
   rw [Complex.Gamma_add_one s hs]
@@ -411,7 +411,7 @@ theorem pcfU_recurrence_sub (a z : ℂ) :
     ring
   have h1 : ((0 : ℂ) ^ 2 / 4 + a) * pcfU a 0 - 1 / 2 * pcfU a 0 - 0 / 2 * pcfUDeriv a 0 +
       pcfUDeriv (a - 1) 0 = 0 := by
-    have hg := mul_inv_Gamma_add_one' (a / 2 - 1 / 4)
+    have hg := mul_recip_Gamma_add_one' (a / 2 - 1 / 4)
     rw [show a / 2 - 1 / 4 + 1 = 3 / 4 + a / 2 by ring] at hg
     rw [pcfUDeriv_zero' a, pcfU_zero' a, pcfUDeriv_zero' (a - 1),
       show 1 / 4 + (a - 1) / 2 = a / 2 - 1 / 4 by ring,
@@ -441,7 +441,7 @@ theorem pcfU_recurrence_add (a z : ℂ) :
         (hV'.const_mul (a + 1 / 2)) |>.congr_deriv ?_
       simp only [id]; push_cast; ring
   have h0 : pcfUDeriv a 0 + 0 / 2 * pcfU a 0 + (a + 1 / 2) * pcfU (a + 1) 0 = 0 := by
-    have hg := mul_inv_Gamma_add_one' (1 / 4 + a / 2)
+    have hg := mul_recip_Gamma_add_one' (1 / 4 + a / 2)
     rw [show 1 / 4 + a / 2 + 1 = 3 / 4 + (a + 1) / 2 by ring] at hg
     rw [pcfUDeriv_zero' a, pcfU_zero' a, pcfU_zero' (a + 1),
       show -((a + 1) / 2 + 1 / 4) = -(a / 2 - 1 / 4) - 1 by ring,
@@ -857,7 +857,7 @@ theorem pcfU_wronskian_neg (a z : ℂ) :
   linear_combination (-A) * h22
 
 /-- Euler's reflection formula for reciprocals, valid for every complex `s`. -/
-lemma pi_mul_inv_Gamma_mul_inv_Gamma (s : ℂ) :
+lemma pi_mul_recip_Gamma_mul_recip_Gamma (s : ℂ) :
     (π : ℂ) * ((Gamma s)⁻¹ * (Gamma (1 - s))⁻¹) = Complex.sin (π * s) := by
   have hπ : (π : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
   rw [← mul_inv, Complex.Gamma_mul_Gamma_one_sub, inv_div]
@@ -875,9 +875,9 @@ theorem pcfU_wronskian_mul_I (a z : ℂ) :
   rw [hW, pcfU_zero' a, pcfUDeriv_zero' (-a), pcfUDeriv_zero' a, pcfU_zero' (-a),
     show (1 / 4 + -a / 2 : ℂ) = 1 / 4 - a / 2 by ring,
     show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring,
     show (π : ℂ) * (1 / 4 + a / 2) = π * (a / 2 + 1 / 4) by ring] at q2
   have hc : Complex.sin (π * (1 / 4 - a / 2)) = Complex.cos (π * (a / 2 + 1 / 4)) := by
@@ -913,9 +913,9 @@ theorem pcfU_wronskian_mul_neg_I (a z : ℂ) :
   rw [hW, pcfU_zero' a, pcfUDeriv_zero' (-a), pcfUDeriv_zero' a, pcfU_zero' (-a),
     show (1 / 4 + -a / 2 : ℂ) = 1 / 4 - a / 2 by ring,
     show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring,
     show (π : ℂ) * (1 / 4 + a / 2) = π * (a / 2 + 1 / 4) by ring] at q2
   have hc : Complex.sin (π * (1 / 4 - a / 2)) = Complex.cos (π * (a / 2 + 1 / 4)) := by
@@ -979,9 +979,9 @@ theorem pcfU_connection_mul_I {a : ℂ} (ha : ∀ n : ℕ, 1 / 2 + a ≠ -n) (z 
   have hAe : A = Gamma (1 / 4 + a / 2) * Gamma (3 / 4 + a / 2) /
       ((2 : ℂ) ^ (1 / 2 - a) * (Real.sqrt π : ℂ)) := by
     rw [hd]; field_simp
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
   have hcos : Complex.cos (π * (a / 2 - 1 / 4)) = Complex.sin (π * (1 / 4 + a / 2)) := by
     rw [← Complex.sin_add_pi_div_two]; ring_nf
@@ -1119,7 +1119,7 @@ lemma isWeberSol_pcfV_neg (a : ℂ) :
 
 /-- Legendre duplication for reciprocals, valid for every `a`:
 `1/Γ(1/2 + a) = 2^{1/2-a} √π / (Γ(1/4 + a/2) Γ(3/4 + a/2))`. -/
-lemma inv_Gamma_half_add (a : ℂ) :
+lemma recip_Gamma_half_add (a : ℂ) :
     (Gamma (1 / 2 + a))⁻¹ = (Gamma (1 / 4 + a / 2))⁻¹ * (Gamma (3 / 4 + a / 2))⁻¹ *
       (2 : ℂ) ^ (1 / 2 - a) * (Real.sqrt π : ℂ) := by
   have hd := Complex.Gamma_mul_Gamma_add_half (1 / 4 + a / 2)
@@ -1156,9 +1156,9 @@ theorem pcfV_wronskian (a z : ℂ) :
   rw [deriv_pcfV, deriv_pcfU]
   have hW := (isWeberSol_pcfU a).wronskian_eq (isWeberSol_pcfV a) z
   rw [hW, pcfU_zero', pcfUDeriv_zero', pcfV_zero', pcfVDeriv_zero', pcfVZero, pcfVDerivZero]
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring, sin_pi_quarter_sub] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
   have htr := Complex.sin_sq_add_cos_sq (π * (1 / 4 + a / 2))
   have p1 : (2 : ℂ) ^ (-(a / 2 + 1 / 4)) * 2 ^ (a / 2 + 3 / 4) = (Real.sqrt 2 : ℂ) := by
@@ -1185,10 +1185,10 @@ theorem pcfV_wronskian (a z : ℂ) :
     + (r * t * (π * (g1m * g3p) + c)) * q1 + (r * t * (π * (g1p * g3m) + s)) * q2
     + (r * t) * htr + R * hππ - r * hR
 
-lemma inv_Gamma_half_sub (a : ℂ) :
+lemma recip_Gamma_half_sub (a : ℂ) :
     (Gamma (1 / 2 - a))⁻¹ = (Gamma (1 / 4 - a / 2))⁻¹ * (Gamma (3 / 4 - a / 2))⁻¹ *
       (2 : ℂ) ^ (1 / 2 + a) * (Real.sqrt π : ℂ) := by
-  have h := inv_Gamma_half_add (-a)
+  have h := recip_Gamma_half_add (-a)
   rwa [show (1 / 2 + -a : ℂ) = 1 / 2 - a by ring, show (1 / 4 + -a / 2 : ℂ) = 1 / 4 - a / 2 by ring,
     show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring,
     show (1 / 2 - -a : ℂ) = 1 / 2 + a by ring] at h
@@ -1207,8 +1207,8 @@ theorem pcfU_neg_eq (a z : ℂ) :
   refine (isWeberSol_pcfU_neg a).eq_of_initial hg ?_ ?_ z
   · simp only [neg_zero]
     rw [pcfU_zero', pcfV_zero', pcfVZero, div_eq_mul_inv (π : ℂ) (Gamma (1 / 2 + a)),
-      inv_Gamma_half_add, sin_pi_mul_eq_sq]
-    have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+      recip_Gamma_half_add, sin_pi_mul_eq_sq]
+    have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
     rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
     have htr := Complex.sin_sq_add_cos_sq (π * (1 / 4 + a / 2))
     have pw : (2 : ℂ) ^ (1 / 2 - a) * 2 ^ (a / 2 + 1 / 4) = 2 * 2 ^ (-(a / 2 + 1 / 4)) := by
@@ -1227,8 +1227,8 @@ theorem pcfU_neg_eq (a z : ℂ) :
       (-(r * g3p * s ^ 2)) * pw + (-(r * A * g3p)) * htr
   · simp only [neg_zero]
     rw [pcfUDeriv_zero', pcfVDeriv_zero', pcfVDerivZero,
-      div_eq_mul_inv (π : ℂ) (Gamma (1 / 2 + a)), inv_Gamma_half_add, sin_pi_mul_eq_sq]
-    have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+      div_eq_mul_inv (π : ℂ) (Gamma (1 / 2 + a)), recip_Gamma_half_add, sin_pi_mul_eq_sq]
+    have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
     rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring, sin_pi_quarter_sub] at q1
     have htr := Complex.sin_sq_add_cos_sq (π * (1 / 4 + a / 2))
     have pw : (2 : ℂ) ^ (1 / 2 - a) * 2 ^ (a / 2 + 3 / 4) = 2 * 2 ^ (-(a / 2 - 1 / 4)) := by
@@ -1254,9 +1254,9 @@ theorem pcfV_neg_eq (a z : ℂ) :
       Complex.sin (π * a) * pcfV a z := by
   have hg := (isWeberSol_pcfU a).lincomb (isWeberSol_pcfV a)
     (Complex.cos (π * a) / Gamma (1 / 2 - a)) (Complex.sin (π * a))
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring, sin_pi_quarter_sub] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
   have htr := Complex.sin_sq_add_cos_sq (π * (1 / 4 + a / 2))
   have hππ : (Real.sqrt π : ℂ) * (Real.sqrt π : ℂ) = π := by
@@ -1264,7 +1264,7 @@ theorem pcfV_neg_eq (a z : ℂ) :
   refine (isWeberSol_pcfV_neg a).eq_of_initial hg ?_ ?_ z
   · simp only [neg_zero]
     rw [pcfU_zero', pcfV_zero', pcfVZero, div_eq_mul_inv _ (Gamma (1 / 2 - a)),
-      inv_Gamma_half_sub, sin_pi_mul_eq_sq, cos_pi_mul_eq_mul]
+      recip_Gamma_half_sub, sin_pi_mul_eq_sq, cos_pi_mul_eq_mul]
     have pw : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 + 1 / 4)) = 2 ^ (a / 2 + 1 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
     set g1m := (Gamma (1 / 4 - a / 2))⁻¹
@@ -1282,7 +1282,7 @@ theorem pcfV_neg_eq (a z : ℂ) :
       (B * g3m * (1 - s ^ 2 + c ^ 2)) * q2 + (-s * B * g3m) * htr
   · simp only [neg_zero]
     rw [pcfUDeriv_zero', pcfVDeriv_zero', pcfVDerivZero, div_eq_mul_inv _ (Gamma (1 / 2 - a)),
-      inv_Gamma_half_sub, sin_pi_mul_eq_sq, cos_pi_mul_eq_mul]
+      recip_Gamma_half_sub, sin_pi_mul_eq_sq, cos_pi_mul_eq_mul]
     have pw : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 - 1 / 4)) = 2 ^ (a / 2 + 3 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
     set g1m := (Gamma (1 / 4 - a / 2))⁻¹
@@ -1359,9 +1359,9 @@ theorem pcfV_eq_mul_I (a z : ℂ) :
       (Real.sqrt (2 / π) : ℂ) * exp (-I * π * (a / 2 - 1 / 4)) * pcfU (-a) (I * z) := by
   have hg := (isWeberSol_pcfU a).lincomb (isWeberSol_pcfU_mul_I a) (-I / Gamma (1 / 2 - a))
     ((Real.sqrt (2 / π) : ℂ) * exp (-I * π * (a / 2 - 1 / 4)))
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring, sin_pi_quarter_sub] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
   have hππ : (Real.sqrt π : ℂ) * (Real.sqrt π : ℂ) = π := by
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
@@ -1371,7 +1371,7 @@ theorem pcfV_eq_mul_I (a z : ℂ) :
   refine (isWeberSol_pcfV a).eq_of_initial hg ?_ ?_ z
   · simp only [mul_zero]
     rw [pcfV_zero', pcfVZero, pcfU_zero' a, pcfU_zero' (-a), div_eq_mul_inv _ (Gamma (1 / 2 - a)),
-      inv_Gamma_half_sub, exp_neg_I_pi_quarter, show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
+      recip_Gamma_half_sub, exp_neg_I_pi_quarter, show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
     have pwA : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 + 1 / 4)) = 2 ^ (a / 2 + 1 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
     have pwB : (Real.sqrt 2 : ℂ) * 2 ^ (-(-a / 2 + 1 / 4)) = 2 ^ (a / 2 + 1 / 4) := by
@@ -1392,7 +1392,7 @@ theorem pcfV_eq_mul_I (a z : ℂ) :
       (B * g3m) * q2
   · simp only [mul_zero]
     rw [pcfVDeriv_zero', pcfVDerivZero, pcfUDeriv_zero' a, pcfUDeriv_zero' (-a),
-      div_eq_mul_inv _ (Gamma (1 / 2 - a)), inv_Gamma_half_sub, exp_neg_I_pi_quarter,
+      div_eq_mul_inv _ (Gamma (1 / 2 - a)), recip_Gamma_half_sub, exp_neg_I_pi_quarter,
       show (1 / 4 + -a / 2 : ℂ) = 1 / 4 - a / 2 by ring]
     have pwA : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 - 1 / 4)) = 2 ^ (a / 2 + 3 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
@@ -1421,9 +1421,9 @@ theorem pcfV_eq_mul_neg_I (a z : ℂ) :
       (Real.sqrt (2 / π) : ℂ) * exp (I * π * (a / 2 - 1 / 4)) * pcfU (-a) (-I * z) := by
   have hg := (isWeberSol_pcfU a).lincomb (isWeberSol_pcfU_mul_neg_I a) (I / Gamma (1 / 2 - a))
     ((Real.sqrt (2 / π) : ℂ) * exp (I * π * (a / 2 - 1 / 4)))
-  have q1 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 - a / 2)
+  have q1 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 - a / 2)
   rw [show 1 - (1 / 4 - a / 2) = 3 / 4 + a / 2 by ring, sin_pi_quarter_sub] at q1
-  have q2 := pi_mul_inv_Gamma_mul_inv_Gamma (1 / 4 + a / 2)
+  have q2 := pi_mul_recip_Gamma_mul_recip_Gamma (1 / 4 + a / 2)
   rw [show 1 - (1 / 4 + a / 2) = 3 / 4 - a / 2 by ring] at q2
   have hππ : (Real.sqrt π : ℂ) * (Real.sqrt π : ℂ) = π := by
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt Real.pi_pos.le]
@@ -1433,7 +1433,7 @@ theorem pcfV_eq_mul_neg_I (a z : ℂ) :
   refine (isWeberSol_pcfV a).eq_of_initial hg ?_ ?_ z
   · simp only [mul_zero]
     rw [pcfV_zero', pcfVZero, pcfU_zero' a, pcfU_zero' (-a), div_eq_mul_inv _ (Gamma (1 / 2 - a)),
-      inv_Gamma_half_sub, exp_I_pi_quarter, show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
+      recip_Gamma_half_sub, exp_I_pi_quarter, show (3 / 4 + -a / 2 : ℂ) = 3 / 4 - a / 2 by ring]
     have pwA : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 + 1 / 4)) = 2 ^ (a / 2 + 1 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
     have pwB : (Real.sqrt 2 : ℂ) * 2 ^ (-(-a / 2 + 1 / 4)) = 2 ^ (a / 2 + 1 / 4) := by
@@ -1454,7 +1454,7 @@ theorem pcfV_eq_mul_neg_I (a z : ℂ) :
       (B * g3m) * q2
   · simp only [mul_zero]
     rw [pcfVDeriv_zero', pcfVDerivZero, pcfUDeriv_zero' a, pcfUDeriv_zero' (-a),
-      div_eq_mul_inv _ (Gamma (1 / 2 - a)), inv_Gamma_half_sub, exp_I_pi_quarter,
+      div_eq_mul_inv _ (Gamma (1 / 2 - a)), recip_Gamma_half_sub, exp_I_pi_quarter,
       show (1 / 4 + -a / 2 : ℂ) = 1 / 4 - a / 2 by ring]
     have pwA : (2 : ℂ) ^ (1 / 2 + a) * 2 ^ (-(a / 2 - 1 / 4)) = 2 ^ (a / 2 + 3 / 4) :=
       two_cpow_mul_two_cpow _ _ _ (by ring)
@@ -1501,9 +1501,9 @@ theorem pcfV_recurrence_add (a z : ℂ) :
     ring
   have h1 : ((0 : ℂ) ^ 2 / 4 + a) * pcfV a 0 + 1 / 2 * pcfV a 0 + 0 / 2 * pcfVDeriv a 0 -
       pcfVDeriv (a + 1) 0 = 0 := by
-    have hgA := mul_inv_Gamma_add_one' (-1 / 4 - a / 2)
+    have hgA := mul_recip_Gamma_add_one' (-1 / 4 - a / 2)
     rw [show -1 / 4 - a / 2 + 1 = 3 / 4 - a / 2 by ring] at hgA
-    have hgB := mul_inv_Gamma_add_one' (1 / 4 + a / 2)
+    have hgB := mul_recip_Gamma_add_one' (1 / 4 + a / 2)
     rw [show 1 / 4 + a / 2 + 1 = 5 / 4 + a / 2 by ring] at hgB
     have pw : (2 : ℂ) ^ (a / 2 + 5 / 4) = 2 * 2 ^ (a / 2 + 1 / 4) := by
       rw [show a / 2 + 5 / 4 = (a / 2 + 1 / 4) + 1 by ring, Complex.cpow_add _ _ two_ne_zero,
@@ -1536,9 +1536,9 @@ theorem pcfV_recurrence_sub (a z : ℂ) :
         (hV'.const_mul (a - 1 / 2)) |>.congr_deriv ?_
       simp only [id]; push_cast; ring
   have h0 : pcfVDeriv a 0 - 0 / 2 * pcfV a 0 - (a - 1 / 2) * pcfV (a - 1) 0 = 0 := by
-    have hgA := mul_inv_Gamma_add_one' (1 / 4 - a / 2)
+    have hgA := mul_recip_Gamma_add_one' (1 / 4 - a / 2)
     rw [show 1 / 4 - a / 2 + 1 = 5 / 4 - a / 2 by ring] at hgA
-    have hgB := mul_inv_Gamma_add_one' (a / 2 - 1 / 4)
+    have hgB := mul_recip_Gamma_add_one' (a / 2 - 1 / 4)
     rw [show a / 2 - 1 / 4 + 1 = 3 / 4 + a / 2 by ring] at hgB
     have pw : (2 : ℂ) ^ (a / 2 + 3 / 4) = 2 * 2 ^ (a / 2 - 1 / 4) := by
       rw [show a / 2 + 3 / 4 = (a / 2 - 1 / 4) + 1 by ring, Complex.cpow_add _ _ two_ne_zero,

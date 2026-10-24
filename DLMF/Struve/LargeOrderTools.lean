@@ -156,7 +156,7 @@ lemma struveLO_circleMap_mem {r : ℝ} (hr : 0 < r) (θ : ℝ) :
   ⟨sphere_subset_closedBall (circleMap_mem_sphere 0 hr.le θ), circleMap_ne_center hr.ne'⟩
 
 /-- Derivative of `c (a + w b)^{-m}` in `w`. -/
-lemma struveLO_hasDerivAt_inv_pow (a b c : ℂ) (m : ℕ) {w : ℂ} (h : a + w * b ≠ 0) :
+lemma struveLO_hasDerivAt_recip_pow (a b c : ℂ) (m : ℕ) {w : ℂ} (h : a + w * b ≠ 0) :
     HasDerivAt (fun w => c * ((a + w * b) ^ m)⁻¹)
       (-(m : ℂ) * (c * b * ((a + w * b) ^ (m + 1))⁻¹)) w := by
   have hu : HasDerivAt (fun w => a + w * b) b w := by
@@ -196,7 +196,7 @@ theorem struveLO_hasDerivAt_I {r ε : ℝ} {lam₀ : ℂ} (hr : 0 < r) (hG : str
     (continuousOn_const.mul (struveLO_continuousOn hr hG (hg.mul continuous_sinh) (m + 1)))
     (fun z hz θ => by
       obtain ⟨h1, h2⟩ := struveLO_circleMap_mem hr θ
-      exact struveLO_hasDerivAt_inv_pow _ _ _ m (struveLO_u_ne hG hz h1 h2))
+      exact struveLO_hasDerivAt_recip_pow _ _ _ m (struveLO_u_ne hG hz h1 h2))
   rw [circleIntegral.integral_const_mul] at h
   exact h
 

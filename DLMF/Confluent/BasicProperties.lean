@@ -168,7 +168,7 @@ lemma tricomiD_intCast (a z : ℂ) (hz : z ≠ 0) (n : ℤ) : tricomiD a n z = 0
   rcases le_or_gt n 0 with hn | hn
   · obtain ⟨k, rfl⟩ : ∃ k : ℕ, n = -(k : ℤ) := ⟨n.natAbs, by omega⟩
     push_cast
-    rw [hneg, DLMF.Hypergeometric.inv_Gamma_eq_poch_mul k a, show 1 - -(k : ℂ) = ((k + 1 : ℕ) : ℂ) by push_cast; ring,
+    rw [hneg, DLMF.Hypergeometric.recip_Gamma_eq_poch_mul k a, show 1 - -(k : ℂ) = ((k + 1 : ℕ) : ℂ) by push_cast; ring,
       cpow_natCast, show a - -(k : ℂ) + 1 = a + ((k + 1 : ℕ) : ℂ) by push_cast; ring,
       show 2 - -(k : ℂ) = (k + 2 : ℂ) by ring]
     push_cast
@@ -180,7 +180,7 @@ lemma tricomiD_intCast (a z : ℂ) (hz : z ≠ 0) (n : ℤ) : tricomiD a n z = 0
       push_cast
       rw [show (2 : ℂ) - ((k : ℂ) + 2) = -(k : ℂ) by ring, hneg,
         show a - ((k : ℂ) + 2) + 1 + k + 1 = a by ring,
-        DLMF.Hypergeometric.inv_Gamma_eq_poch_mul k (a - ((k : ℂ) + 2) + 1),
+        DLMF.Hypergeometric.recip_Gamma_eq_poch_mul k (a - ((k : ℂ) + 2) + 1),
         show a - ((k : ℂ) + 2) + 1 + ((k + 1 : ℕ) : ℂ) = a by push_cast; ring]
       have hzk : z ^ (1 - ((k : ℂ) + 2)) * z ^ (k + 1) = 1 := by
         rw [show (1 : ℂ) - ((k : ℂ) + 2) = -((k + 1 : ℕ) : ℂ) by push_cast; ring, cpow_neg,
@@ -303,8 +303,8 @@ theorem tendsto_kummerU (a b : ℂ) {z : ℂ} (hz : z ≠ 0) :
   simpa using tendsto_kummerU_add_intCast a b 0 hz
 
 /-- `1/Γ(x) = x / Γ(x + 1)` for every `x`. -/
-lemma inv_Gamma_eq_mul_inv_Gamma_add_one (x : ℂ) : (Gamma x)⁻¹ = x * (Gamma (x + 1))⁻¹ := by
-  have h := DLMF.Hypergeometric.inv_Gamma_eq_poch_mul 0 x
+lemma recip_Gamma_eq_mul_recip_Gamma_add_one (x : ℂ) : (Gamma x)⁻¹ = x * (Gamma (x + 1))⁻¹ := by
+  have h := DLMF.Hypergeometric.recip_Gamma_eq_poch_mul 0 x
   simpa [poch_one] using h
 
 /-! ### Joint continuity of Tricomi's function -/
@@ -876,11 +876,11 @@ theorem kummerU_nat_log (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0)
 open DLMF.Gamma in
 /-- `kummerU_nat_log` with `ψ(a+k)/Γ(a-n)` written through `(1/Γ)'`.
 Stronger than `kummerU_nat_log`: valid for all `a`. -/
-theorem kummerU_nat_log_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
+theorem kummerU_nat_log_recipGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
     kummerU a ((n : ℂ) + 1) z =
       (-1 : ℂ) ^ (n + 1) *
         ((Gamma (a - n))⁻¹ * log z * regularizedHGFun {a} {(n : ℂ) + 1} z +
-          tricomiLogSeriesInvGamma a n z) +
+          tricomiLogSeriesRecipGamma a n z) +
       (-1 : ℂ) ^ (n + 1) * z ^ (-(n : ℂ)) * (Gamma a)⁻¹ *
         ∑ j ∈ Finset.range n, poch (a - n) j * z ^ j / j.factorial *
           ((-1 : ℂ) ^ (n - 1 - j) * ((n - 1 - j).factorial : ℂ)) := by
@@ -889,7 +889,7 @@ theorem kummerU_nat_log_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ≠ 0) :
   rw [show (fun c => tricomiD a c z) = (fun c =>
       regularizedHGFun {a} {c} z * (Gamma (a - c + 1))⁻¹ -
         z ^ (1 - c) * regularizedHGFun {a - c + 1} {2 - c} z * (Gamma a)⁻¹) from rfl,
-    deriv_tricomi_numerator_nat_invGamma a n hz, tricomi_log_series_split_invGamma a n hz] at h
+    deriv_tricomi_numerator_nat_recipGamma a n hz, tricomi_log_series_split_recipGamma a n hz] at h
   rw [h]
   ring
 
@@ -960,17 +960,17 @@ open DLMF.Gamma in
 Stronger than DLMF: valid for all `a` (the digamma form needs `a - n ∉ {0, -1, -2, …}`
 because Mathlib's `ψ` is `0` at its poles). -/
 @[dlmf 13.2.E9]
-theorem kummerU_nat_denom_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+theorem kummerU_nat_denom_recipGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
     kummerU a (n + 1) z =
       (-1 : ℂ) ^ (n + 1) / (n.factorial : ℂ) *
         ∑' k : ℕ, poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
           ((Gamma (a - n))⁻¹ * (log z - digamma (1 + k) - digamma (n + k + 1)) -
-            poch (a - n) (n + k) * invGammaDeriv 1 (a + k)) +
+            poch (a - n) (n + k) * recipGammaDeriv 1 (a + k)) +
         1 / Gamma a * ∑ k ∈ Finset.Icc 1 n,
           ((k - 1).factorial : ℂ) * poch (1 - a + k) (n - k) /
             ((n - k).factorial : ℂ) * z ^ (-(k : ℂ)) := by
   have hz0 := slitPlane_ne_zero hz
-  have h := deriv_tricomi_numerator_nat_invGamma a n hz0
+  have h := deriv_tricomi_numerator_nat_recipGamma a n hz0
   change deriv (fun c => tricomiD a c z) ((n : ℂ) + 1) = _ at h
   have hU := kummerU_nat_eq_deriv a (n + 1) hz0
   push_cast at hU
@@ -989,11 +989,11 @@ theorem kummerU_nat_denom_invGamma (a : ℂ) (n : ℕ) {z : ℂ} (hz : z ∈ sli
   have htail : (∑' k : ℕ, (poch a k * z ^ k / k.factorial *
       (Gamma ((n : ℂ) + 1 + k))⁻¹) *
         ((Gamma (a - n))⁻¹ * (log z - digamma (k + 1) - digamma ((n : ℂ) + 1 + k)) -
-          poch (a - n) (n + k) * invGammaDeriv 1 (a + k))) =
+          poch (a - n) (n + k) * recipGammaDeriv 1 (a + k))) =
       (n.factorial : ℂ)⁻¹ * ∑' k : ℕ,
         poch a k / (poch (n + 1 : ℂ) k * k.factorial) * z ^ k *
           ((Gamma (a - n))⁻¹ * (log z - digamma (1 + k) - digamma (n + k + 1)) -
-            poch (a - n) (n + k) * invGammaDeriv 1 (a + k)) := by
+            poch (a - n) (n + k) * recipGammaDeriv 1 (a + k)) := by
     rw [← tsum_mul_left]
     refine tsum_congr fun k => ?_
     rw [hΓ, show (k : ℂ) + 1 = 1 + k by ring,
@@ -1472,20 +1472,20 @@ open DLMF.Gamma in
 `U(a,1,z) + (log z + 2γ)/Γ(a) - (1/Γ)'(a) = O(z log z)`.
 Stronger than DLMF: valid for all `a`, including `a ∈ {0, -1, -2, …}`. -/
 @[dlmf 13.2.E19]
-theorem isBigO_kummerU_at_zero_b_one_invGamma (a : ℂ) :
+theorem isBigO_kummerU_at_zero_b_one_recipGamma (a : ℂ) :
     Asymptotics.IsBigO (𝓝[≠] (0 : ℂ))
       (fun z => kummerU a 1 z +
         ((Gamma a)⁻¹ * (log z + 2 * (Real.eulerMascheroniConstant : ℂ)) -
-          invGammaDeriv 1 a))
+          recipGammaDeriv 1 a))
       (fun z => z * log z) := by
   have hM0 : regularizedHGFun {a} {(0 : ℂ) + 1} 0 = 1 := by
     simp [regularizedHGFunCoeff_singleton, poch_zero]
-  have hT0 : tricomiLogSeriesInvGamma a 0 0 =
-      2 * (Real.eulerMascheroniConstant : ℂ) * (Gamma a)⁻¹ - invGammaDeriv 1 a := by
-    rw [tricomiLogSeriesInvGamma_zero]; simp [digamma_one, poch_zero]; ring
+  have hT0 : tricomiLogSeriesRecipGamma a 0 0 =
+      2 * (Real.eulerMascheroniConstant : ℂ) * (Gamma a)⁻¹ - recipGammaDeriv 1 a := by
+    rw [tricomiLogSeriesRecipGamma_zero]; simp [digamma_one, poch_zero]; ring
   have hM := ((differentiableAt_regularizedConfluent a ((0 : ℂ) + 1) 0).isBigO_sub).mono
     (nhdsWithin_le_nhds (s := {0}ᶜ))
-  have hT := ((analyticAt_tricomiLogSeriesInvGamma a 0).differentiableAt.isBigO_sub).mono
+  have hT := ((analyticAt_tricomiLogSeriesRecipGamma a 0).differentiableAt.isBigO_sub).mono
     (nhdsWithin_le_nhds (s := {0}ᶜ))
   simp only [sub_zero] at hM hT
   have hid : Asymptotics.IsBigO (𝓝[≠] (0 : ℂ)) (fun z : ℂ => z) (fun z => z * log z) := by
@@ -1495,7 +1495,7 @@ theorem isBigO_kummerU_at_zero_b_one_invGamma (a : ℂ) :
     (Gamma a)⁻¹).add (hT.trans hid))).const_mul_left (-1 : ℂ)
   refine h.congr' ?_ ?_
   · filter_upwards [self_mem_nhdsWithin] with z hz
-    have hUz := kummerU_nat_log_invGamma a 0 hz
+    have hUz := kummerU_nat_log_recipGamma a 0 hz
     norm_num only [Nat.cast_zero, zero_add, sub_zero] at hUz
     rw [hUz]
     simp only [hM0, hT0]
@@ -2003,8 +2003,15 @@ lemma neg_cpow_of_arg {z : ℂ} (hz : z ≠ 0) (ε : ℂ) (hε : ε = 1 ∨ ε =
   rw [cpow_def_of_ne_zero (neg_ne_zero.mpr hz), hlog, cpow_def_of_ne_zero hz, add_mul, exp_add]
 
 /-- The reciprocal reflection formula, valid for all `s` with the totalized `Γ`. -/
-lemma inv_Gamma_mul_Gamma_one_sub (s : ℂ) : (Gamma s * Gamma (1 - s))⁻¹ = sin (π * s) / π := by
+lemma recip_Gamma_mul_Gamma_one_sub (s : ℂ) : (Gamma s * Gamma (1 - s))⁻¹ = sin (π * s) / π := by
   rw [Gamma_mul_Gamma_one_sub, inv_div]
+
+/-- The reflection formula in the form `1/Γ(1-z) = Γ(z) sin(πz)/π`, valid whenever
+`Γ(z) ≠ 0` (at poles of `Γ(1-z)` both sides vanish). -/
+lemma recip_Gamma_one_sub_eq {z : ℂ} (hz : Complex.Gamma z ≠ 0) :
+    (Complex.Gamma (1 - z))⁻¹ = Complex.Gamma z * Complex.sin (π * z) / π := by
+  rw [mul_div_assoc, ← recip_Gamma_mul_Gamma_one_sub, mul_inv, ← mul_assoc,
+    mul_inv_cancel₀ hz, one_mul]
 
 /-- The trigonometric identity behind the `M(a,b,z)` coefficient in DLMF 13.2.41. -/
 lemma exp_sin_connection (a b ε : ℂ) (hε : ε = 1 ∨ ε = -1) :
@@ -2055,9 +2062,9 @@ theorem kummerM_div_Gamma_connection_of_not_int (a b : ℂ) {z : ℂ} (hb : ∀ 
   have hk2 := kummerM_kummer_transform (a := a - b + 1) (z := z) h2b
   rw [show 2 - b - (a - b + 1) = 1 - a by ring] at hk2
   rw [hk1, hk2]
-  have hG1 := inv_Gamma_mul_Gamma_one_sub (b - a)
-  have hG2 := inv_Gamma_mul_Gamma_one_sub a
-  have hG3 := inv_Gamma_mul_Gamma_one_sub b
+  have hG1 := recip_Gamma_mul_Gamma_one_sub (b - a)
+  have hG2 := recip_Gamma_mul_Gamma_one_sub a
+  have hG3 := recip_Gamma_mul_Gamma_one_sub b
   rw [show 1 - (b - a) = a - b + 1 by ring] at hG1
   have hg : Gamma (1 - b) ≠ 0 :=
     Gamma_ne_zero fun k h => hb (k + 1) (by push_cast; linear_combination -h)
@@ -2204,7 +2211,7 @@ lemma exp_sub_exp_neg_mul_I (t : ℂ) :
   linear_combination (exp (t * I) - exp (-t * I)) * I_sq
 
 /-- Reciprocal form of Gamma reflection, valid also at integer arguments. -/
-lemma sin_pi_mul_eq_inv_Gamma (t : ℂ) :
+lemma sin_pi_mul_eq_recip_Gamma (t : ℂ) :
     sin (π * t) = π / (Gamma t * Gamma (1 - t)) := by
   rw [Gamma_mul_Gamma_one_sub, div_div_eq_mul_div]
   field_simp [ofReal_ne_zero.mpr Real.pi_ne_zero]
@@ -2295,10 +2302,10 @@ lemma kummerU_jump_all (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) (hbi : ∀ k
     (Gamma (b - 1) / Gamma a * z ^ (1 - b) * kummerM (a - b + 1) (2 - b) (-z))
   simp only [neg_mul] at hphase
   have hs1 : sin (a * π) = π / (Gamma a * Gamma (1 - a)) := by
-    rw [mul_comm a, sin_pi_mul_eq_inv_Gamma]
+    rw [mul_comm a, sin_pi_mul_eq_recip_Gamma]
   have hs2 : sin (a * π - b * π) =
       -π / (Gamma (a - b + 1) * Gamma (b - a)) := by
-    have h := sin_pi_mul_eq_inv_Gamma (a - b + 1)
+    have h := sin_pi_mul_eq_recip_Gamma (a - b + 1)
     rw [show (π : ℂ) * (a - b + 1) = (a * π - b * π) + π by ring,
       sin_add_pi, show 1 - (a - b + 1) = b - a by ring] at h
     rw [neg_div]

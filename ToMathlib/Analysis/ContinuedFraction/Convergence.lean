@@ -927,7 +927,7 @@ section Stieltjes
 
 variable {h : ℂ} {a b : ℕ → ℂ}
 
-lemma cfConv_re_inv_pos {u : ℂ} (hu : 0 < u.re) : 0 < (u⁻¹).re := by
+lemma cfConv_re_recip_pos {u : ℂ} (hu : 0 < u.re) : 0 < (u⁻¹).re := by
   rw [Complex.inv_re]
   have : u ≠ 0 := fun h0 => by rw [h0, Complex.zero_re] at hu; exact lt_irrefl _ hu
   exact div_pos hu (Complex.normSq_pos.mpr this)
@@ -940,7 +940,7 @@ theorem cfConv_sfrac_bound {s : ℂ} (hs : 0 < s.re) (hb : ∀ k, b k = 1) {c : 
     (cfConv_ofFun h a b).dens n ≠ 0 ∧
       ‖(cfConv_ofFun h a b).convs n - h‖ ≤ ‖a 0‖ * ‖s‖ / s.re := by
   have hs0 : s ≠ 0 := fun h0 => by rw [h0, Complex.zero_re] at hs; exact lt_irrefl _ hs
-  have hinv : 0 < (s⁻¹).re := cfConv_re_inv_pos hs
+  have hinv : 0 < (s⁻¹).re := cfConv_re_recip_pos hs
   rcases n with _ | N
   · refine ⟨by rw [cfConv_dens_zero]; exact one_ne_zero, ?_⟩
     change ‖(cfConv_ofFun h a b).nums 0 / (cfConv_ofFun h a b).dens 0 - h‖ ≤ _
@@ -977,7 +977,7 @@ theorem cfConv_sfrac_bound {s : ℂ} (hs : 0 < s.re) (hb : ∀ k, b k = 1) {c : 
           s⁻¹ + (c (k + 1) : ℂ) * (w (k + 1) / (s * w (k + 1 + 1)))⁻¹ := by
         rw [e, inv_div]; field_simp
       rw [eq, Complex.add_re, Complex.re_ofReal_mul]
-      have := cfConv_re_inv_pos hρ
+      have := cfConv_re_recip_pos hρ
       nlinarith
   obtain ⟨h1, h2⟩ := key N le_rfl
   simp only [Nat.sub_self, zero_add] at h1 h2
@@ -1075,7 +1075,7 @@ theorem cfConv_sfrac_const_bound {z : ℂ} (hz : 0 < z.re) {a : ℕ → ℂ} {c 
   have hz0 : z ≠ 0 := fun h0 => by rw [h0, Complex.zero_re] at hz; exact lt_irrefl _ hz
   set r : ℕ → ℂ := fun _ => z⁻¹ with hr
   have hr0 : ∀ k, r k ≠ 0 := fun _ => inv_ne_zero hz0
-  have hs : 0 < (z⁻¹).re := cfConv_re_inv_pos hz
+  have hs : 0 < (z⁻¹).re := cfConv_re_recip_pos hz
   obtain ⟨hB, hval⟩ := cfConv_sfrac_bound (h := 0) (s := z⁻¹) hs
     (a := fun k => (if k = 0 then r 0 else r (k - 1) * r k) * a k)
     (b := fun k => r k * z) (fun k => inv_mul_cancel₀ hz0) (c := c) hc

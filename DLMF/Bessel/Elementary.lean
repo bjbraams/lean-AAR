@@ -25,7 +25,7 @@ public import DLMF.Bessel.Asymptotics
   `K_{-ν} = K_ν` (DLMF 10.27.3), and `K_ν(x) > 0` for every real `ν`, for `x > 0`.
 * `hankelH1_sub_exp_isBigO`, `besselY_sub_sin_isBigO`: leading large-`x` behaviour of `H^{(1)}_ν`
   and `Y_ν` (DLMF 10.7.8).
-* `iterate_zInvDeriv_cpow_mul_besselJ`, `iterate_zInvDeriv_cpow_neg_mul_besselJ`: the iterated
+* `iterate_zRecipDeriv_cpow_mul_besselJ`, `iterate_zRecipDeriv_cpow_neg_mul_besselJ`: the iterated
   derivative formulas DLMF 10.6.6.
 * `besselI_eq_poisson_integral`: Poisson's integral for `I_ν` (DLMF 10.32.2).
 -/
@@ -384,21 +384,6 @@ theorem besselI_ofReal_pos {ν x : ℝ} (hν : -1 < ν) (hx : 0 < x) :
   exact mul_pos (Real.rpow_pos_of_pos (by positivity) _) (hsum.tsum_pos (fun n => (hpos n).le) 0
     (hpos 0))
 
-/-- `K_{-ν} = K_ν` (DLMF 10.27.3). -/
-@[dlmf 10.27.E3]
-theorem besselK_neg (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) : besselK (-ν) z = besselK ν z := by
-  refine DLMF.Confluent.eq_of_continuousAt_of_integerComplement
-    (f := fun μ => besselK (-μ) z) (g := fun μ => besselK μ z)
-    (continuousAt_besselK_order (fun μ => -μ) continuous_neg ν hz)
-    (continuousAt_besselK_order (fun μ => μ) continuous_id ν hz) (fun c hc => ?_)
-  have hc' := DLMF.Confluent.forall_of_mem_integerComplement hc
-  have hcn : ∀ k : ℤ, -c ≠ k := fun k h => hc' (-k) (by push_cast; linear_combination -h)
-  have hs := sin_mul_pi_ne_zero hc'
-  rw [besselK_eq_of_not_int hcn, besselK_eq_of_not_int hc', besselE, besselE, neg_neg, neg_mul,
-    Complex.sin_neg]
-  field_simp
-  ring
-
 lemma besselK_ofReal_pos_of_gt {ν x : ℝ} (hν : -1 / 2 < ν) (hx : 0 < x) :
     ∃ r : ℝ, 0 < r ∧ besselK ν x = r := by
   have hνc : -1 / 2 < (ν : ℂ).re := by simpa using hν
@@ -555,17 +540,17 @@ lemma hasDerivAt_cpow_neg_mul_besselJ' (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlan
   ring
 
 /-- The operator `f ↦ z⁻¹ f'`. -/
-def zInvDeriv (f : ℂ → ℂ) : ℂ → ℂ := fun z => deriv f z / z
+def zRecipDeriv (f : ℂ → ℂ) : ℂ → ℂ := fun z => deriv f z / z
 
 /-- `(z⁻¹ d/dz)^k (z^ν J_ν(z)) = z^{ν-k} J_{ν-k}(z)` (DLMF 10.6.6). -/
 @[dlmf 10.6.E6]
-theorem iterate_zInvDeriv_cpow_mul_besselJ (ν : ℂ) (k : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    (zInvDeriv^[k] fun w => w ^ ν * besselJ ν w) z = z ^ (ν - k) * besselJ (ν - k) z := by
+theorem iterate_zRecipDeriv_cpow_mul_besselJ (ν : ℂ) (k : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    (zRecipDeriv^[k] fun w => w ^ ν * besselJ ν w) z = z ^ (ν - k) * besselJ (ν - k) z := by
   induction k generalizing z with
   | zero => simp
   | succ k ih =>
-    rw [Function.iterate_succ_apply', zInvDeriv]
-    have he : (zInvDeriv^[k] fun w => w ^ ν * besselJ ν w) =ᶠ[𝓝 z]
+    rw [Function.iterate_succ_apply', zRecipDeriv]
+    have he : (zRecipDeriv^[k] fun w => w ^ ν * besselJ ν w) =ᶠ[𝓝 z]
         fun w => w ^ (ν - k) * besselJ (ν - k) w :=
       Filter.eventually_of_mem (isOpen_slitPlane.mem_nhds hz) fun w hw => ih hw
     rw [he.deriv_eq, (hasDerivAt_cpow_mul_besselJ' (ν - k) hz).deriv]
@@ -576,14 +561,14 @@ theorem iterate_zInvDeriv_cpow_mul_besselJ (ν : ℂ) (k : ℕ) {z : ℂ} (hz : 
 
 /-- `(z⁻¹ d/dz)^k (z^{-ν} J_ν(z)) = (-1)^k z^{-ν-k} J_{ν+k}(z)` (DLMF 10.6.6). -/
 @[dlmf 10.6.E6]
-theorem iterate_zInvDeriv_cpow_neg_mul_besselJ (ν : ℂ) (k : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
-    (zInvDeriv^[k] fun w => w ^ (-ν) * besselJ ν w) z =
+theorem iterate_zRecipDeriv_cpow_neg_mul_besselJ (ν : ℂ) (k : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
+    (zRecipDeriv^[k] fun w => w ^ (-ν) * besselJ ν w) z =
       (-1) ^ k * z ^ (-ν - k) * besselJ (ν + k) z := by
   induction k generalizing z with
   | zero => simp
   | succ k ih =>
-    rw [Function.iterate_succ_apply', zInvDeriv]
-    have he : (zInvDeriv^[k] fun w => w ^ (-ν) * besselJ ν w) =ᶠ[𝓝 z]
+    rw [Function.iterate_succ_apply', zRecipDeriv]
+    have he : (zRecipDeriv^[k] fun w => w ^ (-ν) * besselJ ν w) =ᶠ[𝓝 z]
         fun w => (-1) ^ k * (w ^ (-(ν + k)) * besselJ (ν + k) w) :=
       Filter.eventually_of_mem (isOpen_slitPlane.mem_nhds hz) fun w hw => by
         rw [ih hw, show -ν - k = -(ν + k) by ring]; ring

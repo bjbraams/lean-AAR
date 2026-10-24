@@ -340,7 +340,7 @@ lemma airyErr_rot_identity {ε : ℝ} (hε : ε = 1 ∨ ε = -1) :
   · refine ⟨1 / 2 * exp (((-(π / 3) : ℝ) : ℂ) * I), I, ?_, by simp, fun w => ?_⟩
     · rw [norm_mul, airyErr_norm_exp_I]; norm_num
     · rw [show ((((-1) * (2 * π / 3)) : ℝ) : ℂ) * I = -(2 * π * I / 3) by push_cast; ring,
-        airyAi_mul_omega_inv, show ((((-(π / 3)) : ℝ) : ℂ) * I) = -(π * I / 3) by push_cast; ring]
+        airyAi_mul_omega_recip, show ((((-(π / 3)) : ℝ) : ℂ) * I) = -(π * I / 3) by push_cast; ring]
 
 /-- The products `|Ai Bi'| + |Ai' Bi|` stay bounded in the closed sector `|arg z| ≤ π/3`. -/
 theorem airyErr_far_sector : ∃ R B : ℝ, ∀ z : ℂ, R ≤ ‖z‖ → z ≠ 0 → |arg z| ≤ π / 3 →

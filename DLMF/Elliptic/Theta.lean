@@ -136,7 +136,7 @@ theorem jacobiThetaOneTau_neg (z τ : ℂ) : jacobiThetaOneTau (-z) τ = -jacobi
     jacobiThetaTwoTau_add_pi, neg_neg]
 
 /-- Jacobi's imaginary transformation at `z = 0`: `θ₃(0|-1/τ) = (-iτ)^{1/2} θ₃(0|τ)`. -/
-theorem jacobiThetaThreeTau_zero_neg_inv {τ : ℂ} (hτ : τ ≠ 0) :
+theorem jacobiThetaThreeTau_zero_neg_recip {τ : ℂ} (hτ : τ ≠ 0) :
     jacobiThetaThreeTau 0 (-1 / τ) = (-I * τ) ^ (1 / 2 : ℂ) * jacobiThetaThreeTau 0 τ := by
   have h := jacobiTheta₂_functional_equation 0 τ
   simp only [zero_div, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, mul_zero,

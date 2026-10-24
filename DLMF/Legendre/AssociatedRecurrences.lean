@@ -319,8 +319,8 @@ lemma continuousAt_Gamma_ferrersQ {ν₀ μ : ℂ} (h : LegendreQRegular ν₀ �
 lemma continuousAt_ferrersQ_degree {ν₀ μ : ℂ} (h : LegendreQRegular ν₀ μ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) :
     ContinuousAt (fun ν => ferrersQ ν μ x) ν₀ := by
   obtain ⟨c1, c2⟩ := continuousAt_Gamma_ferrersQ h
-  have hr1 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+1)/2)).continuousAt (x := ν₀)
-  have hr2 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+2)/2)).continuousAt (x := ν₀)
+  have hr1 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+1)/2)).continuousAt (x := ν₀)
+  have hr2 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+2)/2)).continuousAt (x := ν₀)
   have hE : Continuous fun ν => ferrersEven ν μ x := continuous_const.mul
     (continuous_regularizedGaussHG_sq (by fun_prop) (by fun_prop) (by fun_prop) hx)
   have hO : Continuous fun ν => ferrersOdd ν μ x := continuous_const.mul (continuous_const.mul
@@ -336,8 +336,8 @@ lemma continuousAt_deriv_ferrersQ_degree {ν₀ μ : ℂ} (h : LegendreQRegular 
     (hx : x ∈ Ioo (-1:ℝ) 1) :
     ContinuousAt (fun ν => deriv (ferrersQ ν μ) x) ν₀ := by
   obtain ⟨c1, c2⟩ := continuousAt_Gamma_ferrersQ h
-  have hr1 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+1)/2)).continuousAt (x := ν₀)
-  have hr2 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+2)/2)).continuousAt (x := ν₀)
+  have hr1 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+1)/2)).continuousAt (x := ν₀)
+  have hr2 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν-μ+2)/2)).continuousAt (x := ν₀)
   have hd : ∀ ν, deriv (ferrersQ ν μ) x = 2^μ*π/2*(-sin ((ν+μ)*π/2)*Gamma ((ν+μ+1)/2)*(Gamma ((ν-μ+2)/2))⁻¹)*
       deriv (ferrersEven ν μ) x + 2^μ*π/2*(cos ((ν+μ)*π/2)*Gamma ((ν+μ+2)/2)*(Gamma ((ν-μ+1)/2))⁻¹)*
       deriv (ferrersOdd ν μ) x := by
@@ -580,7 +580,7 @@ theorem ferrers_wronskian_5 (ν μ : ℂ) (h : LegendreQRegular ν μ) {x : ℝ}
     ContinuousAt.comp (g := Gamma) (differentiableAt_Gamma _ (fun k hk => h k (by linear_combination hk))).continuousAt
       (by fun_prop)
   have hG2 : ContinuousAt (fun v : ℂ => (Gamma (v-μ+2))⁻¹) ν :=
-    (continuous_inv_Gamma.comp (by fun_prop : Continuous fun v : ℂ => v-μ+2)).continuousAt
+    (continuous_recip_Gamma.comp (by fun_prop : Continuous fun v : ℂ => v-μ+2)).continuousAt
   set G : ℂ → ℂ := fun v => ferrersP (v+1) μ x*ferrersQ v μ x-ferrersP v μ x*ferrersQ (v+1) μ x
     - Gamma (v+μ+1)*(Gamma (v-μ+2))⁻¹
   have hGc : ContinuousAt G ν :=
@@ -676,7 +676,7 @@ theorem associatedP_recurrence_4 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane
 
 
 /-- `1/Γ(s) = s/Γ(s+1)`, also at the poles of `Γ`. -/
-lemma legendre_inv_Gamma_succ (s : ℂ) : (Gamma s)⁻¹ = s*(Gamma (s+1))⁻¹ := by
+lemma legendre_recip_Gamma_succ (s : ℂ) : (Gamma s)⁻¹ = s*(Gamma (s+1))⁻¹ := by
   by_cases h : s = 0
   · simp [h, Complex.Gamma_zero]
   · rw [Complex.Gamma_add_one s h, mul_inv, ← mul_assoc, mul_inv_cancel₀ h, one_mul]
@@ -710,9 +710,9 @@ lemma olverQ_recurrence_3_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z 
   rw [olverQ_eq_nonint (ν+2) μ hμ hz, olverQ_eq_nonint (ν+1) μ hμ hz, olverQ_eq_nonint ν μ hμ hz]
   rw [show ν+2+μ+1 = ν+μ+3 by ring, show ν+1+μ+1 = ν+μ+2 by ring, show ν+2-μ+1 = ν-μ+3 by ring,
     show ν+1-μ+1 = ν-μ+2 by ring]
-  rw [legendre_inv_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring, legendre_inv_Gamma_succ (ν+μ+2),
-    show ν+μ+2+1 = ν+μ+3 by ring, legendre_inv_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring,
-    legendre_inv_Gamma_succ (ν-μ+2), show ν-μ+2+1 = ν-μ+3 by ring]
+  rw [legendre_recip_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring, legendre_recip_Gamma_succ (ν+μ+2),
+    show ν+μ+2+1 = ν+μ+3 by ring, legendre_recip_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring,
+    legendre_recip_Gamma_succ (ν-μ+2), show ν-μ+2+1 = ν-μ+3 by ring]
   generalize (Gamma (ν+μ+3))⁻¹ = a0
   generalize (Gamma (ν-μ+3))⁻¹ = b0
   linear_combination (π/(2*sin (μ*π))*a0*(ν+μ+2))*R1 - (π/(2*sin (μ*π))*b0*(ν-μ+2))*R2
@@ -751,10 +751,10 @@ lemma olverQ_recurrence_6_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z 
   rw [olverQ_eq_nonint ν (μ+2) hμ2 hz, olverQ_eq_nonint ν (μ+1) hμ1 hz, olverQ_eq_nonint ν μ hμ hz]
   rw [show (μ+2)*(π:ℂ) = μ*π+2*π by ring, sin_add_two_pi, legendre_sin_add_one_mul_pi]
   rw [show ν+(μ+2)+1 = ν+μ+3 by ring, show ν+(μ+1)+1 = ν+μ+2 by ring,
-    legendre_inv_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring, legendre_inv_Gamma_succ (ν+μ+2),
+    legendre_recip_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring, legendre_recip_Gamma_succ (ν+μ+2),
     show ν+μ+2+1 = ν+μ+3 by ring]
-  rw [show ν-(μ+2)+1 = ν-μ-1 by ring, legendre_inv_Gamma_succ (ν-μ-1), show ν-μ-1+1 = ν-μ by ring,
-    show ν-(μ+1)+1 = ν-μ by ring, legendre_inv_Gamma_succ (ν-μ)]
+  rw [show ν-(μ+2)+1 = ν-μ-1 by ring, legendre_recip_Gamma_succ (ν-μ-1), show ν-μ-1+1 = ν-μ by ring,
+    show ν-(μ+1)+1 = ν-μ by ring, legendre_recip_Gamma_succ (ν-μ)]
   generalize (Gamma (ν+μ+3))⁻¹ = a0
   generalize (Gamma (ν-μ+1))⁻¹ = b0
   linear_combination (π/(2*sin (μ*π))*a0*(ν+μ+2))*R1 + (π/(2*sin (μ*π))*b0*(ν-μ))*R2
@@ -813,9 +813,9 @@ lemma olverQ_recurrence_7_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z 
   rw [olverQ_eq_nonint ν (μ+1) hμ1 hz, olverQ_eq_nonint (ν+1) μ hμ hz, olverQ_eq_nonint ν μ hμ hz]
   rw [legendre_sin_add_one_mul_pi]
   rw [show ν+(μ+1)+1 = ν+μ+2 by ring, show ν+1+μ+1 = ν+μ+2 by ring,
-    legendre_inv_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring]
-  rw [show ν-(μ+1)+1 = ν-μ by ring, show ν+1-μ+1 = ν-μ+2 by ring, legendre_inv_Gamma_succ (ν-μ),
-    legendre_inv_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
+    legendre_recip_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring]
+  rw [show ν-(μ+1)+1 = ν-μ by ring, show ν+1-μ+1 = ν-μ+2 by ring, legendre_recip_Gamma_succ (ν-μ),
+    legendre_recip_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
   generalize (Gamma (ν+μ+2))⁻¹ = a0
   generalize (Gamma (ν-μ+2))⁻¹ = b0
   linear_combination (π/(2*sin (μ*π))*a0)*R1 + (π/(2*sin (μ*π))*b0*(ν-μ+1))*R2
@@ -852,8 +852,8 @@ lemma olverQ_recurrence_4_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z 
   have R2 := associatedP_recurrence_4 ν (-μ) hz
   rw [deriv_olverQ_nonint ν μ hμ hz, olverQ_eq_nonint (ν+1) μ hμ hz, olverQ_eq_nonint ν μ hμ hz]
   rw [show ν+1+μ+1 = ν+μ+2 by ring, show ν+1-μ+1 = ν-μ+2 by ring,
-    legendre_inv_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring,
-    legendre_inv_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
+    legendre_recip_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring,
+    legendre_recip_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
   generalize (Gamma (ν+μ+2))⁻¹ = a0
   generalize (Gamma (ν-μ+2))⁻¹ = b0
   linear_combination (π/(2*sin (μ*π))*(ν+μ+1)*a0)*R1 - (π/(2*sin (μ*π))*(ν-μ+1)*b0)*R2
@@ -885,7 +885,7 @@ lemma olverQ_recurrence_5_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z 
   have R2 := associatedP_recurrence_5 ν (-μ) hz
   rw [deriv_olverQ_nonint ν μ hμ hz, olverQ_eq_nonint (ν-1) μ hμ hz, olverQ_eq_nonint ν μ hμ hz]
   rw [show ν-1+μ+1 = ν+μ by ring, show ν-1-μ+1 = ν-μ by ring,
-    legendre_inv_Gamma_succ (ν+μ), legendre_inv_Gamma_succ (ν-μ)]
+    legendre_recip_Gamma_succ (ν+μ), legendre_recip_Gamma_succ (ν-μ)]
   generalize (Gamma (ν+μ+1))⁻¹ = a0
   generalize (Gamma (ν-μ+1))⁻¹ = b0
   linear_combination (π/(2*sin (μ*π))*a0)*R1 - (π/(2*sin (μ*π))*b0)*R2
@@ -919,8 +919,8 @@ lemma olverQ_casoratian_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) {z : 
   have R2 := associatedP_recurrence_4 ν (-μ) hz
   rw [olverQ_eq_nonint (ν+1) μ hμ hz, olverQ_eq_nonint ν μ hμ hz]
   rw [show ν+1+μ+1 = ν+μ+2 by ring, show ν+1-μ+1 = ν-μ+2 by ring,
-    legendre_inv_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring,
-    legendre_inv_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
+    legendre_recip_Gamma_succ (ν+μ+1), show ν+μ+1+1 = ν+μ+2 by ring,
+    legendre_recip_Gamma_succ (ν-μ+1), show ν-μ+1+1 = ν-μ+2 by ring]
   generalize (Gamma (ν+μ+2))⁻¹ = a0
   generalize (Gamma (ν-μ+2))⁻¹ = b0
   have hs := legendre_sin_ne_zero hμ
@@ -939,7 +939,7 @@ lemma olverQ_casoratian (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
   have h1 := (olverQ_entire_order (ν+1) z hz).continuous
   have p0 := (associatedP_entire_order ν z hz).continuous
   have p1 := (associatedP_entire_order (ν+1) z hz).continuous
-  have g := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+2)
+  have g := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+2)
   exact legendre_eq_of_continuous_nonint (by fun_prop) g
     (fun μ hμ => olverQ_casoratian_nonint ν μ hμ hz) μ
 

@@ -1,12 +1,20 @@
 # DLMF Chapter 18 acquisition
 
-Reviewed 2026-09-16 against [NIST DLMF Chapter 18](https://dlmf.nist.gov/18), version 1.2.7 (2026-06-15), and the installed Mathlib 4.34.0 sources. The project has since moved to Mathlib v4.35.0-rc2; this inventory was not re-reviewed against it.
+Reviewed 2026-09-16 against [NIST DLMF Chapter 18](https://dlmf.nist.gov/18), version 1.2.7 (2026-06-15), and the installed Mathlib 4.34.0 sources. The current toolchain and pinned Mathlib revision are listed in the [README](../../README.md#dependencies-and-upstream-reuse); this acquisition inventory was not re-reviewed in full against those newer sources.
 
 ## Scope and status
 
 All sections 18.1–18.37 except graphics (§18.4) were visited. Applications (§§18.38–18.39) and computation (§§18.40–18.42) are excluded. This acquisition covers a broad selection of results with explicit statements and usable definitions. It is **not a complete transcription of every formula**: remaining items are recorded below, including suitable formulas still requiring further transcription or infrastructure.
 
-The acquisition introduced **329 theorem declarations** and **65 definitions** in 15 new Lean modules, initially with **327 new `sorry`s**. Subsequent proof work has removed most of those admissions; on 2026-10-17 the orthogonal-polynomial directory contains **69 `sorry`s** (64 acquired here and five pre-existing). See the [first proof progress report](../../PROOF_PROGRESS_ORTHOGONAL_2026-09-16.md) and [second proof progress report](../../PROOF_PROGRESS_ORTHOGONAL_2026-09-16_2.md) for the completed proofs and validation. `laguerreExtended_eq` and `associated_zero` were already proved at acquisition. The checklist below reflects current proof status; elaboration alone does not establish the truth of the remaining admitted statements.
+The acquisition introduced **329 theorem declarations** and **65 definitions** in 15 new Lean modules, initially with **327 new `sorry`s**. Subsequent proof work has removed most of those admissions; on 2026-10-17 the orthogonal-polynomial directory contains **69 `sorry`s** (64 acquired here and five pre-existing). See the [first proof progress report](../../PROOF_PROGRESS_ORTHOGONAL_2026-09-16.md) and [second proof progress report](../../PROOF_PROGRESS_ORTHOGONAL_2026-09-16_2.md) for the completed proofs and validation. `laguerreExtended_eq` and `associated_zero` were already proved at acquisition. The checklist and module snapshot below record acquisition history; elaboration alone does not establish the truth of an admitted statement.
+
+As of 2026-10-24 there are **26 explicit source admissions** in this directory.
+The latest round proves Meixner–Pollaczek, q-Hahn, little-q-Jacobi and
+Stieltjes–Wigert orthogonality; `Hahn.lean` has no remaining admissions and
+`QFamilies.lean` has six. See the
+[parallel proof round](../../REVIEW.md#parallel-admission-removal-and-reuse-round-2026-10-24)
+for proofs, reused results and validation. The old counts and inline line numbers
+below remain a dated acquisition snapshot.
 
 [MathlibCoverage.lean](MathlibCoverage.lean) contains **48 commented upstream statement entries**, each with its DLMF tag. No active duplicate Mathlib theorem is introduced there. CrossRefAttribute cannot attach documentation to an imported declaration, so the tags on upstream excerpts remain inside comments. Existing local matches have live `@[dlmf …]` attributes.
 
@@ -30,7 +38,7 @@ These are checks of the displayed DLMF statements, documented beside the corresp
 
 ## Acquired declarations by module
 
-| Module | Theorems acquired | Definitions acquired | Current `sorry`s |
+| Module | Theorems acquired | Definitions acquired | `sorry`s on 2026-10-17 |
 | --- | ---: | ---: | ---: |
 | [Associated.lean](Associated.lean) | 22 | 14 | 5 |
 | [BoundsZeros.lean](BoundsZeros.lean) | 25 | 1 | 11 |

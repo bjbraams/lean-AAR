@@ -681,7 +681,7 @@ theorem not_int_half_add {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) : ∀ n : ℤ,
   exact hν (2*n-1) (by push_cast; linear_combination 2*h)
 
 /-- `1/(Γ(1+x)Γ(1-x)) = sin(πx)/(πx)` off the integers. -/
-theorem inv_Gamma_one_add_mul_inv_Gamma_one_sub {x : ℂ} (hx : ∀ n : ℤ, x ≠ n) :
+theorem recip_Gamma_one_add_mul_recip_Gamma_one_sub {x : ℂ} (hx : ∀ n : ℤ, x ≠ n) :
     (Gamma (1+x))⁻¹ * (Gamma (1-x))⁻¹ = sin (π*x)/(π*x) := by
   have hx0 : x ≠ 0 := by simpa using hx 0
   have hs := sin_pi_mul_ne_zero_of_not_int hx
@@ -691,7 +691,7 @@ theorem inv_Gamma_one_add_mul_inv_Gamma_one_sub {x : ℂ} (hx : ∀ n : ℤ, x �
   field_simp
 
 theorem sinPowR_zero {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) : sinPowR ν 0 = 2*sin (π*ν/2)/ν := by
-  have h := inv_Gamma_one_add_mul_inv_Gamma_one_sub (not_int_half hν)
+  have h := recip_Gamma_one_add_mul_recip_Gamma_one_sub (not_int_half hν)
   have hν0 : ν ≠ 0 := by simpa using hν 0
   simp only [sinPowR, Nat.cast_zero, zero_add, zero_sub, Nat.factorial_zero, pow_zero,
     Nat.cast_one, div_one, mul_one]

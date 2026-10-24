@@ -5,6 +5,9 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import DLMF.Elementary
+public import DLMF.GeneralizedHypergeometric
+public import DLMF.QHypergeometric
 public import DLMF.ParabolicCylinder
 public import DLMF.Struve
 

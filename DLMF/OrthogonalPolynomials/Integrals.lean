@@ -5429,11 +5429,11 @@ theorem laguerrePolyL_laplace_transform {α : ℝ} (hα : -1 < α) (n : ℕ) {z 
   exact laguerrePolyL_laplace_aux hα n hz
 
 /-- `1/Γ(y) = (y)_m/Γ(y+m)` for every `y` and every `m`, including poles. -/
-lemma inv_Gamma_eq_poch_mul_inv_Gamma_add (m : ℕ) (y : ℂ) :
+lemma recip_Gamma_eq_poch_mul_recip_Gamma_add (m : ℕ) (y : ℂ) :
     (Gamma y)⁻¹ = poch y m * (Gamma (y + m))⁻¹ := by
   cases m with
   | zero => simp [poch_zero]
-  | succ p => exact inv_Gamma_eq_poch_mul p y
+  | succ p => exact recip_Gamma_eq_poch_mul p y
 
 lemma ultrasphPoly_mellin_transform_even {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (hz : 0 < z.re)
     (m : ℕ) :
@@ -5487,7 +5487,7 @@ lemma ultrasphPoly_mellin_transform_even {lam : ℝ} (hlam : 0 < lam) {z : ℂ} 
     have h := DLMF.Gamma.poch_neg_eq ((m : ℂ) - 1 / 2 - z / 2) m
     rw [show -((m : ℂ) - 1 / 2 - z / 2) = 1 / 2 + z / 2 - m by ring,
       show (m : ℂ) - 1 / 2 - z / 2 - m + 1 = 1 / 2 - z / 2 by ring] at h
-    rw [inv_Gamma_eq_poch_mul_inv_Gamma_add m, h, show 1 / 2 + z / 2 - (m : ℂ) + m = 1 / 2 + z / 2
+    rw [recip_Gamma_eq_poch_mul_recip_Gamma_add m, h, show 1 / 2 + z / 2 - (m : ℂ) + m = 1 / 2 + z / 2
       by ring]
   have F1 := Complex.Gamma_mul_Gamma_add_half (z / 2)
   rw [show 2 * (z / 2) = z by ring, show z / 2 + 1 / 2 = 1 / 2 + z / 2 by ring] at F1
@@ -5602,7 +5602,7 @@ lemma ultrasphPoly_mellin_transform_odd {lam : ℝ} (hlam : 0 < lam) {z : ℂ} (
     have h := DLMF.Gamma.poch_neg_eq ((m : ℂ) - z / 2) m
     rw [show -((m : ℂ) - z / 2) = z / 2 - m by ring,
       show (m : ℂ) - z / 2 - m + 1 = 1 - z / 2 by ring] at h
-    rw [inv_Gamma_eq_poch_mul_inv_Gamma_add m, h, show z / 2 - (m : ℂ) + m = z / 2 by ring]
+    rw [recip_Gamma_eq_poch_mul_recip_Gamma_add m, h, show z / 2 - (m : ℂ) + m = z / 2 by ring]
   have F1 := Complex.Gamma_mul_Gamma_add_half (z / 2)
   rw [show 2 * (z / 2) = z by ring, show z / 2 + 1 / 2 = 1 / 2 + z / 2 by ring] at F1
   have F2 := Complex.Gamma_mul_Gamma_add_half ((m : ℂ) + lam + 1 / 2)

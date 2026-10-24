@@ -7,7 +7,7 @@ module
 
 public import DLMF.Legendre.Integrals
 public import DLMF.Legendre.Connections
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 
 /-!
 # Removable parameter values in source formulas
@@ -32,7 +32,7 @@ def legendreSinSqTrigamma (ν : ℂ) : ℂ :=
   limUnder (𝓝[≠] ν) (fun v => (sin (π*v))^2*deriv digamma (v+1))
 
 /-- Reflection in the form `Γ(-v)⁻¹ = -sin(πv) Γ(v+1) / π`, valid when `Γ(-v)` is finite. -/
-lemma inv_Gamma_neg_eq_of_sin_ne_zero {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : ℂ)) (hs : sin (π * v) ≠ 0) :
+lemma recip_Gamma_neg_eq_of_sin_ne_zero {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : ℂ)) (hs : sin (π * v) ≠ 0) :
     (Gamma (-v))⁻¹ = -(sin (π * v) * Gamma (v + 1)) / π := by
   have h := Complex.Gamma_mul_Gamma_one_sub (v + 1)
   rw [show 1 - (v + 1) = -v by ring, show (π : ℂ) * (v + 1) = π * v + π by ring, sin_add_pi] at h
@@ -47,7 +47,7 @@ lemma inv_Gamma_neg_eq_of_sin_ne_zero {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m
 
 /-- `sin(πv) ψ(v+1) = π (1/Γ)'(v+1) / Γ(-v)` off the negative integers. -/
 lemma sin_mul_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : ℂ)) :
-    sin (π * v) * digamma (v + 1) = π * DLMF.Gamma.invGammaDeriv 1 (v + 1) * (Gamma (-v))⁻¹ := by
+    sin (π * v) * digamma (v + 1) = π * DLMF.Gamma.recipGammaDeriv 1 (v + 1) * (Gamma (-v))⁻¹ := by
   by_cases hs : sin (π * v) = 0
   · obtain ⟨k, hk⟩ := Complex.sin_eq_zero_iff.mp hs
     have hpi : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
@@ -60,7 +60,7 @@ lemma sin_mul_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : �
       rw [hs, this]; simp
     · exfalso; apply hv k
       rw [hvk]; push_cast; ring
-  · rw [inv_Gamma_neg_eq_of_sin_ne_zero hv hs, DLMF.Gamma.invGammaDeriv_one_eq hv]
+  · rw [recip_Gamma_neg_eq_of_sin_ne_zero hv hs, DLMF.Gamma.recipGammaDeriv_one_eq hv]
     have hpi : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
     have hG := Complex.Gamma_ne_zero hv
     field_simp
@@ -68,7 +68,7 @@ lemma sin_mul_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : �
 /-- `sin²(πv) ψ'(v+1) = π² (((1/Γ)')² - (1/Γ)(1/Γ)'')(v+1) / Γ(-v)²` off the negative integers. -/
 lemma sin_sq_mul_deriv_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠ -(m : ℂ)) :
     sin (π * v) ^ 2 * deriv digamma (v + 1) =
-      π ^ 2 * (DLMF.Gamma.invGammaDeriv 1 (v + 1) ^ 2 - (Gamma (v + 1))⁻¹ * DLMF.Gamma.invGammaDeriv 2 (v + 1)) *
+      π ^ 2 * (DLMF.Gamma.recipGammaDeriv 1 (v + 1) ^ 2 - (Gamma (v + 1))⁻¹ * DLMF.Gamma.recipGammaDeriv 2 (v + 1)) *
         ((Gamma (-v))⁻¹) ^ 2 := by
   by_cases hs : sin (π * v) = 0
   · obtain ⟨k, hk⟩ := Complex.sin_eq_zero_iff.mp hs
@@ -82,7 +82,7 @@ lemma sin_sq_mul_deriv_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠
       rw [hs, this]; simp
     · exfalso; apply hv k
       rw [hvk]; push_cast; ring
-  · rw [inv_Gamma_neg_eq_of_sin_ne_zero hv hs, ← DLMF.Gamma.deriv_digamma_mul_inv_Gamma_sq hv]
+  · rw [recip_Gamma_neg_eq_of_sin_ne_zero hv hs, ← DLMF.Gamma.deriv_digamma_mul_recip_Gamma_sq hv]
     have hpi : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
     have hG := Complex.Gamma_ne_zero hv
     field_simp
@@ -90,11 +90,11 @@ lemma sin_sq_mul_deriv_digamma_add_one_eq {v : ℂ} (hv : ∀ m : ℕ, v + 1 ≠
 /-- The removable limit of `sin(πv) ψ(v+1)`, in closed form. -/
 theorem tendsto_sin_mul_digamma_add_one (ν : ℂ) :
     Tendsto (fun v => sin (π*v)*digamma (v+1)) (𝓝[≠] ν)
-      (𝓝 (π * DLMF.Gamma.invGammaDeriv 1 (ν + 1) * (Gamma (-ν))⁻¹)) := by
-  have hc : Continuous fun v : ℂ => π * DLMF.Gamma.invGammaDeriv 1 (v + 1) * (Gamma (-v))⁻¹ :=
-    (continuous_const.mul ((DLMF.Gamma.continuous_invGammaDeriv 1).comp
+      (𝓝 (π * DLMF.Gamma.recipGammaDeriv 1 (ν + 1) * (Gamma (-ν))⁻¹)) := by
+  have hc : Continuous fun v : ℂ => π * DLMF.Gamma.recipGammaDeriv 1 (v + 1) * (Gamma (-v))⁻¹ :=
+    (continuous_const.mul ((DLMF.Gamma.continuous_recipGammaDeriv 1).comp
       (continuous_id.add continuous_const))).mul
-      (DLMF.Gamma.differentiable_inv_Gamma.continuous.comp continuous_neg)
+      (DLMF.Gamma.differentiable_recip_Gamma.continuous.comp continuous_neg)
   refine ((hc.tendsto ν).mono_left nhdsWithin_le_nhds).congr' ?_
   filter_upwards [eventually_affine_ne_neg_nat one_ne_zero 1 ν] with v hv
   exact (sin_mul_digamma_add_one_eq fun m h => hv m (by rw [one_mul]; exact h)).symm
@@ -102,28 +102,28 @@ theorem tendsto_sin_mul_digamma_add_one (ν : ℂ) :
 /-- The removable limit of `sin²(πv) ψ'(v+1)`, in closed form. -/
 theorem tendsto_sin_sq_mul_deriv_digamma_add_one (ν : ℂ) :
     Tendsto (fun v => (sin (π*v))^2*deriv digamma (v+1)) (𝓝[≠] ν)
-      (𝓝 (π ^ 2 * (DLMF.Gamma.invGammaDeriv 1 (ν + 1) ^ 2 -
-        (Gamma (ν + 1))⁻¹ * DLMF.Gamma.invGammaDeriv 2 (ν + 1)) * ((Gamma (-ν))⁻¹) ^ 2)) := by
+      (𝓝 (π ^ 2 * (DLMF.Gamma.recipGammaDeriv 1 (ν + 1) ^ 2 -
+        (Gamma (ν + 1))⁻¹ * DLMF.Gamma.recipGammaDeriv 2 (ν + 1)) * ((Gamma (-ν))⁻¹) ^ 2)) := by
   have hs : Continuous fun v : ℂ => v + 1 := continuous_id.add continuous_const
-  have hc : Continuous fun v : ℂ => π ^ 2 * (DLMF.Gamma.invGammaDeriv 1 (v + 1) ^ 2 -
-      (Gamma (v + 1))⁻¹ * DLMF.Gamma.invGammaDeriv 2 (v + 1)) * ((Gamma (-v))⁻¹) ^ 2 :=
-    (continuous_const.mul ((((DLMF.Gamma.continuous_invGammaDeriv 1).comp hs).pow 2).sub
-      ((DLMF.Gamma.differentiable_inv_Gamma.continuous.comp hs).mul
-        ((DLMF.Gamma.continuous_invGammaDeriv 2).comp hs)))).mul
-      ((DLMF.Gamma.differentiable_inv_Gamma.continuous.comp continuous_neg).pow 2)
+  have hc : Continuous fun v : ℂ => π ^ 2 * (DLMF.Gamma.recipGammaDeriv 1 (v + 1) ^ 2 -
+      (Gamma (v + 1))⁻¹ * DLMF.Gamma.recipGammaDeriv 2 (v + 1)) * ((Gamma (-v))⁻¹) ^ 2 :=
+    (continuous_const.mul ((((DLMF.Gamma.continuous_recipGammaDeriv 1).comp hs).pow 2).sub
+      ((DLMF.Gamma.differentiable_recip_Gamma.continuous.comp hs).mul
+        ((DLMF.Gamma.continuous_recipGammaDeriv 2).comp hs)))).mul
+      ((DLMF.Gamma.differentiable_recip_Gamma.continuous.comp continuous_neg).pow 2)
   refine ((hc.tendsto ν).mono_left nhdsWithin_le_nhds).congr' ?_
   filter_upwards [eventually_affine_ne_neg_nat one_ne_zero 1 ν] with v hv
   exact (sin_sq_mul_deriv_digamma_add_one_eq fun m h => hv m (by rw [one_mul]; exact h)).symm
 
 /-- Closed form of `legendreSinDigamma`: `sin(πν) ψ(ν+1)` extended to all `ν`. -/
 theorem legendreSinDigamma_eq (ν : ℂ) :
-    legendreSinDigamma ν = π * DLMF.Gamma.invGammaDeriv 1 (ν + 1) * (Gamma (-ν))⁻¹ :=
+    legendreSinDigamma ν = π * DLMF.Gamma.recipGammaDeriv 1 (ν + 1) * (Gamma (-ν))⁻¹ :=
   (tendsto_sin_mul_digamma_add_one ν).limUnder_eq
 
 /-- Closed form of `legendreSinSqTrigamma`: `sin²(πν) ψ'(ν+1)` extended to all `ν`. -/
 theorem legendreSinSqTrigamma_eq (ν : ℂ) :
-    legendreSinSqTrigamma ν = π ^ 2 * (DLMF.Gamma.invGammaDeriv 1 (ν + 1) ^ 2 -
-      (Gamma (ν + 1))⁻¹ * DLMF.Gamma.invGammaDeriv 2 (ν + 1)) * ((Gamma (-ν))⁻¹) ^ 2 :=
+    legendreSinSqTrigamma ν = π ^ 2 * (DLMF.Gamma.recipGammaDeriv 1 (ν + 1) ^ 2 -
+      (Gamma (ν + 1))⁻¹ * DLMF.Gamma.recipGammaDeriv 2 (ν + 1)) * ((Gamma (-ν))⁻¹) ^ 2 :=
   (tendsto_sin_sq_mul_deriv_digamma_add_one ν).limUnder_eq
 
 /-- legendreSinDigamma limit. -/
@@ -148,8 +148,8 @@ theorem ferrersPP_integral_all_degrees (ν lam : ℂ) (h0 : lam ≠ ν) (h1 : la
   have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   have hB := legPI_boundary_const_all ν lam
   rw [legPI_integral_PP ν lam hc, legendreSinDigamma_eq, legendreSinDigamma_eq,
-    show 2*(sin (π*lam)*(π * DLMF.Gamma.invGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹) -
-      sin (π*ν)*(π * DLMF.Gamma.invGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) + π*sin ((lam-ν)*π) =
+    show 2*(sin (π*lam)*(π * DLMF.Gamma.recipGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹) -
+      sin (π*ν)*(π * DLMF.Gamma.recipGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) + π*sin ((lam-ν)*π) =
       (π:ℂ)^2 * (legPIK ν * legPIC lam - legPIK lam * legPIC ν) by rw [hB]; ring]
   field_simp
   ring

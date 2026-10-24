@@ -256,7 +256,7 @@ theorem barnes_integral_all {a b c : ℂ} {x σ : ℝ} (hx : -1 < x) (hx0 : x < 
         (by rw [show (-(x : ℂ)) = ((-x : ℝ) : ℂ) by push_cast; ring]
             exact ofReal_mem_slitPlane.mpr (by linarith))
   obtain ⟨C, K, hCK⟩ := exists_norm_barnes_numerator_le hx0 ha hb hσ
-  have hR := differentiable_integral_mul_inv_Gamma hAc hCK σ
+  have hR := differentiable_integral_mul_recip_Gamma hAc hCK σ
   have hrw : ∀ c : ℂ, ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (b + σ + I * y) *
       Gamma (-((σ : ℂ) + I * y)) / Gamma (c + σ + I * y) * (-(x : ℂ)) ^ ((σ : ℂ) + I * y) =
       ∫ y : ℝ, A y * (Gamma (c + σ + I * y))⁻¹ := fun c => by

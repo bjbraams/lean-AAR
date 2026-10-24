@@ -23,7 +23,7 @@ Paths are relative to this directory.
 | [10.5.E2](https://dlmf.nist.gov/10.5.E2) | [wronskian_besselJ_besselY](SecondKind.lean) (line 476) | proved |
 | [10.5.E5](https://dlmf.nist.gov/10.5.E5) | [wronskian_hankelH1_hankelH2](SecondKind.lean) (line 506) | proved |
 | [10.6.E1](https://dlmf.nist.gov/10.6.E1) | [hankelH1_add_sub](Elementary.lean) (line 172); [hankelH2_add_sub](Elementary.lean) (line 181); [besselJ_add_sub](Theorems.lean) (line 34); [two_deriv_besselJ](Theorems.lean) (line 45) | proved |
-| [10.6.E6](https://dlmf.nist.gov/10.6.E6) | [iterate_zInvDeriv_cpow_mul_besselJ](Elementary.lean) (line 562); [iterate_zInvDeriv_cpow_neg_mul_besselJ](Elementary.lean) (line 579) | proved |
+| [10.6.E6](https://dlmf.nist.gov/10.6.E6) | [iterate_zRecipDeriv_cpow_mul_besselJ](Elementary.lean) (line 562); [iterate_zRecipDeriv_cpow_neg_mul_besselJ](Elementary.lean) (line 579) | proved |
 | [10.7.E8](https://dlmf.nist.gov/10.7.E8) | [besselJ_sub_cos_isBigO](Asymptotics.lean) (line 370); [besselY_sub_sin_isBigO](Elementary.lean) (line 519) | proved |
 | [10.8.E1](https://dlmf.nist.gov/10.8.E1) | [besselY_nat_eq_series](WeberSeries.lean) (line 203) | proved |
 | [10.8.E2](https://dlmf.nist.gov/10.8.E2) | [besselY_zero_eq_series](WeberSeries.lean) (line 164) | proved |
@@ -46,7 +46,7 @@ Paths are relative to this directory.
 | [10.25.E1](https://dlmf.nist.gov/10.25.E1) | [besselI_ode](Modified.lean) (line 78); [besselK_ode](Modified.lean) (line 97); [besselK_ode_all](SecondKind.lean) (line 769) | proved |
 | [10.25.E2](https://dlmf.nist.gov/10.25.E2) | [besselI](Modified.lean) (line 29) | definition |
 | [10.27.E1](https://dlmf.nist.gov/10.27.E1) | [besselI_neg_int](SecondKind.lean) (line 554) | proved |
-| [10.27.E3](https://dlmf.nist.gov/10.27.E3) | [besselK_neg](Elementary.lean) (line 389) | proved |
+| [10.27.E3](https://dlmf.nist.gov/10.27.E3) | [besselK_neg](SecondKind.lean) (line 854) | proved |
 | [10.27.E4](https://dlmf.nist.gov/10.27.E4) | [besselK](Modified.lean) (line 35) | definition |
 | [10.27.E6](https://dlmf.nist.gov/10.27.E6) | [besselI_eq_besselJ](Modified.lean) (line 55) | proved |
 | [10.27.E8](https://dlmf.nist.gov/10.27.E8) | [hankelH1_eq_besselK](Asymptotics.lean) (line 245) | proved |

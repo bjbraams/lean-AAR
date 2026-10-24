@@ -176,7 +176,7 @@ lemma scorerGiDeriv_eq (z : ℂ) : scorerGiDeriv z = airyBiDeriv z - scorerHiDer
 /-- `exp(-ε·2πi/3)` is a cube root of unity for `ε = ±1`. -/
 lemma exp_neg_eps_cube {ε : ℝ} (hε : ε = 1 ∨ ε = -1) : exp (-ε * (2 * π * I / 3)) ^ 3 = 1 := by
   rcases hε with rfl | rfl
-  · simpa using omega_inv_cube
+  · simpa using omega_recip_cube
   · simpa using omega_cube
 
 end HiSeries
@@ -531,7 +531,7 @@ theorem scorerHi_standard_system (z : ℂ) :
     airyWronskian3 scorerHi (fun t => airyAi (t * exp (-2 * π * I / 3)))
       (fun t => airyAi (t * exp (2 * π * I / 3))) z ≠ 0 := by
   have h1 : exp (-2 * π * I / 3) ^ 3 = 1 := by
-    rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_inv_cube
+    rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_recip_cube
   rw [airyWronskian3_eq isAiryInhomSol_scorerHi (isAirySol_airyAi_mul h1)
     (isAirySol_airyAi_mul omega_cube)]
   have hW := wronskian_airyAi_rotations z
@@ -573,7 +573,7 @@ theorem scorerGi_rotations (z : ℂ) :
     scorerGi z = exp (π * I / 3) / 2 * scorerHi (z * exp (-2 * π * I / 3)) +
       exp (-π * I / 3) / 2 * scorerHi (z * exp (2 * π * I / 3)) := by
   have h1 : exp (-2 * π * I / 3) ^ 3 = 1 := by
-    rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_inv_cube
+    rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_recip_cube
   have hR := ((isAiryInhomSol_scorerHi.rotate h1).const_mul (exp (π * I / 3) / 2)).add
     ((isAiryInhomSol_scorerHi.rotate omega_cube).const_mul (exp (-π * I / 3) / 2))
   have hc : exp (π * I / 3) / 2 * (exp (-2 * π * I / 3) ^ 2 * (1 / π)) +
@@ -1449,17 +1449,7 @@ lemma scorerAsym_arg_mul_exp {z : ℂ} (hz : z ≠ 0) {c : ℝ} (h1 : -π < arg 
 /-- Rotation by `c` maps the sector `|arg z| ≤ α` into `|arg z| ≤ β` when `|c| + α ≤ β < π`. -/
 lemma scorerAsym_tendsto_rotate {α β c : ℝ} (hc : |c| + α ≤ β) (hβ : β < π) :
     Tendsto (fun z : ℂ => z * exp (c * I)) (airySector α) (airySector β) := by
-  refine tendsto_inf.mpr ⟨tendsto_comap_iff.mpr ?_, tendsto_principal.mpr ?_⟩
-  · refine (tendsto_comap.mono_left inf_le_left).congr fun z => ?_
-    simp only [Function.comp_apply, norm_mul, norm_exp_ofReal_mul_I, mul_one]
-  · have hev : ∀ᶠ z in airySector α, z ≠ 0 ∧ |arg z| ≤ α := mem_inf_of_right (mem_principal_self _)
-    filter_upwards [hev] with z hz
-    refine ⟨mul_ne_zero hz.1 (exp_ne_zero _), ?_⟩
-    have h1 := abs_le.mp hz.2
-    have h2 := le_abs_self c
-    have h3 := neg_abs_le c
-    rw [scorerAsym_arg_mul_exp hz.1 (by linarith) (by linarith)]
-    exact abs_le.mpr ⟨by linarith, by linarith⟩
+  exact airyRot_tendsto_rotate hc hβ
 
 lemma scorerAsym_tendsto_omega {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) :
     Tendsto (fun z : ℂ => z * exp (-2 * π * I / 3)) (airySector (π / 3 - δ))
@@ -1508,11 +1498,11 @@ lemma scorerAsym_norm_omega : ‖exp (-2 * π * I / 3)‖ = 1 ∧ ‖exp (2 * π
 
 lemma scorerAsym_omega_cube : exp (-2 * π * I / 3) ^ 3 = 1 ∧ exp (2 * π * I / 3) ^ 3 = 1 := by
   constructor
-  · rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_inv_cube
+  · rw [show (-2 * π * I / 3 : ℂ) = -(2 * π * I / 3) by ring]; exact omega_recip_cube
   · exact omega_cube
 
 /-- Composite bound: `((z c)^n)⁻¹ = O((z^n)⁻¹)` when `‖c‖ = 1`. -/
-lemma scorerAsym_isBigO_inv_pow_mul {l : Filter ℂ} {c : ℂ} (hc : ‖c‖ = 1) (n : ℕ) :
+lemma scorerAsym_isBigO_recip_pow_mul {l : Filter ℂ} {c : ℂ} (hc : ‖c‖ = 1) (n : ℕ) :
     (fun z : ℂ => ((z * c) ^ n)⁻¹) =O[l] (fun z : ℂ => (z ^ n)⁻¹) :=
   IsBigO.of_bound 1 (Eventually.of_forall fun z => by
     rw [one_mul, norm_inv, norm_inv, norm_pow, norm_pow, norm_mul, hc, mul_one])
@@ -1540,9 +1530,9 @@ theorem scorerGi_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) (N : 
   obtain ⟨c1, c2⟩ := scorerAsym_omega_cube
   obtain ⟨ha, hb⟩ := scorerAsym_rot_coeffs
   have H := scorerAsym_scorerHi_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith) N
-  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_inv_pow_mul n1 _)).const_mul_left
+  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_recip_pow_mul n1 _)).const_mul_left
     (exp (π * I / 3) / 2)
-  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_inv_pow_mul n2 _)).const_mul_left
+  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_recip_pow_mul n2 _)).const_mul_left
     (exp (-π * I / 3) / 2)
   have hev : ∀ᶠ z in airySector (π / 3 - δ), z ≠ 0 ∧ |arg z| ≤ π / 3 - δ :=
     mem_inf_of_right (mem_principal_self _)
@@ -1583,9 +1573,9 @@ theorem scorerGiDeriv_asymptotic {δ : ℝ} (hδ : 0 < δ) (hδ' : δ < π / 3) 
   obtain ⟨c1, c2⟩ := scorerAsym_omega_cube
   obtain ⟨ha, hb⟩ := scorerAsym_rot_coeffs
   have H := scorerAsym_scorerHiDeriv_isBigO (α := 2 * π / 3 - δ) (by linarith) (by linarith) N
-  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_inv_pow_mul n1 _)).const_mul_left
+  have h1 := ((H.comp_tendsto T1).trans (scorerAsym_isBigO_recip_pow_mul n1 _)).const_mul_left
     (exp (π * I / 3) / 2 * exp (-2 * π * I / 3))
-  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_inv_pow_mul n2 _)).const_mul_left
+  have h2 := ((H.comp_tendsto T2).trans (scorerAsym_isBigO_recip_pow_mul n2 _)).const_mul_left
     (exp (-π * I / 3) / 2 * exp (2 * π * I / 3))
   have hev : ∀ᶠ z in airySector (π / 3 - δ), z ≠ 0 ∧ |arg z| ≤ π / 3 - δ :=
     mem_inf_of_right (mem_principal_self _)

@@ -32,7 +32,7 @@ noncomputable section
 
 namespace DLMF.Confluent
 
-lemma tendsto_ofReal_inv_atTop : Tendsto (fun x : ℝ => ((x : ℂ))⁻¹) atTop (𝓝 0) := by
+lemma tendsto_ofReal_recip_atTop : Tendsto (fun x : ℝ => ((x : ℂ))⁻¹) atTop (𝓝 0) := by
   have := (tendsto_inv_atTop_zero (𝕜 := ℝ)).ofReal
   simpa using this
 
@@ -48,7 +48,7 @@ theorem tendsto_kummerU_mul_cpow_atTop (a b : ℂ) :
   have h1 := h 1
   simp only [Finset.range_one, Finset.sum_singleton, pow_zero, inv_one,
     tricomiCoeff_zero, pow_one, smul_eq_mul] at h1
-  have := (h1.trans_tendsto tendsto_ofReal_inv_atTop).add_const 1
+  have := (h1.trans_tendsto tendsto_ofReal_recip_atTop).add_const 1
   simp only [zero_add] at this
   exact this.congr fun x => by ring
 
@@ -64,7 +64,7 @@ theorem tendsto_regularizedHGFun_mul_exp_neg_atTop (a b : ℂ) (ha : ∀ k : ℕ
   have hT : Tendsto (fun x : ℝ => exp (x : ℂ) * (x : ℂ) ^ (a - b - 1) *
       (Gamma a / (exp (x : ℂ) * (x : ℂ) ^ (a - b)))) atTop (𝓝 0) := by
     have : Tendsto (fun x : ℝ => Gamma a * ((x : ℂ))⁻¹) atTop (𝓝 0) := by
-      simpa using tendsto_ofReal_inv_atTop.const_mul (Gamma a)
+      simpa using tendsto_ofReal_recip_atTop.const_mul (Gamma a)
     refine this.congr' ?_
     filter_upwards [eventually_gt_atTop 0] with x hx
     have hx0 : (x : ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'

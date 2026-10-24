@@ -120,7 +120,7 @@ absent.
 ## Proof status (2026-10-17)
 
 Proved on 2026-10-17: 5.4.19 (`digamma_rat`), 5.6.2, 5.6.3, 5.6.9, 5.7.2, 5.7.3,
-5.9.2_5 (`inv_Gamma_binet`), 5.11.9, 5.11.13, 5.11.19, 5.12.5, 5.12.6, 5.13.2, 5.13.4,
+5.9.2_5 (`recip_Gamma_binet`), 5.11.9, 5.11.13, 5.11.19, 5.12.5, 5.12.6, 5.13.2, 5.13.4,
 5.14.5, 5.17.1, 5.17.2, 5.17.4, 5.17.5, 5.18.8, 5.18.9, 5.18.10. The Selberg integral
 (`DLMF/Selberg/Basic.lean`) and Aomoto's integral were proved the same day.
 

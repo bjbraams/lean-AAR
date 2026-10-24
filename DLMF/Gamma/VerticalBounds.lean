@@ -16,7 +16,7 @@ From the product `|Γ(x)/Γ(x+iy)|² = ∏ₖ (1 + y²/(x+k)²)` (DLMF 5.8.3) an
 `sinh(πy)/(πy)` at `x = 1` and `cosh(πy)` at `x = 1/2` (DLMF 5.4.3–5.4.4) we obtain
 
 * `exists_norm_Gamma_le`: `|Γ(x+iy)| ≤ C (1+|y|)^K e^{-π|y|/2}` for fixed `x > 0`;
-* `exists_norm_inv_Gamma_le`: `|1/Γ(x+iy)| ≤ C (1+|y|)^K e^{π|y|/2}`, uniformly for `x` in a
+* `exists_norm_recip_Gamma_le`: `|1/Γ(x+iy)| ≤ C (1+|y|)^K e^{π|y|/2}`, uniformly for `x` in a
   bounded interval.
 
 These are the estimates needed for Mellin–Barnes integrals.
@@ -104,7 +104,7 @@ lemma gammaVertProd_neg (x y : ℝ) : gammaVertProd x (-y) = gammaVertProd x y :
   simp [gammaVertProd]
 
 /-- `1/P(1,y) = π|y|/sinh(π|y|) ≤ 2(1+π|y|) e^{-π|y|}`. -/
-lemma inv_gammaVertProd_one_le (y : ℝ) :
+lemma recip_gammaVertProd_one_le (y : ℝ) :
     (gammaVertProd 1 y)⁻¹ ≤ 2 * (1 + π * |y|) * Real.exp (-(π * |y|)) := by
   by_cases hy : y = 0
   · subst hy; simp [gammaVertProd_zero]
@@ -136,7 +136,7 @@ lemma norm_Gamma_sq_le_of_le_one {x : ℝ} (hx : 0 < x) (hx1 : x ≤ 1) (y : ℝ
   calc Real.Gamma x ^ 2 / gammaVertProd x y ≤ Real.Gamma x ^ 2 / gammaVertProd 1 y :=
         div_le_div_of_nonneg_left (by positivity) (by linarith) hPx
     _ = Real.Gamma x ^ 2 * (gammaVertProd 1 y)⁻¹ := by rw [div_eq_mul_inv]
-    _ ≤ _ := mul_le_mul_of_nonneg_left (inv_gammaVertProd_one_le y) (by positivity)
+    _ ≤ _ := mul_le_mul_of_nonneg_left (recip_gammaVertProd_one_le y) (by positivity)
 
 /-- **Vertical decay of `Γ`**: for fixed `x > 0`, `|Γ(x+iy)| ≤ C (1+|y|)^K e^{-π|y|/2}`. -/
 theorem exists_norm_Gamma_le {x : ℝ} (hx : 0 < x) :
@@ -198,7 +198,7 @@ lemma cosh_le_exp_abs (t : ℝ) : Real.cosh t ≤ Real.exp |t| := by
   linarith
 
 /-- For `x ≥ 1/2`: `|1/Γ(x+iy)|² = P(x,y)/Γ(x)² ≤ cosh(πy)/Γ(x)²`. -/
-lemma norm_inv_Gamma_sq_le {x : ℝ} (hx : 1 / 2 ≤ x) (y : ℝ) :
+lemma norm_recip_Gamma_sq_le {x : ℝ} (hx : 1 / 2 ≤ x) (y : ℝ) :
     ‖(Complex.Gamma (x + I * y))⁻¹‖ ^ 2 ≤ Real.exp (π * |y|) / Real.Gamma x ^ 2 := by
   have hx0 : 0 < x := by linarith
   have hG := Real.Gamma_pos_of_pos hx0
@@ -213,7 +213,7 @@ lemma norm_inv_Gamma_sq_le {x : ℝ} (hx : 1 / 2 ≤ x) (y : ℝ) :
 
 /-- **Growth of `1/Γ` on vertical lines**, uniformly for `x` in a bounded interval:
 `|1/Γ(x+iy)| ≤ C (1+|y|)^K e^{π|y|/2}`. -/
-theorem exists_norm_inv_Gamma_le (X : ℝ) :
+theorem exists_norm_recip_Gamma_le (X : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, ∀ x ∈ Icc (-X) X, ∀ y : ℝ,
       ‖(Complex.Gamma (x + I * y))⁻¹‖ ≤ C * (1 + |y|) ^ K * Real.exp (π * |y| / 2) := by
   set B : ℝ := max X 2 with hB
@@ -230,7 +230,7 @@ theorem exists_norm_inv_Gamma_le (X : ℝ) :
   have base : ∀ x ∈ Icc (1 / 2 : ℝ) B, ∀ y : ℝ,
       ‖(Complex.Gamma (x + I * y))⁻¹‖ ≤ m⁻¹ * Real.exp (π * |y| / 2) := by
     intro x hx y
-    have h := norm_inv_Gamma_sq_le hx.1 y
+    have h := norm_recip_Gamma_sq_le hx.1 y
     have hGm := hmin x hx
     have hE : Real.exp (π * |y|) = Real.exp (π * |y| / 2) ^ 2 := by
       rw [← Real.exp_nat_mul]; ring_nf

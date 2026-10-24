@@ -251,7 +251,7 @@ theorem genExpIntE_one_eq_Ein {x : ℝ} (hx : 0 < x) :
       have ht : (1 : ℝ) < t := ht
       simp only [hh]
       field_simp
-    rw [DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add]
+    rw [DLMF.Gamma.eulerMascheroni_eq_integral_recip_one_add]
     linarith [hsplit, h01, h1]
   -- `Ein(x) = ∫₀¹ g - ∫ₓ¹ g` and `log x = -∫ₓ¹ dt/t`
   have hEin : Real.expIntEin x = (∫ t in (0 : ℝ)..1, g t) - ∫ t in x..1, g t := by

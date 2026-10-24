@@ -177,8 +177,8 @@ lemma continuousAt_ferrersQCont_order {ν μ₀ : ℂ} (h : LegendreQRegular ν 
     ContinuousAt.comp (g := Gamma) (differentiableAt_Gamma _ h1).continuousAt (by fun_prop)
   have c2 : ContinuousAt (fun μ => Gamma ((ν+μ+2)/2)) μ₀ :=
     ContinuousAt.comp (g := Gamma) (differentiableAt_Gamma _ h2).continuousAt (by fun_prop)
-  have r1 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)).continuousAt (x := μ₀)
-  have r2 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)).continuousAt (x := μ₀)
+  have r1 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)).continuousAt (x := μ₀)
+  have r2 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)).continuousAt (x := μ₀)
   have hne := slitPlane_ne_zero hsl
   have p2 : Continuous fun μ : ℂ => (2:ℂ)^μ := continuous_const_cpow' (by norm_num)
   have pw : Continuous fun μ : ℂ => (1-z^2)^(-μ/2) := (continuous_const_cpow' hne).comp (by fun_prop)
@@ -362,10 +362,10 @@ lemma continuous_olverQSideHyp_order (s : ℝ) (ν : ℂ) {z : ℂ} (hz : z ∈ 
     (C := fun _ : ℂ => 3/2) (by fun_prop) (by fun_prop) (by fun_prop) hc).continuous
   have g2 := (differentiable_regularizedGaussHG_comp (A := fun μ : ℂ => (μ-ν)/2) (B := fun μ : ℂ => (ν+μ+1)/2)
     (C := fun _ : ℂ => 1/2) (by fun_prop) (by fun_prop) (by fun_prop) hc).continuous
-  have i1 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)
-  have i2 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν+μ+1)/2)
-  have i3 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)
-  have i4 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν+μ+2)/2)
+  have i1 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)
+  have i2 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν+μ+1)/2)
+  have i3 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)
+  have i4 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν+μ+2)/2)
   unfold olverQSideHyp
   exact ((continuous_const.mul pw).mul continuous_const).mul
     (((continuous_const.mul g1).mul (i1.mul i2)).sub ((continuous_const.mul g2).mul (i3.mul i4)))

@@ -35,7 +35,7 @@ DECL = re.compile(r'^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|no
                   r'(theorem|lemma|def|abbrev|instance|structure|inductive|class)\s+([^\s(:{\[]+)', re.M)
 LINK = re.compile(r'\[(`?)([^\]`]+)`?\]\(([^)#]*\.lean)(?:#L(\d+))?\) '
                   r'\((admitted|proved|proved from admissions|definition|defined|nonstandard axioms)\)')
-EQLINE = re.compile(r'^- \[(\d+\.\d+\.(?:[ETF]\d+|[ivx]+))\]\(https://dlmf\.nist\.gov/\1\):')
+EQLINE = re.compile(r'^- \[(\d+\.\d+\.(?:[ETF]\d+(?:_\d+)*|[ivx]+))\]\(https://dlmf\.nist\.gov/\1\):')
 
 
 def strip_comments(s):

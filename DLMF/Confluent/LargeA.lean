@@ -570,7 +570,7 @@ theorem sqrt_mul_besselJ_isBigO (μ : ℝ) :
 
 /-! ### Matching on `[s₀, S]` -/
 
-lemma integral_inv_sq_eq (A : ℝ) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
+lemma integral_recip_sq_eq (A : ℝ) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     ∫ t in a..b, A / t ^ 2 = A / a - A / b := by
   have hderiv : ∀ t ∈ uIcc a b, HasDerivAt (fun t : ℝ => -(A / t)) (A / t ^ 2) t := by
     intro t ht
@@ -619,7 +619,7 @@ lemma integral_abs_largeAG_le (c : ℝ) {κ a b : ℝ} (hκ : 0 < κ) (ha : 0 < 
         exact ht.2
   have hint : ∫ t in a..b, (A / t ^ 2 + b ^ 2 / (16 * κ ^ 2)) =
       (A / a - A / b) + (b - a) * (b ^ 2 / (16 * κ ^ 2)) := by
-    rw [intervalIntegral.integral_add, integral_inv_sq_eq A ha hab,
+    rw [intervalIntegral.integral_add, integral_recip_sq_eq A ha hab,
       intervalIntegral.integral_const, smul_eq_mul]
     · refine (continuousOn_const.div (continuousOn_pow 2) fun t ht => ?_).intervalIntegrable
       rw [uIcc_of_le hab] at ht
@@ -640,7 +640,7 @@ lemma integral_abs_largeAG0_le (c : ℝ) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b
     have ht0 : 0 < t := lt_of_lt_of_le ha ht.1
     rw [largeAG0, abs_div, abs_of_pos (by positivity : (0 : ℝ) < t ^ 2)]
   rw [intervalIntegral.integral_congr (g := fun t => |(c - 1) ^ 2 - 1 / 4| / t ^ 2)
-    (by rw [uIcc_of_le hab]; exact heq), integral_inv_sq_eq _ ha hab]
+    (by rw [uIcc_of_le hab]; exact heq), integral_recip_sq_eq _ ha hab]
   have hb : 0 < b := lt_of_lt_of_le ha hab
   have : 0 ≤ |(c - 1) ^ 2 - 1 / 4| / b := by positivity
   linarith
@@ -1016,29 +1016,6 @@ theorem tendsto_regularizedConfluent_atBot_besselJ (c : ℝ) {x : ℝ} (hx : 0 <
 
 /-! ### Tricomi's function for large negative `a` -/
 
-/-- The reflection formula in the form `1/Γ(1-z) = Γ(z) sin(πz)/π`, valid whenever
-`Γ(z) ≠ 0` (at poles of `Γ(1-z)` both sides vanish). -/
-lemma inv_Gamma_one_sub_eq {z : ℂ} (hz : Complex.Gamma z ≠ 0) :
-    (Complex.Gamma (1 - z))⁻¹ = Complex.Gamma z * Complex.sin (π * z) / π := by
-  have h := Complex.Gamma_mul_Gamma_one_sub z
-  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
-  by_cases hs : Complex.sin (π * z) = 0
-  · rw [hs, div_zero] at h
-    have h1 : Complex.Gamma (1 - z) = 0 := by
-      rcases mul_eq_zero.mp h with h | h
-      · exact absurd h hz
-      · exact h
-    rw [h1, hs]
-    simp
-  · have h1 : Complex.Gamma (1 - z) = π / (Complex.sin (π * z) * Complex.Gamma z) := by
-      rw [eq_div_iff (mul_ne_zero hs hz)]
-      have h' : Complex.Gamma z * Complex.Gamma (1 - z) * Complex.sin (π * z) = π := by
-        rw [h]
-        field_simp
-      linear_combination h'
-    rw [h1]
-    field_simp
-
 /-- A trigonometric identity behind (8.2.10). -/
 lemma sin_mul_cos_sub_sin_mul_cos (A C t : ℝ) :
     Real.sin (C - A) * Real.cos t + Real.sin A * Real.cos (t + C) =
@@ -1086,8 +1063,8 @@ lemma kummerU_large_a_eq (c : ℝ) (hc : ∀ k : ℤ, c ≠ k) {a x : ℝ} (hx :
     rw [Complex.Gamma_ofReal]; exact_mod_cast (Real.Gamma_pos_of_pos hca).ne'
   have hG1a : Complex.Gamma (((1 - a : ℝ) : ℂ)) ≠ 0 := by
     rw [Complex.Gamma_ofReal]; exact_mod_cast (Real.Gamma_pos_of_pos h1a).ne'
-  have hr1 := inv_Gamma_one_sub_eq hGca
-  have hr2 := inv_Gamma_one_sub_eq hG1a
+  have hr1 := recip_Gamma_one_sub_eq hGca
+  have hr2 := recip_Gamma_one_sub_eq hG1a
   rw [show (1 : ℂ) - ((c - a : ℝ) : ℂ) = (a : ℂ) - c + 1 by push_cast; ring] at hr1
   rw [show (1 : ℂ) - ((1 - a : ℝ) : ℂ) = (a : ℂ) by push_cast; ring] at hr2
   have hΓ1 := Complex.Gamma_mul_Gamma_one_sub (c : ℂ)

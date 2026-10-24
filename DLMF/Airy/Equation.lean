@@ -80,7 +80,7 @@ theorem wronskian_airyAi_rotated (z : ℂ) {ε : ℝ} (hε : ε = 1 ∨ ε = -1)
   let ω : ℂ := exp (-ε * (2 * π * I / 3))
   have hω : ω ^ 3 = 1 := by
     rcases hε with rfl | rfl
-    · simpa [ω] using omega_inv_cube
+    · simpa [ω] using omega_recip_cube
     · simpa [ω] using omega_cube
   have hr := isAirySol_airyAi.wronskian_eq (isAirySol_rotated hω) z
   simp only [mul_zero] at hr
@@ -111,7 +111,7 @@ theorem wronskian_airyAi_rotations (z : ℂ) :
         airyAiDeriv (z * exp (2 * π * I / 3)) -
       exp (-2 * π * I / 3) * airyAiDeriv (z * exp (-2 * π * I / 3)) *
         airyAi (z * exp (2 * π * I / 3)) = 1 / (2 * π * I) := by
-  have hr := (isAirySol_rotated omega_inv_cube).wronskian_eq (isAirySol_rotated omega_cube) z
+  have hr := (isAirySol_rotated omega_recip_cube).wronskian_eq (isAirySol_rotated omega_cube) z
   simp only [mul_zero] at hr
   have he : exp (2 * π * I / 3) - exp (-(2 * π * I / 3)) = (Real.sqrt 3 : ℂ) * I := by
     rw [exp_two_pi_I_div_three, exp_neg_two_pi_I_div_three]
@@ -134,32 +134,14 @@ theorem wronskian_airyAi_rotations (z : ℂ) :
 theorem airyAi_neg_connection (z : ℂ) :
     airyAi (-z) = exp (π * I / 3) * airyAi (z * exp (π * I / 3)) +
       exp (-π * I / 3) * airyAi (z * exp (-π * I / 3)) := by
-  have h := airyAi_add_omega (-z)
-  have e1 : -exp (-(2 * π * I / 3)) = exp (π * I / 3) := by
-    rw [exp_neg_two_pi_I_div_three, exp_pi_I_div_three]
-    push_cast; ring
-  have e2 : -exp (2 * π * I / 3) = exp (-π * I / 3) := by
-    rw [show -π * I / 3 = -(π * I / 3) by ring, exp_two_pi_I_div_three, exp_neg_pi_I_div_three]
-    push_cast; ring
-  rw [show -z * exp (-(2 * π * I / 3)) = z * exp (π * I / 3) by rw [← e1]; ring,
-    show -z * exp (2 * π * I / 3) = z * exp (-π * I / 3) by rw [← e2]; ring] at h
-  linear_combination h + airyAi (z * exp (π * I / 3)) * e1 +
-    airyAi (z * exp (-π * I / 3)) * e2
+  exact airyRot_neg_connection_ai z
 
 /-- airyBi neg connection (DLMF 9.2.15). -/
 @[dlmf 9.2.E15]
 theorem airyBi_neg_connection (z : ℂ) :
     airyBi (-z) = exp (-π * I / 6) * airyAi (z * exp (π * I / 3)) +
       exp (π * I / 6) * airyAi (z * exp (-π * I / 3)) := by
-  have h := airyBi_eq_airyAi_omega (-z)
-  have e1 : -exp (-(2 * π * I / 3)) = exp (π * I / 3) := by
-    rw [exp_neg_two_pi_I_div_three, exp_pi_I_div_three]
-    push_cast; ring
-  have e2 : -exp (2 * π * I / 3) = exp (-π * I / 3) := by
-    rw [show -π * I / 3 = -(π * I / 3) by ring, exp_two_pi_I_div_three, exp_neg_pi_I_div_three]
-    push_cast; ring
-  simpa only [neg_mul, neg_div, show -z * exp (-(2 * π * I / 3)) = z * exp (π * I / 3) by rw [← e1]; ring,
-    show -z * exp (2 * π * I / 3) = z * exp (-π * I / 3) by rw [← e2]; ring] using h
+  exact airyRot_neg_connection_bi z
 
 /-- airy log derivative riccati (DLMF 9.2.16). -/
 @[dlmf 9.2.E16]

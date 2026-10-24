@@ -1047,7 +1047,7 @@ lemma cfInt_exists_norm_kernel_le (ν : ℂ) {r : ℝ} (hr : 0 < r) :
       rw [hAu, hyσ, ← htt]; ring
 
 /-- The substitution `s ↦ 1/s` turning the Hankel–Laplace integral into a Tricomi `U` integral. -/
-lemma cfInt_inv_subst_U {a b ν x : ℂ} (hx : 0 < x.re) (hA : 0 < (ν - b + 2).re) :
+lemma cfInt_recip_subst_U {a b ν x : ℂ} (hx : 0 < x.re) (hA : 0 < (ν - b + 2).re) :
     ∫ s : ℝ in Ioi 0, (s : ℂ) ^ (a - 1) * (1 + (s : ℂ)) ^ (b - a - 1) *
         ((s : ℂ) ^ (-(ν + 1)) * exp (-x / s)) =
       Gamma (ν - b + 2) * kummerU (ν - b + 2) (ν - a + 2) x := by
@@ -1624,7 +1624,7 @@ lemma confLP_laplace_0F1 {β c x : ℂ} (hβ : 0 < β.re) {s : ℝ} (hs : 0 < s)
       apply le_of_eq; simp
   have hFi : ∀ k, IntegrableOn (F k) (Ioi 0) := fun k => (hIk k).const_mul _
   set β0 := β.re with hβ0
-  obtain ⟨Cg, hCg0, hCg⟩ := exists_norm_inv_Gamma_add_nat_le c
+  obtain ⟨Cg, hCg0, hCg⟩ := exists_norm_recip_Gamma_add_nat_le c
   have hβ0k : ∀ k : ℕ, ∀ i : ℕ, (β0 : ℂ) + i ≠ 0 := fun k i h => by
     have := congrArg Complex.re h; simp at this; linarith [(Nat.cast_nonneg i : (0:ℝ) ≤ i)]
   have hnormF : ∀ k : ℕ, ∫ t : ℝ in Ioi 0, ‖F k t‖ ≤
@@ -2176,7 +2176,7 @@ lemma confLP_of_strip {a b ν : ℂ} {r : ℝ} (hr : 0 < r) (hb : 0 < b.re)
 
 
 /-- `1/Γ(s) = s/Γ(s+1)` for every `s` (with `1/Γ = 0` at the poles). -/
-lemma confLP_inv_Gamma_eq (s : ℂ) : (Gamma s)⁻¹ = s * (Gamma (s + 1))⁻¹ := by
+lemma confLP_recip_Gamma_eq (s : ℂ) : (Gamma s)⁻¹ = s * (Gamma (s + 1))⁻¹ := by
   rcases eq_or_ne s 0 with rfl | hs
   · simp
   · rw [Complex.Gamma_add_one s hs, mul_inv, ← mul_assoc, mul_inv_cancel₀ hs, one_mul]
@@ -2193,7 +2193,7 @@ lemma confLP_contiguous_b (a b z : ℂ) :
   refine tsum_congr fun n => ?_
   have hp : a * poch (a + 1) n = poch a n * (a + n) := by
     rw [← poch_succ_left, poch_succ]
-  rw [confLP_inv_Gamma_eq (b + n), show b + n + 1 = b + 1 + n by ring]
+  rw [confLP_recip_Gamma_eq (b + n), show b + n + 1 = b + 1 + n by ring]
   linear_combination (-(z ^ n / n.factorial * (Gamma (b + 1 + n))⁻¹)) * hp
 
 /-- The contiguous relation `𝐌(A-1,B-1,x) = (B-1) 𝐌(A,B,x) - (B-A) x 𝐌(A,B+1,x)`, for all
@@ -2212,7 +2212,7 @@ lemma confLP_contiguous_down (A B x : ℂ) :
   have hu0 : u 0 = 0 := by
     simp only [hu, hT, poch_zero, pow_zero, Nat.factorial_zero, Nat.cast_one, div_one, one_mul,
       CharP.cast_eq_zero, add_zero]
-    rw [confLP_inv_Gamma_eq (B - 1), sub_add_cancel]
+    rw [confLP_recip_Gamma_eq (B - 1), sub_add_cancel]
     ring
   have husucc : ∀ n : ℕ, u (n + 1) = -(B - A) * x * T A (B + 1) n := by
     intro n
@@ -2221,7 +2221,7 @@ lemma confLP_contiguous_down (A B x : ℂ) :
       rw [poch_succ_left, sub_add_cancel]
     rw [hp1, poch_succ, Nat.factorial_succ, pow_succ]
     push_cast
-    rw [show B - 1 + ((n : ℂ) + 1) = B + n by ring, confLP_inv_Gamma_eq (B + n),
+    rw [show B - 1 + ((n : ℂ) + 1) = B + n by ring, confLP_recip_Gamma_eq (B + n),
       show B + (n : ℂ) + 1 = B + 1 + n by ring, show B + ((n : ℂ) + 1) = B + 1 + n by ring]
     have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
     have hn : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
@@ -2594,7 +2594,7 @@ theorem bessel_kummerU {a b ν x : ℂ} (hx : 0 < x.re) (hxi : x.im = 0)
         refine setIntegral_congr_fun measurableSet_Ioi fun s _ => ?_
         ring
     _ = _ := by
-        rw [cfInt_inv_subst_U hx (by simp; linarith)]
+        rw [cfInt_recip_subst_U hx (by simp; linarith)]
         field_simp
 
 /-- `𝐅(a,b;c;0) = 1/Γ(c)`. -/
@@ -3569,7 +3569,7 @@ theorem kummerU_stieltjes {a b z : ℂ} (hz : z ∈ slitPlane)
     one_mem_slitPlane heq hz
 
 /-- `1/(t+z)` is `O((1+t)^{-1})` on the positive half-line, for `z` in the slit plane. -/
-lemma cfInt_norm_inv_add_le {z : ℂ} (hz : z ∈ slitPlane) :
+lemma cfInt_norm_recip_add_le {z : ℂ} (hz : z ∈ slitPlane) :
     ∃ K, ∀ t : ℝ, 0 < t → ‖((t : ℂ) + z)⁻¹‖ ≤ K * (1 + t) ^ (-1 : ℝ) := by
   obtain ⟨δ, hδ, hδb⟩ := exists_forall_le_norm_add_of_mem_slitPlane hz
   refine ⟨1 / δ + 1 + ‖z‖ / δ, fun t ht => ?_⟩
@@ -3595,7 +3595,7 @@ lemma cfInt_integrableOn_stieltjes {a b z : ℂ} {n : ℕ} (hz : z ∈ slitPlane
     (h0 : -b.re < n) (h1 : (n : ℝ) < 1 + (a - b).re) :
     IntegrableOn (fun t : ℝ => regularizedHGFun {a} {b} (-(t : ℂ)) * (t : ℂ) ^ (b + n - 1) /
       ((t : ℂ) + z)) (Ioi 0) := by
-  obtain ⟨K, hK⟩ := cfInt_norm_inv_add_le hz
+  obtain ⟨K, hK⟩ := cfInt_norm_recip_add_le hz
   have hne : ∀ t : ℝ, 0 < t → (t : ℂ) + z ≠ 0 := fun t ht h => by
     obtain ⟨δ, hδ, hδb⟩ := exists_forall_le_norm_add_of_mem_slitPlane hz
     have := hδb t ht.le z (Metric.mem_ball_self hδ)

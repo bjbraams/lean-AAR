@@ -22,7 +22,7 @@ The proofs follow `cubic_transformation` (15.8.31): both sides solve the same Ga
 near the origin, and the identity is continued through the cut-plane continuation
 `regularizedGaussHG`. The image of the domain lies in the cut plane because `1 - ψ(z)`
 (resp. `1 - s(u)`) has positive real part there; this is checked with elementary tangent bounds
-for products (`hypSV_tan_mul`, `hypSV_tan_inv`).
+for products (`hypSV_tan_mul`, `hypSV_tan_recip`).
 -/
 
 @[expose] public section
@@ -68,8 +68,8 @@ lemma hypSV_tan_mul {w₁ w₂ : ℂ} {t₁ t₂ T : ℝ} (h₁ : 0 < w₁.re) (
     _ = T * ((1 - t₁ * t₂) * (w₁.re * w₂.re)) := by ring
     _ ≤ _ := mul_le_mul_of_nonneg_left hre hT0
 
-/-- Tangent bound for an inverse. -/
-lemma hypSV_tan_inv {w : ℂ} {t : ℝ} (h : 0 < w.re) (ht : |w.im| ≤ t * w.re) :
+/-- Tangent bound for a reciprocal. -/
+lemma hypSV_tan_recip {w : ℂ} {t : ℝ} (h : 0 < w.re) (ht : |w.im| ≤ t * w.re) :
     0 < (w⁻¹).re ∧ |(w⁻¹).im| ≤ t * (w⁻¹).re := by
   have hn : 0 < normSq w := normSq_pos.mpr (by rintro rfl; simp at h)
   rw [inv_re, inv_im]
@@ -100,7 +100,7 @@ lemma hypSV_psi_one_sub_re_pos {w : ℂ} (h₁ : 30 * |w.im| < 1 + 3 * w.re)
   have hqre : 0 < (1 - 9 * w).re := by simp; linarith [abs_nonneg w.im]
   have hqim : |(1 - 9 * w).im| ≤ 3 / 10 * (1 - 9 * w).re := by
     simp [abs_mul]; linarith
-  obtain ⟨hq1, hq2⟩ := hypSV_tan_inv hqre hqim
+  obtain ⟨hq1, hq2⟩ := hypSV_tan_recip hqre hqim
   obtain ⟨hp2r, hp2i⟩ := hypSV_tan_mul (T := 21 / 100) hpre hpre hpim hpim (by norm_num) (by norm_num)
   obtain ⟨hp3r, hp3i⟩ := hypSV_tan_mul (T := 8 / 25) hp2r hpre hp2i hpim (by norm_num) (by norm_num)
   obtain ⟨hq2r, hq2i⟩ := hypSV_tan_mul (T := 2 / 3) hq1 hq1 hq2 hq2 (by norm_num) (by norm_num)
@@ -310,7 +310,7 @@ lemma hypSV_cubicTwo_one_sub_re_pos {w : ℂ} (h₁ : 80 * |w.im| < 1 + 8 * w.re
   have hqre : 0 < (1 - 4 * w).re := by simp; linarith
   have hqim : |(1 - 4 * w).im| ≤ 1 / 10 * (1 - 4 * w).re := by
     simp [abs_mul]; linarith
-  obtain ⟨hq1, hq2⟩ := hypSV_tan_inv hqre hqim
+  obtain ⟨hq1, hq2⟩ := hypSV_tan_recip hqre hqim
   obtain ⟨hp2r, hp2i⟩ := hypSV_tan_mul (T := 21 / 100) hpre hpre hpim hpim (by norm_num) (by norm_num)
   obtain ⟨hprr, hpri⟩ := hypSV_tan_mul (T := 6 / 25) hp2r hrre hp2i hrim (by norm_num) (by norm_num)
   obtain ⟨hq2r, hq2i⟩ := hypSV_tan_mul (T := 21 / 100) hq1 hq1 hq2 hq2 (by norm_num) (by norm_num)

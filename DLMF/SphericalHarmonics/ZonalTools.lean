@@ -217,13 +217,7 @@ open MvPolynomial
 lemma zonal_eval_smul {n m : ℕ} {P : MvPolynomial (Fin n) ℝ} (hP : P.IsHomogeneous m)
     (r : ℝ) (u : EuclideanSpace ℝ (Fin n)) :
     eval (fun j => (r • u) j) P = r ^ m * eval (fun j => u j) P := by
-  classical
-  show eval₂ (RingHom.id ℝ) (fun j => r * u j) P = r ^ m * eval₂ (RingHom.id ℝ) (fun j => u j) P
-  simp only [MvPolynomial.eval₂_eq, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun d hd => ?_
-  have hdeg : ∑ i ∈ d.support, d i = m := (hP.degree_eq_sum_deg_support hd).symm
-  simp only [mul_pow, Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum, hdeg]
-  ring
+  exact hP.eval₂_const_mul (RingHom.id ℝ) (fun j => u j) r
 
 /-- The Poisson extension of harmonic boundary data is the original function; adapted from the
 Tau Ceti contributors' unit-ball Dirichlet theorem. -/

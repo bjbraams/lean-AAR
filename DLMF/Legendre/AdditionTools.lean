@@ -15,7 +15,7 @@ public import Mathlib.Analysis.Fourier.AddCircle
 public import Mathlib.Analysis.PSeries
 public import DLMF.Legendre.Series
 public import DLMF.Hypergeometric.Elementary
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 public import DLMF.Legendre.Harmonics
 
 /-!
@@ -1203,7 +1203,7 @@ lemma legAdd_ferrersP_nat_eq (ν : ℂ) (m : ℕ) {x : ℝ} (hx : x ∈ Ioo (-1:
     have hh : ∀ n : ℕ, ν - m + 1 ≠ -n := fun n h => by
       have := congrArg Complex.re h; simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
     have hGa : Gamma (ν - m + 1) ≠ 0 := Gamma_ne_zero_of_re_pos (by linarith)
-    have hP := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (ν - m + 1) (2 * m)
+    have hP := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (ν - m + 1) (2 * m)
     rw [show ν - m + 1 + ((2 * m : ℕ) : ℂ) = ν + m + 1 by push_cast; ring] at hP
     have hGb : Gamma (ν + m + 1) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
     simp only [D]

@@ -1058,7 +1058,7 @@ lemma eiIn_gt_of_sub_pos {R R' : ℝ → ℝ} {x : ℝ} (hx : 0 < x)
 
 
 /-- `ln y < (y - 1/y)/2` for `y > 1`. -/
-lemma eiIn_log_lt_half_sub_inv {y : ℝ} (hy : 1 < y) : Real.log y < (y - 1/y)/2 := by
+lemma eiIn_log_lt_half_sub_recip {y : ℝ} (hy : 1 < y) : Real.log y < (y - 1/y)/2 := by
   let h : ℝ → ℝ := fun s => (s - 1/s)/2 - Real.log s
   have hmono : StrictMonoOn h (Ici 1) := by
     refine strictMonoOn_of_deriv_pos (convex_Ici 1) ?_ ?_
@@ -1105,7 +1105,7 @@ theorem expIntE1_inequality_1 {x : ℝ} (hx : 0 < x) :
       refine ((hd.log h1).div_const 2).congr_deriv ?_
       field_simp
     · intro t ht
-      have hl := eiIn_log_lt_half_sub_inv (y := 1+2/t) (by linarith [show 0 < 2/t by positivity])
+      have hl := eiIn_log_lt_half_sub_recip (y := 1+2/t) (by linarith [show 0 < 2/t by positivity])
       have : (1+2/t - 1/(1+2/t))/2 = 2*(t+1)/(t*(t+2)) := by field_simp; ring
       have h2 : -(1/(t*(t+2))) = -(2/(2*t*(t+2))) := by field_simp
       rw [this] at hl

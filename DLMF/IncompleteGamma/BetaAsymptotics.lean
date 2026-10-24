@@ -13,7 +13,9 @@ public import DLMF.IncompleteGamma.UniformAsymptotics
 
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
-New theorem statements are initially admitted and are not completed proofs.
+The fixed-argument expansion uses finite diagonal shifts and a binomial-series
+majorant independent of the large positive parameter. Other remaining admissions
+are not completed proofs.
 -/
 
 @[expose] public noncomputable section
@@ -23,11 +25,121 @@ namespace DLMF.Statistical
 
 open DLMF.Confluent
 
-/-- incBeta large a fixed x. -/
+/-- Finite diagonal shifts of the incomplete Beta function. -/
+lemma normIncBetaI_diagonal_remainder {a b z : ℂ} (ha : ∀ k : ℕ, a+1 ≠ -k)
+    (hz : ‖z‖ < 1) (hz0 : z ≠ 0) (N : ℕ) :
+    normIncBetaI a b z = normIncBetaI (a+N) (b-N) z +
+      Gamma (a+b)*z^a*(1-z)^(b-1) *
+        ∑ k ∈ Finset.range N, (z/(1-z))^k/(Gamma (a+k+1)*Gamma (b-k)) := by
+  have hz1 : z ≠ 1 := by intro h; simp [h] at hz
+  have hy : 1-z ≠ 0 := sub_ne_zero.mpr (Ne.symm hz1)
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    have haN : ∀ k : ℕ, (a+N)+1 ≠ -k := by
+      intro k h
+      exact ha (N+k) (by push_cast; linear_combination h)
+    have hs := normIncBetaI_shift_diagonal (a+N) (b-N) haN hz hz0
+    have hp : z^(a+N)*(1-z)^(b-N-1) = z^a*(1-z)^(b-1)*(z/(1-z))^N := by
+      rw [cpow_add _ _ hz0, cpow_natCast,
+        show b-(N:ℂ)-1=(b-1)-(N:ℂ) by ring, cpow_sub _ _ hy, cpow_natCast, div_pow]
+      field_simp
+    rw [show a+((N+1:ℕ):ℂ) = (a+N)+1 by push_cast; ring,
+      show b-((N+1:ℕ):ℂ) = (b-N)-1 by push_cast; ring,
+      Finset.sum_range_succ, ih, hs,
+      show (a+(N:ℂ))+(b-N)=a+b by ring]
+    linear_combination (Gamma (a+b) / Gamma (b-N) / Gamma (a+N+1)) * hp
+
+/-- A beta-type Gauss function has a majorant independent of its positive real parameter. -/
+lemma incBeta_gauss_uniform_bound (b : ℂ) {z : ℂ} (hz : ‖z‖ < 1) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ a : ℝ, 0 < a →
+      ‖regularizedGaussHG a b (a+1) z‖ ≤ C * ‖1 / Gamma ((a:ℂ)+1)‖ := by
+  let g : ℕ → ℝ := fun k => ‖gaussHGCoeff 1 b 1 k * z^k‖
+  have hg : Summable g := summable_norm_gaussHGCoeff_mul_pow 1 b 1 hz
+  refine ⟨∑' k, g k, tsum_nonneg (fun k => norm_nonneg _), ?_⟩
+  intro a ha
+  have hden : ∀ k : ℕ, (a:ℂ)+1 ≠ -k := by
+    intro k h; have h' := congrArg Complex.re h; simp at h'; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hz,
+    regularizedGaussHGFun_eq_div_Gamma hden]
+  have hF : ₂F₁ (a:ℂ) b ((a:ℂ)+1) z = ∑' k, gaussHGCoeff a b (a+1) k*z^k := by
+    rw [ordinaryHypergeometric_eq_tsum]
+    simp only [smul_eq_mul]
+    apply tsum_congr; intro k
+    simp [gaussHGCoeff, poch, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+  have hbd : ∀ k : ℕ, ‖gaussHGCoeff a b (a+1) k*z^k‖ ≤ g k := by
+    intro k
+    have hpa : ‖poch (a:ℂ) k‖ ≤ ‖poch ((a:ℂ)+1) k‖ := by
+      rw [show ((a:ℂ)+1) = ((a+1:ℝ):ℂ) by push_cast; rfl,
+        poch, poch, ascPochhammer_eval_ofReal, ascPochhammer_eval_ofReal,
+        Complex.norm_real, Complex.norm_real, Real.norm_eq_abs, Real.norm_eq_abs,
+        abs_of_nonneg (DLMF.Hypergeometric.ascPochhammer_eval_nonneg ha.le k),
+        abs_of_nonneg (DLMF.Hypergeometric.ascPochhammer_eval_nonneg (by linarith) k)]
+      exact DLMF.Hypergeometric.ascPochhammer_eval_mono ha.le (by linarith) k
+    have hpk : 0 < ‖poch ((a:ℂ)+1) k‖ := norm_pos_iff.mpr (poch_ne_zero_of_not_neg_nat hden k)
+    have hfac : (0:ℝ) < k.factorial := by positivity
+    have hgk : g k = ‖poch b k‖ * ‖z‖^k / k.factorial := by
+      dsimp only [g, gaussHGCoeff]
+      rw [poch_nat_one]
+      simp only [norm_mul, norm_div, norm_pow, Complex.norm_natCast]
+      field_simp
+    rw [hgk]
+    simp only [gaussHGCoeff, norm_mul, norm_div, norm_pow, Complex.norm_natCast]
+    rw [div_mul_eq_mul_div, div_le_div_iff₀ (mul_pos hpk hfac) hfac]
+    nlinarith [mul_le_mul_of_nonneg_right hpa (mul_nonneg (norm_nonneg (poch b k)) (pow_nonneg (norm_nonneg z) k))]
+  have hbnd : ‖₂F₁ (a:ℂ) b ((a:ℂ)+1) z‖ ≤ ∑' k, g k := by
+    rw [hF]
+    exact tsum_of_norm_bounded hg.hasSum hbd
+  rw [norm_div, norm_div, norm_one]
+  simpa only [div_eq_mul_inv, one_mul] using
+    div_le_div_of_nonneg_right hbnd (norm_nonneg (Gamma ((a:ℂ)+1)))
+
+
+/-- Fixed-argument incomplete-Beta expansion, with a finite shifted remainder. -/
 @[dlmf 8.18.E1]
 theorem incBeta_large_a_fixed_x {b x : ℝ} (hb : 0 < b) (hx : 0 < x) (hx1 : x < 1) (N : ℕ) :
     IsBigO atTop (fun a : ℝ => normIncBetaI a b x/(Gamma (a+b)*(x : ℂ)^(a : ℂ)*(1-x : ℂ)^((b : ℂ)-1))-∑ k ∈ Finset.range N, ((x : ℂ)/(1-x))^k/(Gamma (a+k+1)*Gamma ((b : ℂ)-k))) (fun a : ℝ => 1/Gamma (a+N+1)) := by
-  sorry
+  have hxn : ‖(x:ℂ)‖ < 1 := by rw [Complex.norm_real, Real.norm_of_nonneg hx.le]; exact hx1
+  have hx0 : (x:ℂ) ≠ 0 := ofReal_ne_zero.mpr hx.ne'
+  have hxne : (x:ℂ) ≠ 1 := by exact_mod_cast hx1.ne
+  have hy0 : (1:ℂ)-x ≠ 0 := sub_ne_zero.mpr (Ne.symm hxne)
+  obtain ⟨C, hC, hbound⟩ := incBeta_gauss_uniform_bound (1-((b:ℂ)-N)) hxn
+  set K : ℂ := (x:ℂ)^N/(Gamma ((b:ℂ)-N)*((1:ℂ)-x)^((b:ℂ)-1))
+  refine IsBigO.of_bound (‖K‖*C) ?_
+  filter_upwards [eventually_gt_atTop (0:ℝ)] with a ha
+  have haN : 0 < a+(N:ℝ) := by positivity
+  have ha1 : ∀ k : ℕ, (a:ℂ)+1 ≠ -k := by
+    intro k h; have h' := congrArg Complex.re h; simp at h'; linarith [(Nat.cast_nonneg k : (0:ℝ) ≤ k)]
+  have hG : Gamma ((a:ℂ)+b) ≠ 0 := Gamma_ne_zero_of_re_pos (by simpa using add_pos ha hb)
+  have hX : (x:ℂ)^(a:ℂ) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hx0)
+  have hY : ((1:ℂ)-x)^((b:ℂ)-1) ≠ 0 := cpow_ne_zero_iff.mpr (Or.inl hy0)
+  have hP : Gamma ((a:ℂ)+b)*(x:ℂ)^(a:ℂ)*((1:ℂ)-x)^((b:ℂ)-1) ≠ 0 :=
+    mul_ne_zero (mul_ne_zero hG hX) hY
+  have hd := normIncBetaI_diagonal_remainder (a := (a:ℂ)) (b := (b:ℂ)) ha1 hxn hx0 N
+  have he : normIncBetaI (a:ℂ) b x/(Gamma (a+b)*(x:ℂ)^(a:ℂ)*((1:ℂ)-x)^((b:ℂ)-1)) -
+      ∑ k ∈ Finset.range N, ((x:ℂ)/(1-x))^k/(Gamma (a+k+1)*Gamma ((b:ℂ)-k)) =
+      normIncBetaI ((a:ℂ)+N) ((b:ℂ)-N) x /
+        (Gamma ((a:ℂ)+b)*(x:ℂ)^(a:ℂ)*((1:ℂ)-x)^((b:ℂ)-1)) := by
+    rw [hd, add_div, mul_div_cancel_left₀ _ hP]
+    ring
+  rw [he]
+  have hr : normIncBetaI ((a:ℂ)+N) ((b:ℂ)-N) x /
+      (Gamma ((a:ℂ)+b)*(x:ℂ)^(a:ℂ)*((1:ℂ)-x)^((b:ℂ)-1)) =
+      K*regularizedGaussHG ((a:ℂ)+N) (1-((b:ℂ)-N)) ((a:ℂ)+N+1) x := by
+    rw [normIncBetaI, if_neg hxne,
+      show ((a:ℂ)+N)+((b:ℂ)-N) = (a:ℂ)+b by ring,
+      cpow_add _ _ hx0, cpow_natCast]
+    dsimp only [K]
+    by_cases hGb : Gamma ((b:ℂ)-N) = 0
+    · simp [hGb]
+    · field_simp
+  rw [hr, norm_mul]
+  have hB := hbound (a+N) haN
+  simp only [Complex.ofReal_add, Complex.ofReal_natCast] at hB
+  calc ‖K‖*‖regularizedGaussHG ((a:ℂ)+N) (1-((b:ℂ)-N)) ((a:ℂ)+N+1) x‖ ≤
+      ‖K‖*(C*‖1/Gamma ((a:ℂ)+N+1)‖) := mul_le_mul_of_nonneg_left hB (norm_nonneg _)
+    _ = _ := by ring
+
 
 /-- incBeta large a integer b exact. -/
 @[dlmf 8.18.E1]

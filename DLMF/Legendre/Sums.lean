@@ -615,7 +615,7 @@ private lemma heine_christoffel (n : ℕ) {z₁ z₂ : ℂ} (hz₁ : z₁ - 1 �
       DLMF.OrthogonalPolynomials.legendrePolyP (n + 1) z₂ * hq
 
 /-- `x + 1/x` is strictly increasing on `[1, ∞)`. -/
-private lemma heine_add_inv_lt {a b : ℝ} (ha : 1 ≤ a) (hab : a < b) : a + a⁻¹ < b + b⁻¹ := by
+private lemma heine_add_recip_lt {a b : ℝ} (ha : 1 ≤ a) (hab : a < b) : a + a⁻¹ < b + b⁻¹ := by
   have ha0 : 0 < a := by linarith
   have hb0 : 0 < b := by linarith
   have hab1 : 1 < a * b := by nlinarith
@@ -718,10 +718,10 @@ private lemma heine_mu {R : ℝ} (hR : 2 < R) :
   rw [hinv]; ring
 
 /-- Comparison of `m` with `μ` via the monotonicity of `x + 1/x`. -/
-private lemma heine_le_of_add_inv_le {a b : ℝ} (hb : 1 ≤ b) (h : a + a⁻¹ ≤ b + b⁻¹) :
+private lemma heine_le_of_add_recip_le {a b : ℝ} (hb : 1 ≤ b) (h : a + a⁻¹ ≤ b + b⁻¹) :
     a ≤ b := by
   by_contra hc
-  have := heine_add_inv_lt hb (not_le.mp hc)
+  have := heine_add_recip_lt hb (not_le.mp hc)
   linarith
 
 /-- The ellipse radius is `2`-Lipschitz. -/
@@ -748,7 +748,7 @@ theorem legendre_heine_series {z₁ z₂ : ℂ} (hz₁ : z₁-1 ∈ slitPlane) (
   have hlt : m₂ < m₁ := by
     by_contra hc
     rcases (not_lt.mp hc).lt_or_eq with h | h
-    · have := heine_add_inv_lt hm₁' h; linarith
+    · have := heine_add_recip_lt hm₁' h; linarith
     · rw [h] at hE₁; linarith
   have hm₁ : 1 < m₁ := lt_of_le_of_lt hm₂ hlt
   have hne : z₁ ≠ z₂ := by rintro rfl; exact lt_irrefl _ hr
@@ -796,7 +796,7 @@ theorem legendre_heine_uniform {R₁ R₂ : ℝ} (hR₂ : 2 < R₂) (hR : R₂ <
   have hμ : μ₂ < μ₁ := by
     by_contra hc
     rcases (not_lt.mp hc).lt_or_eq with h | h
-    · have := heine_add_inv_lt hμ₁.le h; linarith
+    · have := heine_add_recip_lt hμ₁.le h; linarith
     · rw [h] at hμ₁E; linarith
   have hμ₁0 : 0 < μ₁ := by linarith
   have hμ₁i : μ₁⁻¹ < 1 := inv_lt_one_of_one_lt₀ hμ₁
@@ -820,8 +820,8 @@ theorem legendre_heine_uniform {R₁ R₂ : ℝ} (hR₂ : 2 < R₂) (hR : R₂ <
   rw [heine_ellipse hw₂ hm₂] at hE₂
   set m₁ := ‖p.1 + w₁‖
   set m₂ := ‖p.2 + w₂‖
-  have hm₁μ : μ₁ ≤ m₁ := heine_le_of_add_inv_le hm₁' (by linarith)
-  have hm₂μ : m₂ ≤ μ₂ := heine_le_of_add_inv_le hμ₂.le (by linarith)
+  have hm₁μ : μ₁ ≤ m₁ := heine_le_of_add_recip_le hm₁' (by linarith)
+  have hm₂μ : m₂ ≤ μ₂ := heine_le_of_add_recip_le hμ₂.le (by linarith)
   have hm₁ : 1 < m₁ := lt_of_lt_of_le hμ₁ hm₁μ
   have hm₁0 : 0 < m₁ := by linarith
   have hdist : (R₁ - R₂) / 2 ≤ ‖p.1 - p.2‖ := by

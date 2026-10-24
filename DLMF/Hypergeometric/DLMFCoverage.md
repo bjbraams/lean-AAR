@@ -198,13 +198,13 @@ theorems and the supporting function definitions, as distinguished in the source
 | [15.8.E2](https://dlmf.nist.gov/15.8.E2) | Deferred: the left side requires analytic continuation for `|z| > 1`; the original and reciprocal series disks have no open overlap. E8 additionally prescribes logarithmic limiting values. |
 | [15.8.E3](https://dlmf.nist.gov/15.8.E3) | New: [`regularized_connection_one_div_one_sub`](FurtherTransformations.lean) |
 | [15.8.E4](https://dlmf.nist.gov/15.8.E4) | New: [`regularized_connection_one_sub`](FurtherTransformations.lean) |
-| [15.8.E5](https://dlmf.nist.gov/15.8.E5) | New: [`regularized_connection_one_sub_inv`](FurtherTransformations.lean) |
-| [15.8.E6](https://dlmf.nist.gov/15.8.E6) | New: [`terminating_inverse`](FurtherTransformations.lean); New: [`terminating_inverse_one_sub`](FurtherTransformations.lean) |
-| [15.8.E7](https://dlmf.nist.gov/15.8.E7) | New: [`terminating_one_sub`](FurtherTransformations.lean); New: [`terminating_one_sub_inv`](FurtherTransformations.lean) |
+| [15.8.E5](https://dlmf.nist.gov/15.8.E5) | New: [`regularized_connection_one_sub_recip`](FurtherTransformations.lean) |
+| [15.8.E6](https://dlmf.nist.gov/15.8.E6) | New: [`terminating_reciprocal`](FurtherTransformations.lean); New: [`terminating_reciprocal_one_sub`](FurtherTransformations.lean) |
+| [15.8.E7](https://dlmf.nist.gov/15.8.E7) | New: [`terminating_one_sub`](FurtherTransformations.lean); New: [`terminating_one_sub_recip`](FurtherTransformations.lean) |
 | [15.8.E8](https://dlmf.nist.gov/15.8.E8) | Deferred: the left side requires analytic continuation for `|z| > 1`; the original and reciprocal series disks have no open overlap. E8 additionally prescribes logarithmic limiting values. |
 | [15.8.E9](https://dlmf.nist.gov/15.8.E9) | New: [`logarithmic_connection_one_div_one_sub`](ConnectionFormulas.lean) |
 | [15.8.E10](https://dlmf.nist.gov/15.8.E10) | New: [`logarithmic_connection_one_sub`](ConnectionFormulas.lean) |
-| [15.8.E11](https://dlmf.nist.gov/15.8.E11) | New: [`logarithmic_connection_one_sub_inv`](ConnectionFormulas.lean) |
+| [15.8.E11](https://dlmf.nist.gov/15.8.E11) | New: [`logarithmic_connection_one_sub_recip`](ConnectionFormulas.lean) |
 | [15.8.E12](https://dlmf.nist.gov/15.8.E12) | General case / specialization: [`regularized_euler`](FurtherTransformations.lean) |
 | [15.8.E13](https://dlmf.nist.gov/15.8.E13) | New: [`quadratic_double_denominator`](FurtherTransformations.lean) |
 | [15.8.E14](https://dlmf.nist.gov/15.8.E14) | New: [`quadratic_double_denominator_one_sub`](FurtherTransformations.lean) |
@@ -215,8 +215,8 @@ theorems and the supporting function definitions, as distinguished in the source
 | [15.8.E19](https://dlmf.nist.gov/15.8.E19) | New: [`quadratic_complementary`](FurtherTransformations.lean) |
 | [15.8.E20](https://dlmf.nist.gov/15.8.E20) | New: [`quadratic_complementary_four_mul`](FurtherTransformations.lean) |
 | [15.8.E21](https://dlmf.nist.gov/15.8.E21) | New: [`quadratic_sqrt`](FurtherTransformations.lean) |
-| [15.8.E22](https://dlmf.nist.gov/15.8.E22) | New: [`quadratic_inverse_sqrt`](FurtherTransformations.lean) |
-| [15.8.E23](https://dlmf.nist.gov/15.8.E23) | New: [`quadratic_inverse_sqrt_complementary`](FurtherTransformations.lean) |
+| [15.8.E22](https://dlmf.nist.gov/15.8.E22) | New: [`quadratic_reciprocal_sqrt`](FurtherTransformations.lean) |
+| [15.8.E23](https://dlmf.nist.gov/15.8.E23) | New: [`quadratic_reciprocal_sqrt_complementary`](FurtherTransformations.lean) |
 | [15.8.E24](https://dlmf.nist.gov/15.8.E24) | New: [`quadratic_connection_well_poised`](ConnectionFormulas.lean) |
 | [15.8.E25](https://dlmf.nist.gov/15.8.E25) | New: [`quadratic_connection_half_sum`](ConnectionFormulas.lean) |
 | [15.8.E26](https://dlmf.nist.gov/15.8.E26) | New: [`quadratic_connection_complementary`](ConnectionFormulas.lean) |
@@ -379,10 +379,10 @@ Validation performed:
 
 ## Later additions (2026-10-21)
 
-Pole-free forms in `LogConnectionsInvGamma.lean`, all proved, with every integrality and pole
+Pole-free forms in `LogConnectionsRecipGamma.lean`, all proved, with every integrality and pole
 hypothesis on the parameters dropped (stronger than DLMF); the original theorems in
 `ConnectionFormulas.lean` are unchanged:
 
-- [15.8.E9](https://dlmf.nist.gov/15.8.E9): `logarithmic_connection_one_div_one_sub_invGamma`.
-- [15.8.E10](https://dlmf.nist.gov/15.8.E10): `logarithmic_connection_one_sub_invGamma`.
-- [15.8.E11](https://dlmf.nist.gov/15.8.E11): `logarithmic_connection_one_sub_inv_invGamma`.
+- [15.8.E9](https://dlmf.nist.gov/15.8.E9): `logarithmic_connection_one_div_one_sub_recipGamma`.
+- [15.8.E10](https://dlmf.nist.gov/15.8.E10): `logarithmic_connection_one_sub_recipGamma`.
+- [15.8.E11](https://dlmf.nist.gov/15.8.E11): `logarithmic_connection_one_sub_recip_recipGamma`.

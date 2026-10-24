@@ -149,7 +149,8 @@ to the DLMF editors as a companion to the Software Index.
   writes the `dlmf_upstream` pointers, with `"source": "pointer"` and the recording module.
 - `scripts/dlmf_ledgers.py` regenerates the declaration links, statuses and module counts of
   the acquisition ledgers (`AiryAcquisition.md`, `DLMF678Acquisition.md`,
-  `DLMF111214Acquisition.md`) from the dump.
+  `DLMF111214Acquisition.md`, `DLMF4Acquisition.md`, `DLMF16Acquisition.md` and
+  `DLMF17Acquisition.md`) from the dump.
 - `scripts/dlmf_index_page.py` renders the dump as a browsable pilot index page (template
   `scripts/dlmf_index_template.html`): `python3 scripts/dlmf_index_page.py dlmf-tags.json
   dlmf-index.html`. It uses the acquisition ledgers and coverage files for the per-section
@@ -163,6 +164,10 @@ including 178 checked pointers (172 to Mathlib, 6 to TauCeti), each verified aga
 DLMF page and the upstream statement: 56 exact, 84 partial, 27 special case, 9 different
 convention, 2 stronger.
 
+The 2026-10-24 compiled snapshot has 4,166 records for 3,181 keys. Chapters 4, 16
+and 17 now have complete numbered-scope ledgers, including explicit exclusions.
+Inserted identifiers such as `16.4.E2_5` remain separate denominator entries.
+
 Limitations of the pilot:
 
 - equation keys carry no subsection, so the page groups by section; the subsection structure
@@ -171,8 +176,8 @@ Limitations of the pilot:
 - the pull-request and GitHub-wide layers are not implemented; they need an authenticated
   GitHub client, which suits a scheduled job in the separate index repository;
 - TauCeti modules not imported by this project are not harvested;
-- denominators exist only for the chapters this project has enumerated (Chapters 6–9, 11–14
-  and 18), and they reflect DLMF version 1.2.8.
+- denominators exist only for the chapters this project has enumerated (Chapters 4, 6–9,
+  11–14 and 16–18), and they reflect DLMF version 1.2.8.
 
 Next steps: agree on the relation vocabulary, add a TauCeti harvest over the whole library and
 a pull-request layer, obtain the DLMF key list per section, and move the aggregator to a

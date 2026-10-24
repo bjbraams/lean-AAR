@@ -5,9 +5,10 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import DLMF.Hypergeometric.Boundary
 public import DLMF.Legendre.Hypergeometric
 public import DLMF.Gamma.Pochhammer
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 
 /-!
 # Boundary asymptotics of Legendre functions
@@ -16,8 +17,8 @@ Behaviour of the Ferrers functions `𝖯^μ_ν`, `𝖰^μ_ν` as `x → 1⁻` an
 `x → 1⁺` and `x → ∞` (DLMF 14.8), for general complex parameters.
 
 The basic tool is an Abelian limit for the regularized Gauss function valid for every `c`
-(`legBd_tendsto_rGHG_one`, DLMF 15.4.20 with Abel's theorem; the case of a nonpositive integer
-`c` is reduced to a regular one through DLMF 15.2.3_5), together with its Euler-transformed
+(`legBd_tendsto_rGHG_one`, from the shared regularized Gauss summation and Mathlib's Abel
+limit theorem, including nonpositive integer `c`), together with its Euler-transformed
 form for `Re(c-a-b) < 0` (`legBd_tendsto_rGHG_one_neg`, DLMF 15.4.23) and the zero-balanced
 logarithmic limit (`legBd_tendsto_rGHG_log`, DLMF 15.4.21). Applied to the defining
 hypergeometric representations (DLMF 14.3.11–14.3.14 for `𝖰`, 14.3.7 for `𝑸`, 14.3.18 for `P`)
@@ -49,23 +50,14 @@ lemma legBd_tendsto_rGHG_one_of_regular {a b c : ℂ} (hc : ∀ k : ℕ, c ≠ -
     (h : 0 < (c-a-b).re) :
     Tendsto (fun x : ℝ => regularizedGaussHG a b c x) (𝓝[<] 1)
       (𝓝 (Gamma (c-a-b) * ((Gamma (c-a))⁻¹ * (Gamma (c-b))⁻¹))) := by
-  have hΓ : Gamma c ≠ 0 := Gamma_ne_zero fun k hk => hc k hk
-  have hA := (tendsto_ordinaryHypergeometric_left_one h).div_const (Gamma c)
-  rw [gauss_summation hc h] at hA
-  have e : Gamma c * Gamma (c - a - b) / (Gamma (c - a) * Gamma (c - b)) / Gamma c =
-      Gamma (c-a-b) * ((Gamma (c-a))⁻¹ * (Gamma (c-b))⁻¹) := by
-    field_simp
-  rw [e] at hA
-  refine hA.congr' ?_
-  filter_upwards [legBd_eventually_norm_lt_one] with x hx
-  rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hx, regularizedGaussHGFun_eq_div_Gamma hc]
+  simpa only [div_eq_mul_inv, mul_inv] using tendsto_regularizedGaussHG_left_one h
 
 /-- `(a)_{n+1} / Γ(1-a) = (-1)^{n+1} / Γ(-n-a)`. -/
-lemma legBd_poch_mul_inv_Gamma (a : ℂ) (n : ℕ) :
+lemma legBd_poch_mul_recip_Gamma (a : ℂ) (n : ℕ) :
     poch a (n+1) * (Gamma (1-a))⁻¹ = (-1)^(n+1) * (Gamma (-n-a))⁻¹ := by
   have h1 := DLMF.Gamma.poch_neg_eq (n+a) (n+1)
   rw [show (n:ℂ)+a-((n+1:ℕ):ℂ)+1 = a by push_cast; ring] at h1
-  have h2 := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (-(n+a)) (n+1)
+  have h2 := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (-(n+a)) (n+1)
   rw [h1, show -((n:ℂ)+a)+((n+1:ℕ):ℂ) = 1-a by push_cast; ring,
     show -((n:ℂ)+a) = -n-a by ring] at h2
   rw [← h2]
@@ -77,38 +69,7 @@ lemma legBd_poch_mul_inv_Gamma (a : ℂ) (n : ℕ) :
 theorem legBd_tendsto_rGHG_one {a b c : ℂ} (h : 0 < (c-a-b).re) :
     Tendsto (fun x : ℝ => regularizedGaussHG a b c x) (𝓝[<] 1)
       (𝓝 (Gamma (c-a-b) * ((Gamma (c-a))⁻¹ * (Gamma (c-b))⁻¹))) := by
-  by_cases hc : ∀ k : ℕ, c ≠ -k
-  · exact legBd_tendsto_rGHG_one_of_regular hc h
-  push Not at hc
-  obtain ⟨n, rfl⟩ := hc
-  have hc2 : ∀ k : ℕ, ((n:ℂ)+2) ≠ -k := fun k hk => by
-    have := congrArg re hk; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
-  have h2 : 0 < ((n:ℂ)+2-(a+n+1)-(b+n+1)).re := by
-    have e : (n:ℂ)+2-(a+n+1)-(b+n+1) = -(n:ℂ)-a-b := by ring
-    rw [e]; exact h
-  have hT := legBd_tendsto_rGHG_one_of_regular hc2 h2
-  have hx : Tendsto (fun x : ℝ => (x:ℂ)^(n+1)) (𝓝[<] 1) (𝓝 1) := by
-    have := ((by fun_prop : Continuous fun x : ℝ => (x:ℂ)^(n+1)).tendsto 1).mono_left
-      (nhdsWithin_le_nhds (s := Iio 1))
-    simpa using this
-  have hT2 := (hx.const_mul (poch a (n+1) * poch b (n+1))).mul hT
-  rw [show (n:ℂ)+2-(a+n+1)-(b+n+1) = -(n:ℂ)-a-b by ring,
-    show (n:ℂ)+2-(a+n+1) = 1-a by ring, show (n:ℂ)+2-(b+n+1) = 1-b by ring] at hT2
-  have e : poch a (n+1) * poch b (n+1) * 1 * (Gamma (-(n:ℂ)-a-b) * ((Gamma (1-a))⁻¹ * (Gamma (1-b))⁻¹)) =
-      Gamma (-(n:ℂ)-a-b) * ((Gamma (-(n:ℂ)-a))⁻¹ * (Gamma (-(n:ℂ)-b))⁻¹) := by
-    have ha := legBd_poch_mul_inv_Gamma a n
-    have hb := legBd_poch_mul_inv_Gamma b n
-    have : ((-1:ℂ)^(n+1))^2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; norm_num
-    calc _ = Gamma (-(n:ℂ)-a-b) * ((poch a (n+1) * (Gamma (1-a))⁻¹) *
-          (poch b (n+1) * (Gamma (1-b))⁻¹)) := by ring
-      _ = _ := by
-        rw [ha, hb]
-        linear_combination (Gamma (-(n:ℂ)-a-b) * (Gamma (-(n:ℂ)-a))⁻¹ * (Gamma (-(n:ℂ)-b))⁻¹) * this
-  rw [e] at hT2
-  refine hT2.congr' ?_
-  filter_upwards [legBd_eventually_norm_lt_one] with x hx
-  rw [regularizedGaussHG_neg_nat _ _ _ (mem_cutPlane_of_norm_lt_one hx)]
-
+  simpa only [div_eq_mul_inv, mul_inv] using tendsto_regularizedGaussHG_left_one h
 
 /-- DLMF 15.4.23 for the regularized function, valid for every `c`: when `Re(c-a-b) < 0`,
 `(1-x)^(a+b-c) 𝐅(a,b;c;x) → Γ(a+b-c)/(Γ(a)Γ(b))` as `x → 1⁻`. -/
@@ -366,7 +327,7 @@ lemma legBd_cos_ne_zero {μ : ℂ} (hμ : 0 < μ.re) (hh : ∀ n : ℕ, μ ≠ n
   exact hh n (by rw [hμk]; push_cast; ring)
 
 /-- `1/x² → 1⁻` as `x → 1⁺`. -/
-lemma legBd_tendsto_inv_sq_nhdsGT :
+lemma legBd_tendsto_recip_sq_nhdsGT :
     Tendsto (fun x : ℝ => 1/x^2) (𝓝[>] (1:ℝ)) (𝓝[<] 1) := by
   refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
   · have := ((by fun_prop (disch := norm_num) : ContinuousAt (fun x : ℝ => 1/x^2) 1).tendsto).mono_left
@@ -377,7 +338,7 @@ lemma legBd_tendsto_inv_sq_nhdsGT :
     rw [div_lt_one (by positivity)]; nlinarith
 
 /-- `1-1/x² → 1⁻` as `x → ∞`. -/
-lemma legBd_tendsto_one_sub_inv_sq_atTop :
+lemma legBd_tendsto_one_sub_recip_sq_atTop :
     Tendsto (fun x : ℝ => 1-1/x^2) atTop (𝓝[<] 1) := by
   refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
   · have h : Tendsto (fun x : ℝ => 1/x^2) atTop (𝓝 0) := by
@@ -410,12 +371,12 @@ lemma legBd_branchPower_eq (μ : ℂ) {x : ℝ} (hx : 1 < x) :
     ← ofReal_log h3.le, ← ofReal_log h0.le, l3, hl1, hl2]
   congr 1; push_cast; ring
 
-/-- `Γ((t+1)/2)⁻¹ Γ((t+2)/2)⁻¹ = 2^t Γ(t+1)⁻¹ / √π` (inverse duplication, all `t`). -/
-lemma legBd_inv_half_Gammas (t : ℂ) :
+/-- `Γ((t+1)/2)⁻¹ Γ((t+2)/2)⁻¹ = 2^t Γ(t+1)⁻¹ / √π` (reciprocal duplication, all `t`). -/
+lemma legBd_recip_half_Gammas (t : ℂ) :
     (Gamma ((t+1)/2))⁻¹ * (Gamma ((t+2)/2))⁻¹ = 2^t * (Gamma (t+1))⁻¹ / (Real.sqrt π : ℂ) := by
   have hsq : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
   have h2 : (2:ℂ)^t ≠ 0 := by simp
-  rw [legendre_inv_duplication t, cpow_neg]
+  rw [legendre_recip_duplication t, cpow_neg]
   field_simp
 
 /-- Boundary limit behind DLMF 14.8.11 for every order with `Re μ > 0`:
@@ -425,7 +386,7 @@ theorem legBd_olverQ_tendsto (ν : ℂ) {μ : ℂ} (hμ : 0 < μ.re) :
       (𝓝 (2^(μ-1) * Gamma μ * (Gamma (ν+μ+1))⁻¹)) := by
   have h1 := (legBd_tendsto_rGHG_one_neg (a := (ν+μ+2)/2) (b := (ν+μ+1)/2) (c := ν+3/2)
     (by rw [show ν+3/2-(ν+μ+2)/2-(ν+μ+1)/2 = -μ by ring, neg_re]; linarith)).comp
-    legBd_tendsto_inv_sq_nhdsGT
+    legBd_tendsto_recip_sq_nhdsGT
   rw [show (ν+μ+2)/2+(ν+μ+1)/2-(ν+3/2) = μ by ring] at h1
   have hc : ContinuousAt (fun x : ℝ => (x:ℂ)^μ / (x:ℂ)^(ν+μ+1)) 1 := by
     refine ContinuousAt.div ?_ ?_ (by simp)
@@ -436,7 +397,7 @@ theorem legBd_olverQ_tendsto (ν : ℂ) {μ : ℂ} (hμ : 0 < μ.re) :
   have hT := (hc1.mul h1).const_mul ((Real.sqrt π:ℂ) / 2^(ν+1))
   have eK : (Real.sqrt π:ℂ) / 2^(ν+1) * (1 * (Gamma μ * ((Gamma ((ν+μ+2)/2))⁻¹ *
       (Gamma ((ν+μ+1)/2))⁻¹))) = 2^(μ-1) * Gamma μ * (Gamma (ν+μ+1))⁻¹ := by
-    have hd := legBd_inv_half_Gammas (ν+μ)
+    have hd := legBd_recip_half_Gammas (ν+μ)
     have hsq : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
     have h2 : (2:ℂ)^(ν+μ) = 2^(ν+1) * 2^(μ-1) := by
       rw [← cpow_add _ _ (by norm_num)]; ring_nf
@@ -499,7 +460,7 @@ theorem legBd_associatedP_tendsto_atTop {ν : ℂ} (hν : -1/2 < ν.re) (μ : �
       (𝓝 (2^ν * Gamma (ν+1/2) * (Gamma (ν-μ+1))⁻¹ / (Real.sqrt π : ℂ))) := by
   have h1 := (legBd_tendsto_rGHG_one (a := (-μ-ν)/2) (b := (-μ-ν+1)/2) (c := -μ+1)
     (by rw [show -μ+1-(-μ-ν)/2-(-μ-ν+1)/2 = ν+1/2 by ring, add_re]; norm_num; linarith)).comp
-    legBd_tendsto_one_sub_inv_sq_atTop
+    legBd_tendsto_one_sub_recip_sq_atTop
   rw [show -μ+1-(-μ-ν)/2-(-μ-ν+1)/2 = ν+1/2 by ring, show -μ+1-(-μ-ν)/2 = ((ν-μ)+2)/2 by ring,
     show -μ+1-(-μ-ν+1)/2 = ((ν-μ)+1)/2 by ring] at h1
   have hw : Tendsto (fun x : ℝ => (1-1/(x:ℂ)^2)^((-μ)/2)) atTop (𝓝 1) := by
@@ -515,7 +476,7 @@ theorem legBd_associatedP_tendsto_atTop {ν : ℂ} (hν : -1/2 < ν.re) (μ : �
   have hT := (hw.mul h1).const_mul ((2:ℂ)^μ)
   have eK : (2:ℂ)^μ * (1 * (Gamma (ν+1/2) * ((Gamma (((ν-μ)+2)/2))⁻¹ * (Gamma (((ν-μ)+1)/2))⁻¹))) =
       2^ν * Gamma (ν+1/2) * (Gamma (ν-μ+1))⁻¹ / (Real.sqrt π : ℂ) := by
-    have hd := legBd_inv_half_Gammas (ν-μ)
+    have hd := legBd_recip_half_Gammas (ν-μ)
     have h2 : (2:ℂ)^μ * 2^(ν-μ) = 2^ν := by rw [← cpow_add _ _ (by norm_num)]; ring_nf
     rw [show (Gamma (((ν-μ)+2)/2))⁻¹ * (Gamma (((ν-μ)+1)/2))⁻¹ =
       (Gamma ((ν-μ+1)/2))⁻¹ * (Gamma ((ν-μ+2)/2))⁻¹ by ring, hd, ← h2]
@@ -572,8 +533,8 @@ theorem legBd_tendsto_rGHG_log (a b : ℂ) :
   have hT2 := (hx.const_mul (poch a (n+1) * poch b (n+1))).mul hT
   have e : poch a (n+1) * poch b (n+1) * 1 * ((Gamma (a+n+1))⁻¹ * (Gamma (b+n+1))⁻¹) =
       (Gamma a)⁻¹ * (Gamma b)⁻¹ := by
-    have ha := DLMF.Gamma.poch_mul_inv_Gamma_add_nat a (n+1)
-    have hb := DLMF.Gamma.poch_mul_inv_Gamma_add_nat b (n+1)
+    have ha := DLMF.Gamma.poch_mul_recip_Gamma_add_nat a (n+1)
+    have hb := DLMF.Gamma.poch_mul_recip_Gamma_add_nat b (n+1)
     push_cast at ha hb
     rw [show a+(n+1) = a+n+1 by ring] at ha
     rw [show b+(n+1) = b+n+1 by ring] at hb
@@ -591,7 +552,7 @@ theorem legBd_associatedP_half_tendsto_atTop (μ : ℂ) :
     Tendsto (fun x : ℝ => (x:ℂ)^(1/2:ℂ) / (Real.log x : ℂ) * associatedP (-1/2) μ x) atTop
       (𝓝 (2^(1/2:ℂ) * (Gamma (1/2-μ))⁻¹ / (Real.sqrt π : ℂ))) := by
   have h1 := (legBd_tendsto_rGHG_log ((1/2-μ)/2) ((3/2-μ)/2)).comp
-    legBd_tendsto_one_sub_inv_sq_atTop
+    legBd_tendsto_one_sub_recip_sq_atTop
   have hw : Tendsto (fun x : ℝ => (1-1/(x:ℂ)^2)^((-μ)/2)) atTop (𝓝 1) := by
     have hc : ContinuousAt (fun w : ℂ => (1-w)^((-μ)/2)) 0 :=
       ContinuousAt.cpow (by fun_prop) continuousAt_const (by norm_num)
@@ -605,7 +566,7 @@ theorem legBd_associatedP_half_tendsto_atTop (μ : ℂ) :
   have hT := (hw.mul h1).const_mul ((2:ℂ)^μ * 2)
   have eK : (2:ℂ)^μ * 2 * (1 * ((Gamma ((1/2-μ)/2))⁻¹ * (Gamma ((3/2-μ)/2))⁻¹)) =
       2^(1/2:ℂ) * (Gamma (1/2-μ))⁻¹ / (Real.sqrt π : ℂ) := by
-    have hd := legBd_inv_half_Gammas (-1/2-μ)
+    have hd := legBd_recip_half_Gammas (-1/2-μ)
     rw [show (-1/2-μ+1)/2 = (1/2-μ)/2 by ring, show (-1/2-μ+2)/2 = (3/2-μ)/2 by ring,
       show -1/2-μ+1 = 1/2-μ by ring] at hd
     have h2 : (2:ℂ)^μ * 2 * 2^(-1/2-μ) = 2^(1/2:ℂ) := by
@@ -658,7 +619,7 @@ open DLMF.Gamma
 def legBdK (a b : ℂ) : ℂ := (Gamma a)⁻¹ * (Gamma b)⁻¹
 
 /-- Constant `(1/Γ)'(a)/Γ(b) + (1/Γ)'(b)/Γ(a)` of the zero-balanced expansion. -/
-def legBdK' (a b : ℂ) : ℂ := invGammaDeriv 1 b * (Gamma a)⁻¹ + (Gamma b)⁻¹ * invGammaDeriv 1 a
+def legBdK' (a b : ℂ) : ℂ := recipGammaDeriv 1 b * (Gamma a)⁻¹ + (Gamma b)⁻¹ * recipGammaDeriv 1 a
 
 /-- The analytic part of the zero-balanced expansion of `𝐅(a,b;a+b;1-w)`. -/
 def legBdZbH (a b w : ℂ) : ℂ :=
@@ -705,13 +666,13 @@ theorem legBd_zeroBalanced_eq (a b : ℂ) {z : ℂ} (hz : ‖z‖ < 1) (hw : ‖
       (Set.mem_univ _)).differentiableAt
   have e1 : c₀ - a = b := by rw [hc₀]; ring
   have e2 : c₀ - b = a := by rw [hc₀]; ring
-  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (invGammaDeriv 1 b) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 b) (c₀ - a) := by
-      rw [e1]; exact hasDerivAt_inv_Gamma' _
+  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (recipGammaDeriv 1 b) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 b) (c₀ - a) := by
+      rw [e1]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const a)
-  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (invGammaDeriv 1 a) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 a) (c₀ - b) := by
-      rw [e2]; exact hasDerivAt_inv_Gamma' _
+  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (recipGammaDeriv 1 a) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 a) (c₀ - b) := by
+      rw [e2]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const b)
   have hP : HasDerivAt (fun c : ℂ => w ^ (c - a - b)) (w ^ (0 : ℂ) * log w * 1) c₀ := by
     have h := (((hasDerivAt_id c₀).sub_const a).sub_const b).const_cpow (c := w) (Or.inl hw0)
@@ -772,13 +733,13 @@ theorem legBd_zbH_hasSum (a b : ℂ) {w : ℂ} (hw : ‖w‖ < 1) :
   · funext n
     have hd1 : DifferentiableAt ℂ (fun c => poch a n * poch b n / n.factorial *
         (Gamma (a+b-c+1+n))⁻¹) (a+b) :=
-      (differentiableAt_const _).mul (DLMF.Gamma.differentiable_inv_Gamma.comp (by fun_prop) _)
+      (differentiableAt_const _).mul (DLMF.Gamma.differentiable_recip_Gamma.comp (by fun_prop) _)
     have hd2 : DifferentiableAt ℂ (fun c => poch (c-a) n * poch (c-b) n / n.factorial *
         (Gamma (c-a-b+1+n))⁻¹) (a+b) := by
       have hp : Differentiable ℂ fun y : ℂ => poch y n := Polynomial.differentiable _
       exact ((((hp.comp (by fun_prop : Differentiable ℂ fun c : ℂ => c - a)) _).mul
         ((hp.comp (by fun_prop : Differentiable ℂ fun c : ℂ => c - b)) _)).div_const _).mul
-        (DLMF.Gamma.differentiable_inv_Gamma.comp (by fun_prop) _)
+        (DLMF.Gamma.differentiable_recip_Gamma.comp (by fun_prop) _)
     have e1 := legBd_deriv_mul_pow hd1 w n
     have e2 := legBd_deriv_mul_pow hd2 w n
     have r1 : (fun c => poch a n * poch b n * w ^ n / n.factorial * (Gamma (a+b-c+1+n))⁻¹) =
@@ -792,8 +753,8 @@ theorem legBd_zbH_hasSum (a b : ℂ) {w : ℂ} (hw : ‖w‖ < 1) :
   · rfl
 
 /-- `(1/Γ)'(1) = γ`. -/
-lemma legBd_invGammaDeriv_one_one : invGammaDeriv 1 1 = Real.eulerMascheroniConstant := by
-  rw [invGammaDeriv_one_eq (fun m h => by
+lemma legBd_recipGammaDeriv_one_one : recipGammaDeriv 1 1 = Real.eulerMascheroniConstant := by
+  rw [recipGammaDeriv_one_eq (fun m h => by
     have := congrArg re h; simp at this; linarith [(m.cast_nonneg : (0:ℝ) ≤ m)]),
     Complex.digamma_one, Complex.Gamma_one]
   simp
@@ -801,17 +762,17 @@ lemma legBd_invGammaDeriv_one_one : invGammaDeriv 1 1 = Real.eulerMascheroniCons
 /-- The constant term of the analytic part: `H(0) = K' - 2γK`. -/
 theorem legBd_zbCoeff_zero (a b : ℂ) :
     legBdZbCoeff a b 0 = legBdK' a b - 2 * Real.eulerMascheroniConstant * legBdK a b := by
-  have h1 : HasDerivAt (fun c : ℂ => (Gamma (a+b-c+1))⁻¹) (invGammaDeriv 1 1 * (-1)) (a+b) := by
+  have h1 : HasDerivAt (fun c : ℂ => (Gamma (a+b-c+1))⁻¹) (recipGammaDeriv 1 1 * (-1)) (a+b) := by
     have hi : HasDerivAt (fun c : ℂ => a+b-c+1) (-1) (a+b) := by
       simpa using ((hasDerivAt_id (a+b)).const_sub (a+b)).add_const (1:ℂ)
-    exact (hasDerivAt_inv_Gamma' (1:ℂ)).comp_of_eq (a+b) hi (by ring)
-  have h2 : HasDerivAt (fun c : ℂ => (Gamma (c-a-b+1))⁻¹) (invGammaDeriv 1 1 * 1) (a+b) := by
+    exact (hasDerivAt_recip_Gamma' (1:ℂ)).comp_of_eq (a+b) hi (by ring)
+  have h2 : HasDerivAt (fun c : ℂ => (Gamma (c-a-b+1))⁻¹) (recipGammaDeriv 1 1 * 1) (a+b) := by
     have hi : HasDerivAt (fun c : ℂ => c-a-b+1) 1 (a+b) := by
       simpa using (((hasDerivAt_id (a+b)).sub_const a).sub_const b).add_const (1:ℂ)
-    exact (hasDerivAt_inv_Gamma' (1:ℂ)).comp_of_eq (a+b) hi (by ring)
+    exact (hasDerivAt_recip_Gamma' (1:ℂ)).comp_of_eq (a+b) hi (by ring)
   simp only [legBdZbCoeff, poch_zero, Nat.factorial_zero, Nat.cast_one, div_one, one_mul,
     Nat.cast_zero, add_zero, Complex.Gamma_one, inv_one, mul_one]
-  rw [h1.deriv, h2.deriv, legBd_invGammaDeriv_one_one]
+  rw [h1.deriv, h2.deriv, legBd_recipGammaDeriv_one_one]
   ring
 
 /-- A power series converging on the unit disk is `H(0) + O(w)` at `w = 0`. -/
@@ -919,28 +880,28 @@ theorem legBd_zeroBalanced_isBigO (a b : ℂ) :
 `(√π/2^(s+1)) K'((s+2)/2,(s+1)/2) = (1/Γ)'(s+1) + ln 2 / Γ(s+1)`. -/
 lemma legBd_duplication_deriv (s : ℂ) :
     (Real.sqrt π : ℂ) / 2^(s+1) * legBdK' ((s+2)/2) ((s+1)/2) =
-      invGammaDeriv 1 (s+1) + Real.log 2 * (Gamma (s+1))⁻¹ := by
+      recipGammaDeriv 1 (s+1) + Real.log 2 * (Gamma (s+1))⁻¹ := by
   have hfun : (fun u : ℂ => (Gamma (u+1))⁻¹) = fun u =>
       (Gamma ((u+1)/2))⁻¹*(Gamma ((u+2)/2))⁻¹*2^(-u)*(Real.sqrt π:ℂ) :=
-    funext legendre_inv_duplication
-  have hL : HasDerivAt (fun u : ℂ => (Gamma (u+1))⁻¹) (invGammaDeriv 1 (s+1)) s := by
-    have := (hasDerivAt_inv_Gamma' (s+1)).comp s ((hasDerivAt_id s).add_const 1)
+    funext legendre_recip_duplication
+  have hL : HasDerivAt (fun u : ℂ => (Gamma (u+1))⁻¹) (recipGammaDeriv 1 (s+1)) s := by
+    have := (hasDerivAt_recip_Gamma' (s+1)).comp s ((hasDerivAt_id s).add_const 1)
     simpa [Function.comp_def] using this
-  have h1 : HasDerivAt (fun u : ℂ => (Gamma ((u+1)/2))⁻¹) (invGammaDeriv 1 ((s+1)/2) * (1/2)) s := by
+  have h1 : HasDerivAt (fun u : ℂ => (Gamma ((u+1)/2))⁻¹) (recipGammaDeriv 1 ((s+1)/2) * (1/2)) s := by
     have hi : HasDerivAt (fun u : ℂ => (u+1)/2) (1/2) s := by
       simpa using ((hasDerivAt_id s).add_const (1:ℂ)).div_const 2
-    exact (hasDerivAt_inv_Gamma' _).comp s hi
-  have h2 : HasDerivAt (fun u : ℂ => (Gamma ((u+2)/2))⁻¹) (invGammaDeriv 1 ((s+2)/2) * (1/2)) s := by
+    exact (hasDerivAt_recip_Gamma' _).comp s hi
+  have h2 : HasDerivAt (fun u : ℂ => (Gamma ((u+2)/2))⁻¹) (recipGammaDeriv 1 ((s+2)/2) * (1/2)) s := by
     have hi : HasDerivAt (fun u : ℂ => (u+2)/2) (1/2) s := by
       simpa using ((hasDerivAt_id s).add_const (2:ℂ)).div_const 2
-    exact (hasDerivAt_inv_Gamma' _).comp s hi
+    exact (hasDerivAt_recip_Gamma' _).comp s hi
   have h3 : HasDerivAt (fun u : ℂ => (2:ℂ)^(-u)) ((2:ℂ)^(-s) * log 2 * (-1)) s :=
     (hasDerivAt_neg s).const_cpow (Or.inl (by norm_num))
   have hR := ((h1.mul h2).mul h3).mul_const (Real.sqrt π:ℂ)
   rw [hfun] at hL
   have hk := hL.unique hR
   simp only [Pi.mul_apply] at hk
-  have hd := legendre_inv_duplication s
+  have hd := legendre_recip_duplication s
   have hl2 : log (2:ℂ) = (Real.log 2 : ℂ) := by
     rw [show (2:ℂ) = ((2:ℝ):ℂ) by norm_num, ofReal_log (by norm_num)]
   have h2s : (2:ℂ)^(s+1) = 2 * 2^s := by
@@ -984,7 +945,7 @@ lemma legBd_tendsto_sub_one_nhdsGT :
     simp only [mem_Ioi, sub_pos]; exact hx
 
 /-- `1 - 1/x² → 0⁺` as `x → 1⁺`. -/
-lemma legBd_tendsto_one_sub_inv_sq_nhdsGT :
+lemma legBd_tendsto_one_sub_recip_sq_nhdsGT :
     Tendsto (fun x : ℝ => 1 - 1/x^2) (𝓝[>] (1:ℝ)) (𝓝[>] 0) := by
   refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
   · have := ((by fun_prop (disch := norm_num) : ContinuousAt (fun x : ℝ => 1 - 1/x^2) 1).tendsto).mono_left
@@ -996,7 +957,7 @@ lemma legBd_tendsto_one_sub_inv_sq_nhdsGT :
 
 /-- DLMF 14.8.9 with `ψ(ν+1)/Γ(ν+1)` written as `-(1/Γ)'(ν+1)`, for all `ν`. -/
 theorem legBd_olverQ_log_isBigO (ν : ℂ) :
-    (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant)/Gamma (ν+1)-DLMF.Gamma.invGammaDeriv 1 (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) := by
+    (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant)/Gamma (ν+1)-DLMF.Gamma.recipGammaDeriv 1 (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) := by
   set a : ℂ := (ν+0+2)/2 with ha
   set b : ℂ := (ν+0+1)/2 with hb
   set K := legBdK a b with hK
@@ -1008,18 +969,18 @@ theorem legBd_olverQ_log_isBigO (ν : ℂ) :
   have h2n : (2:ℂ)^(ν+1) ≠ 0 := by simp
   -- constants
   have hpK : p0 * K = 1 / (2 * Gamma (ν+1)) := by
-    have hd := legBd_inv_half_Gammas ν
+    have hd := legBd_recip_half_Gammas ν
     have e : K = (Gamma ((ν+1)/2))⁻¹ * (Gamma ((ν+2)/2))⁻¹ := by
       rw [hK, legBdK, ha, hb]; ring_nf
     rw [e, hd, hp0, show (2:ℂ)^(ν+1) = 2 * 2^ν by rw [cpow_add _ _ (by norm_num), cpow_one]; ring]
     have : (2:ℂ)^ν ≠ 0 := by simp
     field_simp
-  have hpK' : p0 * K' = DLMF.Gamma.invGammaDeriv 1 (ν+1) + Real.log 2 * (Gamma (ν+1))⁻¹ := by
+  have hpK' : p0 * K' = DLMF.Gamma.recipGammaDeriv 1 (ν+1) + Real.log 2 * (Gamma (ν+1))⁻¹ := by
     have := legBd_duplication_deriv ν
     rw [hp0, hK', ha, hb, show (ν+0+2)/2 = (ν+2)/2 by ring, show (ν+0+1)/2 = (ν+1)/2 by ring]
     exact this
   -- the pieces
-  have hZ := ((legBd_zeroBalanced_isBigO a b).comp_tendsto legBd_tendsto_one_sub_inv_sq_nhdsGT)
+  have hZ := ((legBd_zeroBalanced_isBigO a b).comp_tendsto legBd_tendsto_one_sub_recip_sq_nhdsGT)
   have hcmp := legBd_log_comparison (l := 𝓝[>] (1:ℝ)) (s := fun x => x - 1) (t := fun x => 1 - 1/x^2)
     (by
       filter_upwards [self_mem_nhdsWithin, Ioo_mem_nhdsGT (show (1:ℝ) < 3/2 by norm_num)] with x
@@ -1096,15 +1057,15 @@ theorem legBd_olverQ_log_isBigO (ν : ℂ) :
 /-- The derivative of the reflection formula for `1/Γ`:
 `π((1/Γ)'(s)/Γ(1-s) - (1/Γ)'(1-s)/Γ(s)) = π cos(πs)`. -/
 lemma legBd_reflection_deriv (s : ℂ) :
-    π * (invGammaDeriv 1 s * (Gamma (1-s))⁻¹ - (Gamma s)⁻¹ * invGammaDeriv 1 (1-s)) =
+    π * (recipGammaDeriv 1 s * (Gamma (1-s))⁻¹ - (Gamma s)⁻¹ * recipGammaDeriv 1 (1-s)) =
       π * cos (π * s) := by
   have hfun : (fun u : ℂ => π*((Gamma u)⁻¹*(Gamma (1-u))⁻¹)) = fun u => sin (π*u) :=
-    funext legendre_inv_Gamma_reflection
-  have h1 := hasDerivAt_inv_Gamma' s
-  have h2 : HasDerivAt (fun u : ℂ => (Gamma (1-u))⁻¹) (invGammaDeriv 1 (1-s) * (-1)) s := by
+    funext legendre_recip_Gamma_reflection
+  have h1 := hasDerivAt_recip_Gamma' s
+  have h2 : HasDerivAt (fun u : ℂ => (Gamma (1-u))⁻¹) (recipGammaDeriv 1 (1-s) * (-1)) s := by
     have hi : HasDerivAt (fun u : ℂ => 1-u) (-1) s := by
       simpa using (hasDerivAt_id s).const_sub (1:ℂ)
-    exact (hasDerivAt_inv_Gamma' _).comp s hi
+    exact (hasDerivAt_recip_Gamma' _).comp s hi
   have hL := (h1.mul h2).const_mul (π:ℂ)
   have hR : HasDerivAt (fun u : ℂ => sin (π*u)) (cos (π*s) * (π*1)) s :=
     ((hasDerivAt_id s).const_mul (π:ℂ)).csin
@@ -1150,8 +1111,8 @@ lemma legBd_ferrersQ_consts {ν : ℂ} (h : LegendreQRegular ν 0) :
     have k2 : G2 * G2⁻¹ = 1 := mul_inv_cancel₀ hg2
     field_simp
     linear_combination hpy + S^2 * k1 + C^2 * k2
-  · set Db1 := invGammaDeriv 1 ((ν+1)/2) with hDb1
-    set Db2 := invGammaDeriv 1 ((ν+2)/2) with hDb2
+  · set Db1 := recipGammaDeriv 1 ((ν+1)/2) with hDb1
+    set Db2 := recipGammaDeriv 1 ((ν+2)/2) with hDb2
     have hν1 : ∀ m : ℕ, ν + 1 ≠ -(m:ℂ) := fun m hm => h m (by linear_combination hm)
     have hΓn : Gamma (ν+1) ≠ 0 := Gamma_ne_zero hν1
     -- derivative of the reflection formula at `-ν/2` and `(1-ν)/2`
@@ -1161,21 +1122,21 @@ lemma legBd_ferrersQ_consts {ν : ℂ} (h : LegendreQRegular ν 0) :
     have d2 := legBd_reflection_deriv ((1-ν)/2)
     rw [show (1:ℂ) - (1-ν)/2 = (ν+1)/2 by ring,
       show (π:ℂ) * ((1-ν)/2) = π/2 - ν*π/2 by ring, cos_pi_div_two_sub, ← hS, ← hG1, ← hDb1] at d2
-    have hDa1 : invGammaDeriv 1 (-ν/2) = (C + (Gamma (-ν/2))⁻¹ * Db2) * G2 := by
+    have hDa1 : recipGammaDeriv 1 (-ν/2) = (C + (Gamma (-ν/2))⁻¹ * Db2) * G2 := by
       have k : G2⁻¹ * G2 = 1 := inv_mul_cancel₀ hg2
-      have : invGammaDeriv 1 (-ν/2) * G2⁻¹ - (Gamma (-ν/2))⁻¹ * Db2 = C :=
+      have : recipGammaDeriv 1 (-ν/2) * G2⁻¹ - (Gamma (-ν/2))⁻¹ * Db2 = C :=
         mul_left_cancel₀ hpi d1
-      linear_combination G2 * this - invGammaDeriv 1 (-ν/2) * k
-    have hDa2 : invGammaDeriv 1 ((1-ν)/2) = (S + (Gamma ((1-ν)/2))⁻¹ * Db1) * G1 := by
+      linear_combination G2 * this - recipGammaDeriv 1 (-ν/2) * k
+    have hDa2 : recipGammaDeriv 1 ((1-ν)/2) = (S + (Gamma ((1-ν)/2))⁻¹ * Db1) * G1 := by
       have k : G1⁻¹ * G1 = 1 := inv_mul_cancel₀ hg1
-      have : invGammaDeriv 1 ((1-ν)/2) * G1⁻¹ - (Gamma ((1-ν)/2))⁻¹ * Db1 = S :=
+      have : recipGammaDeriv 1 ((1-ν)/2) * G1⁻¹ - (Gamma ((1-ν)/2))⁻¹ * Db1 = S :=
         mul_left_cancel₀ hpi d2
-      linear_combination G1 * this - invGammaDeriv 1 ((1-ν)/2) * k
+      linear_combination G1 * this - recipGammaDeriv 1 ((1-ν)/2) * k
     -- the duplication data
     have hkey : G1 * Db1 + G2 * Db2 = 2 * (Real.log 2 - digamma (ν+1)) := by
       have dup' := legBd_duplication_deriv ν
-      have dup := legendre_inv_duplication ν
-      have psi := invGammaDeriv_one_eq hν1
+      have dup := legendre_recip_duplication ν
+      have psi := recipGammaDeriv_one_eq hν1
       have hsq : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
       have h2 : (2:ℂ)^ν ≠ 0 := by simp
       have hne : (Real.sqrt π:ℂ) / (2^ν * G1 * G2) ≠ 0 := by

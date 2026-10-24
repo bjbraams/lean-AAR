@@ -596,7 +596,7 @@ theorem pcfU_temme_uniform {δ : ℝ} (hδ : 0 < δ) :
       (fun t ht => pcfLG_hasDerivAt_A (hb.trans ht))
       (fun t ht => pcfLG_hasDerivAt_A1 (hb.trans ht))
       (pcfLG_continuousOn_A2.mono (Ioi_subset_Ioi hb.le))
-      (fun t ht => by rw [pcfLG_A_sq_inv (hb.trans ht)]; exact pcfLG_hasDerivAt_xi (hb.trans ht))
+      (fun t ht => by rw [pcfLG_A_sq_recip (hb.trans ht)]; exact pcfLG_hasDerivAt_xi (hb.trans ht))
       (fun c hc => pcfLG_integrableOn_V (hb.trans hc)) (fun t ht => hV t ht.le)
       pcfLG_tendsto_A hN (a := pcfLG2_Ta) (ad := pcfLG2_Tad) (ad2 := pcfLG2_Tad2)
       (l := fun s => (pcfTemmePoly s).eval 0)
@@ -612,7 +612,7 @@ theorem pcfU_temme_uniform {δ : ℝ} (hδ : 0 < δ) :
       (U' := fun μ t => (μ:ℂ) * Real.sqrt 2 * pcfUDeriv (-μ^2/2) (μ*t*Real.sqrt 2))
       (H := fun μ => pcfH μ) (fun μ t _ => pcfLG_hasDerivAt_U μ t)
       (fun μ t ht => (pcfLG_hasDerivAt_U' μ t).congr_deriv (by
-        rw [pcfLG_A_pow_four_inv (hb.trans ht)]))
+        rw [pcfLG_A_pow_four_recip (hb.trans ht)]))
       (fun μ hμ => pcfLG_tendsto_U_div (by linarith)) le_rfl hμ₀ hμ₀C
     refine IsBigO.of_bound C (pcfLG_eventually_uniform μ₀ fun μ hμ t ht => ?_)
     have hμ0 : 0 < μ := by linarith
@@ -841,14 +841,14 @@ lemma pcfLG2_hasDerivAt_PA1 (t : ℝ) : HasDerivAt pcfLG2_PA1 (pcfLG2_PA2 t) t :
 lemma pcfLG2_PA_pos (t : ℝ) : 0 < pcfLG2_PA t := Real.rpow_pos_of_pos (by positivity) _
 
 /-- `A⁻² = √(t²+1)`. -/
-lemma pcfLG2_PA_sq_inv (t : ℝ) : (pcfLG2_PA t ^ 2)⁻¹ = Real.sqrt (t^2+1) := by
+lemma pcfLG2_PA_sq_recip (t : ℝ) : (pcfLG2_PA t ^ 2)⁻¹ = Real.sqrt (t^2+1) := by
   have hy : 0 < t^2+1 := by positivity
   rw [pcfLG2_PA, ← Real.rpow_natCast, ← Real.rpow_mul hy.le, ← Real.rpow_neg hy.le,
     Real.sqrt_eq_rpow]
   norm_num
 
 /-- `A⁻⁴ = t²+1`. -/
-lemma pcfLG2_PA_pow_four_inv (t : ℝ) : (pcfLG2_PA t ^ 4)⁻¹ = t^2+1 := by
+lemma pcfLG2_PA_pow_four_recip (t : ℝ) : (pcfLG2_PA t ^ 4)⁻¹ = t^2+1 := by
   have hy : 0 < t^2+1 := by positivity
   rw [pcfLG2_PA, ← Real.rpow_natCast, ← Real.rpow_mul hy.le, ← Real.rpow_neg hy.le]
   norm_num
@@ -955,7 +955,7 @@ lemma pcfLG2_abs_eval_le (P : Polynomial ℝ) {d : ℕ} (hd : P.natDegree ≤ d)
         linarith)
 
 /-- `(t²+1)^{-3/2} ≤ (1+t²)⁻¹`. -/
-lemma pcfLG2_rpow_le_inv (t : ℝ) : (t^2+1) ^ (-(3/2):ℝ) ≤ (1+t^2)⁻¹ := by
+lemma pcfLG2_rpow_le_recip (t : ℝ) : (t^2+1) ^ (-(3/2):ℝ) ≤ (1+t^2)⁻¹ := by
   have hy : 1 ≤ t^2+1 := by nlinarith [sq_nonneg t]
   calc (t^2+1) ^ (-(3/2):ℝ) ≤ (t^2+1) ^ (-1:ℝ) :=
         Real.rpow_le_rpow_of_exponent_le hy (by norm_num)
@@ -1014,7 +1014,7 @@ lemma pcfLG2_abs_Pad_le (N : ℕ) : ∃ K, ∀ t, |pcfLG2_Pad N t| ≤ K * (1 + 
             (t^2+1) ^ (((3*m+2:ℕ):ℝ)/2) * (t^2+1) ^ (-((3*((m+1:ℕ):ℝ)+2)/2)) := by gcongr
       _ = (∑ i ∈ Finset.range (3*m+2+1), |(pcfLG2_R (m+1)).coeff i|) * (t^2+1) ^ (-(3/2):ℝ) := by
           rw [mul_assoc, e]
-      _ ≤ _ := mul_le_mul_of_nonneg_left (pcfLG2_rpow_le_inv t) hS
+      _ ≤ _ := mul_le_mul_of_nonneg_left (pcfLG2_rpow_le_recip t) hS
 
 /-- `A A'' = (3t²-2)/4 · (t²+1)^{-5/2}`. -/
 lemma pcfLG2_PA_mul_PA2 (t : ℝ) :
@@ -1037,7 +1037,7 @@ lemma pcfLG2_abs_V_le (t : ℝ) :
   calc |(3*t^2-2)/4| * (t^2+1) ^ (-(5/2):ℝ) ≤ 3/4 * (t^2+1) * (t^2+1) ^ (-(5/2):ℝ) := by
         gcongr
     _ = 3/4 * (t^2+1) ^ (-(3/2):ℝ) := by rw [mul_assoc, e]
-    _ ≤ _ := by gcongr; exact pcfLG2_rpow_le_inv t
+    _ ≤ _ := by gcongr; exact pcfLG2_rpow_le_recip t
 
 /-- Continuity of the error-control integrand. -/
 lemma pcfLG2_continuous_V :
@@ -1501,7 +1501,7 @@ lemma pcfLG2_pos_core {N : ℕ} (hN : 1 ≤ N) : ∃ C μ₀ : ℝ, 0 ≤ C ∧ 
         unfold pcfLG2_PA2
         exact (Continuous.mul (by fun_prop)
           (Continuous.rpow_const (by fun_prop) fun t => Or.inl (by positivity))).continuousAt).continuousOn
-    (fun t _ => by rw [pcfLG2_PA_sq_inv]; exact pcfLG2_hasDerivAt_xiBar t)
+    (fun t _ => by rw [pcfLG2_PA_sq_recip]; exact pcfLG2_hasDerivAt_xiBar t)
     (fun c _ => (pcfLG2_integrable_of_le pcfLG2_continuous_V pcfLG2_abs_V_le).integrableOn)
     (fun t _ => pcfLG2_tail_le pcfLG2_continuous_V pcfLG2_abs_V_le t)
     pcfLG2_tendsto_PA hN (a := pcfLG2_Pa) (ad := pcfLG2_Pad) (ad2 := pcfLG2_Pad2)
@@ -1519,7 +1519,7 @@ lemma pcfLG2_pos_core {N : ℕ} (hN : 1 ≤ N) : ∃ C μ₀ : ℝ, 0 ≤ C ∧ 
     (U := fun μ t => pcfU (μ^2/2) (μ*t*Real.sqrt 2))
     (U' := fun μ t => (μ:ℂ) * Real.sqrt 2 * pcfUDeriv (μ^2/2) (μ*t*Real.sqrt 2))
     (H := fun μ => (((μ * Real.sqrt 2 * pcfLG_h μ)⁻¹ : ℝ) : ℂ)) (fun μ t _ => pcfLG2_hasDerivAt_PU μ t)
-    (fun μ t _ => (pcfLG2_hasDerivAt_PU' μ t).congr_deriv (by rw [pcfLG2_PA_pow_four_inv]))
+    (fun μ t _ => (pcfLG2_hasDerivAt_PU' μ t).congr_deriv (by rw [pcfLG2_PA_pow_four_recip]))
     (fun μ hμ => pcfLG2_tendsto_PU_div (by linarith)) le_rfl hμ₀ hμ₀C
   refine ⟨((hcore 0) μ hμ).1, fun t => ?_⟩
   obtain ⟨-, ε, ε', hε⟩ := (hcore (t-1)) μ hμ
@@ -1534,7 +1534,7 @@ lemma pcfLG2_pos_core {N : ℕ} (hN : 1 ≤ N) : ∃ C μ₀ : ℝ, 0 ≤ C ∧ 
   have : μ₀^2 ≤ μ^2 := by nlinarith
   nlinarith
 
-/-! ### Asymptotic expansions in inverse powers: algebra -/
+/-! ### Asymptotic expansions in reciprocal powers: algebra -/
 
 /-- `f(u) ∼ ∑ a_s u^{-s}` as `u → ∞`. -/
 def pcfLG2_HasExp (f : ℝ → ℂ) (a : ℕ → ℂ) : Prop :=
@@ -1575,7 +1575,7 @@ lemma pcfLG2_trunc_coeff (N : ℕ) (a : ℕ → ℂ) (n : ℕ) :
     simp [Ne.symm this]
 
 /-- A polynomial with vanishing coefficients below `N`, evaluated at `1/u`, is `O(u^{-N})`. -/
-lemma pcfLG2_isBigO_eval_inv {Q : ℂ[X]} {N : ℕ} (hQ : ∀ n < N, Q.coeff n = 0) :
+lemma pcfLG2_isBigO_eval_recip {Q : ℂ[X]} {N : ℕ} (hQ : ∀ n < N, Q.coeff n = 0) :
     (fun u : ℝ => Q.eval ((u:ℂ)⁻¹)) =O[atTop] (fun u : ℝ => (u:ℂ)^(-(N:ℤ))) := by
   obtain ⟨Q', hQ'⟩ := (X_pow_dvd_iff).2 hQ
   have hb : (fun u : ℝ => Q'.eval ((u:ℂ)⁻¹)) =O[atTop] (fun _ => (1:ℂ)) := by
@@ -1624,7 +1624,7 @@ lemma pcfLG2_HasExp.mul {f g : ℝ → ℂ} {a b : ℕ → ℂ} (ha : pcfLG2_Has
     have := Finset.mem_antidiagonal.1 hx
     rw [pcfLG2_trunc_coeff, pcfLG2_trunc_coeff]
     simp [show x.1 < N by omega, show x.2 < N by omega]
-  have h3 := pcfLG2_isBigO_eval_inv hQ
+  have h3 := pcfLG2_isBigO_eval_recip hQ
   have h1 : (fun u : ℝ => (f u - ∑ s ∈ Finset.range N, a s / (u:ℂ)^s) * g u) =O[atTop]
       (fun u : ℝ => (u:ℂ)^(-(N:ℤ))) := by
     simpa only [mul_one] using (ha N).mul hb.isBigO_one
@@ -1650,7 +1650,7 @@ lemma pcfLG2_HasExp.of_isBigO {f : ℝ → ℂ}
   intro N; simpa using h N
 
 /-- **Reciprocals of expansions.** -/
-lemma pcfLG2_HasExp.inv {f : ℝ → ℂ} {a d : ℕ → ℂ} (ha : pcfLG2_HasExp f a)
+lemma pcfLG2_HasExp.recip {f : ℝ → ℂ} {a d : ℕ → ℂ} (ha : pcfLG2_HasExp f a)
     (had : pcfLG2_cauchy a d = pcfLG2_delta) (hf : (fun u => (f u)⁻¹) =O[atTop] (fun _ => (1:ℂ)))
     (hf0 : ∀ᶠ u in atTop, f u ≠ 0) :
     pcfLG2_HasExp (fun u => (f u)⁻¹) d := by
@@ -1665,7 +1665,7 @@ lemma pcfLG2_HasExp.inv {f : ℝ → ℂ} {a d : ℕ → ℂ} (ha : pcfLG2_HasEx
     have := Finset.mem_antidiagonal.1 hx
     rw [pcfLG2_trunc_coeff, pcfLG2_trunc_coeff]
     simp [show x.1 < N by omega, show x.2 < N by omega]
-  have h3 := pcfLG2_isBigO_eval_inv hQ
+  have h3 := pcfLG2_isBigO_eval_recip hQ
   have h1 : (fun u : ℝ => (f u - ∑ s ∈ Finset.range N, a s / (u:ℂ)^s) *
       ∑ s ∈ Finset.range N, d s / (u:ℂ)^s) =O[atTop] (fun u : ℝ => (u:ℂ)^(-(N:ℤ))) := by
     simpa only [mul_one] using (ha N).mul (pcfLG2_trunc_isBigO_one N d)
@@ -1984,7 +1984,7 @@ lemma pcfLG2_twc_mul_d : pcfLG2_cauchy (pcfLG2_tw (fun s => (pcfLG_c s : ℂ)))
 
 /-- **Reciprocal expansions in `μ²`**: if `G(μ) T_M(a)(μ²) - 1 = O(μ^{-2M})` for all `M` and
 `a · d = δ`, then `G(μ) - T_M(d)(μ²) = O(μ^{-2M})` for all `M`. -/
-lemma pcfLG2_inv_sq {G : ℝ → ℂ} {a d : ℕ → ℂ} (had : pcfLG2_cauchy a d = pcfLG2_delta)
+lemma pcfLG2_recip_sq {G : ℝ → ℂ} {a d : ℕ → ℂ} (had : pcfLG2_cauchy a d = pcfLG2_delta)
     (hG : ∀ M : ℕ, (fun μ : ℝ => G μ * (∑ s ∈ Finset.range M, a s / (μ:ℂ)^(2*s)) - 1) =O[atTop]
       (fun μ : ℝ => (μ:ℂ)^(-(2*M:ℤ)))) (M : ℕ) :
     (fun μ : ℝ => G μ - ∑ s ∈ Finset.range M, d s / (μ:ℂ)^(2*s)) =O[atTop]
@@ -2012,7 +2012,7 @@ lemma pcfLG2_inv_sq {G : ℝ → ℂ} {a d : ℕ → ℂ} (had : pcfLG2_cauchy a
     have := Finset.mem_antidiagonal.1 hx
     rw [pcfLG2_trunc_coeff, pcfLG2_trunc_coeff]
     simp [show x.1 < M by omega, show x.2 < M by omega]
-  have h3 := ((pcfLG2_isBigO_eval_inv hQ).comp_tendsto h2).trans_eventuallyEq (hz M)
+  have h3 := ((pcfLG2_isBigO_eval_recip hQ).comp_tendsto h2).trans_eventuallyEq (hz M)
   have hb : ∀ (b : ℕ → ℂ) (K : ℕ), (fun μ : ℝ => ∑ s ∈ Finset.range K, b s / (μ:ℂ)^(2*s)) =O[atTop]
       (fun _ => (1:ℂ)) := by
     intro b K
@@ -2067,7 +2067,7 @@ theorem pcf_negative_parameter_uniform_U_normalizer :
       (fun s t => pcfOlverA s t) (Ici (1+δ)) := by
   obtain ⟨g, hg, hexp⟩ := pcf_negative_parameter_uniform_U
   refine ⟨g, fun N => ?_, hexp⟩
-  have h := pcfLG2_inv_sq (G := fun μ => g μ / pcfH μ) (a := fun s => (pcfLG_c s : ℂ))
+  have h := pcfLG2_recip_sq (G := fun μ => g μ / pcfH μ) (a := fun s => (pcfLG_c s : ℂ))
     pcfLG2_c_mul_d (fun M => hg M) (N+1)
   have hγ0 : pcfGammaCoeff 0 = 1 := pcfGammaCoeff_initial.1
   refine h.congr' ?_ (Eventually.of_forall fun μ => by push_cast; ring_nf)
@@ -2113,7 +2113,7 @@ lemma pcfLG2_abs_PA_mul_PA1 (t : ℝ) : |pcfLG2_PA t * pcfLG2_PA1 t| ≤ 1/2 := 
 
 /-- `0 < A² ≤ 1`. -/
 lemma pcfLG2_PA_sq_le_one (t : ℝ) : pcfLG2_PA t ^ 2 ≤ 1 := by
-  have h := pcfLG2_PA_sq_inv t
+  have h := pcfLG2_PA_sq_recip t
   have hp : 0 < pcfLG2_PA t ^ 2 := by have := pcfLG2_PA_pos t; positivity
   have h1 : 1 ≤ Real.sqrt (t^2+1) := by
     calc (1:ℝ) = Real.sqrt 1 := Real.sqrt_one.symm
@@ -2354,7 +2354,7 @@ theorem pcf_positive_parameter_uniform :
       calc |Φ (μ^2) - L| ≤ B / (μ^2)^M := this
         _ = 2*B * ((μ^2)^M)⁻¹ * (1/2) := by ring
         _ ≤ 2*B * ((μ^2)^M)⁻¹ * Φ (μ^2) := by gcongr
-    have h := pcfLG2_inv_sq had hG (N+1)
+    have h := pcfLG2_recip_sq had hG (N+1)
     have hγ0 : pcfGammaCoeff 0 = 1 := pcfGammaCoeff_initial.1
     refine h.congr' ?_ (Eventually.of_forall fun μ => by push_cast; ring_nf)
     filter_upwards [eventually_ne_atTop 0] with μ hμ
@@ -2601,7 +2601,7 @@ lemma pcfLG2_neg_core {δ : ℝ} (hδ : 0 < δ) {N : ℕ} (hN : 1 ≤ N) : ∃ C
     (A2 := pcfLG_A2) (ξ := pcfXi) (fun t ht => pcfLG_A_pos (hc.trans ht))
     (fun t ht => pcfLG_hasDerivAt_A (hc.trans ht)) (fun t ht => pcfLG_hasDerivAt_A1 (hc.trans ht))
     (pcfLG_continuousOn_A2.mono fun t ht => hc.trans ht)
-    (fun t ht => by rw [pcfLG_A_sq_inv (hc.trans ht)]; exact pcfLG_hasDerivAt_xi (hc.trans ht))
+    (fun t ht => by rw [pcfLG_A_sq_recip (hc.trans ht)]; exact pcfLG_hasDerivAt_xi (hc.trans ht))
     (fun c' hc' => pcfLG_integrableOn_V (hc.trans hc'))
     (fun t ht => hV t ht.le)
     pcfLG_tendsto_A hN (a := pcfLG_hatA) (ad := pcfLG_hatAd) (ad2 := pcfLG_hatAd2)
@@ -2625,7 +2625,7 @@ lemma pcfLG2_neg_core {δ : ℝ} (hδ : 0 < δ) {N : ℕ} (hN : 1 ≤ N) : ∃ C
     (U' := fun μ t => (μ:ℂ) * Real.sqrt 2 * pcfUDeriv (-μ^2/2) (μ*t*Real.sqrt 2))
     (H := fun μ : ℝ => pcfH μ) (fun μ t _ => pcfLG_hasDerivAt_U μ t)
     (fun μ t ht => (pcfLG_hasDerivAt_U' μ t).congr_deriv (by
-      rw [pcfLG_A_pow_four_inv (hc.trans ht)]))
+      rw [pcfLG_A_pow_four_recip (hc.trans ht)]))
     (fun μ hμ => pcfLG_tendsto_U_div (by linarith)) le_rfl hμ₀ hμ₀C
   obtain ⟨hL, ε, ε', hε⟩ := hcore μ hμ
   refine ⟨hL, fun t ht => ?_⟩
@@ -3035,7 +3035,7 @@ theorem pcf_negative_parameter_uniform_U_UDeriv :
   refine ⟨g, fun N => ?_, fun δ hδ => ⟨pcfLG2_neg_U_expansion hΦ hΦb hδ,
     pcfLG2_neg_UDeriv_expansion hΦ hΦb hδ⟩⟩
   · -- the normalizer
-    have h := pcfLG2_inv_sq (G := fun μ => g μ / pcfH μ) (a := fun s => (pcfLG_c s : ℂ))
+    have h := pcfLG2_recip_sq (G := fun μ => g μ / pcfH μ) (a := fun s => (pcfLG_c s : ℂ))
       pcfLG2_c_mul_d (fun M => hgN M) (N+1)
     have hγ0 : pcfGammaCoeff 0 = 1 := pcfGammaCoeff_initial.1
     refine h.congr' ?_ (Eventually.of_forall fun μ => by push_cast; ring_nf)

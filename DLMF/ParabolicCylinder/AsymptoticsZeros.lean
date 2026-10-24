@@ -411,7 +411,7 @@ lemma pcfPZ_kummerM_comp {c : ℂ} (hc : ∀ k : ℕ, c ≠ -k) {f g : ℂ × �
   (pcfPZ_kummerM_continuous hc).comp (hf.prodMk hg)
 
 /-- Continuity of `1/Γ` along a continuous map. -/
-lemma pcfPZ_invGamma_comp {f : ℂ × ℂ → ℂ} (hf : Continuous f) :
+lemma pcfPZ_recipGamma_comp {f : ℂ × ℂ → ℂ} (hf : Continuous f) :
     Continuous (fun p => (Gamma (f p))⁻¹) :=
   differentiable_one_div_Gamma.continuous.comp hf |>.congr fun p => by simp
 
@@ -424,8 +424,8 @@ lemma pcfPZ_pcfU_continuous : Continuous (fun p : ℂ × ℂ => pcfU p.1 p.2) :=
     (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
   have k3 := pcfPZ_kummerM_comp hb3 (f := fun p : ℂ × ℂ => p.1 / 2 + 3 / 4)
     (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
-  have g1 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
-  have g2 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
+  have g1 := pcfPZ_recipGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
+  have g2 := pcfPZ_recipGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
   have c1 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 + 1 / 4)) :=
     Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
   have c2 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 - 1 / 4)) :=
@@ -447,8 +447,8 @@ lemma pcfPZ_pcfUDeriv_continuous : Continuous (fun p : ℂ × ℂ => pcfUDeriv p
     (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
   have k3' := pcfPZ_kummerM_comp hb5 (f := fun p : ℂ × ℂ => p.1 / 2 + 3 / 4 + 1)
     (g := fun p => p.2 ^ 2 / 2) (by fun_prop) (by fun_prop)
-  have g1 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
-  have g2 := pcfPZ_invGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
+  have g1 := pcfPZ_recipGamma_comp (f := fun p : ℂ × ℂ => 3 / 4 + p.1 / 2) (by fun_prop)
+  have g2 := pcfPZ_recipGamma_comp (f := fun p : ℂ × ℂ => 1 / 4 + p.1 / 2) (by fun_prop)
   have c1 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 + 1 / 4)) :=
     Continuous.const_cpow (by fun_prop) (Or.inl two_ne_zero)
   have c2 : Continuous fun p : ℂ × ℂ => (2 : ℂ) ^ (-(p.1 / 2 - 1 / 4)) :=

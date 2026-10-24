@@ -8,14 +8,22 @@ module
 public import DLMF.ParabolicCylinder.Relations
 public import DLMF.ParabolicCylinder.IntegralTools
 public import DLMF.ParabolicCylinder.ContourTools
+public import DLMF.ParabolicCylinder.ProductTools
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import ToMathlib.Analysis.ODE.SymmetricSquare
 
 /-!
 # Cylinder real and contour integrals
 
 Statement acquisition from NIST DLMF, checked 2026-10-19. Graphical results and
 application notes are excluded. Existing Mathlib results are referenced, not reproved.
-Theorem statements were initially admitted; remaining `sorry` declarations are
-not completed proofs. See `DLMF111214Acquisition.md` for coverage and validation.
+The integral statements in this module are proved. See
+`DLMF111214Acquisition.md` for coverage and validation.
+
+The kernel of 12.12.4 is absolutely integrable and its integral is entire in the
+argument. Integration by parts yields the shared symmetric-square Weber ODE;
+three initial values identify the integral with the normalized squared product.
+The ODE uniqueness machinery is shared with the Airy product proofs.
 -/
 
 @[expose] public noncomputable section
@@ -625,10 +633,718 @@ theorem pcf_integral_3 {a : ℂ} (ha : a.re < 1/2) {x : ℝ} (hx : 0 < x) :
   rw [← hv]
   exact intervalIntegral_tendsto_integral_Ioi 0 hI tendsto_id
 
-/-- pcf integral 4. -/
+/-- Exponential lower bound for the hyperbolic sine away from its zero. -/
+lemma pcfIntegral4_sqrt_sinh_lower {t : ℝ} (ht : 1 ≤ t) :
+    Real.exp t / 2 ≤ Real.sqrt (Real.sinh (2*t)) := by
+  have he1 : 1 ≤ Real.exp (2*t) := Real.one_le_exp_iff.mpr (by linarith)
+  have he2 : Real.exp (-2*t) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+  have he3 : 3 ≤ Real.exp (2*t) := by linarith [Real.add_one_le_exp (2*t)]
+  have hex : Real.exp t ^ 2 = Real.exp (2*t) := by
+    rw [pow_two, ← Real.exp_add]; congr 1; ring
+  have hsin : Real.exp (2*t) / 4 ≤ Real.sinh (2*t) := by
+    rw [Real.sinh_eq]; rw [show -(2*t) = -2*t by ring]; linarith
+  apply (Real.le_sqrt (by positivity) (by positivity)).mpr
+  nlinarith [Real.sq_sqrt (Real.sinh_nonneg_iff.mpr (by linarith))]
+
+/-- The hyperbolic weight in the cylinder square integral is integrable
+precisely on the needed exponential side of the parameter bound. -/
+lemma pcfIntegral4_weight_integrable {b : ℝ} (hb : b < 1) :
+    IntegrableOn (fun t : ℝ => Real.exp (b*t) / Real.sqrt (Real.sinh (2*t))) (Ioi 0) := by
+  have hc : ContinuousOn (fun t : ℝ => Real.exp (b*t) / Real.sqrt (Real.sinh (2*t))) (Ioi 0) := by
+    refine (by fun_prop : Continuous (fun t : ℝ => Real.exp (b*t))).continuousOn.div
+      (by fun_prop) ?_
+    intro t ht
+    exact ne_of_gt (Real.sqrt_pos.mpr (Real.sinh_pos_iff.mpr (by linarith [show 0 < t from ht] : 0 < 2*t)))
+  have hnear : IntegrableOn (fun t : ℝ => Real.exp (b*t) / Real.sqrt (Real.sinh (2*t))) (Ioc 0 1) := by
+    have hr : IntegrableOn (fun t : ℝ => t^(-(1/2):ℝ)) (Ioc 0 1) := by
+      rw [integrableOn_Ioc_iff_integrableOn_Ioo, intervalIntegral.integrableOn_Ioo_rpow_iff zero_lt_one]
+      norm_num
+    refine (hr.const_mul (Real.exp |b|)).mono' ((hc.mono (by intro t ht; exact ht.1)).aestronglyMeasurable measurableSet_Ioc) ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioc] with t ht
+    have hsin : t ≤ Real.sinh (2*t) := by
+      have := Real.self_le_sinh_iff.mpr (show 0 ≤ 2*t by linarith [ht.1])
+      linarith [ht.1]
+    have hnum : b*t ≤ |b| := by
+      calc b*t ≤ |b| *t := mul_le_mul_of_nonneg_right (le_abs_self _) ht.1.le
+           _ ≤ |b| *1 := mul_le_mul_of_nonneg_left ht.2 (abs_nonneg _)
+           _ = |b| := mul_one _
+    rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+    calc Real.exp (b*t) / Real.sqrt (Real.sinh (2*t)) ≤ Real.exp |b| / Real.sqrt t :=
+        div_le_div₀ (by positivity) (Real.exp_le_exp.mpr hnum)
+          (Real.sqrt_pos.mpr ht.1) (Real.sqrt_le_sqrt hsin)
+      _ = Real.exp |b| * t^(-(1/2):ℝ) := by
+        rw [Real.rpow_neg ht.1.le, ← Real.sqrt_eq_rpow, div_eq_mul_inv]
+  have hfar : IntegrableOn (fun t : ℝ => Real.exp (b*t) / Real.sqrt (Real.sinh (2*t))) (Ioi 1) := by
+    refine ((integrableOn_exp_mul_Ioi (a:=b-1) (by linarith) 1).const_mul 2).mono'
+      ((hc.mono (Ioi_subset_Ioi (by norm_num))).aestronglyMeasurable measurableSet_Ioi) ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+    calc Real.exp (b*t) / Real.sqrt (Real.sinh (2*t)) ≤ Real.exp (b*t) / (Real.exp t/2) :=
+        div_le_div_of_nonneg_left (by positivity) (by positivity) (pcfIntegral4_sqrt_sinh_lower ht.le)
+      _ = 2 * Real.exp ((b-1)*t) := by
+        rw [div_div_eq_mul_div, mul_comm (Real.exp (b*t)), mul_div_assoc, ← Real.exp_sub]
+        congr 2
+        ring
+  have hU : Ioc (0:ℝ) 1 ∪ Ioi 1 = Ioi 0 := by
+    ext t
+    simp only [mem_union, mem_Ioc, mem_Ioi]
+    constructor
+    · rintro (ht | ht)
+      · exact ht.1
+      · linarith
+    · intro ht
+      by_cases h : t ≤ 1
+      · exact Or.inl ⟨ht, h⟩
+      · exact Or.inr (lt_of_not_ge h)
+  rw [← hU]
+  exact hnear.union hfar
+
+
+/-- Uniform-in-`z` majorant for the cylinder square-integral kernel. -/
+lemma pcfIntegral4_kernel_norm_le (a z : ℂ) {t : ℝ} (_ht : 0 < t) :
+    ‖exp (2*a*t + z^2/2*Real.tanh t) / (Real.sqrt (Real.sinh (2*t)) : ℂ)‖ ≤
+      Real.exp (‖z‖^2/2) * (Real.exp (2*a.re*t) / Real.sqrt (Real.sinh (2*t))) := by
+  have harg : (z^2/2*(Real.tanh t : ℂ)).re ≤ ‖z‖^2/2 := by
+    calc _ ≤ ‖z^2/2*(Real.tanh t : ℂ)‖ := Complex.re_le_norm _
+      _ = ‖z‖^2/2 * |Real.tanh t| := by
+        simp only [norm_mul, norm_div, norm_pow, Complex.norm_ofNat,
+          Complex.norm_real, Real.norm_eq_abs]
+      _ ≤ ‖z‖^2/2 := mul_le_of_le_one_right (by positivity) (Real.abs_tanh_lt_one t).le
+  rw [norm_div, Complex.norm_exp, Complex.norm_real,
+    Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _)]
+  calc Real.exp (2*a*t + z^2/2*Real.tanh t).re / Real.sqrt (Real.sinh (2*t)) ≤
+      Real.exp (2*a.re*t + ‖z‖^2/2) / Real.sqrt (Real.sinh (2*t)) := by
+        apply div_le_div_of_nonneg_right _ (Real.sqrt_nonneg _)
+        apply Real.exp_le_exp.mpr
+        rw [Complex.add_re]
+        have hre : (2*a*(t:ℂ)).re = 2*a.re*t := by simp
+        rw [hre]
+        exact add_le_add le_rfl harg
+    _ = _ := by rw [Real.exp_add]; ring
+
+/-- Continuity in the integration variable away from the integrable endpoint. -/
+lemma pcfIntegral4_kernel_continuousOn (a z : ℂ) :
+    ContinuousOn (fun t : ℝ =>
+      exp (2*a*t + z^2/2*Real.tanh t) / (Real.sqrt (Real.sinh (2*t)) : ℂ)) (Ioi 0) := by
+  have htan : Continuous (fun t : ℝ => Real.tanh t) := by
+    simp only [Real.tanh_eq_sinh_div_cosh]
+    exact Real.continuous_sinh.div Real.continuous_cosh fun t => ne_of_gt (Real.cosh_pos t)
+  refine ((by fun_prop : Continuous (fun t : ℝ =>
+    exp (2*a*t + z^2/2*Real.tanh t)))).continuousOn.div (by fun_prop) ?_
+  intro t ht
+  exact Complex.ofReal_ne_zero.mpr (ne_of_gt (Real.sqrt_pos.mpr
+    (Real.sinh_pos_iff.mpr (mul_pos (by norm_num) ht))))
+
+/-- Absolute convergence of the cylinder square-integral kernel. -/
+lemma pcfIntegral4_kernel_integrable {a : ℂ} (ha : a.re < 1/2) (z : ℂ) :
+    IntegrableOn (fun t : ℝ =>
+      exp (2*a*t + z^2/2*Real.tanh t) / (Real.sqrt (Real.sinh (2*t)) : ℂ)) (Ioi 0) := by
+  refine ((pcfIntegral4_weight_integrable (b := 2*a.re) (by linarith)).const_mul
+    (Real.exp (‖z‖^2/2))).mono'
+    ((pcfIntegral4_kernel_continuousOn a z).aestronglyMeasurable measurableSet_Ioi) ?_
+  filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+  exact pcfIntegral4_kernel_norm_le a z ht
+
+/-- Absolute convergence, including the original normalization, of DLMF 12.12.4. -/
+theorem pcf_integral_4_integrable {a : ℂ} (ha : a.re < 1/2) (z : ℂ) :
+    IntegrableOn (fun t : ℝ => 2^(3/2:ℂ)/π*Gamma (1/2-a)*
+      exp (2*a*t+z^2/2*Real.tanh t)/(Real.sqrt (Real.sinh (2*t)):ℂ)) (Ioi 0) := by
+  simpa only [mul_div_assoc, IntegrableOn] using
+    (pcfIntegral4_kernel_integrable ha z).const_mul ((2:ℂ)^(3/2:ℂ)/π*Gamma (1/2-a))
+
+
+/-- Products of Weber solutions obey the common symmetric-square equation.
+This is the ODE needed to identify the convergent integral in DLMF 12.12.4. -/
+theorem weber_product_ode {a : ℂ} {f f' g g' : ℂ → ℂ}
+    (hf : IsWeberSol a f f') (hg : IsWeberSol a g g') (z : ℂ) :
+    iteratedDeriv 3 (fun t => f t * g t) z -
+      (z^2 + 4*a) * deriv (fun t => f t * g t) z - z * f z * g z = 0 := by
+  have hq (w : ℂ) : HasDerivAt (fun t : ℂ => t^2/4 + a) (w/2) w := by
+    exact ((((hasDerivAt_id w).pow 2).div_const 4).add_const a).congr_deriv (by
+      simp only [id_eq, Nat.cast_ofNat, Nat.reduceSub, pow_one, mul_one]
+      ring)
+  have he := ODE.product_third_deriv hf hg hq z
+  linear_combination he
+
+/-- The unnormalized kernel of the cylinder square integral. -/
+def pcfIntegral4Kernel (a z : ℂ) (t : ℝ) : ℂ :=
+  exp (2*a*t + z^2/2*Real.tanh t) / (Real.sqrt (Real.sinh (2*t)) : ℂ)
+
+/-- Hyperbolic moments of the cylinder square-integral kernel. -/
+def pcfIntegral4Moment (a : ℂ) (n : ℕ) (z : ℂ) : ℂ :=
+  ∫ t : ℝ in Ioi 0, (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a z t
+
+/-- Continuity of the hyperbolic factor in the moment kernels. -/
+lemma pcfIntegral4_tanh_continuous : Continuous (fun t : ℝ => (Real.tanh t : ℂ)) := by
+  have htan : Continuous (fun t : ℝ => Real.tanh t) := by
+    simp only [Real.tanh_eq_sinh_div_cosh]
+    exact Real.continuous_sinh.div Real.continuous_cosh fun t => ne_of_gt (Real.cosh_pos t)
+  exact Complex.continuous_ofReal.comp htan
+
+/-- Hyperbolic moments have the same integrable majorant as the base kernel. -/
+lemma pcfIntegral4_moment_norm_le (a z : ℂ) (n : ℕ) (t : ℝ) :
+    ‖(Real.tanh t : ℂ)^n * pcfIntegral4Kernel a z t‖ ≤ ‖pcfIntegral4Kernel a z t‖ := by
+  rw [norm_mul, norm_pow, Complex.norm_real, Real.norm_eq_abs]
+  exact mul_le_of_le_one_left (norm_nonneg _) (pow_le_one₀ (abs_nonneg _) (Real.abs_tanh_lt_one t).le)
+
+/-- Every nonnegative hyperbolic moment is absolutely integrable. -/
+lemma pcfIntegral4_moment_integrable {a : ℂ} (ha : a.re < 1/2) (n : ℕ) (z : ℂ) :
+    IntegrableOn (fun t : ℝ => (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a z t) (Ioi 0) := by
+  refine (pcfIntegral4_kernel_integrable ha z).norm.mono'
+    (((pcfIntegral4_tanh_continuous.pow n).continuousOn.mul
+      (pcfIntegral4_kernel_continuousOn a z)).aestronglyMeasurable measurableSet_Ioi) ?_
+  exact Eventually.of_forall (pcfIntegral4_moment_norm_le a z n)
+
+/-- Differentiating the argument raises the hyperbolic moment index. -/
+lemma pcfIntegral4_hasDerivAt_kernel_arg (a z : ℂ) (n : ℕ) (t : ℝ) :
+    HasDerivAt (fun w => (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a w t)
+      (z * ((Real.tanh t : ℂ)^(n+1) * pcfIntegral4Kernel a z t)) z := by
+  unfold pcfIntegral4Kernel
+  have h := ((((((hasDerivAt_id z).pow 2).div_const 2).mul_const (Real.tanh t : ℂ)).const_add
+    (2*a*t)).cexp.div_const (Real.sqrt (Real.sinh (2*t)) : ℂ)).const_mul ((Real.tanh t : ℂ)^n)
+  refine h.congr_deriv ?_
+  simp only [Pi.pow_apply, id_eq, Nat.cast_ofNat, Nat.reduceSub, mul_one, pow_succ]
+  ring
+
+/-- Differentiation under the absolutely convergent moment integral. -/
+lemma pcfIntegral4_hasDerivAt_moment {a : ℂ} (ha : a.re < 1/2) (n : ℕ) (z : ℂ) :
+    HasDerivAt (pcfIntegral4Moment a n) (z * pcfIntegral4Moment a (n+1) z) z := by
+  have hm (w : ℂ) (k : ℕ) : AEStronglyMeasurable
+      (fun t : ℝ => (Real.tanh t : ℂ)^k * pcfIntegral4Kernel a w t)
+      (volume.restrict (Ioi 0)) :=
+    (((pcfIntegral4_tanh_continuous.pow k).continuousOn.mul
+      (pcfIntegral4_kernel_continuousOn a w)).aestronglyMeasurable measurableSet_Ioi)
+  have he := hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (μ := volume.restrict (Ioi 0))
+    (F := fun w t => (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a w t)
+    (F' := fun w t => w * ((Real.tanh t : ℂ)^(n+1) * pcfIntegral4Kernel a w t))
+    (bound := fun t => (‖z‖+1) * (Real.exp ((‖z‖+1)^2/2) *
+      (Real.exp (2*a.re*t) / Real.sqrt (Real.sinh (2*t)))))
+    (Metric.ball_mem_nhds z zero_lt_one)
+    (Eventually.of_forall fun w => hm w n)
+    (pcfIntegral4_moment_integrable ha n z)
+    ((hm z (n+1)).const_mul z) ?_
+    (((pcfIntegral4_weight_integrable (b := 2*a.re) (by linarith)).const_mul
+      (Real.exp ((‖z‖+1)^2/2))).const_mul (‖z‖+1))
+    (Eventually.of_forall fun t w _ => pcfIntegral4_hasDerivAt_kernel_arg a w n t)
+  · convert he.2 using 1 <;> first | rfl | simp [pcfIntegral4Moment, integral_const_mul]
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    intro w hw
+    have hw' : ‖w‖ ≤ ‖z‖+1 := by
+      have hdist : ‖w-z‖ < 1 := by simpa only [Metric.mem_ball, dist_eq_norm] using hw
+      have := norm_add_le (w-z) z
+      rw [sub_add_cancel] at this
+      linarith
+    rw [norm_mul]
+    calc ‖w‖ * ‖(Real.tanh t : ℂ)^(n+1) * pcfIntegral4Kernel a w t‖ ≤
+        (‖z‖+1) * ‖pcfIntegral4Kernel a w t‖ :=
+          mul_le_mul hw' (pcfIntegral4_moment_norm_le a w (n+1) t)
+            (norm_nonneg _) (by positivity)
+      _ ≤ _ := by
+        apply mul_le_mul_of_nonneg_left _ (by positivity)
+        refine (pcfIntegral4_kernel_norm_le a w ht).trans ?_
+        gcongr
+
+
+/-- The hyperbolic derivative in the cylinder kernel. -/
+lemma pcfIntegral4_tanh_hasDerivAt (t : ℝ) :
+    HasDerivAt Real.tanh (1 - Real.tanh t ^ 2) t := by
+  have hc : Real.cosh t ≠ 0 := (Real.cosh_pos t).ne'
+  convert ((Real.hasDerivAt_sinh t).div (Real.hasDerivAt_cosh t) hc) using 1
+  · funext u; exact Real.tanh_eq_sinh_div_cosh u
+  · rw [Real.tanh_eq_sinh_div_cosh]
+    field_simp
+
+/-- Time derivative of the cylinder square-integral kernel. -/
+lemma pcfIntegral4_hasDerivAt_kernel_time (a z : ℂ) {t : ℝ} (ht : 0 < t) :
+    HasDerivAt (pcfIntegral4Kernel a z)
+      ((2*a + z^2/2*(1-(Real.tanh t : ℂ)^2) -
+        (Real.cosh (2*t) : ℂ)/(Real.sinh (2*t) : ℂ)) * pcfIntegral4Kernel a z t) t := by
+  have hs : 0 < Real.sinh (2*t) := Real.sinh_pos_iff.mpr (by linarith)
+  have hs0 : (Real.sqrt (Real.sinh (2*t)) : ℂ) ≠ 0 :=
+    Complex.ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hs).ne'
+  have hsq : (Real.sinh (2*t) : ℂ) = (Real.sqrt (Real.sinh (2*t)) : ℂ)^2 := by
+    exact_mod_cast (Real.sq_sqrt hs.le).symm
+  have hr : HasDerivAt (fun u : ℝ => (Real.tanh u : ℂ))
+      (1-(Real.tanh t : ℂ)^2) t := by
+    convert (pcfIntegral4_tanh_hasDerivAt t).ofReal_comp using 1 <;> push_cast <;> rfl
+  have hnum := (((hasDerivAt_id t).ofReal_comp.const_mul (2*a)).add
+    (hr.const_mul (z^2/2))).cexp
+  have hden := (((Real.hasDerivAt_sinh (2*t)).comp t
+    ((hasDerivAt_id t).const_mul 2)).sqrt hs.ne').ofReal_comp
+  have h := hnum.div hden hs0
+  refine h.congr_deriv ?_
+  simp only [pcfIntegral4Kernel, id_eq, Pi.add_apply, Function.comp_apply,
+    Complex.ofReal_mul, Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_ofNat]
+  rw [hsq]
+  field_simp
+
+/-- The integrable total derivative that yields the moment recurrence. -/
+lemma pcfIntegral4_hasDerivAt_tanh_kernel (a z : ℂ) {t : ℝ} (ht : 0 < t) :
+    HasDerivAt (fun u => (Real.tanh u : ℂ) * pcfIntegral4Kernel a z u)
+      ((1/2 + 2*a*(Real.tanh t : ℂ) - 3/2*(Real.tanh t : ℂ)^2 +
+        z^2/2*((Real.tanh t : ℂ) - (Real.tanh t : ℂ)^3)) * pcfIntegral4Kernel a z t) t := by
+  have hr : HasDerivAt (fun u : ℝ => (Real.tanh u : ℂ))
+      (1-(Real.tanh t : ℂ)^2) t := by
+    convert (pcfIntegral4_tanh_hasDerivAt t).ofReal_comp using 1 <;> push_cast <;> rfl
+  have hc : (Real.cosh t : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (Real.cosh_pos t).ne'
+  have hs : (Real.sinh t : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr
+    (Real.sinh_pos_iff.mpr ht).ne'
+  have hrat : (Real.tanh t : ℂ) * (Real.cosh (2*t) : ℂ) / (Real.sinh (2*t) : ℂ) =
+      (1 + (Real.tanh t : ℂ)^2)/2 := by
+    simp only [Real.tanh_eq_sinh_div_cosh, Real.sinh_two_mul, Real.cosh_two_mul,
+      Complex.ofReal_div, Complex.ofReal_mul, Complex.ofReal_add, Complex.ofReal_pow,
+      Complex.ofReal_ofNat]
+    field_simp
+  refine (hr.mul (pcfIntegral4_hasDerivAt_kernel_time a z ht)).congr_deriv ?_
+  linear_combination -pcfIntegral4Kernel a z t * hrat
+
+
+
+/-- The moment kernels vanish at the infinite endpoint. -/
+lemma pcfIntegral4_moment_tendsto_zero {a : ℂ} (ha : a.re < 1/2) (n : ℕ) (z : ℂ) :
+    Tendsto (fun t : ℝ => (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a z t) atTop (𝓝 0) := by
+  have hl : Tendsto (fun t : ℝ => 2*Real.exp (‖z‖^2/2) * Real.exp ((2*a.re-1)*t))
+      atTop (𝓝 0) := by
+    simpa using (Real.tendsto_exp_atBot.comp
+      (tendsto_id.const_mul_atTop_of_neg (by linarith : 2*a.re-1 < 0))).const_mul
+        (2*Real.exp (‖z‖^2/2))
+  refine squeeze_zero_norm' ?_ hl
+  filter_upwards [eventually_ge_atTop (1:ℝ)] with t ht
+  refine (pcfIntegral4_moment_norm_le a z n t).trans ?_
+  refine (pcfIntegral4_kernel_norm_le a z (by linarith : 0 < t)).trans ?_
+  calc Real.exp (‖z‖^2/2) * (Real.exp (2*a.re*t) / Real.sqrt (Real.sinh (2*t))) ≤
+      Real.exp (‖z‖^2/2) * (Real.exp (2*a.re*t) / (Real.exp t/2)) := by
+        gcongr
+        exact pcfIntegral4_sqrt_sinh_lower ht
+    _ = _ := by
+      rw [div_div_eq_mul_div, mul_comm (Real.exp (2*a.re*t)), mul_div_assoc, ← Real.exp_sub]
+      rw [show 2*a.re*t-t=(2*a.re-1)*t by ring]
+      ring
+
+/-- The hyperbolic factor removes the square-root singularity at zero. -/
+lemma pcfIntegral4_tanh_kernel_continuous_zero (a z : ℂ) :
+    ContinuousWithinAt (fun t => (Real.tanh t : ℂ) * pcfIntegral4Kernel a z t) (Ici 0) 0 := by
+  have heq (t : ℝ) (ht : 0 ≤ t) :
+      (Real.tanh t : ℂ) * pcfIntegral4Kernel a z t =
+        exp (2*a*t+z^2/2*Real.tanh t) *
+          (Real.sqrt (Real.sinh (2*t)) : ℂ)/(2*(Real.cosh t : ℂ)^2) := by
+    rcases ht.eq_or_lt with rfl | ht
+    · simp [pcfIntegral4Kernel]
+    have hs : 0 < Real.sinh (2*t) := Real.sinh_pos_iff.mpr (by linarith)
+    have hs0 : (Real.sqrt (Real.sinh (2*t)) : ℂ) ≠ 0 :=
+      Complex.ofReal_ne_zero.mpr (Real.sqrt_pos.mpr hs).ne'
+    have hc0 : (Real.cosh t : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (Real.cosh_pos t).ne'
+    have hsq : (Real.sqrt (Real.sinh (2*t)) : ℂ)^2 =
+        2*(Real.sinh t : ℂ)*(Real.cosh t : ℂ) := by
+      calc _ = (Real.sinh (2*t) : ℂ) := by exact_mod_cast Real.sq_sqrt hs.le
+           _ = _ := by simp only [Real.sinh_two_mul, Complex.ofReal_mul, Complex.ofReal_ofNat]
+    simp only [pcfIntegral4Kernel, Real.tanh_eq_sinh_div_cosh, Complex.ofReal_div]
+    field_simp
+    linear_combination -hsq
+  have hc : Continuous (fun t : ℝ => exp (2*a*t+z^2/2*Real.tanh t) *
+      (Real.sqrt (Real.sinh (2*t)) : ℂ)/(2*(Real.cosh t : ℂ)^2)) := by
+    have := pcfIntegral4_tanh_continuous
+    apply Continuous.div (by fun_prop) (by fun_prop)
+    intro t
+    exact mul_ne_zero two_ne_zero (pow_ne_zero _ (Complex.ofReal_ne_zero.mpr (Real.cosh_pos t).ne'))
+  exact hc.continuousWithinAt.congr (fun t ht => heq t ht) (heq 0 le_rfl)
+
+
+/-- Integration by parts gives the four-moment relation. -/
+lemma pcfIntegral4_moment_relation {a : ℂ} (ha : a.re < 1/2) (z : ℂ) :
+    pcfIntegral4Moment a 0 z + 4*a*pcfIntegral4Moment a 1 z -
+      3*pcfIntegral4Moment a 2 z + z^2*(pcfIntegral4Moment a 1 z - pcfIntegral4Moment a 3 z) = 0 := by
+  let T (n : ℕ) (t : ℝ) : ℂ := (Real.tanh t : ℂ)^n * pcfIntegral4Kernel a z t
+  have hT (n : ℕ) : IntegrableOn (T n) (Ioi 0) := pcfIntegral4_moment_integrable ha n z
+  let R' (t : ℝ) := (1/2:ℂ)*T 0 t + 2*a*T 1 t - (3/2:ℂ)*T 2 t +
+    z^2/2*(T 1 t - T 3 t)
+  have hA := (hT 0).const_mul (1/2:ℂ)
+  have hB := (hT 1).const_mul (2*a)
+  have hC := (hT 2).const_mul (3/2:ℂ)
+  have hD := ((hT 1).sub (hT 3)).const_mul (z^2/2)
+  have hR : IntegrableOn R' (Ioi 0) := ((hA.add hB).sub hC).add hD
+  have hd (t : ℝ) (ht : t ∈ Ioi 0) :
+      HasDerivAt (fun u => (Real.tanh u : ℂ)*pcfIntegral4Kernel a z u) (R' t) t := by
+    refine (pcfIntegral4_hasDerivAt_tanh_kernel a z ht).congr_deriv ?_
+    dsimp [R', T]
+    ring
+  have hv := integral_Ioi_of_hasDerivAt_of_tendsto
+    (pcfIntegral4_tanh_kernel_continuous_zero a z) hd hR
+    (by simpa only [pow_one] using pcfIntegral4_moment_tendsto_zero ha 1 z)
+  have he : (∫ t : ℝ in Ioi 0, R' t) =
+      (1/2:ℂ)*pcfIntegral4Moment a 0 z + 2*a*pcfIntegral4Moment a 1 z -
+        (3/2:ℂ)*pcfIntegral4Moment a 2 z +
+        z^2/2*(pcfIntegral4Moment a 1 z - pcfIntegral4Moment a 3 z) := by
+    change (∫ t : ℝ in Ioi 0, (1/2:ℂ)*T 0 t + 2*a*T 1 t - (3/2:ℂ)*T 2 t +
+      z^2/2*(T 1 t - T 3 t)) = _
+    have e1 := integral_add ((hA.add hB).sub hC) hD
+    have e2 := integral_sub (hA.add hB) hC
+    have e3 := integral_add hA hB
+    have e4 := integral_sub (hT 1) (hT 3)
+    simp only [Pi.add_apply, Pi.sub_apply] at e1 e2 e3 e4
+    rw [e1, e2, e3, integral_const_mul, integral_const_mul, integral_const_mul,
+      integral_const_mul, e4]
+    rfl
+  simp only [Real.tanh_zero, Complex.ofReal_zero, zero_mul, sub_zero] at hv
+  linear_combination 2*hv - 2*he
+
+/-- The cylinder square integral solves the symmetric-square Weber equation. -/
+lemma pcfIntegral4_isThirdOrderSolution {a : ℂ} (ha : a.re < 1/2) :
+    ODE.IsThirdOrderSolution (fun z : ℂ => z^2+4*a) (fun z => z)
+      (pcfIntegral4Moment a 0) (fun z => z*pcfIntegral4Moment a 1 z)
+      (fun z => pcfIntegral4Moment a 1 z + z^2*pcfIntegral4Moment a 2 z) := by
+  intro z
+  refine ⟨pcfIntegral4_hasDerivAt_moment ha 0 z, ?_, ?_⟩
+  · refine ((hasDerivAt_id z).mul (pcfIntegral4_hasDerivAt_moment ha 1 z)).congr_deriv ?_
+    simp only [id_eq]
+    ring
+  · have hd := (pcfIntegral4_hasDerivAt_moment ha 1 z).add
+      (((hasDerivAt_id z).pow 2).mul (pcfIntegral4_hasDerivAt_moment ha 2 z))
+    refine hd.congr_deriv ?_
+    simp only [Pi.pow_apply, id_eq, Nat.cast_ofNat, Nat.reduceSub, pow_one, mul_one]
+    linear_combination -z * pcfIntegral4_moment_relation ha z
+
+
+/-- The convergent integral in DLMF 12.12.4 is entire in the argument.
+This is the zeroth case of the common moment derivative theorem. -/
+theorem pcfIntegral4_kernel_differentiable {a : ℂ} (ha : a.re < 1/2) :
+    Differentiable ℂ (fun z : ℂ => ∫ t : ℝ in Ioi 0,
+      exp (2*a*t + z^2/2*Real.tanh t) / (Real.sqrt (Real.sinh (2*t)) : ℂ)) := by
+  intro z
+  convert (pcfIntegral4_hasDerivAt_moment ha 0 z).differentiableAt using 1
+  funext w
+  simp only [pcfIntegral4Moment, pcfIntegral4Kernel, pow_zero, one_mul]
+
+
+
+
+
+
+/-- A pole-safe sine/cosine factorization of the two cylinder solutions at the origin. -/
+lemma pcfProduct_zero_pair_v {v : ℂ} (hv : 0 < v.re) :
+    pcfU (1/2-2*v) 0 = ((2 : ℂ)^(v-1/2)*Gamma v/(Real.sqrt π))*sin (π*v) ∧
+    pcfUBar (1/2-2*v) 0 = ((2 : ℂ)^(v-1/2)*Gamma v/(Real.sqrt π))*cos (π*v) := by
+  have hG : Gamma v ≠ 0 := Gamma_ne_zero_of_re_pos hv
+  have hG1 : Gamma (v+1/2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hs : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hs2 : (Real.sqrt π : ℂ)^2 = π := by norm_cast; exact Real.sq_sqrt Real.pi_pos.le
+  have h2 : (2 : ℂ) ≠ 0 := by norm_num
+  let C : ℂ := (2 : ℂ)^(v-1/2)*Gamma v/(Real.sqrt π)
+  have hU : pcfU (1/2-2*v) 0 = C * sin (π*v) := by
+    rw [pcfU_zero', show -((1/2-2*v)/2+1/4) = v-1/2 by ring,
+      show 3/4+(1/2-2*v)/2 = 1-v by ring, recip_Gamma_one_sub_eq hG]
+    dsimp only [C]
+    field_simp
+    rw [hs2]
+  have hdup := Gamma_mul_Gamma_add_half v
+  have hpows : (2 : ℂ)^(1-2*v)*(2 : ℂ)^(v-1/2) = (2 : ℂ)^(1/2-v) := by
+    rw [← cpow_add _ _ h2]; congr 1; ring
+  have hV : pcfUBar (1/2-2*v) 0 = C * cos (π*v) := by
+    rw [pcfUBar, pcfV_zero', pcfVZero,
+      show (1/2:ℂ)-(1/2-2*v) = 2*v by ring,
+      show (1/2-2*v)/2+1/4 = 1/2-v by ring,
+      show 3/4-(1/2-2*v)/2 = v+1/2 by ring,
+      show 1/4+(1/2-2*v)/2 = 1-(v+1/2) by ring,
+      recip_Gamma_one_sub_eq hG1]
+    have hsin : sin (π*(v+1/2)) = cos (π*v) := by
+      rw [show π*(v+1/2) = π*v+π/2 by ring, sin_add_pi_div_two]
+    rw [hsin, ← hpows]
+    dsimp only [C]
+    generalize (2 : ℂ)^(1-2*v) = E at hdup ⊢
+    generalize Gamma (v+1/2) = G at hdup hG1 ⊢
+    generalize cos (π*v) = T
+    field_simp
+    linear_combination -T*hdup
+  exact ⟨hU, hV⟩
+
+/-- The cylinder-square initial value expressed through a beta integral. -/
+lemma pcfProduct_zero_beta_v {v : ℂ} (hv : 0 < v.re) :
+    Gamma (2*v) * betaIntegral v (1/2) / π =
+      (pcfU (1/2-2*v) 0)^2 + (pcfUBar (1/2-2*v) 0)^2 := by
+  have hG : Gamma v ≠ 0 := Gamma_ne_zero_of_re_pos hv
+  have hG1 : Gamma (v+1/2) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
+  have hp : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
+  have hs : (Real.sqrt π : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have hs2 : (Real.sqrt π : ℂ)^2 = π := by norm_cast; exact Real.sq_sqrt Real.pi_pos.le
+  have h2 : (2 : ℂ) ≠ 0 := by norm_num
+  have hdup := Gamma_mul_Gamma_add_half v
+  obtain ⟨hU, hV⟩ := pcfProduct_zero_pair_v hv
+  rw [hU, hV]
+  have hbeta := Gamma_mul_Gamma_eq_betaIntegral hv (show 0 < (1/2 : ℂ).re by norm_num)
+  rw [Gamma_one_half_eq_sqrt] at hbeta
+  have hpow : (2 : ℂ)^(1-2*v)*((2 : ℂ)^(v-1/2))^2 = 1 := by
+    rw [pow_two, ← cpow_add _ _ h2, ← cpow_add _ _ h2]
+    convert cpow_zero (2 : ℂ) using 1 <;> congr 1 <;> ring
+  have hsc := sin_sq_add_cos_sq (π*v)
+  generalize (2 : ℂ)^(v-1/2) = F at hpow ⊢
+  generalize (2 : ℂ)^(1-2*v) = E at hdup hpow ⊢
+  field_simp
+  -- Eliminate the beta and duplication factors before the final square identity.
+  have hg : Gamma (2*v)*betaIntegral v (1/2) = F^2 * Gamma v^2 := by
+    apply mul_right_cancel₀ hG1
+    calc _ = Gamma (2*v)*(Gamma v*(Real.sqrt π : ℂ)) := by rw [mul_assoc, mul_comm _ (Gamma (v+1/2)), ← hbeta]
+         _ = F^2*Gamma v*(Gamma v*Gamma (v+1/2)) := by rw [hdup]; linear_combination -Gamma (2*v)*Gamma v*(Real.sqrt π : ℂ)*hpow
+         _ = _ := by ring
+  rw [hg]
+  rw [hs2]
+  rw [mul_comm (π : ℂ) v] at hsc
+  linear_combination -F^2*Gamma v^2*π*hsc
+
+/-- The normalized zeroth hyperbolic moment matches the cylinder-square initial value. -/
+lemma pcfIntegral4_initial_value {a : ℂ} (ha : a.re < 1/2) :
+    (2 : ℂ)^(3/2 : ℂ)/π*Gamma (1/2-a) *
+      (∫ t : ℝ in Ioi 0, exp (2*a*t)/(Real.sqrt (Real.sinh (2*t)) : ℂ)) =
+      (pcfU a 0)^2+(pcfUBar a 0)^2 := by
+  have hv : 0 < (1/4-a/2).re := by simp; linarith
+  have h := pcfProduct_zero_beta_v hv
+  rw [show (2 : ℂ)*(1/4-a/2)=1/2-a by ring,
+    show (1/2 : ℂ)-(1/2-a)=a by ring] at h
+  rw [pcfIntegral4_base_beta]
+  have h2 : (2 : ℂ)^(3/2 : ℂ)=2*(Real.sqrt 2 : ℂ) := by
+    rw [show (3/2 : ℂ)=1+1/2 by norm_num, cpow_add _ _ (by norm_num : (2 : ℂ) ≠ 0), cpow_one,
+      show (1/2 : ℂ)=((1/2 : ℝ) : ℂ) by norm_num,
+      show (2 : ℂ)=((2 : ℝ) : ℂ) by norm_num,
+      ← ofReal_cpow (by norm_num : (0 : ℝ) ≤ 2), ← Real.sqrt_eq_rpow]
+  rw [h2, ← h]
+  have hs : (Real.sqrt 2 : ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr (by norm_num)).ne'
+  field_simp
+
+/-- The normalized squared cylinder combination solves the symmetric-square equation. -/
+lemma pcfIntegral4_product_isThirdOrderSolution (a : ℂ) :
+    ODE.IsThirdOrderSolution (fun z : ℂ => z^2+4*a) (fun z => z)
+      (fun z => (pcfU a z)^2+(pcfUBar a z)^2)
+      (fun z => 2*(pcfU a z*pcfUDeriv a z+pcfUBar a z*pcfUBarDeriv a z))
+      (fun z => 2*(z^2/4+a)*((pcfU a z)^2+(pcfUBar a z)^2)+
+        2*((pcfUDeriv a z)^2+(pcfUBarDeriv a z)^2)) := by
+  have hq (w : ℂ) : HasDerivAt (fun t : ℂ => t^2/4+a) (w/2) w := by
+    exact ((((hasDerivAt_id w).pow 2).div_const 4).add_const a).congr_deriv (by
+      simp only [id_eq, Nat.cast_ofNat, Nat.reduceSub, pow_one, mul_one]
+      ring)
+  have hB : IsWeberSol a (pcfUBar a) (pcfUBarDeriv a) := fun z => by
+    refine ⟨(hasDerivAt_pcfV a z).const_mul _, ?_⟩
+    exact ((hasDerivAt_pcfVDeriv a z).const_mul (Gamma (1/2-a))).congr_deriv (by
+      simp only [pcfUBar]
+      ring)
+  have hU := ODE.product_isThirdOrderSolution (isWeberSol_pcfU a) (isWeberSol_pcfU a) hq
+  have hV := ODE.product_isThirdOrderSolution hB hB hq
+  convert hU.add hV using 1 <;> funext z <;> ring
+
+
+/-- Lowering the parameter identifies both initial derivatives, including
+negative half-integral parameters of the barred solution. -/
+lemma pcfIntegral4_deriv_zero_shift {a : ℂ} (ha : a.re < 1/2) :
+    pcfUDeriv a 0 = -pcfU (a-1) 0 ∧ pcfUBarDeriv a 0 = -pcfUBar (a-1) 0 := by
+  constructor
+  · have h := pcfU_recurrence_sub a 0
+    rw [(hasDerivAt_pcfU a 0).deriv] at h
+    simp only [zero_div, zero_mul, sub_zero] at h
+    linear_combination h
+  · have h := pcfV_recurrence_sub a 0
+    rw [(hasDerivAt_pcfV a 0).deriv] at h
+    simp only [zero_div, zero_mul, sub_zero] at h
+    have hg : (1/2:ℂ)-a ≠ 0 := by
+      intro he
+      have := congrArg Complex.re he
+      simp at this
+      linarith
+    simp only [pcfUBarDeriv, pcfUBar]
+    rw [show (1/2:ℂ)-(a-1)=(1/2-a)+1 by ring, Gamma_add_one _ hg]
+    linear_combination Gamma (1/2-a)*h
+
+
+/-- Initial values determine solutions of the Weber product equation. -/
+lemma pcfProduct_eq_of_initial {a : ℂ} {y y1 y2 z z1 z2 : ℂ → ℂ}
+    (hy : ODE.IsThirdOrderSolution (fun x => x^2+4*a) (fun x => x) y y1 y2)
+    (hz : ODE.IsThirdOrderSolution (fun x => x^2+4*a) (fun x => x) z z1 z2)
+    (h0 : y 0 = z 0) (h1 : y1 0 = z1 0) (h2 : y2 0 = z2 0) : y = z := by
+  have hq (x : ℂ) : HasDerivAt (fun x : ℂ => x^2/4+a) (x/2) x := by
+    exact ((((hasDerivAt_id x).pow 2).div_const 4).add_const a).congr_deriv (by
+      simp only [id_eq, Nat.cast_ofNat, Nat.reduceSub, pow_one, mul_one]
+      ring)
+  have hp {f f' g g' : ℂ → ℂ} (hf : IsWeberSol a f f') (hg : IsWeberSol a g g') :=
+    ODE.product_isThirdOrderSolution hf hg hq
+  have hp_eq : (fun x : ℂ => 4*(x^2/4+a)) = fun x => x^2+4*a := by funext x; ring
+  have hq_eq : (fun x : ℂ => 2*(x/2)) = fun x => x := by funext x; ring
+  simp only [hp_eq, hq_eq] at hp
+  have hu := hp (isWeberSol_pcfEven a) (isWeberSol_pcfEven a)
+  have hv := hp (isWeberSol_pcfEven a) (isWeberSol_pcfOdd a)
+  have hw := hp (isWeberSol_pcfOdd a) (isWeberSol_pcfOdd a)
+  apply ODE.thirdOrder_eq_of_initial hy hz hu hv hw (x₀ := 0) _ h0 h1 h2
+  norm_num [ODE.thirdOrderWronskian, pcfEven_zero, pcfEvenDeriv_zero, pcfOdd_zero,
+    pcfOddDeriv_zero]
+
+/-- The squared cylinder combination has zero first derivative at the origin. -/
+lemma pcfIntegral4_initial_deriv {a : ℂ} (ha : a.re < 1/2) :
+    pcfU a 0 * pcfUDeriv a 0 + pcfUBar a 0 * pcfUBarDeriv a 0 = 0 := by
+  let v : ℂ := 1/4-a/2
+  have hv : 0 < v.re := by dsimp [v]; simp; linarith
+  obtain ⟨hU, hB⟩ := pcfProduct_zero_pair_v hv
+  obtain ⟨hU', hB'⟩ := pcfProduct_zero_pair_v (v:=v+1/2) (by simp; linarith)
+  rw [show (1/2:ℂ)-2*v=a by dsimp [v]; ring] at hU hB
+  rw [show (1/2:ℂ)-2*(v+1/2)=a-1 by dsimp [v]; ring,
+    show (π:ℂ)*(v+1/2)=π*v+π/2 by ring, sin_add_pi_div_two] at hU'
+  rw [show (1/2:ℂ)-2*(v+1/2)=a-1 by dsimp [v]; ring,
+    show (π:ℂ)*(v+1/2)=π*v+π/2 by ring, cos_add_pi_div_two] at hB'
+  rw [(pcfIntegral4_deriv_zero_shift ha).1, (pcfIntegral4_deriv_zero_shift ha).2,
+    hU, hB, hU', hB']
+  ring
+
+
+
+
+/-- An exponential factor converts the singular kernel into the continuous tanh-weighted kernel. -/
+lemma pcfIntegral4_exp_tanh (t : ℝ) :
+    (1+exp (-2*(t : ℂ)))*(Real.tanh t : ℂ)=1-exp (-2*(t : ℂ)) := by
+  have hr : (1+Real.exp (-2*t))*Real.tanh t=1-Real.exp (-2*t) := by
+    have hc := (Real.cosh_pos t).ne'
+    rw [Real.tanh_eq_sinh_div_cosh]
+    field_simp
+    rw [Real.sinh_eq, Real.cosh_eq]
+    simp only [show -2*t = -(t+t) by ring, show t*2 = t+t by ring, Real.exp_neg, Real.exp_add]
+    have he := Real.exp_ne_zero t
+    field_simp
+    have he2 : Real.exp (2*t)=Real.exp t^2 := by rw [two_mul, Real.exp_add, pow_two]
+    linear_combination -2*he2
+  have hc := congrArg Complex.ofReal hr
+  push_cast at hc
+  simpa using hc
+
+/-- The hyperbolic identity used when differentiating the first-moment primitive. -/
+lemma pcfIntegral4_exp_coth {t : ℝ} (ht : 0 < t) :
+    (1-exp (-2*(t : ℂ)))*(Real.cosh (2*t) : ℂ)/(Real.sinh (2*t) : ℂ)=
+      (Real.tanh t : ℂ)+exp (-2*(t : ℂ)) := by
+  have hr : (1-Real.exp (-2*t))*Real.cosh (2*t)/Real.sinh (2*t)=
+      Real.tanh t+Real.exp (-2*t) := by
+    have hc := (Real.cosh_pos t).ne'
+    have hs := (Real.sinh_pos_iff.mpr (show 0 < 2*t by linarith)).ne'
+    rw [Real.tanh_eq_sinh_div_cosh]
+    field_simp
+    rw [Real.sinh_eq, Real.cosh_eq, Real.cosh_eq, Real.sinh_eq]
+    simp only [show 2*t = t+t by ring, show -2*t = -(t+t) by ring, show t*2 = t+t by ring, Real.exp_neg, Real.exp_add]
+    have he := Real.exp_ne_zero t
+    field_simp
+    ring
+  have hc := congrArg Complex.ofReal hr
+  push_cast at hc
+  simpa using hc
+
+/-- Multiplying the kernel by exp(-2t) decreases its parameter by one. -/
+lemma pcfIntegral4_exp_shift (a : ℂ) (t : ℝ) :
+    exp (-2*(t : ℂ))*pcfIntegral4Kernel a 0 t=pcfIntegral4Kernel (a-1) 0 t := by
+  simp only [pcfIntegral4Kernel, zero_pow two_ne_zero, zero_div, zero_mul, add_zero]
+  rw [← mul_div_assoc, ← exp_add]
+  congr 2
+  ring
+
+/-- Integration by parts expresses the first hyperbolic moment through two zeroth moments. -/
+lemma pcfIntegral4_first_moment {a : ℂ} (ha : a.re < 1/2) :
+    pcfIntegral4Moment a 1 0 =
+      2*a*pcfIntegral4Moment a 0 0+(1-2*a)*pcfIntegral4Moment (a-1) 0 0 := by
+  let F (t : ℝ) := (1-exp (-2*(t : ℂ)))*pcfIntegral4Kernel a 0 t
+  let g (t : ℝ) := 2*a*pcfIntegral4Kernel a 0 t+
+    (1-2*a)*pcfIntegral4Kernel (a-1) 0 t-(Real.tanh t : ℂ)*pcfIntegral4Kernel a 0 t
+  have hF : F = fun t : ℝ => (1+exp (-2*(t : ℂ)))*((Real.tanh t : ℂ)*pcfIntegral4Kernel a 0 t) := by
+    funext t
+    dsimp only [F]
+    rw [← mul_assoc, pcfIntegral4_exp_tanh]
+  have hcont : ContinuousWithinAt F (Ici 0) 0 := by
+    rw [hF]
+    exact (by fun_prop : Continuous fun t : ℝ => 1+exp (-2*(t : ℂ))).continuousWithinAt.mul
+      (pcfIntegral4_tanh_kernel_continuous_zero a 0)
+  have hd (t : ℝ) (ht : t ∈ Ioi 0) : HasDerivAt F (g t) t := by
+    have hExp : HasDerivAt (fun u : ℝ => exp (-2*(u : ℂ)))
+        (-2*exp (-2*(t : ℂ))) t := by
+      convert (((hasDerivAt_id t).ofReal_comp.const_mul (-2 : ℂ)).cexp) using 1 <;> simp <;> ring
+    have h := ((hasDerivAt_const t (1 : ℂ)).sub hExp).mul
+      (pcfIntegral4_hasDerivAt_kernel_time a 0 ht)
+    refine h.congr_deriv ?_
+    simp only [zero_pow two_ne_zero, zero_div, zero_mul, add_zero, zero_sub, Pi.sub_apply]
+    dsimp only [g]
+    have hrat := pcfIntegral4_exp_coth ht
+    have hshift := pcfIntegral4_exp_shift a t
+    linear_combination -(pcfIntegral4Kernel a 0 t)*hrat + (1-2*a)*hshift
+  have ha' : (a-1).re < 1/2 := by simp; linarith
+  have hi0 : IntegrableOn (pcfIntegral4Kernel a 0) (Ioi 0) := by
+    simpa using pcfIntegral4_moment_integrable ha 0 0
+  have hi1 : IntegrableOn (pcfIntegral4Kernel (a-1) 0) (Ioi 0) := by
+    simpa using pcfIntegral4_moment_integrable ha' 0 0
+  have hit : IntegrableOn (fun t => (Real.tanh t : ℂ)*pcfIntegral4Kernel a 0 t) (Ioi 0) := by
+    simpa using pcfIntegral4_moment_integrable ha 1 0
+  have hig : IntegrableOn g (Ioi 0) := ((hi0.const_mul (2*a)).add (hi1.const_mul (1-2*a))).sub hit
+  have ht : Tendsto F atTop (𝓝 0) := by
+    have he : Tendsto (fun t : ℝ => exp (-2*(t : ℂ))) atTop (𝓝 0) := by
+      have h := (continuous_ofReal.tendsto 0).comp
+        (Real.tendsto_exp_atBot.comp (tendsto_id.const_mul_atTop_of_neg (by norm_num : (-2 : ℝ) < 0)))
+      change Tendsto (fun t : ℝ => (Real.exp (-2*t) : ℂ)) atTop (𝓝 0) at h
+      refine h.congr' (Eventually.of_forall fun t => ?_)
+      rw [ofReal_exp]
+      congr 1
+      push_cast
+      ring
+    have hk : Tendsto (pcfIntegral4Kernel a 0) atTop (𝓝 0) := by
+      simpa using pcfIntegral4_moment_tendsto_zero ha 0 0
+    simpa [F] using (tendsto_const_nhds.sub he).mul hk
+  have hI := integral_Ioi_of_hasDerivAt_of_tendsto hcont hd hig ht
+  simp only [F, ofReal_zero, mul_zero, exp_zero, sub_self, zero_mul, sub_zero] at hI
+  simp only [g] at hI
+  have hsub := integral_sub ((hi0.const_mul (2*a)).add (hi1.const_mul (1-2*a))) hit
+  simp only [Pi.add_apply] at hsub
+  rw [hsub, integral_add (hi0.const_mul (2*a)) (hi1.const_mul (1-2*a)),
+    integral_const_mul, integral_const_mul] at hI
+  simpa [pcfIntegral4Moment] using (sub_eq_zero.mp hI).symm
+
+/-- The second initial value of the normalized cylinder square integral. -/
+lemma pcfIntegral4_initial_second {a : ℂ} (ha : a.re < 1/2) :
+    (2:ℂ)^(3/2:ℂ)/π*Gamma (1/2-a)*pcfIntegral4Moment a 1 0 =
+      2*a*((pcfU a 0)^2+(pcfUBar a 0)^2)+
+        2*((pcfUDeriv a 0)^2+(pcfUBarDeriv a 0)^2) := by
+  let C (b : ℂ) := (2:ℂ)^(3/2:ℂ)/π*Gamma (1/2-b)
+  have hM (b : ℂ) (hb : b.re < 1/2) :
+      C b * pcfIntegral4Moment b 0 0 = (pcfU b 0)^2+(pcfUBar b 0)^2 := by
+    simpa only [C, pcfIntegral4Moment, pcfIntegral4Kernel, pow_zero, one_mul,
+      zero_pow (by norm_num : 2 ≠ 0), zero_div, zero_mul, add_zero]
+      using pcfIntegral4_initial_value hb
+  have hg : (1/2:ℂ)-a ≠ 0 := by
+    intro he
+    have := congrArg Complex.re he
+    simp at this
+    linarith
+  have hC : C a*(1-2*a) = 2*C (a-1) := by
+    dsimp [C]
+    rw [show (1/2:ℂ)-(a-1)=(1/2-a)+1 by ring, Gamma_add_one _ hg]
+    ring
+  have hrec := congrArg (fun w => C a*w) (pcfIntegral4_first_moment ha)
+  rw [(pcfIntegral4_deriv_zero_shift ha).1, (pcfIntegral4_deriv_zero_shift ha).2,
+    neg_sq, neg_sq]
+  linear_combination hrec + 2*a*hM a ha +
+    2*hM (a-1) (by simp; linarith) + pcfIntegral4Moment (a-1) 0 0*hC
+
+/-- DLMF 12.12.4 from the product ODE and its three initial values. -/
 @[dlmf 12.12.E4]
 theorem pcf_integral_4 {a : ℂ} (ha : a.re < 1/2) (z : ℂ) :
-    HasIntegralAtTop (fun t : ℝ => 2^(3/2:ℂ)/π*Gamma (1/2-a)*exp (2*a*t+z^2/2*Real.tanh t)/(Real.sqrt (Real.sinh (2*t)):ℂ)) 0 ((pcfU a z)^2+(pcfUBar a z)^2) := by
-  sorry
+    HasIntegralAtTop (fun t : ℝ => 2^(3/2:ℂ)/π*Gamma (1/2-a)*
+      exp (2*a*t+z^2/2*Real.tanh t)/(Real.sqrt (Real.sinh (2*t)):ℂ)) 0
+        ((pcfU a z)^2+(pcfUBar a z)^2) := by
+  let C : ℂ := (2:ℂ)^(3/2:ℂ)/π*Gamma (1/2-a)
+  have he := pcfProduct_eq_of_initial
+    ((pcfIntegral4_isThirdOrderSolution ha).const_mul C)
+    (pcfIntegral4_product_isThirdOrderSolution a)
+    (by simpa only [C, pcfIntegral4Moment, pcfIntegral4Kernel, pow_zero, one_mul,
+        zero_pow (by norm_num : 2 ≠ 0), zero_div, zero_mul, add_zero]
+      using pcfIntegral4_initial_value ha)
+    (by simp only [zero_mul, pcfIntegral4_initial_deriv ha, mul_zero])
+    (by simpa only [C, zero_pow (by norm_num : 2 ≠ 0), zero_mul, add_zero, zero_div, zero_add]
+      using pcfIntegral4_initial_second ha)
+  have hv : (∫ t : ℝ in Ioi 0, (2:ℂ)^(3/2:ℂ)/π*Gamma (1/2-a)*
+      exp (2*a*t+z^2/2*Real.tanh t)/(Real.sqrt (Real.sinh (2*t)):ℂ)) =
+        (pcfU a z)^2+(pcfUBar a z)^2 := by
+    rw [← congrFun he z]
+    simp only [pcfIntegral4Moment, pow_zero, one_mul, C, pcfIntegral4Kernel,
+      mul_div_assoc, integral_const_mul]
+  unfold HasIntegralAtTop
+  rw [← hv]
+  exact intervalIntegral_tendsto_integral_Ioi 0 (pcf_integral_4_integrable ha z) tendsto_id
 
 end DLMF.Confluent

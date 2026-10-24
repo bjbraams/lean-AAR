@@ -264,7 +264,7 @@ lemma ferrersOdd_neg (ν μ : ℂ) (x : ℝ) : ferrersOdd ν μ (-x) = -ferrersO
   simp [ferrersOdd]
 
 /-- The reflection formula for reciprocal Gamma values, valid at every `s`. -/
-lemma legendre_inv_Gamma_reflection (s : ℂ) : π*((Gamma s)⁻¹*(Gamma (1-s))⁻¹) = sin (π*s) := by
+lemma legendre_recip_Gamma_reflection (s : ℂ) : π*((Gamma s)⁻¹*(Gamma (1-s))⁻¹) = sin (π*s) := by
   rw [← mul_inv, Gamma_mul_Gamma_one_sub, inv_div]
   by_cases h : sin (π*s) = 0
   · simp [h]
@@ -273,7 +273,7 @@ lemma legendre_inv_Gamma_reflection (s : ℂ) : π*((Gamma s)⁻¹*(Gamma (1-s))
 /-- Reflection for the even Ferrers coefficients: `π/(Γ((1-t)/2)Γ((t+1)/2)) = cos(tπ/2)`. -/
 lemma legendre_reflection_even (t : ℂ) :
     π*((Gamma ((1-t)/2))⁻¹*(Gamma ((t+1)/2))⁻¹) = cos (t*π/2) := by
-  have h := legendre_inv_Gamma_reflection ((t+1)/2)
+  have h := legendre_recip_Gamma_reflection ((t+1)/2)
   rw [show 1-(t+1)/2 = (1-t)/2 by ring, show (π:ℂ)*((t+1)/2) = t*π/2+π/2 by ring,
     sin_add_pi_div_two] at h
   rw [← h]; ring
@@ -281,7 +281,7 @@ lemma legendre_reflection_even (t : ℂ) :
 /-- Reflection for the odd Ferrers coefficients: `π/(Γ(-t/2)Γ((t+2)/2)) = -sin(tπ/2)`. -/
 lemma legendre_reflection_odd (t : ℂ) :
     π*((Gamma (-t/2))⁻¹*(Gamma ((t+2)/2))⁻¹) = -sin (t*π/2) := by
-  have h := legendre_inv_Gamma_reflection ((t+2)/2)
+  have h := legendre_recip_Gamma_reflection ((t+2)/2)
   rw [show 1-(t+2)/2 = -t/2 by ring, show (π:ℂ)*((t+2)/2) = t*π/2+π by ring,
     sin_add_pi] at h
   rw [← h]; ring
@@ -297,7 +297,7 @@ lemma legendre_duplication (t : ℂ) :
   rw [h]; field_simp; linear_combination (-Gamma (t+1))*h2
 
 /-- Reciprocal Legendre duplication, valid for all `t`. -/
-lemma legendre_inv_duplication (t : ℂ) :
+lemma legendre_recip_duplication (t : ℂ) :
     (Gamma (t+1))⁻¹ = (Gamma ((t+1)/2))⁻¹*(Gamma ((t+2)/2))⁻¹*2^(-t)*(Real.sqrt π:ℂ) := by
   rw [legendre_duplication t, cpow_neg]
   simp only [div_eq_mul_inv, mul_inv, inv_inv]
@@ -309,7 +309,7 @@ lemma legendre_Gamma_ratio (ν μ : ℂ) :
   have hs : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
   have h2 : (2:ℂ)^(ν+μ)*2^(-(ν-μ)) = ((2:ℂ)^μ)^2 := by
     rw [← cpow_add _ _ two_ne_zero, sq, ← cpow_add _ _ two_ne_zero]; ring_nf
-  rw [div_eq_mul_inv, legendre_duplication (ν+μ), legendre_inv_duplication (ν-μ), ← h2]
+  rw [div_eq_mul_inv, legendre_duplication (ν+μ), legendre_recip_duplication (ν-μ), ← h2]
   ring_nf
   field_simp
 
@@ -324,9 +324,9 @@ lemma legendre_Gamma_minus (ν μ : ℂ) :
   rw [legendre_duplication, cpow_sub _ _ two_ne_zero, div_eq_mul_inv (2^ν)]
 
 /-- Reciprocal duplication for `Γ(μ-ν)`. -/
-lemma legendre_inv_Gamma_sub (ν μ : ℂ) :
+lemma legendre_recip_Gamma_sub (ν μ : ℂ) :
     (Gamma (μ-ν))⁻¹ = (Gamma ((μ-ν)/2))⁻¹*(Gamma ((1-ν+μ)/2))⁻¹*(2*2^ν*((2:ℂ)^μ)⁻¹)*(Real.sqrt π:ℂ) := by
-  have h := legendre_inv_duplication (μ-ν-1)
+  have h := legendre_recip_duplication (μ-ν-1)
   rw [show μ-ν-1+1 = μ-ν by ring,
     show (μ-ν-1+2)/2 = (1-ν+μ)/2 by ring] at h
   rw [h, show -(μ-ν-1) = 1+ν-μ by ring, cpow_sub _ _ two_ne_zero, cpow_add _ _ two_ne_zero, cpow_one]
@@ -359,7 +359,7 @@ lemma legendre_reflections (ν μ : ℂ) :
   exact ⟨e1, o1, e2, o2⟩
 
 /-- Under regular `ν+μ`, the reflected reciprocal Gamma values of the order-`μ` coefficients. -/
-lemma legendre_reflection_inv {ν μ : ℂ} (h : LegendreQRegular ν μ) :
+lemma legendre_reflection_recip {ν μ : ℂ} (h : LegendreQRegular ν μ) :
     (Gamma ((1-ν-μ)/2))⁻¹ = cos ((ν+μ)*π/2)*Gamma ((ν+μ+1)/2)/π ∧
     (Gamma (-(ν+μ)/2))⁻¹ = -sin ((ν+μ)*π/2)*Gamma ((ν+μ+2)/2)/π := by
   obtain ⟨hg1, hg2⟩ := legendre_Gamma_half_ne_zero h
@@ -370,7 +370,7 @@ lemma legendre_reflection_inv {ν μ : ℂ} (h : LegendreQRegular ν μ) :
   · rw [← o1]; field_simp
 
 /-- Under regular `ν-μ`, the reflected reciprocal Gamma values of the order-`-μ` coefficients. -/
-lemma legendre_reflection_inv_neg {ν μ : ℂ} (h : LegendreQRegular ν (-μ)) :
+lemma legendre_reflection_recip_neg {ν μ : ℂ} (h : LegendreQRegular ν (-μ)) :
     (Gamma ((1-ν+μ)/2))⁻¹ = cos ((ν-μ)*π/2)*Gamma ((ν-μ+1)/2)/π ∧
     (Gamma ((μ-ν)/2))⁻¹ = -sin ((ν-μ)*π/2)*Gamma ((ν-μ+2)/2)/π := by
   obtain ⟨hh1, hh2⟩ := legendre_Gamma_half_ne_zero_neg h
@@ -580,7 +580,7 @@ lemma continuous_regularizedGaussHG_sq {A B C : ℂ → ℂ} (hA : Differentiabl
   (differentiable_regularizedGaussHG_comp hA hB hC (ferrers_sq_mem_cutPlane hx)).continuous
 
 /-- The reciprocal Gamma function is continuous. -/
-lemma continuous_inv_Gamma : Continuous fun s : ℂ => (Gamma s)⁻¹ := by
+lemma continuous_recip_Gamma : Continuous fun s : ℂ => (Gamma s)⁻¹ := by
   simpa [one_div] using Complex.differentiable_one_div_Gamma.continuous
 
 /-- `𝖰^μ_ν(x)` is continuous in the order at a regular parameter. -/
@@ -592,8 +592,8 @@ lemma continuousAt_ferrersQ_order {ν μ₀ : ℂ} (h : LegendreQRegular ν μ�
     ContinuousAt.comp (g := Gamma) (differentiableAt_Gamma _ h1).continuousAt (by fun_prop)
   have c2 : ContinuousAt (fun μ => Gamma ((ν+μ+2)/2)) μ₀ :=
     ContinuousAt.comp (g := Gamma) (differentiableAt_Gamma _ h2).continuousAt (by fun_prop)
-  have r1 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)).continuousAt (x := μ₀)
-  have r2 := (continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)).continuousAt (x := μ₀)
+  have r1 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+2)/2)).continuousAt (x := μ₀)
+  have r2 := (continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => (ν-μ+1)/2)).continuousAt (x := μ₀)
   have hne := slitPlane_ne_zero (ferrers_one_sub_sq_mem_slitPlane hx)
   have p2 : Continuous fun μ : ℂ => (2:ℂ)^μ := continuous_const_cpow' (by norm_num)
   have pw : Continuous fun μ : ℂ => (1-(x:ℂ)^2)^(-μ/2) :=
@@ -638,7 +638,7 @@ theorem ferrersQ_order_limit {ν : ℂ} (m : ℤ) (h : LegendreQRegular ν m) {x
   have hG0 : (Gamma (ν+m+1))⁻¹ ≠ 0 := inv_ne_zero (Complex.Gamma_ne_zero fun k hk =>
     h k (by linear_combination hk))
   have hev1 : ∀ᶠ μ in 𝓝 (m:ℂ), (Gamma (ν+μ+1))⁻¹ ≠ 0 :=
-    ((continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν+μ+1)).continuousAt
+    ((continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν+μ+1)).continuousAt
       (x := (m:ℂ))).eventually_ne hG0
   have hev2 : ∀ᶠ μ in 𝓝 (m:ℂ), μ ∈ Metric.ball (m:ℂ) 1 := Metric.ball_mem_nhds _ one_pos
   filter_upwards [nhdsWithin_le_nhds hev1, nhdsWithin_le_nhds hev2, self_mem_nhdsWithin] with μ hμ1 hμ2 hμ3
@@ -894,7 +894,7 @@ theorem olverQ_analytic (ν μ : ℂ) :
   have hp : z+1 ∈ slitPlane := by simpa [add_comm] using one_add_mem_slitPlane_of_sub_one hz
   have hG : AnalyticAt ℂ (fun w : ℂ => regularizedGaussHG ((ν+μ+2)/2)
       ((ν+μ+1)/2) (ν+3/2) (1/w^2)) z :=
-    (analyticAt_regularizedGaussHG _ _ _ (inv_sq_mem_cutPlane hz)).comp_of_eq
+    (analyticAt_regularizedGaussHG _ _ _ (recip_sq_mem_cutPlane hz)).comp_of_eq
       (by fun_prop (disch := exact pow_ne_zero 2 hz0)) rfl
   have hB : AnalyticAt ℂ (legendreBranchPower μ) z := by
     unfold legendreBranchPower
@@ -915,7 +915,7 @@ theorem olverQ_entire_degree (μ : ℂ) :
   unfold olverQ
   refine (((differentiable_const _).div ((differentiable_const_cpow_of_neZero (2:ℂ) |>.comp
     (by fun_prop : Differentiable ℂ fun ν : ℂ => ν+1)).mul ?_) ?_)).mul
-    (differentiable_regularizedGaussHG_comp (by fun_prop) (by fun_prop) (by fun_prop) (inv_sq_mem_cutPlane hz))
+    (differentiable_regularizedGaussHG_comp (by fun_prop) (by fun_prop) (by fun_prop) (recip_sq_mem_cutPlane hz))
   · exact (differentiable_const_cpow_of_neZero z |>.comp (by fun_prop : Differentiable ℂ fun ν : ℂ => ν+μ+1))
   · intro ν
     exact mul_ne_zero (cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)) (cpow_ne_zero_iff.mpr (Or.inl hz0))
@@ -928,7 +928,7 @@ theorem olverQ_entire_order (ν : ℂ) :
   have : NeZero z := ⟨hz0⟩
   unfold olverQ legendreBranchPower
   refine (((differentiable_const _).mul (by fun_prop)).div ((differentiable_const _).mul ?_) ?_).mul
-    (differentiable_regularizedGaussHG_comp (by fun_prop) (by fun_prop) (by fun_prop) (inv_sq_mem_cutPlane hz))
+    (differentiable_regularizedGaussHG_comp (by fun_prop) (by fun_prop) (by fun_prop) (recip_sq_mem_cutPlane hz))
   · exact (differentiable_const_cpow_of_neZero z |>.comp (by fun_prop : Differentiable ℂ fun μ : ℂ => ν+μ+1))
   · intro μ
     exact mul_ne_zero (cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)) (cpow_ne_zero_iff.mpr (Or.inl hz0))
@@ -972,7 +972,7 @@ theorem olverQ_ode (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
       field_simp [(hne w hw).1]
       ring
   have hF (w : ℂ) (hw : w-1∈slitPlane) : AnalyticAt ℂ F (u w) :=
-    analyticAt_regularizedGaussHG a b c (inv_sq_mem_cutPlane hw)
+    analyticAt_regularizedGaussHG a b c (recip_sq_mem_cutPlane hw)
   have hf : olverQ ν μ=fun w => g w*F (u w) := by
     funext w
     simp only [olverQ,g,F,u,a,b,c,r,legendreBranchPower,cpow_neg]
@@ -1011,9 +1011,9 @@ theorem olverQ_ode (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
       (c-(a+b+1)*u z)*deriv F (u z)-a*b*F (u z)=0 := by
     dsimp only [F]
     rw [← show iteratedDeriv 2 (regularizedGaussHG a b c)=deriv (deriv (regularizedGaussHG a b c)) by
-      rw [iteratedDeriv_succ,iteratedDeriv_one],iteratedDeriv_regularizedGaussHG a b c 2 (inv_sq_mem_cutPlane hz),
-      deriv_regularizedGaussHG a b c (inv_sq_mem_cutPlane hz)]
-    exact regularizedGaussHG_ode a b c (inv_sq_mem_cutPlane hz)
+      rw [iteratedDeriv_succ,iteratedDeriv_one],iteratedDeriv_regularizedGaussHG a b c 2 (recip_sq_mem_cutPlane hz),
+      deriv_regularizedGaussHG a b c (recip_sq_mem_cutPlane hz)]
+    exact regularizedGaussHG_ode a b c (recip_sq_mem_cutPlane hz)
   simp only [Function.comp_apply,Pi.mul_apply,Pi.add_apply]
   generalize g z=G at *
   generalize F (u z)=F0 at *
@@ -1413,7 +1413,7 @@ theorem ferrers_wronskian_3 (ν μ : ℂ) {x : ℝ} (hx : x ∈ Ioo (-1:ℝ) 1) 
     (ferrersP_neg_reflect_eqOn_even_odd ν μ) hx,
     show (2:ℂ)/(Gamma (μ-ν)*Gamma (ν+μ+1)*(1-x^2:ℂ)) =
       (Gamma (μ-ν))⁻¹*(Gamma (ν+μ+1))⁻¹*(2/(1-x^2:ℂ)) by rw [div_eq_mul_inv, mul_inv, mul_inv]; ring,
-    legendre_inv_Gamma_sub, legendre_inv_duplication (ν+μ), cpow_neg, cpow_neg, cpow_add _ _ two_ne_zero]
+    legendre_recip_Gamma_sub, legendre_recip_duplication (ν+μ), cpow_neg, cpow_neg, cpow_add _ _ two_ne_zero]
   have hne : 1-(x:ℂ)^2≠0 := slitPlane_ne_zero (ferrers_one_sub_sq_mem_slitPlane hx)
   have hs2 : (Real.sqrt π:ℂ)^2 = π := by rw [← ofReal_pow, Real.sq_sqrt Real.pi_pos.le]
   have hP : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
@@ -1632,8 +1632,8 @@ lemma associated_connection_15_real (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) 
   have hT := regularizedGaussHG_olver_connection ν μ h1 h2
   have I1 := legendre_connection_scalar_minus ν μ h1
   have I2 := legendre_connection_scalar_plus ν μ h1
-  have hd1 := legendre_inv_duplication (ν+μ)
-  have hd2 := legendre_inv_duplication (ν-μ)
+  have hd1 := legendre_recip_duplication (ν+μ)
+  have hd2 := legendre_recip_duplication (ν-μ)
   have hs : sin (μ*π) = -sin (π*(-μ)) := by rw [mul_neg, sin_neg, neg_neg, mul_comm]
   unfold olverQ associatedP
   rw [show 1-(-μ) = 1+μ by ring, regularizedGaussHG_legendre_quadratic ν (1-μ) hc1 h1 h2,
@@ -1684,8 +1684,8 @@ lemma olverQ_connection (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     have hQ := (olverQ_entire_order ν z hz).continuous
     have hP := (associatedP_entire_order ν z hz).continuous
     have hPm : Continuous fun μ : ℂ => associatedP ν (-μ) z := hP.comp continuous_neg
-    have g1 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν+μ+1)
-    have g2 := continuous_inv_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)
+    have g1 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν+μ+1)
+    have g2 := continuous_recip_Gamma.comp (by fun_prop : Continuous fun μ : ℂ => ν-μ+1)
     exact ((by fun_prop : Continuous fun μ : ℂ => 2*sin (μ*π)/π).mul hQ).sub
       ((hP.mul g1).sub (hPm.mul g2))
   have hev : G =ᶠ[𝓝[≠] (m:ℂ)] fun _ => 0 := by
@@ -1803,7 +1803,7 @@ theorem associated_wronskian_7 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) 
     by_cases h0 : μ = 0
     · simp [h0]
     · rw [Gamma_add_one _ h0, mul_inv, ← mul_assoc, mul_inv_cancel₀ h0, one_mul]
-  have hrefl := legendre_inv_Gamma_reflection μ
+  have hrefl := legendre_recip_Gamma_reflection μ
   have hz1 := hne z hz
   have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   rw [eq_div_iff (mul_ne_zero hpi hz1)]
@@ -1825,7 +1825,7 @@ lemma hasDerivAt_olverQ (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     ((((hasDerivAt_id z).sub_const 1).clog hz).add (((hasDerivAt_id z).add_const 1).clog hp')).const_mul (μ/2)
       |>.cexp
   have hP := (hasDerivAt_id z).cpow_const (c := ν+μ+1) (mem_slitPlane_of_sub_one hz)
-  have hcut := inv_sq_mem_cutPlane hz
+  have hcut := recip_sq_mem_cutPlane hz
   have hFd := (analyticAt_regularizedGaussHG ((ν+μ+2)/2) ((ν+μ+1)/2) (ν+3/2) hcut).differentiableAt.hasDerivAt
   rw [deriv_regularizedGaussHG _ _ _ hcut] at hFd
   have hu : HasDerivAt (fun w : ℂ => 1/w^2) (-2/z^3) z := by
@@ -1917,7 +1917,7 @@ lemma continuous_deriv_olverQ_order (ν : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane
     Continuous fun μ => deriv (olverQ ν μ) z := by
   have hz0 := slitPlane_ne_zero (mem_slitPlane_of_sub_one hz)
   have : NeZero z := ⟨hz0⟩
-  have hc := inv_sq_mem_cutPlane hz
+  have hc := recip_sq_mem_cutPlane hz
   have e := funext fun μ => (hasDerivAt_olverQ ν μ hz).deriv
   rw [e]
   have hB : Continuous fun μ : ℂ => legendreBranchPower μ z := by
@@ -1996,7 +1996,7 @@ theorem associated_wronskian_8 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) 
     (continuous_legendreWronskian_order (continuous_associatedP_neg_order ν hz)
       (continuous_deriv_associatedP_neg_order ν hz) (olverQ_entire_order ν z hz).continuous
       (continuous_deriv_olverQ_order ν hz))
-    ((continuous_inv_Gamma.comp (by fun_prop)).neg.mul continuous_const)
+    ((continuous_recip_Gamma.comp (by fun_prop)).neg.mul continuous_const)
     (fun μ hμ => associated_wronskian_8_nonint ν μ hμ hz) μ
   rw [key, div_eq_mul_inv, mul_inv]; ring
 
@@ -2008,7 +2008,7 @@ lemma olverQ_wronskian_pos (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) :
     (continuous_legendreWronskian_order (associatedP_entire_order ν z hz).continuous
       (continuous_deriv_associatedP_order ν hz) (olverQ_entire_order ν z hz).continuous
       (continuous_deriv_olverQ_order ν hz))
-    ((continuous_inv_Gamma.comp (by fun_prop)).neg.mul continuous_const)
+    ((continuous_recip_Gamma.comp (by fun_prop)).neg.mul continuous_const)
     (fun μ hμ => olverQ_wronskian_pos_nonint ν μ hμ hz) μ
 
 /-- associated wronskian 10. -/
@@ -2041,8 +2041,8 @@ lemma associated_wronskian_9_nonint (ν μ : ℂ) (hμ : ∀ n : ℤ, μ ≠ n) 
     have h1 := (associatedP_analytic ν μ z hz).differentiableAt.hasDerivAt
     have h2 := (associatedP_analytic ν (-μ) z hz).differentiableAt.hasDerivAt
     exact (((h1.mul_const _).sub (h2.mul_const _)).const_mul _).deriv
-  have r1 := legendre_inv_Gamma_reflection (ν+μ+1)
-  have r2 := legendre_inv_Gamma_reflection (ν-μ+1)
+  have r1 := legendre_recip_Gamma_reflection (ν+μ+1)
+  have r2 := legendre_recip_Gamma_reflection (ν-μ+1)
   rw [show 1-(ν+μ+1) = -ν-1-μ+1 by ring] at r1
   rw [show 1-(ν-μ+1) = -ν-1+μ+1 by ring] at r2
   have t1 : sin (π*(ν+μ+1)) = -(sin (ν*π)*cos (μ*π)+cos (ν*π)*sin (μ*π)) := by

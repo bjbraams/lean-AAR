@@ -311,14 +311,14 @@ lemma pcfLG_hasDerivAt_xi {t : ℝ} (ht : 1 < t) :
   nlinarith [hr2]
 
 /-- `A⁻² = √(t²-1)`. -/
-lemma pcfLG_A_sq_inv {t : ℝ} (ht : 1 < t) : (pcfLG_A t ^ 2)⁻¹ = Real.sqrt (t^2-1) := by
+lemma pcfLG_A_sq_recip {t : ℝ} (ht : 1 < t) : (pcfLG_A t ^ 2)⁻¹ = Real.sqrt (t^2-1) := by
   have hy : 0 < t^2-1 := by nlinarith
   rw [pcfLG_A, ← Real.rpow_natCast, ← Real.rpow_mul hy.le, ← Real.rpow_neg hy.le,
     Real.sqrt_eq_rpow]
   norm_num
 
 /-- `A⁻⁴ = t²-1`. -/
-lemma pcfLG_A_pow_four_inv {t : ℝ} (ht : 1 < t) : (pcfLG_A t ^ 4)⁻¹ = t^2-1 := by
+lemma pcfLG_A_pow_four_recip {t : ℝ} (ht : 1 < t) : (pcfLG_A t ^ 4)⁻¹ = t^2-1 := by
   have hy : 0 < t^2-1 := by nlinarith
   rw [pcfLG_A, ← Real.rpow_natCast, ← Real.rpow_mul hy.le, ← Real.rpow_neg hy.le]
   norm_num
@@ -825,7 +825,7 @@ lemma pcfLG_core {δ : ℝ} (hδ : 0 < δ) {N : ℕ} (hN : 1 ≤ N) : ∃ C μ�
     (A := pcfLG_A) (A' := pcfLG_A1) (A'' := pcfLG_A2) (ξ := pcfXi) (g := fun _ => 0)
     (fun x hx => (pcfLG_A_pos hx).ne') (fun x hx => pcfLG_hasDerivAt_A hx)
     (fun x hx => pcfLG_hasDerivAt_A1 hx) pcfLG_continuousOn_A2 continuousOn_const
-    (fun x hx => by rw [pcfLG_A_sq_inv hx]; exact pcfLG_hasDerivAt_xi hx)
+    (fun x hx => by rw [pcfLG_A_sq_recip hx]; exact pcfLG_hasDerivAt_xi hx)
     (fun c' hc' => pcfLG_integrableOn_V hc') (n := N)
     (As := fun s t => (-1)^s * pcfLG_hatA s t) (Ad := fun s t => (-1)^s * pcfLG_hatAd s t)
     (Ad2 := fun s t => (-1)^s * pcfLG_hatAd2 s t)
@@ -943,7 +943,7 @@ lemma pcfLG_core {δ : ℝ} (hδ : 0 < δ) {N : ℕ} (hN : 1 ≤ N) : ∃ C μ�
       have := pcfLG_hasDerivAt_U' μ t
       refine this.congr_deriv ?_
       congr 2
-      simp only [hq, pcfLG_A_pow_four_inv h1, hu]; ring)
+      simp only [hq, pcfLG_A_pow_four_recip h1, hu]; ring)
     (fun t ht => (H t (lt_trans hc ht)).2.1)
     (fun t ht => (H t (lt_trans hc ht)).2.2.1)
     (fun t ht => (mul_pos (hAe t (lt_trans hc ht)) (by linarith [hpos t ht.le])).ne') hWl hl

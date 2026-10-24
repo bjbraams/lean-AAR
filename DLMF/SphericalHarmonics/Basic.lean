@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import TauCeti.RingTheory.MvPolynomial.Homogeneous
 public import Mathlib.Algebra.MvPolynomial.PDeriv
 public import Mathlib.Analysis.InnerProductSpace.Harmonic.Basic
 public import Mathlib.Analysis.InnerProductSpace.PiL2
@@ -216,13 +217,7 @@ private lemma hhOrth_integrable {n : ℕ} [Nontrivial (EuclideanSpace ℝ (Fin n
 private lemma hhOrth_eval_smul {n m : ℕ} {P : MvPolynomial (Fin n) ℝ} (hP : P.IsHomogeneous m)
     (r : ℝ) (u : EuclideanSpace ℝ (Fin n)) :
     eval (fun j => (r • u) j) P = r ^ m * eval (fun j => u j) P := by
-  classical
-  show eval₂ (RingHom.id ℝ) (fun j => r * u j) P = r ^ m * eval₂ (RingHom.id ℝ) (fun j => u j) P
-  simp only [MvPolynomial.eval₂_eq, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun d hd => ?_
-  have hdeg : ∑ i ∈ d.support, d i = m := (hP.degree_eq_sum_deg_support hd).symm
-  simp only [mul_pow, Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum, hdeg]
-  ring
+  exact hP.eval₂_const_mul (RingHom.id ℝ) (fun j => u j) r
 
 /-- The polynomial identity behind the Gaussian integration by parts. -/
 private lemma hhOrth_div {n : ℕ} (p q : MvPolynomial (Fin n) ℝ) :

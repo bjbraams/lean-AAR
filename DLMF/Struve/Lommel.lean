@@ -8,6 +8,9 @@ module
 public import DLMF.Struve.Basic
 public import DLMF.Bessel.Elementary
 public import DLMF.Bessel.NeumannSeries
+public import DLMF.Gamma.Simplex.GammaPochhammer
+public import ToMathlib.Analysis.Complex.ParametricHolomorphy
+public import Mathlib.Analysis.Calculus.DSlope
 
 /-!
 # Lommel functions and parameter continuation
@@ -461,7 +464,7 @@ theorem lommelS_bessel_series_8 {μ ν : ℂ} (h : ∀ n : ℕ, μ-ν ≠ -(n+1)
   have hy : ∀ i : ℕ, β + i ≠ 0 := fun i => by rw [add_comm]; exact hb i
   have hGβ : Gamma β ≠ 0 := Complex.Gamma_ne_zero fun m h' => hy m (by rw [h']; ring)
   set c : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + α)) with hc_def
-  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le α
+  obtain ⟨B, hB0, hB⟩ := exists_norm_recip_nat_add_le α
   have hcb : ∀ k, ‖c k‖ ≤ B * 1 ^ k := fun k => by
     have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
     show ‖1 / ((k ! : ℂ) * (k + α))‖ ≤ B * 1 ^ k
@@ -534,5 +537,240 @@ theorem lommelCapital_asymptotic (μ ν : ℂ) {δ : ℝ} (hδ : 0 < δ) (hδπ 
 theorem lommelCapital_terminates {μ ν : ℂ} (n : ℕ) (h : μ+ν=2*n+1 ∨ μ-ν=2*n+1) {z : ℂ} (hz : z ∈ slitPlane) :
     lommelCapital μ ν z = z^(μ-1)*∑ k ∈ Finset.range (n+1), (-1)^k*lommelA (-μ) ν k*z^(-(2*k:ℤ)) := by
   sorry
+
+/-- Shifting the degree by two preserves the regular Lommel parameter domain. -/
+theorem LommelRegular.add_two {μ ν : ℂ} (h : LommelRegular μ ν) :
+    LommelRegular (μ + 2) ν := by
+  intro n
+  constructor
+  · intro hn
+    exact (h (n + 1)).1 (by push_cast at *; linear_combination hn)
+  · intro hn
+    exact (h (n + 1)).2 (by push_cast at *; linear_combination hn)
+
+/-- Removing the first Lommel product factor shifts the degree by two. -/
+theorem lommelA_add_two (μ ν : ℂ) (k : ℕ) :
+    lommelA μ ν (k + 1) = ((μ + 1)^2 - ν^2) * lommelA (μ + 2) ν k := by
+  induction k with
+  | zero => simp [lommelA]
+  | succ k ih =>
+    rw [show lommelA μ ν (k + 1 + 1) =
+      lommelA μ ν (k + 1) * ((μ + 2 * (k + 1) + 1)^2 - ν^2) by
+        simp [lommelA, Finset.prod_range_succ]]
+    rw [ih]
+    simp only [lommelA, Finset.prod_range_succ]
+    ring
+
+set_option maxHeartbeats 1000000 in
+/-- The degree-two recurrence of the small Lommel function on its regular domain. -/
+theorem lommelS_add_two {μ ν : ℂ} (h : LommelRegular μ ν) {z : ℂ}
+    (hz : z ∈ slitPlane) :
+    lommelS (μ + 2) ν z = z^(μ + 1) - ((μ + 1)^2 - ν^2) * lommelS μ ν z := by
+  let D := (μ + 1)^2 - ν^2
+  have hD : D ≠ 0 := by
+    rw [show D = (μ + 1 - ν) * (μ + 1 + ν) by dsimp [D]; ring]
+    refine mul_ne_zero (fun he => (h 0).1 ?_) (fun he => (h 0).2 ?_)
+    · norm_num at *
+      linear_combination he
+    · norm_num at *
+      linear_combination he
+  have hpow : z^(μ + 2 + 1) = z^(μ + 1) * z^2 := by
+    rw [show μ + 2 + 1 = μ + 1 + (2 : ℕ) by norm_num; ring,
+      cpow_add _ _ (slitPlane_ne_zero hz), cpow_natCast]
+  have hs := (hasSum_lommelS h.add_two hz).mul_left (-D⁻¹)
+  have htail : HasSum
+      (fun k : ℕ => z^(μ + 1) * (-1)^(k + 1) * z^(2*(k + 1)) /
+        lommelA μ ν (k + 1 + 1)) (-D⁻¹ * lommelS (μ + 2) ν z) := by
+    convert hs using 1
+    funext k
+    rw [lommelA_add_two μ ν (k + 1), hpow]
+    dsimp only [D]
+    rw [pow_succ, show 2 * (k + 1) = 2 * k + 2 by omega, pow_add]
+    simp only [div_eq_mul_inv, mul_inv]
+    ring
+  have heq := htail.unique ((hasSum_nat_add_iff' 1).mpr (hasSum_lommelS h hz))
+  simp only [Finset.sum_range_one] at heq
+  simp [lommelA] at heq
+  change -(D⁻¹ * lommelS (μ + 2) ν z) = lommelS μ ν z - z^(μ + 1) / D at heq
+  field_simp [hD] at heq
+  linear_combination -heq
+
+/-- The regular capital Lommel function is an analytic particular solution,
+using the existing Bessel fundamental system rather than differentiating its
+three summands again. This does not assume the exceptional-parameter limit. -/
+theorem lommelCapital_analytic_ode_of_regular {μ ν : ℂ} (h : LommelRegular μ ν) :
+    AnalyticOnNhd ℂ (lommelCapital μ ν) slitPlane ∧
+      ∀ z ∈ slitPlane, iteratedDeriv 2 (lommelCapital μ ν) z +
+        deriv (lommelCapital μ ν) z / z +
+        (1 - ν^2 / z^2) * lommelCapital μ ν z = z^(μ - 1) := by
+  apply (lommel_general_solution h (lommelCapital μ ν)).2
+  let C := 2^(μ-1) * Gamma ((μ+ν+1)/2) * Gamma ((μ-ν+1)/2)
+  refine ⟨C * sin ((μ-ν)*π/2), -C * cos ((μ-ν)*π/2), fun z hz => ?_⟩
+  rw [lommelCapital_regular h hz]
+  simp only [lommelCapitalRegular, C]
+  ring
+
+
+/-- The Bessel correction obeys the same degree recurrence as the small
+Lommel solution, so their sum does as well. -/
+theorem lommelCapitalRegular_add_two {μ ν : ℂ} (h : LommelRegular μ ν)
+    {z : ℂ} (hz : z ∈ slitPlane) :
+    lommelCapitalRegular (μ + 2) ν z =
+      z^(μ + 1) - ((μ + 1)^2 - ν^2) * lommelCapitalRegular μ ν z := by
+  obtain ⟨hA, hB⟩ := lommelRegular_half_nonpole h
+  have hA0 : (μ-ν+1)/2 ≠ 0 := by simpa using hA 0
+  have hB0 : (μ+ν+1)/2 ≠ 0 := by simpa using hB 0
+  have hpow : (2 : ℂ)^(μ + 2 - 1) = 2^(μ - 1) * 4 := by
+    rw [show μ + 2 - 1 = μ - 1 + (2 : ℕ) by norm_num; ring,
+      cpow_add _ _ two_ne_zero, cpow_natCast]
+    norm_num
+  simp only [lommelCapitalRegular]
+  rw [lommelS_add_two h hz, hpow,
+    show (μ + 2 + ν + 1)/2 = (μ+ν+1)/2 + 1 by ring,
+    show (μ + 2 - ν + 1)/2 = (μ-ν+1)/2 + 1 by ring,
+    Gamma_add_one _ hB0, Gamma_add_one _ hA0,
+    show (μ + 2 - ν)*π/2 = (μ-ν)*π/2 + π by ring,
+    sin_add_pi, cos_add_pi]
+  ring
+
+/-- Degree recurrence for capital Lommel on the regular parameter domain;
+it is independent of the outstanding exceptional-parameter limit theorem. -/
+theorem lommelCapital_add_two_of_regular {μ ν : ℂ} (h : LommelRegular μ ν)
+    {z : ℂ} (hz : z ∈ slitPlane) :
+    lommelCapital (μ + 2) ν z =
+      z^(μ + 1) - ((μ + 1)^2 - ν^2) * lommelCapital μ ν z := by
+  rw [lommelCapital_regular h.add_two hz, lommelCapital_regular h hz]
+  exact lommelCapitalRegular_add_two h hz
+
+end DLMF.Struve
+
+
+/-! ## Holomorphic lower-parameter support for exceptional continuation
+
+The local uniform reciprocal-Gamma factorial bound and the general series-holomorphy
+API establish joint holomorphy. Exceptional 1F2 tails reduce exactly to 0F1.
+These support lemmas do not yet remove the capital-Lommel continuation admission.
+-/
+
+open Complex Filter Set
+open scoped Topology Nat Real
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 2000
+noncomputable section
+namespace DLMF.Struve
+open DLMF.Hypergeometric DLMF.Bessel
+
+/-- The regularized 1F2 numerator is jointly entire in both lower parameters. -/
+theorem differentiable_regularized1F2_params (q : ℂ) :
+    Differentiable ℂ (fun p : ℂ × ℂ => regularizedHGFun {1} {p.1,p.2} q) := by
+  have heq : (fun p : ℂ × ℂ => regularizedHGFun {1} {p.1,p.2} q) =
+      fun p => ∑' n : ℕ, q^n * (Gamma (p.1+n))⁻¹ * (Gamma (p.2+n))⁻¹ := by
+    funext p
+    rw [(hasSum_regularized1F2 1 p.1 p.2 q).tsum_eq.symm]
+    congr 1
+    funext n
+    rw [regularized1F2_one_coeff]
+    simp only [div_eq_mul_inv, mul_inv_rev]
+    ring
+  rw [heq, ← differentiableOn_univ]
+  refine Complex.differentiableOn_tsum_of_eventually_dominated isOpen_univ
+    (fun n => ?_) (fun p hp => ?_)
+  · exact ((differentiable_const _).mul
+      (differentiable_one_div_Gamma.comp (differentiable_fst.add_const _))).mul
+      (differentiable_one_div_Gamma.comp (differentiable_snd.add_const _)) |>.differentiableOn
+  · set K : Set ℂ := Metric.closedBall p.1 1 ∪ Metric.closedBall p.2 1
+    have hK : IsCompact K := (isCompact_closedBall _ _).union (isCompact_closedBall _ _)
+    obtain ⟨m,C,hC,hbound⟩ := DLMF.Gamma.Simplex.Complex.exists_uniform_norm_recip_Gamma_add_nat hK
+    set u : ℕ → ℝ := fun n => C^2 * ‖q‖^n / ((n-m)!)
+    have hu : Summable u := by
+      rw [← summable_nat_add_iff m]
+      have hh := (Real.summable_pow_div_factorial ‖q‖).mul_left (C^2*‖q‖^m)
+      convert hh using 1
+      funext n
+      simp only [u, Nat.add_sub_cancel, pow_add]
+      ring
+    refine ⟨Metric.ball p 1, Metric.ball_mem_nhds p (by norm_num), m,u,hu,?_⟩
+    intro n hn w hw
+    have hw1 : w.1 ∈ K := by
+      apply Or.inl
+      change dist w.1 p.1 ≤ 1
+      exact (le_max_left _ _).trans (le_of_lt hw)
+    have hw2 : w.2 ∈ K := by
+      apply Or.inr
+      change dist w.2 p.2 ≤ 1
+      exact (le_max_right _ _).trans (le_of_lt hw)
+    have h1 := hbound w.1 hw1 (n-m)
+    have h2 := hbound w.2 hw2 (n-m)
+    rw [← Nat.cast_add, Nat.sub_add_cancel hn] at h1 h2
+    have hf : (1:ℝ) ≤ ((n-m)! : ℕ) := by exact_mod_cast Nat.one_le_iff_ne_zero.2 (Nat.factorial_ne_zero (n-m))
+    have hc : C / (((n-m)! : ℕ):ℝ) ≤ C := div_le_self hC hf
+    simp only [norm_mul, norm_pow]
+    calc ‖q‖^n * ‖(Gamma (w.1+n))⁻¹‖ * ‖(Gamma (w.2+n))⁻¹‖ ≤
+        ‖q‖^n * C * (C / (((n-m)! : ℕ):ℝ)) := by gcongr; exact h1.trans hc
+      _ = u n := by simp only [u]; ring
+
+/-- The Weber continuation makes the second-kind Bessel function entire in its order. -/
+theorem differentiable_besselY_order {z : ℂ} (hz : z ∈ slitPlane) :
+    Differentiable ℂ (fun ν : ℂ => besselY ν z) := by
+  intro ν
+  by_cases hν : ∃ n : ℤ, ν = n
+  · obtain ⟨n,rfl⟩ := hν
+    have hD := ((differentiable_besselD (slitPlane_ne_zero hz)).analyticAt n).dslope (n:ℂ)
+    have hS := ((show Differentiable ℂ (fun ν : ℂ => sin (ν*π)) by fun_prop).analyticAt n).dslope (n:ℂ)
+    refine (hD.differentiableAt.div hS.differentiableAt
+      (dslope_sin_ne_zero n (Metric.mem_ball_self (by norm_num)))).congr_of_eventuallyEq ?_
+    filter_upwards [Metric.ball_mem_nhds (n:ℂ) (by norm_num : (0:ℝ)<1/2)] with μ hμ
+    exact besselY_eq_dslope n hμ hz
+  · push Not at hν
+    have hS : sin (ν*π) ≠ 0 := sin_mul_pi_ne_zero hν
+    have hopen : IsOpen {μ : ℂ | sin (μ*π) ≠ 0} := isOpen_ne_fun (by fun_prop) continuous_const
+    refine ((differentiable_besselD (slitPlane_ne_zero hz) ν).div (show DifferentiableAt ℂ (fun μ : ℂ => sin (μ*π)) ν by fun_prop) hS).congr_of_eventuallyEq ?_
+    filter_upwards [hopen.mem_nhds hS] with μ hμ
+    exact besselY_eq_of_not_int (fun k hk => hμ (by rw [hk, sin_int_mul_pi_complex])) z
+
+/-- The entire numerator of the regular capital Lommel function in its two half-parameters. -/
+def lommelNumerator (a b z : ℂ) : ℂ :=
+  z^(a+b)/4*regularizedHGFun {1} {a+1,b+1} (-(z^2/4)) -
+    2^(a+b-2)*(cos (b*π)*besselJ (a-b) z+sin (b*π)*besselY (a-b) z)
+
+/-- When a lower half-parameter is a nonpositive integer, the 1F2 tail is a 0F1. -/
+theorem regularized1F2_one_neg_nat (n : ℕ) (b q : ℂ) :
+    regularizedHGFun {1} {1-(n:ℂ),b+1} q =
+      q^n*regularizedHGFun (∅ : Multiset ℂ) {b+n+1} q := by
+  have h := (hasSum_regularized1F2 1 (1-(n:ℂ)) (b+1) q).summable
+  rw [(hasSum_regularized1F2 1 (1-(n:ℂ)) (b+1) q).tsum_eq.symm, ← h.sum_add_tsum_nat_add n]
+  have hh : ∑ k ∈ Finset.range n, regularizedHGFunCoeff {1} {1-(n:ℂ),b+1} k*q^k = 0 := by
+    apply Finset.sum_eq_zero
+    intro k hk
+    have hk' : k < n := Finset.mem_range.mp hk
+    rw [regularized1F2_one_coeff, show 1-(n:ℂ)+k = -((n-k-1:ℕ):ℂ) by
+      rw [Nat.cast_sub (by omega),Nat.cast_sub (by omega)]; push_cast; ring,
+      Gamma_neg_nat_eq_zero]
+    simp
+  rw [hh, zero_add, regularized0F1_eq_tsum, ← tsum_mul_left]
+  apply tsum_congr
+  intro k
+  rw [regularized1F2_one_coeff,
+    show 1-(n:ℂ)+(k+n:ℕ) = (k:ℂ)+1 by push_cast; ring,
+    show b+1+(k+n:ℕ) = b+n+1+k by push_cast; ring,
+    Gamma_nat_eq_factorial]
+  simp only [pow_add, div_eq_mul_inv, mul_inv_rev]
+  ring
+
+/-- The capital-Lommel cancellation numerator is symmetric in its half-parameters. -/
+theorem lommelNumerator_symm (a b : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+    lommelNumerator a b z = lommelNumerator b a z := by
+  unfold lommelNumerator
+  rw [show ({b+1,a+1}:Multiset ℂ)={a+1,b+1} by simp only [Multiset.insert_eq_cons]; exact Multiset.cons_swap _ _ _, add_comm b a]
+  have he : b-a = -(a-b) := by ring
+  rw [he, besselJ_neg_eq (a-b) hz, besselY_neg (a-b) hz]
+  have hc := cos_sub (a*π) (b*π)
+  have hs := sin_sub (a*π) (b*π)
+  rw [show a*π-b*π=(a-b)*π by ring] at hc hs
+  have hca := sin_sq_add_cos_sq (a*π)
+  have hcb := sin_sq_add_cos_sq (b*π)
+  rw [hc,hs]
+  linear_combination (2^(a+b-2)*cos (b*π)*besselJ (a-b) z)*hca +
+    (2^(a+b-2)*sin (b*π)*besselY (a-b) z)*hca
 
 end DLMF.Struve

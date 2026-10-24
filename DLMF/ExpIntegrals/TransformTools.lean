@@ -123,7 +123,7 @@ lemma eiTr_integrable_E1_kernel {a : ℂ} (ha : -1 < a.re) :
       exact inv_anti₀ (by positivity) (by nlinarith)
 
 /-- `u ↦ 1/((a+u)u)` is integrable on `(1, ∞)` for `Re a > -1`. -/
-lemma eiTr_integrableOn_inv_mul {a : ℂ} (ha : -1 < a.re) :
+lemma eiTr_integrableOn_recip_mul {a : ℂ} (ha : -1 < a.re) :
     IntegrableOn (fun u : ℝ => 1 / ((a + u) * u)) (Ioi 1) := by
   set δ := min 1 (1 + a.re)
   have hδ : 0 < δ := lt_min one_pos (by linarith)
@@ -144,7 +144,7 @@ lemma eiTr_integrableOn_inv_mul {a : ℂ} (ha : -1 < a.re) :
   nlinarith
 
 /-- `∫₁^∞ du/((a+u)u) = log(1+a)/a` (and `1` at `a = 0`) for `Re a > -1`. -/
-lemma eiTr_integral_inv_mul {a : ℂ} (ha : -1 < a.re) :
+lemma eiTr_integral_recip_mul {a : ℂ} (ha : -1 < a.re) :
     ∫ u in Ioi (1:ℝ), 1 / ((a + u) * u) = if a = 0 then 1 else log (1 + a) / a := by
   split_ifs with h0
   · subst h0
@@ -159,7 +159,7 @@ lemma eiTr_integral_inv_mul {a : ℂ} (ha : -1 < a.re) :
         (continuous_ofReal.tendsto 0).comp tendsto_inv_atTop_zero
       simpa using this.neg
     rw [integral_Ioi_of_hasDerivAt_of_tendsto (by fun_prop (disch := norm_num)) hd
-      (by simpa using eiTr_integrableOn_inv_mul (a := 0) (by simp)) hl]
+      (by simpa using eiTr_integrableOn_recip_mul (a := 0) (by simp)) hl]
     simp
   · have hslit : ∀ x : ℝ, 1 ≤ x → a + x ∈ slitPlane := by
       intro x hx
@@ -197,7 +197,7 @@ lemma eiTr_integral_inv_mul {a : ℂ} (ha : -1 < a.re) :
         rw [← log_ofReal_mul hu0 hne]; congr 1; push_cast; field_simp; ring
       simp only [Function.comp_apply, this, ← ofReal_log hu0.le]
       ring
-    rw [integral_Ioi_of_hasDerivAt_of_tendsto ?_ hd (eiTr_integrableOn_inv_mul ha) hl]
+    rw [integral_Ioi_of_hasDerivAt_of_tendsto ?_ hd (eiTr_integrableOn_recip_mul ha) hl]
     · simp [add_comm]; ring
     · have hc : ContinuousAt (fun u : ℝ => (log u - log (a + u)) / a) 1 := by
         refine ContinuousAt.div_const (ContinuousAt.sub ?_ ?_) a
@@ -283,7 +283,7 @@ lemma eiTr_log_I_mul_sub {a : ℂ} (ha : 0 < a.re) :
   · simp only [sub_im, log_im, arg_neg_eq_arg_sub_pi_of_im_pos him]; simp
 
 /-- `arctan(1/a)`-free form: `∫₀¹ du/(a²+u²) = (π/2 - arctan a)/a` for `Re a > 0`. -/
-lemma eiTr_integral_inv_sq_add_sq {a : ℂ} (ha : 0 < a.re) :
+lemma eiTr_integral_recip_sq_add_sq {a : ℂ} (ha : 0 < a.re) :
     ∫ u in (0:ℝ)..1, 1 / (a ^ 2 + (u:ℂ) ^ 2) = (π / 2 - arctan a) / a := by
   have ha0 : a ≠ 0 := fun h => by rw [h] at ha; simp at ha
   have hm : ∀ u : ℝ, (u:ℂ) - I * a ∈ slitPlane := fun u => by
@@ -456,7 +456,7 @@ lemma eiTr_laplace_sinInt {a : ℂ} (ha : 0 < a.re) :
     refine setIntegral_congr_fun measurableSet_Ioi fun t _ => ?_
     rw [eiTr_sinInt_eq, intervalIntegral.integral_ofReal]
   rw [h1, eiTr_swap01 ha (C := 1) (by unfold Function.uncurry; fun_prop) ?_,
-    ← eiTr_integral_inv_sq_add_sq ha]
+    ← eiTr_integral_recip_sq_add_sq ha]
   · refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun u hu => ?_)
     rw [uIoc_of_le zero_le_one] at hu
     have hu0 : (u:ℂ) ≠ 0 := by exact_mod_cast hu.1.ne'
@@ -588,7 +588,7 @@ lemma eiTr_laplace_E1 {a : ℂ} (ha : -1 < a.re) :
   constructor
   · refine IntegrableOn.congr_fun ?_ (fun t ht => (hcongr t ht).symm) measurableSet_Ioi
     exact hI.integral_prod_left
-  rw [← eiTr_integral_inv_mul ha, setIntegral_congr_fun measurableSet_Ioi hcongr,
+  rw [← eiTr_integral_recip_mul ha, setIntegral_congr_fun measurableSet_Ioi hcongr,
     integral_integral_swap hI]
   refine setIntegral_congr_fun measurableSet_Ioi fun u hu => ?_
   have hu1 : (1:ℝ) < u := hu
@@ -1272,7 +1272,7 @@ lemma eiTr_abs_e_le_small {t : ℝ} (ht : 0 < t) (ht1 : t ≤ 1) :
         rw [abs_of_pos (by linarith : (0:ℝ) < Real.eulerMascheroniConstant)]; linarith
 
 /-- `|E₁(t)| ≤ 1/t` for `t ≥ 1`. -/
-lemma eiTr_e_le_inv {t : ℝ} (ht : 1 ≤ t) : |eiTr_e t| ≤ 1 / t := by
+lemma eiTr_e_le_recip {t : ℝ} (ht : 1 ≤ t) : |eiTr_e t| ≤ 1 / t := by
   have ht0 : 0 < t := by linarith
   obtain ⟨h1, h2⟩ := eiTr_e_bounds ht0
   rw [abs_of_nonneg h1]
@@ -1297,7 +1297,7 @@ lemma eiTr_integrableOn_e_sq : IntegrableOn (fun t => eiTr_e t ^ 2) (Ioi 0) := b
     calc |eiTr_e t| ^ 2 ≤ (2 + 4 * t ^ (-(1/4:ℝ))) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) h 2
       _ = 4 + 16 * t ^ (-(1/4:ℝ)) + 16 * (t ^ (-(1/4:ℝ))) ^ 2 := by ring
       _ ≤ 4 + 32 * t ^ (-(1/2:ℝ)) := by rw [hq]; nlinarith
-  · have h := eiTr_e_le_inv ht.le
+  · have h := eiTr_e_le_recip ht.le
     rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
     calc |eiTr_e t| ^ 2 ≤ (1 / t) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) h 2
       _ = 1 / t ^ 2 := by ring
@@ -1316,7 +1316,7 @@ lemma eiTr_integrableOn_exp_mul_e :
           mul_le_mul_of_nonneg_right he (abs_nonneg _)
       _ ≤ 2 + 4 * t ^ (-(1/2:ℝ)) := by linarith
   · have ht0 : (0:ℝ) < t := by linarith
-    have h := eiTr_e_le_inv ht.le
+    have h := eiTr_e_le_recip ht.le
     have he : Real.exp (-t) ≤ 1 / t := by
       rw [Real.exp_neg, ← one_div]
       exact one_div_le_one_div_of_le ht0 (by linarith [Real.add_one_le_exp t])
@@ -1369,7 +1369,7 @@ lemma eiTr_integral_e_sq : ∫ t in Ioi (0:ℝ), eiTr_e t ^ 2 = 2 * Real.log 2 :
     refine squeeze_zero_norm' ?_ ((tendsto_const_nhds (x := (1:ℝ))).div_atTop tendsto_id)
     filter_upwards [eventually_ge_atTop 1] with t ht
     have ht0 : (0:ℝ) < t := by linarith
-    have h := eiTr_e_le_inv ht
+    have h := eiTr_e_le_recip ht
     rw [Real.norm_eq_abs, abs_mul, abs_of_pos ht0, abs_of_nonneg (sq_nonneg _), ← sq_abs]
     calc t * |eiTr_e t| ^ 2 ≤ t * (1 / t) ^ 2 :=
           mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (abs_nonneg _) h 2) ht0.le

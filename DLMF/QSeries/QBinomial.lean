@@ -39,6 +39,7 @@ def qBinom (q : ℂ) : ℕ → ℕ → ℂ
 @[simp] lemma qBinom_zero_succ (q : ℂ) (k : ℕ) : qBinom q 0 (k + 1) = 0 := rfl
 
 /-- The `q`-Pascal rule `[n+1, k+1]_q = [n, k]_q + q^{k+1} [n, k+1]_q` (Duverney (10.7)). -/
+@[dlmf 17.2.E31 "exact: first polynomial q-Pascal rule after successor reindexing"]
 lemma qBinom_succ_succ (q : ℂ) (n k : ℕ) :
     qBinom q (n + 1) (k + 1) = qBinom q n k + q ^ (k + 1) * qBinom q n (k + 1) := rfl
 
@@ -75,6 +76,7 @@ lemma qPochhammer_succ' (x q : ℂ) (n : ℕ) :
 
 /-- The finite `q`-binomial theorem (Cauchy), Duverney (10.8):
 `(x;q)_n = ∑_k [n k]_q (-1)^k q^{k(k-1)/2} x^k`. -/
+@[dlmf 17.2.E35 "exact: finite q-binomial theorem after expanding (-z)^j"]
 theorem qPochhammer_eq_sum_qBinom (x q : ℂ) (n : ℕ) :
     qPochhammer x q n =
       ∑ k ∈ range (n + 1), qBinom q n k * (-1) ^ k * q ^ k.choose 2 * x ^ k := by
@@ -135,6 +137,7 @@ lemma continuous_qBinom (n k : ℕ) : Continuous fun q : ℂ => qBinom q n k := 
     | succ k => simp only [qBinom_succ_succ]; exact (ih k).add ((continuous_pow _).mul (ih (k + 1)))
 
 /-- `[n k]_q → C(n, k)` as `q → 1` (Duverney (10.5)). -/
+@[dlmf 17.2.E28 "exact: complex q tends to1, using polynomial Gaussian binomials"]
 theorem tendsto_qBinom (n k : ℕ) :
     Filter.Tendsto (fun q : ℂ => qBinom q n k) (nhds 1) (nhds (n.choose k : ℂ)) := by
   rw [← qBinom_one]

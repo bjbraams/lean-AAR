@@ -36,40 +36,12 @@ namespace DLMF.Hypergeometric
 
 /-- Reflection of a Pochhammer symbol: `(1 - y - m)_m = (-1)^m (y)_m`. -/
 lemma appF4_poch_reflect (y : ℂ) (m : ℕ) : poch (1 - y - m) m = (-1 : ℂ) ^ m * poch y m := by
-  induction m with
-  | zero => simp [poch_zero]
-  | succ m ih =>
-    rw [poch_succ_left, show 1 - y - ((m + 1 : ℕ) : ℂ) + 1 = 1 - y - m by push_cast; ring, ih,
-      poch_succ]
-    push_cast
-    ring
+  exact poch_reflect y m
 
 /-- The binomial theorem for rising factorials (Chu–Vandermonde). -/
 lemma appF4_poch_add_binomial (u v : ℂ) (n : ℕ) :
     ∑ j ∈ Finset.range (n + 1), (n.choose j : ℂ) * poch u j * poch v (n - j) = poch (u + v) n := by
-  have hchu := chu_vandermonde_sum n v (1 - u - n)
-  have href := appF4_poch_reflect (u + v) n
-  rw [show 1 - (u + v) - (n : ℂ) = 1 - u - n - v by ring] at href
-  rw [← hchu] at href
-  have hs : ((-1 : ℂ) ^ n) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
-  rw [← Finset.sum_range_reflect]
-  have key : poch (u + v) n = (-1) ^ n * ∑ k ∈ Finset.range (n + 1),
-      (-1) ^ k * (n.choose k : ℂ) * poch v k * poch (1 - u - n + k) (n - k) := by
-    rw [href]; linear_combination (-(poch (u + v) n)) * hs
-  rw [key, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun k hk => ?_
-  have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
-  rw [show n + 1 - 1 - k = n - k by omega, Nat.choose_symm hkn, Nat.sub_sub_self hkn]
-  have hr := appF4_poch_reflect u (n - k)
-  rw [show 1 - u - ((n - k : ℕ) : ℂ) = 1 - u - n + k by push_cast [Nat.cast_sub hkn]; ring] at hr
-  rw [hr]
-  obtain ⟨m, rfl⟩ : ∃ m, n = k + m := ⟨n - k, by omega⟩
-  rw [Nat.add_sub_cancel_left, pow_add]
-  have h2 : ((-1 : ℂ) ^ k) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
-  have hm2 : ((-1 : ℂ) ^ m) ^ 2 = 1 := by rw [← pow_mul, mul_comm, pow_mul]; simp
-  linear_combination (-(((k + m).choose k : ℂ) * poch u m * poch v k)) * hm2 +
-    (-(((k + m).choose k : ℂ) * poch u m * poch v k * ((-1 : ℂ) ^ m) ^ 2)) * h2
-
+  exact poch_add_binomial_sum u v n
 
 /-- The coefficients of Appell's `F₄`:
 `(a)_{m+n} (b)_{m+n} / ((c)_m (c')_n m! n!)`. -/
@@ -388,6 +360,7 @@ noncomputable def appF4 (a b c c' s t : ℂ) : ℂ :=
 /-- **Bailey's product formula**: for `c + c' = a + b + 1` (and `Re c, Re c' > 0`),
 `₂F₁(a,b;c;X) ₂F₁(a,b;c';Y) = F₄(a,b;c,c';X(1-Y),Y(1-X))` for small `X`, `Y`, the double
 series of `F₄` converging there. -/
+@[dlmf 16.16.E6]
 theorem appF4_bailey {a b c c' : ℂ} (hcc : c + c' = a + b + 1) (hc : 0 < c.re)
     (hc' : 0 < c'.re) : ∃ δ > 0, ∀ X Y : ℂ, ‖X‖ < δ → ‖Y‖ < δ →
       HasSum (fun p : ℕ × ℕ => appF4Coeff a b c c' p.1 p.2 * (X * (1 - Y)) ^ p.1 *

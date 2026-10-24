@@ -8,6 +8,7 @@ module
 public import DLMF.Airy.Scorer
 public import DLMF.Airy.Zeros
 public import DLMF.Airy.ModulusTools
+public import ToMathlib.Analysis.ODE.SymmetricSquare
 public import DLMF.Airy.SquareTools
 
 /-!
@@ -25,34 +26,19 @@ namespace DLMF.Airy
 /-- The derivative of a product of Airy solutions. -/
 lemma airy_product_deriv {f f' g g' : ℂ → ℂ} (hf : IsAirySol f f') (hg : IsAirySol g g') :
     deriv (fun z => f z * g z) = fun z => f' z * g z + f z * g' z :=
-  funext fun z => ((hf z).1.mul (hg z).1).deriv
+  ODE.product_deriv (fun z => (hf z).1) (fun z => (hg z).1)
 
 /-- The second derivative of a product of Airy solutions. -/
 lemma airy_product_second_deriv {f f' g g' : ℂ → ℂ} (hf : IsAirySol f f') (hg : IsAirySol g g') :
-    deriv (deriv (fun z => f z * g z)) = fun z => 2 * z * f z * g z + 2 * f' z * g' z := by
-  rw [airy_product_deriv hf hg]
-  funext z
-  have h := ((hf z).2.mul (hg z).1).add ((hf z).1.mul (hg z).2)
-  exact h.deriv.trans (by ring)
+    deriv (deriv (fun z => f z * g z)) = fun z => 2 * z * f z * g z + 2 * f' z * g' z :=
+  ODE.product_second_deriv hf hg
 
 /-- airy product ode (DLMF 9.11.1). -/
 @[dlmf 9.11.E1]
 theorem airy_product_ode {f f' g g' : ℂ → ℂ} (hf : IsAirySol f f') (hg : IsAirySol g g') (z : ℂ) :
     iteratedDeriv 3 (fun t => f t * g t) z - 4 * z * deriv (fun t => f t * g t) z - 2 * f z * g z = 0 := by
-  have he := airy_product_second_deriv hf hg
-  have h := ((((hasDerivAt_id z).const_mul 2).mul (hf z).1).mul (hg z).1).add
-    (((hf z).2.mul (hg z).2).const_mul 2)
-  have hd : deriv (fun t => 2 * t * f t * g t + 2 * f' t * g' t) z =
-      2 * f z * g z + 4 * z * (f' z * g z + f z * g' z) := by
-    have h0 : HasDerivAt (fun t => 2 * t * f t * g t + 2 * f' t * g' t) _ z :=
-      h.congr_of_eventuallyEq (Eventually.of_forall fun t => by
-        simp only [Pi.mul_apply, Pi.add_apply, _root_.id]; ring)
-    rw [h0.deriv]
-    simp only [Pi.mul_apply, _root_.id]
-    ring
-  simp only [iteratedDeriv_succ, iteratedDeriv_zero]
-  rw [he, hd, airy_product_deriv hf hg]
-  ring
+  have h := ODE.product_third_deriv hf hg (fun z => hasDerivAt_id z) z
+  linear_combination h
 
 /-- airy product wronskian (DLMF 9.11.2). -/
 @[dlmf 9.11.E2]
@@ -159,9 +145,9 @@ theorem airy_quotient_antiderivative {f f' g g' : ℂ → ℂ} (hf : IsAirySol f
     linear_combination hf.wronskian_eq hg z
   exact h.congr_deriv (by rw [he]; field_simp)
 
-/-- airyAi inv sq antiderivative (DLMF 9.11.12). -/
+/-- airyAi reciprocal square antiderivative (DLMF 9.11.12). -/
 @[dlmf 9.11.E12]
-theorem airyAi_inv_sq_antiderivative {z : ℂ} (hz : airyAi z ≠ 0) :
+theorem airyAi_recip_sq_antiderivative {z : ℂ} (hz : airyAi z ≠ 0) :
     HasDerivAt (fun t => π * airyBi t / airyAi t) (1 / airyAi z ^ 2) z := by
   have h := ((hasDerivAt_airyBi z).div (hasDerivAt_airyAi z) hz).const_mul (π : ℂ)
   have he : airyBiDeriv z * airyAi z - airyBi z * airyAiDeriv z = 1 / π := by
@@ -172,9 +158,9 @@ theorem airyAi_inv_sq_antiderivative {z : ℂ} (hz : airyAi z ≠ 0) :
     have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
     field_simp
 
-/-- airyAiBi inv antiderivative (DLMF 9.11.13). -/
+/-- airyAiBi reciprocal antiderivative (DLMF 9.11.13). -/
 @[dlmf 9.11.E13]
-theorem airyAiBi_inv_antiderivative {z : ℂ} (ha : airyAi z ≠ 0) (hb : airyBi z ≠ 0)
+theorem airyAiBi_recip_antiderivative {z : ℂ} (ha : airyAi z ≠ 0) (hb : airyBi z ≠ 0)
     (hlog : airyBi z / airyAi z ∈ slitPlane) :
     HasDerivAt (fun t => π * log (airyBi t / airyAi t)) (1 / (airyAi z * airyBi z)) z := by
   have hq := (hasDerivAt_airyBi z).div (hasDerivAt_airyAi z) ha
@@ -349,7 +335,7 @@ lemma tendsto_airyAiDeriv_div_airyBiDeriv :
   linear_combination hW
 
 /-- `arctan(1/√3) = π/6`. -/
-lemma arctan_inv_sqrt_three : Real.arctan (1 / Real.sqrt 3) = π / 6 := by
+lemma arctan_recip_sqrt_three : Real.arctan (1 / Real.sqrt 3) = π / 6 := by
   rw [← Real.tan_pi_div_six, Real.arctan_tan (by linarith [Real.pi_pos]) (by linarith [Real.pi_pos])]
 
 /-- `Ai(0)/Bi(0) = 1/√3`. -/
@@ -444,7 +430,7 @@ theorem airy_modulus_reciprocal_integrals  :
     (by simpa [Real.arctan_zero] using
       ((Real.continuous_arctan.tendsto 0).comp tendsto_airyAiDeriv_div_airyBiDeriv).const_mul π)
   rw [i1, i2, airyReal_zero_ratio, airyDerivReal_zero_ratio, Real.arctan_neg,
-    arctan_inv_sqrt_three]
+    arctan_recip_sqrt_three]
   constructor <;> push_cast <;> ring
 
 end DLMF.Airy

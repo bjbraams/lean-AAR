@@ -2,7 +2,15 @@
 
 ## Scope and degree of completion
 
-**Current status, 2026-10-21 (evening):** 590 explicit admissions after the
+**Current status, 2026-10-24:** 887 explicit source admissions after acquiring
+DLMF Chapters 4, 16 and 17. These new areas account for 345, 165 and 188 admissions,
+respectively; 189 remain in the older areas. The compiled audit finds **14,148 project theorems**, with **900 depending transitively on `sorryAx`** (887 direct and 13 inherited) and
+no other nonstandard axiom.
+`ToMathlib` has no source admissions. The latest scope, proof work and priorities
+are recorded in [the chapter acquisition and proof round](#chapters-4-16-and-17-acquisition-and-elementary-proofs-2026-10-24).
+Earlier inventories and priority lists below describe their dated snapshots.
+
+**Historical status, 2026-10-21 (evening):** 590 explicit admissions after the
 [infrastructure round](#infrastructure-round-round-5-2026-10-21) (asymptotic inversion,
 parabolic-cylinder sectors, improper and Legendre integrals, Liouville–Green). Before that,
 621 explicit admissions after the
@@ -641,7 +649,7 @@ was zero, and the statement asserted `Γ(z) = 0`. The integral is now parenthesi
 the hypotheses are unchanged.
 
 All 24 proofs depend only on `propext`, `Classical.choice`, and `Quot.sound`.
-The remaining Gamma admissions are the Hankel-loop formula `inv_Gamma_binet`, the
+The remaining Gamma admissions are the Hankel-loop formula `recip_Gamma_binet`, the
 complex Stirling statements of §5.11 (`Gamma_linear_argument`,
 `norm_Gamma_imag_large`, `Gamma_ratio_expansion`, `Gamma_ratio_three`), four
 inequalities (5.6.2, 5.6.3, 5.6.8, 5.6.9), Mellin–Barnes and multidimensional
@@ -1176,7 +1184,7 @@ Twelve Gamma admissions were proved (216 → 204 project-wide; 27 → 15 in `DLM
 Unused hypotheses (statements kept): `habs` in 5.6.9, `x`/`hx` in 5.11.13 and 5.11.19, and
 `n` in 5.17.5.
 
-Still admitted (15): the inequalities 5.6.2, 5.6.3, 5.6.8; `inv_Gamma_binet` (Hankel loop);
+Still admitted (15): the inequalities 5.6.2, 5.6.3, 5.6.8; `recip_Gamma_binet` (Hankel loop);
 5.11.19; 5.12.8; Mellin–Barnes 5.13.2, 5.13.4, 5.13.5; the Selberg-type 5.14.5–7 (the
 first two follow from the still-admitted Selberg integral); 5.17.5; 5.18.8–9.
 
@@ -1189,7 +1197,7 @@ Unused hypotheses were dropped from 5.6.9 (`habs`), 5.11.13 and 5.11.19 (`x`, `h
 * Inequalities 5.6.3 (then 5.6.2 by QM ≥ AM): Taylor lower bounds for `log Γ(1±t)` from
   trigamma monotonicity, `ζ(3) ≤ 4/3` and `1/2 < γ < 3/5`, closed by a polynomial
   inequality; `x ≥ 2` is trivial.
-* `inv_Gamma_binet` (5.9.2_5) without contours: on the steepest-descent path an
+* `recip_Gamma_binet` (5.9.2_5) without contours: on the steepest-descent path an
   integration-by-parts recursion and a scaling identity give `W(a) = a W(a+1)`; the
   periodic `W·Γ` is fixed as `π` by Laplace's method and Stirling.
 * 5.11.19: a Beta-integral form of the remainder with a binomial-remainder bound for
@@ -2582,7 +2590,7 @@ for `a + j + m < 1`,
 `∫₀∞ y_m(x;a) x^j x^(a-2) exp(-2/x) dx
  = 2^(a+j-1) Γ(1-a-j-m) (-j)_m`.
 
-Mathlib's inverse-power substitution proves the reciprocal Gamma moments and
+Mathlib's reciprocal-power substitution proves the reciprocal Gamma moments and
 their integrability. The finite Pochhammer Vandermonde convolution gives the
 formula without dividing by a possibly singular denominator parameter. It
 vanishes when `j < m`; the top coefficient gives the squared norm. The original
@@ -2815,7 +2823,7 @@ series.
 [Boundary.lean](DLMF/Hypergeometric/Boundary.lean) extends Gauss summation to all
 regularized denominator parameters. At a negative integral denominator, its zero
 initial coefficients are removed before applying ordinary Gauss summation to the
-shifted tail. The inverse Gamma recurrence and reflected Pochhammer factors handle
+shifted tail. The reciprocal Gamma recurrence and reflected Pochhammer factors handle
 removable singularities without cancelling an upper-parameter zero. The Mellin
 proof bounds the absolute integral of each confluent-series term by its Gamma
 moment. The proved Gamma-ratio asymptotics give a summable majorant under exactly
@@ -2839,7 +2847,7 @@ scalar-series uniqueness and monomial-shift helpers were moved unchanged into
 A new admission-free [RatioBounds.lean](DLMF/Gamma/RatioBounds.lean) proves
 `Gamma_ratio_norm_le_nat` for every natural shift and nonnegative real initial
 shift. Each factor of the Pochhammer product has norm at least `|z|`, and the
-Gamma recurrence gives the sharp inverse-power bound. This proof is independent
+Gamma recurrence gives the sharp reciprocal-power bound. This proof is independent
 of the admitted general inequality.
 
 The four original Gamma and Bessel admissions remain:
@@ -3029,7 +3037,7 @@ entire parameter curves, for every argument. The neighborhood majorant adapts
 the proved Gauss parameter-derivative argument to the entire confluent series.
 Differentiating the regularized connection numerator at `b=n+1` and splitting
 the second series at index `n` produces a finite singular part and a convergent
-logarithmic tail. Inverse-Gamma derivatives at its zeros supply the finite part;
+logarithmic tail. Reciprocal-Gamma derivatives at its zeros supply the finite part;
 the ordinary digamma derivatives combine in the tail.
 
 The proved difference-quotient continuation of U identifies its value at the
@@ -3182,7 +3190,7 @@ previous 480 obligations, including 363 in Airy, remain unchanged.
 
 The completed batch proves inverse erf/erfc identities using TauCeti and the
 existing real bridges; three complex error-function symmetry identities; the
-Fresnel sum/tail identity; the printed inverse-erf, inverse-factorial,
+Fresnel sum/tail identity; the printed inverse-erf, reciprocal-factorial,
 incomplete-Gamma and generalized-exponential asymptotic coefficients; the
 continued P/Q complement identity; four Gamma/E1/U bridge statements; and four
 exact bound/value statements that disprove an unqualified DLMF continued-fraction
@@ -4901,28 +4909,28 @@ All eight files are in the umbrellas (`DLMF/Bessel.lean`, `ToMathlib.lean`).
 Mathlib's `Complex.digamma` is `logDeriv Gamma`, which is `0` at the poles `0, −1, −2, …`. A
 product ψ(x)·(1/Γ(x)) therefore evaluates to `0` there, although its continuous extension is
 `(−1)^{n+1} n!` at `x = −n`. A census found eleven declarations whose pole-avoiding hypotheses
-existed only for this reason. The new module `DLMF/Gamma/InvGammaDeriv.lean` provides the
-entire functions `invGammaDeriv n = (1/Γ)^{(n)}` with `(1/Γ)' = −ψ/Γ`, `(1/Γ)'(−p) = (−1)^p p!`,
-`(1/Γ)'' = (ψ² − ψ')/Γ`, and the pole-free `poch_mul_inv_Gamma_add_nat`.
+existed only for this reason. The new module `DLMF/Gamma/RecipGammaDeriv.lean` provides the
+entire functions `recipGammaDeriv n = (1/Γ)^{(n)}` with `(1/Γ)' = −ψ/Γ`, `(1/Γ)'(−p) = (−1)^p p!`,
+`(1/Γ)'' = (ψ² − ψ')/Γ`, and the pole-free `poch_mul_recip_Gamma_add_nat`.
 
 New theorems, each valid for all parameters and tagged as the original ("Stronger than DLMF"):
 
 - Legendre (`ParameterLimits.lean`): closed forms `legendreSinDigamma_eq` and
   `legendreSinSqTrigamma_eq`; the admissions `legendreSinDigamma_limit` and
   `legendreSinSqTrigamma_limit` are now proved. `Singularities.lean`: the new admitted
-  `olverQ_log_singular_invGamma` (14.8.9, all ν), from which the old `olverQ_log_singular` is
+  `olverQ_log_singular_recipGamma` (14.8.9, all ν), from which the old `olverQ_log_singular` is
   now proved (net zero).
-- Confluent: `tricomi_numerator_nat_series_invGamma`, `deriv_tricomi_numerator_nat_invGamma`
-  (`ParameterDerivatives.lean`); the series `tricomiLogSeriesInvGamma` and
-  `tricomi_log_series_split_invGamma` (`LogSeries.lean`); `kummerU_nat_log_invGamma`,
-  `kummerU_nat_denom_invGamma` (13.2.9, all a) and `isBigO_kummerU_at_zero_b_one_invGamma`
+- Confluent: `tricomi_numerator_nat_series_recipGamma`, `deriv_tricomi_numerator_nat_recipGamma`
+  (`ParameterDerivatives.lean`); the series `tricomiLogSeriesRecipGamma` and
+  `tricomi_log_series_split_recipGamma` (`LogSeries.lean`); `kummerU_nat_log_recipGamma`,
+  `kummerU_nat_denom_recipGamma` (13.2.9, all a) and `isBigO_kummerU_at_zero_b_one_recipGamma`
   (13.2.19) in `BasicProperties.lean`.
-- Hypergeometric (new file `LogConnectionsInvGamma.lean`): 15.8.10
-  `logarithmic_connection_one_sub_invGamma`, 15.8.9
-  `logarithmic_connection_one_div_one_sub_invGamma` and 15.8.11
-  `logarithmic_connection_one_sub_inv_invGamma`, with all integrality and pole hypotheses
-  on a, b, c − a dropped; helpers `inv_Gamma_mul_deriv_poch`, `inv_Gamma_mul_poch_one_sub`,
-  `inv_Gamma_mul_deriv_poch_one_sub`.
+- Hypergeometric (new file `LogConnectionsRecipGamma.lean`): 15.8.10
+  `logarithmic_connection_one_sub_recipGamma`, 15.8.9
+  `logarithmic_connection_one_div_one_sub_recipGamma` and 15.8.11
+  `logarithmic_connection_one_sub_recip_recipGamma`, with all integrality and pole hypotheses
+  on a, b, c − a dropped; helpers `recip_Gamma_mul_deriv_poch`, `recip_Gamma_mul_poch_one_sub`,
+  `recip_Gamma_mul_deriv_poch_one_sub`.
 
 The old statements are kept unchanged. All new statements were checked with mpmath at
 parameter values the old hypotheses excluded (agreement to 1e-19 or better).
@@ -5002,7 +5010,7 @@ statuses and module counts of the root acquisition ledgers from that dump.
   `sorry` warnings and no errors; the source census finds the same 590.
 - A compiled audit of 9,145 `AAR`/`ToMathlib` theorems finds 591 depending on `sorryAx`: the
   590 admissions and `olverQ_log_singular`, which is proved from the admitted
-  `olverQ_log_singular_invGamma`. No other non-standard axiom occurs.
+  `olverQ_log_singular_recipGamma`. No other non-standard axiom occurs.
 - `git diff --check` is clean. No commit was made.
 
 ## Upstream pointers (2026-10-21)
@@ -5069,7 +5077,7 @@ Proved targets by area:
   Ai and Ai′, and the reality of all zeros of Ai and Ai′ (`airyAi_complex_zeros_real`,
   `airyAiDeriv_complex_zeros_real`, via conj(Ai z₀)·Ai′(z₀) = 0).
 - Legendre (−17): `legendre_singular_4`–`_6`, `_11`–`_14`, 14.8.3 (`ferrersQ_log_singular`),
-  14.8.9 (`olverQ_log_singular_invGamma`, so `olverQ_log_singular` is now proved too), 14.8.10;
+  14.8.9 (`olverQ_log_singular_recipGamma`, so `olverQ_log_singular` is now proved too), 14.8.10;
   `ferrersP_reflected_dependence`, `associatedPQ_independent`; `ferrers_product_integral_10`,
   `_12`, `_14`, 14.17.16 (`ferrersPQ_nat_integral`); `ferrersPP_integral_all_degrees`.
 - Parabolic cylinder (−2): 12.10.31 (`pcfU_temme_uniform`) and 12.10.25, 12.10.28–29
@@ -5800,3 +5808,646 @@ Main results proved:
 - The mirrored `ToMathlib` files `Analysis/Integral/Laplace.lean` and
   `Analysis/Complex/Carlson.lean` match `../lean-codes`; `git diff --check` is clean.
 - No commit was made.
+
+## Duplication and reuse review (2026-10-22)
+
+### Checked starting status
+
+The checkout has advanced beyond the round-13 totals above. The initial ordinary build passes
+with 10,039 jobs. There are 419 Lean source modules under `DLMF/` and `ToMathlib/`, about
+280,600 lines, and 207 explicit source admissions after excluding comments. A compiled
+`Lean.collectAxioms` audit finds 12,948 project theorems, of which 213 depend on `sorryAx`;
+there are no other nonstandard axioms. The six additional dependences are why the source
+and compiled counts differ. This is a proof-maintenance pass, not a new admission-proof round.
+
+The largest source-admission groups are incomplete Gamma (42), Airy (37), Legendre (34),
+orthogonal polynomials (30), parabolic cylinder (22), Struve (12), and Confluent (9).
+Earlier numerical totals in this document and the README are historical snapshots.
+
+### Consolidation performed
+
+- **Scalar power series:** move the shared uniqueness and Cauchy-product proofs to
+  `ToMathlib/Analysis/Complex/ScalarSeries.lean`, in namespace `Complex`. Saalschütz now uses
+  them directly. The old public orthogonal-polynomial and hypergeometric interfaces are small
+  adapters. The new module imports Mathlib only.
+- **Pochhammer algebra:** share reflection and binomial convolution in
+  `Hypergeometric/EulerIntegral.lean`, already imported by both Appell F4 and the classical
+  polynomial library. Both families retain their public names as adapters. The weighted Jacobi
+  generating-function proof reuses Appell's Pochhammer norm bound, the existing duplication
+  identity, and the earlier antidiagonal summation lemma. Continuation reuses the nonnegativity
+  and monotonicity results in `Hypergeometric/Series.lean`; Saalschütz reuses its binomial series.
+- **Legendre from general Gauss theory:** add
+  `DLMF.Hypergeometric.tendsto_regularizedGaussHG_left_one` in `Hypergeometric/Boundary.lean`.
+  It applies Mathlib's Abel limit theorem to the existing regularized Gauss summation theorem.
+  Both Legendre boundary-limit helpers become adapters, eliminating a second exceptional-
+  parameter calculation. All denominator parameters are retained. The separately proved
+  Euler-transformed associated-P formula now invokes `associatedP_neg_euler`; two repeated
+  branch-power/asymptotic helpers reuse `BoundaryAsymptotics`.
+- **Integral holomorphy:** replace the two 57-line proofs in Gamma's `BetaFunction.lean` and
+  `Selberg/Basic.lean` by applications of the more general existing
+  `Complex.differentiableOn_integral_of_locally_dominated`. Closed-ball domination supplies
+  the neighborhood required by that theorem. No extra measurability or integrability
+  assumptions are added.
+- **Bessel:** move `besselK_neg`, including its DLMF 10.27.3 tag, verbatim from `Elementary`
+  to `SecondKind`. The integral representation can now call it directly, so its private copy
+  disappears. Importing `Elementary` still provides the original theorem.
+- **Jacobi:** move `jacobiPolyP_one_ne_zero` from `Differential` to `Explicit`, replacing the
+  private earlier copy and updating its callers. The public name and hypotheses are retained.
+- **Airy:** reuse the rotation connection formulas, sector-rotation limit, real-axis
+  derivative facts, and derivative sign at zero instead of reproving them in later modules.
+- **Spherical harmonics:** both homogeneous-scaling helpers now invoke TauCeti's existing
+  `MvPolynomial.IsHomogeneous.eval₂_const_mul`; the public Poisson reproduction theorem
+  invokes `zonal_poisson` instead of repeating its continuous-extension and uniqueness proof.
+
+No existing public theorem statement, branch convention, normalization, exceptional-parameter
+case, or convergence hypothesis was changed. Small public adapters deliberately remain where
+they preserve useful names and DLMF-facing interfaces.
+
+### What the scan does and does not establish
+
+The review combines a whole-source scan for repeated theorem signatures with manual inspection
+of proof bodies and the import graph. Many matching signatures are already a helper followed
+by a one-line DLMF-tagged theorem; those are not duplicate proofs. This is not an exhaustive
+semantic-equivalence check of all 280,600 lines.
+
+The named-function interfaces already reuse substantial general theory: `Legendre/Basic`
+derives its differential equation from the regularized Gauss equation; `Legendre/Recurrences`
+uses contiguous relations; `Legendre/RelatedFunctions` applies Euler transformations for
+Gegenbauer and Jacobi representations. The remaining asymptotic, zero-distribution and
+transform admissions generally need analytic estimates beyond identifying a hypergeometric
+special case. No admission was counted as resolved merely by invoking an admitted result.
+
+Further concrete consolidation candidates remain:
+
+- The logarithmic and Euler-constant integrals in `Airy/ScorerAsymptotics.lean`
+  (`scorerPrim_integral_log`, `scorerPrim_integral_euler`) are copied in
+  `Struve/Asymptotics.lean` (`struvePrim_integral_log`, `struvePrim_integral_euler`). A shared
+  integral module would avoid importing one special-function chapter into the other.
+- Uniform vertical Gamma bounds and the Gamma-ratio norm comparison in
+  `ParabolicCylinder/BarnesContinuation.lean` (`pcfBC_Gamma_bound`,
+  `pcfBC_Gamma_bound_pt`, `pcfBC_norm_Gamma_le_ratio`) repeat the corresponding `incRep_`
+  proofs in `IncompleteGamma/Representations.lean`. These belong in a shared Gamma/Barnes
+  layer, with the existing Barnes-residue dependencies checked before moving them.
+- Gamma third-argument reflection constants and complex trigonometric growth estimates recur
+  in Airy, hypergeometric, Legendre, Struve and parabolic-cylinder proofs. Consolidate them
+  below those chapters rather than adding cross-chapter dependencies solely for a helper.
+
+Two important non-duplicates must remain distinguished: totalized ordinary `₂F₁` series versus
+`regularizedGaussHG` on the cut plane, and principal-sheet special functions versus their
+explicit logarithmic-plane continuations. Similarly, the hypergeometric definitions of Jacobi
+and Gegenbauer polynomials have exceptional-parameter behavior which cannot be erased by
+cancelling a possibly zero Pochhammer or Gamma factor. The Airy and core principal-value
+predicates also have different arguments and convergence conditions; similar names do not
+justify replacing one by the other.
+
+### Validation and final status
+
+- The final ordinary command `lake build > /tmp/DLMF-build.log 2>&1` passes (10,043 jobs).
+- All 29 changed Lean files pass
+  `lake env lean -DautoImplicit=false -DrelaxedAutoImplicit=false path/to/File.lean`
+  after their imports are built. The `DLMF.lean` entry module passes the same check.
+- The compiled audit now covers 12,955 project theorems. Exactly the same 213 declarations
+  as before depend on `sorryAx`; no nonstandard axiom was added. All 207 explicit source
+  admissions remain. No false or suspected-false statement was identified in this review.
+- The DLMF cross-reference dump has 3,073 records: 2,874 proved and 199 admitted, including
+  178 upstream pointers, with no nonstandard axioms. The three root acquisition ledgers were
+  regenerated. Six stale admitted labels in `DLMF678Acquisition.md` become proved because
+  their proofs were already present in the starting checkout, not because of this cleanup.
+- The tracked Lean edits plus the new shared module remove **336 lines net**. Existing public
+  theorem signatures are preserved; two private Airy connection helpers are now public so
+  the equation module can reuse them.
+- The import graph is acyclic. The mirrored `ToMathlib/Analysis/Integral/Laplace.lean` and
+  `ToMathlib/Analysis/Complex/Carlson.lean` still match `../lean-codes` byte for byte. The Lake
+  topology, dependency pins and toolchain are unchanged. `git diff --check` passes.
+- No commit was made.
+
+## Parallel admission-removal and reuse round (2026-10-24)
+
+### Scope and coordination
+
+The five requested proof tracks were pursued with three parallel workers and a
+coordinating worker. An ownership registry assigns disjoint source files; advisory
+file-owner locks and one exclusive integration/build lock prevent conflicting edits
+and simultaneous builds against the shared Lake output. Staged proof experiments
+and per-build logs are kept under `/tmp/DLMF-proof-round-20261024/`. Earlier
+uncommitted work is preserved. No commit was requested or made.
+
+### Targeted identities
+
+- `associatedP_degree_deriv` (14.11.1) now reuses the existing regularized Gauss
+  parameter-derivative machinery. The shared series lemma is generalized to a complex
+  argument, and the older real-argument lemma becomes an adapter.
+- `lowerIncGamma_multiplication_hasSum` (8.15.1) follows from Mathlib's entire Taylor
+  theorem and the existing regularized confluent derivatives. The proof retains the
+  logarithmic-plane arguments and proves convergence for every stated `u, v`.
+- `goodwinStatonG_dawson` (7.5.13) follows from the proved Faddeeva Cauchy integral and
+  exponential-integral representation, with an explicit logarithmic jump calculation
+  and dominated convergence to the positive real axis. Its name, statement and tag
+  are unchanged, but it now lives in `ErrorFunctions/Integrals.lean`, where the
+  required integral theorems are available without a cyclic import. Importers of
+  `ErrorFunctions.Relations` alone must additionally import `ErrorFunctions.Integrals`
+  to use this theorem; no in-project callers required changes.
+
+### Lommel foundations
+
+Six independently proved lemmas establish the degree-two product recurrence,
+small-Lommel recurrence, capital recurrence on regular parameters, and analyticity
+and the ODE on that regular domain. The ODE proof reuses the existing Bessel
+fundamental-system theorem. They do not invoke the admitted exceptional-parameter
+limit. The four original all-parameter limit, ODE, termination and asymptotic
+admissions remain: the missing step is cancellation of the Gamma poles, including
+simultaneous poles, followed by continuation and the polynomial base identities.
+
+### Orthogonality
+
+- `qHahn_orthogonal` (18.27.4) uses the existing finite self-adjointness theorem after
+  proving the terminating coefficient telescoping, finite-weight Pearson balance,
+  and separation of the eigenvalues. The finite support and all parameter
+  assumptions are retained.
+- `stieltjesWigert_orthogonal` (18.27.20) combines TauCeti's lognormal moments with the
+  existing finite q-binomial theorem. Integrability is proved before finite sum and
+  integral exchanges.
+- The extra `littleQJacobi_orthogonal` (18.27.14) was already supported by the project's
+  unused `QOrthogonalityTools` moment-cancellation results; it now applies those
+  results through the finite monomial expansion.
+
+- `meixnerPollaczek_orthogonality` (18.19.9), including the diagonal norm, uses
+  a two-Gamma Mellin–Barnes evaluation continued to the full tilt range. Rescaling
+  lets the proof reuse the existing half-plane holomorphy estimate. The finite part
+  reuses Chu–Vandermonde and the reverse Pochhammer basis from `HahnMoments`.
+
+### Transform infrastructure
+
+The Whittaker Buchholz series now has independently proved coefficient bounds,
+absolute convergence, termwise cancellation of its principal-power factors, and a
+representation as a regularized 0F1 sum. The equality identifying that convergent
+sum with Whittaker M (13.24.2) still needs the Buchholz coefficient transformation.
+The three Airy product integrals 9.11.16–18 remain: the whole-line cubic products
+need oscillatory convolution/tail control, and the quartic integral is not a
+consequence of the existing Mellin transform of Ai² alone.
+
+The parabolic-cylinder product integral `pcf_integral_4` (12.12.4) is proved by
+absolute convergence, dominated moment differentiation, integration by parts for
+the symmetric-square ODE, and matching three initial data. The zeroth moment is a
+beta integral; an integration-by-parts recurrence gives the second derivative,
+and reciprocal Gamma reflection handles exceptional reflected Gamma parameters
+without cancellation of a potentially zero factor. The original `Re a < 1/2`
+condition and every complex argument are retained.
+
+`ToMathlib/Analysis/ODE/SymmetricSquare.lean` extracts the product ODE and the
+third-order Wronskian/Cramer uniqueness argument from the Airy-specific proofs.
+Both Airy and parabolic-cylinder modules now reuse these Mathlib-only helpers.
+The original Airy interfaces remain as short adapters.
+
+The reciprocal-Gamma adapter `recip_Gamma_one_sub_eq` moves from `Confluent/LargeA`
+to `Confluent/BasicProperties`, with its proof shortened to the existing reciprocal
+reflection identity. Its public name and assumptions are unchanged, and importing
+`LargeA` still provides it. This avoids introducing a large-parameter-asymptotics
+dependency solely for the cylinder initial values.
+
+### Uniform incomplete-Gamma inverse
+
+Strip analyticity, nonvanishing derivative, and existence of a normalized local
+analytic inverse are now independently proved. `gammaUniformAlpha_hasSum` and
+`gammaUniformAlpha_printed` no longer have separate admissions: Taylor's theorem
+and the inverse-coordinate ODE give convergence and the six printed coefficients.
+Both still depend on `gammaUniformInverseLog_spec`, so this is consolidation of
+assumptions, not two fully verified DLMF results.
+
+The global inverse on the full disk of radius `2 sqrt π` remains the main gap.
+The local inverse does not establish that radius. A continuation argument must
+use the strip-boundary estimate and properness, or equivalent global inverse
+control. The C-coefficient Maclaurin series and recurrences additionally require
+removability at the origin and matching the Stirling coefficients; the uniform
+remainder estimates remain separate analytic work.
+
+Two generic helpers still live in `Bessel/ProductIntegral`: accumulation of real
+points for analytic continuation and multiplication of a complex power by a
+positive real factor. `PollaczekMoments` reuses them directly rather than copying
+their proofs. Moving their primary APIs to a general analysis layer remains a
+small follow-up opportunity; the present dependency graph is acyclic.
+
+### Validation and final status
+
+The final ordinary `lake build` passed (10,091 jobs). Strict direct checks with
+`-DautoImplicit=false -DrelaxedAutoImplicit=false` passed for all 19 Lean files
+changed in this round and for the `DLMF.lean` entry point. The compiled project
+axiom audit covers 13,062 theorems: 205 still depend on `sorryAx`, down from 213.
+Exactly the eight results named above leave that set; no theorem enters it, and
+no nonstandard axiom is found. The two Alpha-series deductions still depend on
+`sorryAx`, as recorded above.
+
+Explicit source admissions decrease from 207 to 197. The remaining counts are
+incomplete Gamma 39, Airy 37, Legendre 33, orthogonal polynomials 26, parabolic
+cylinder 21, Struve 12, confluent hypergeometric 9, error functions 6, partitions
+3, Selberg 3, Gamma 2, hypergeometric 2, exponential integrals 2, Bessel 1, and
+q-series 1. Thus the Gamma chapter's two admissions are unchanged by this round.
+
+The regenerated acquisition ledgers use 3,073 tag records: 2,882 proved and 191
+admitted, with 178 upstream pointers. They distinguish the two Alpha-series
+results as “proved from admissions”. No theorem hypotheses were weakened and
+no new admissions were introduced.
+
+The 423 modules under `DLMF/` and `ToMathlib/` have an acyclic import graph.
+`ToMathlib` imports only Mathlib and its own modules; the mirrored Laplace and
+Carlson files remain byte-identical to lean-codes. The shared Lake symlink,
+project build directory, toolchain and dependency pins are unchanged.
+`git diff --check` passes. Earlier uncommitted changes are preserved; this round
+has not been committed.
+
+## Reciprocal terminology (2026-10-24)
+
+Project-defined names for reciprocals now use `recip` or `reciprocal`. This includes
+`recipGammaDeriv`, `recipGammaCoeff`, the reciprocal-Gamma module names, the Bessel
+operator `zRecipDeriv`, Airy reciprocal-integrand theorems, reciprocal-argument
+hypergeometric transformations, reciprocal-factorial expansions, and local
+reciprocal algebra, integrability, and asymptotic-series helpers. Callers and
+acquisition-ledger references use the new names. The Barnes-residue comment now
+identifies a reciprocal kernel. README records the naming convention.
+
+Genuine functional and operator inverses retain their names, as do imported
+Lean, Mathlib and TauCeti APIs. Invariant abbreviations are also retained. The
+reciprocal-power asymptotic helper group for repeated erfc is `erfRecip_…`;
+`invErf` and `invErfc` still denote actual inverse functions. The two mirrored
+ToMathlib files are unchanged.
+
+This is a terminology-only change. Comparing the Lean sources with the saved
+pre-rename versions, after reversing identifier changes and excluding comments,
+finds no mathematical-code differences. No theorem hypotheses, proofs, or
+admission counts change. Old local identifiers and the two old module paths
+are replaced rather than retained as aliases.
+
+Validation passed: the full build completed 10,091 jobs, and strict direct Lean
+checks passed for all 134 changed Lean files plus both library entry points.
+The compiled audit finds no old renamed local declarations or module imports.
+All 13,062 project theorems are retained; the 205 `sorryAx` dependencies are
+exactly the renamed baseline set, with no nonstandard axioms. The source count
+remains 197 admissions. Regenerated ledgers retain 3,073 tag records (2,882
+proved, 191 admitted, 178 upstream pointers). `git diff --check` passes;
+toolchain, dependency pins and build topology are unchanged. No commit was made.
+
+## Proof priorities after the 24 October round (2026-10-24)
+
+### Census and basis for the ranking
+
+A fresh scan of declaration bodies, excluding comments, finds **197 admitted
+declarations**, all theorems. The ordinary build succeeds (10,091 jobs). A fresh
+compiled audit finds **13,062 project theorems, 205 depending on `sorryAx`**, and
+no other nonstandard axioms. No Lean source was changed for this review.
+
+The area counts are incomplete Gamma 39, Airy 37, Legendre 33, orthogonal
+polynomials 26, parabolic cylinder 21, Struve 12, confluent hypergeometric 9,
+error functions 6, partitions 3, Selberg 3, Gamma 2, hypergeometric 2,
+exponential integrals 2, Bessel 1, and q-series 1. The five largest areas account
+for 156 of 197 admissions, but their size alone should not determine proof order.
+
+Rank work by DLMF relevance, reusable prerequisites, feasibility under the
+existing statements, and removal of transitive admitted dependencies. A
+successful build is compatible with admissions. A shorter source inventory
+obtained by deriving one admitted result from another is useful consolidation,
+but is not an independently verified DLMF theorem. Effort assessments below are
+mathematical review estimates, not newly Lean-checked proof implementations.
+
+### First: contained proof targets
+
+1. **The two compact cylinder Chebyshev expansions**:
+   `pcfU_chebyshev_compact` and `pcfV_chebyshev_compact` in
+   [Computation.lean](DLMF/ParabolicCylinder/Computation.lean).
+   `pcfU_entire` and `pcfV_entire` are proved, and
+   [ChebyshevExpansion.lean](DLMF/OrthogonalPolynomials/ChebyshevExpansion.lean)
+   already has coefficient decay on Bernstein ellipses and pointwise reconstruction
+   from absolutely summable coefficients. Supply a shared complex-valued version,
+   rescale the interval, and absorb the zeroth coefficient's half-weight.
+   This should be moderate work with two direct applications. TauCeti's Chebyshev
+   Hilbert-basis reconstruction alone gives an L² result, not the required
+   pointwise `HasSum` at every point including the endpoints. Keep the half-line
+   theorem separate: compactification requires regularity at the new endpoint.
+   These are mathematical existence claims in the prose of [DLMF §12.20](https://dlmf.nist.gov/12.20),
+   not excluded numerical tables.
+
+2. **The finite Askey–Wilson difference equation**:
+   `askeyWilson_difference_equation` in
+   [QFamilies.lean](DLMF/OrthogonalPolynomials/QFamilies.lean),
+   [DLMF 18.28.6_1](https://dlmf.nist.gov/18.28.E6_1).
+   Expand the terminating Laurent series and telescope its shifted coefficients.
+   The q-Pochhammer and terminating-sum APIs are already present. This is a finite
+   algebra problem; Askey–Wilson orthogonality is not a prerequisite. Retain the
+   stated denominator exclusions and check `n = 0` and `a = 0`. Moderate effort,
+   with a useful difference-operator identity as the outcome.
+
+3. **Fixed-x incomplete-Beta asymptotics**:
+   `incBeta_large_a_fixed_x` in
+   [BetaAsymptotics.lean](DLMF/IncompleteGamma/BetaAsymptotics.lean),
+   [DLMF 8.18.1](https://dlmf.nist.gov/8.18.E1).
+   Repeated integration by parts in the real Beta integral gives the finite
+   expansion and a remainder bounded by a Beta moment. With x fixed strictly
+   between zero and one, the residual power of `1-t` stays bounded even when
+   `b-N` is negative. Use reciprocal Gamma factors at terminating integer b.
+   The proved `incBeta_large_a_integer_b_exact` is a useful consistency check,
+   but does not settle arbitrary positive real b. This is a more contained
+   incomplete-Gamma-area target than the uniform transition expansions.
+
+### Next: finish specific identities with substantial groundwork already present
+
+- **Whittaker's Buchholz series**, `whittakerM_besselJ_series` in
+  [Series.lean](DLMF/Confluent/Series.lean),
+  [DLMF 13.24.2](https://dlmf.nist.gov/13.24.E2).
+  Absolute convergence, principal-power cancellation, and the normalized 0F1
+  representation are proved. The next deliverable is the Buchholz coefficient
+  transformation, using a generating-function or Lagrange–Bürmann argument.
+  Another convergence estimate would not close this admission. Moderate to large
+  effort for a well-isolated missing identity.
+- **Inverse-erf's convergent series**, `hasSum_invErf` in
+  [InverseGeneralized.lean](DLMF/ErrorFunctions/InverseGeneralized.lean),
+  [DLMF 7.17.2](https://dlmf.nist.gov/7.17.E2).
+  The inverse and coefficient recurrence exist. Identify the local analytic
+  inverse's Taylor coefficients, then establish convergence over the full stated
+  interval `|x| < 1`. A local inverse theorem alone does not prove that domain.
+  Moderate to large effort; keep the logarithmic inverse-erfc asymptotic as a
+  separate project.
+- **Whipple's terminating transformation**, `whipple_7F6` in
+  [Identities.lean](DLMF/Hypergeometric/Identities.lean).
+  The terminating case of [DLMF 16.4.15](https://dlmf.nist.gov/16.4.E15)
+  is a DLMF target despite its current AAR-only docstring and missing tag.
+  Use finite rearrangement and the proved terminating summations, or a finite
+  telescoping certificate. This needs new algebra, not a direct application of
+  the existing Dougall summation. Retain all denominator restrictions.
+- The two remaining [Legendre hypergeometric representations](DLMF/Legendre/Hypergeometric.lean)
+  and `pcfU_rotational_addition` in
+  [Relations.lean](DLMF/ParabolicCylinder/Relations.lean) are secondary identity
+  targets. The former need a combined cut-boundary limit and removable
+  parameter singularities; the latter needs convergence at `t = π/4` under its
+  endpoint hypothesis. Treat these analytic steps as explicit milestones.
+
+### Highest-value analytic prerequisites
+
+**Airy derivative remainder bounds.** Prioritize a derivative counterpart to the
+proved Ai Stieltjes remainder machinery in
+  [Asymptotics.lean](DLMF/Airy/Asymptotics.lean). Its immediate targets are
+`airy_aiDeriv_complex_error`, `airy_biDeriv_real_error`, and
+`airy_biDeriv_bound` (three admissions). Prove the Ai′ remainder estimate with
+the required zero shift in the error multiplier, transfer it to Bi′ by the
+proved rotations, then specialize the truncation to obtain the real bound.
+Sharp constants and the sector boundary prevent obtaining these merely by
+differentiating an existing Big-O assertion. Phase-error signs and
+hyperasymptotic remainders should follow in later work.
+
+**Lommel exceptional parameters.** In
+[Lommel.lean](DLMF/Struve/Lommel.lean), prove locally uniform removal of the
+parameter poles, including simultaneous poles, for
+`lommelCapital_parameter_limit`. The regular-domain ODE, analyticity and
+degree-two recurrence are already proved. Continuation of the derivatives and
+the terminating base identities should then address `lommelCapital_ode` and
+`lommelCapital_terminates`. This is a coherent three-admission target, with
+`lommelCapital_asymptotic` requiring further sector estimates. Pointwise
+convergence alone does not justify passing derivatives to the limit. The
+limiting prescription is part of [DLMF §11.9(i)](https://dlmf.nist.gov/11.9.i).
+
+**Incomplete-Gamma inverse and removable coefficients.** In
+[UniformAsymptotics.lean](DLMF/IncompleteGamma/UniformAsymptotics.lean),
+`gammaUniformInverseLog_spec` is the main structural target. Strip analyticity,
+nonvanishing derivative and a normalized local inverse are proved. Global
+continuation to the disk `|η| < 2 sqrt π` still needs boundary/properness and
+single-valued inverse control. This radius is explicitly part of
+[DLMF 8.12.11–13](https://dlmf.nist.gov/8.12), so shrinking it would leave the
+original task open. Closing the specification would also independently verify
+the two currently dependent theorems `gammaUniformAlpha_hasSum` and
+`gammaUniformAlpha_printed`. Removability of `gammaUniformC` and its printed
+zero values can be developed locally without waiting for this global inverse:
+their definition uses the forward η coordinate. The full-disk
+`gammaUniformC_maclaurin` and `gammaUniformD_recurrence` additionally involve
+the selected inverse. Uniform S/T remainders remain further analytic work.
+
+**Error/Fresnel zero enumeration.** `errorFunctionZero_spec` and
+`fresnelFunctionZero_spec` in [Zeros.lean](DLMF/ErrorFunctions/Zeros.lean) are
+the other concentrated source of transitive dependencies. Proving them would
+remove two direct admissions and independently verify six existing ordering
+and classification theorems. `errorFunctionZero_spec_iff` already identifies
+the exact missing content: infinitely many sector zeros and distinct moduli.
+Entire-function zero discreteness supplies neither. A contour zero-counting
+argument with quantitative remainder estimates is a plausible route, but the
+ordering must cover every index, not only sufficiently large indices. This is
+high-value work, with a larger analytic investment than the first batch; see
+the prose of [DLMF §7.13](https://dlmf.nist.gov/7.13).
+
+### Orthogonality and convergence projects after the contained batch
+
+- For q-families, target `continuousQHermite_orthogonality` and
+  `qGegenbauer_orthogonal` through Fourier coefficients of the q-product weights
+  and finite Laurent sums. The former includes its diagonal norm; the latter
+  currently asks only for offdiagonal vanishing. `qLaguerre_orthogonal` needs
+  monomial moments of its own continuous weight: the new little-q-Jacobi and
+  Stieltjes–Wigert proofs provide patterns, not that moment evaluation.
+- Prove `mellin_barnes_selberg`, the
+  [de Branges–Wilson integral 5.13.5](https://dlmf.nist.gov/5.13.E5), before
+  Wilson orthogonality. It has eight Gamma factors and is not the already proved
+  four-Gamma Barnes lemma. Shifted weight moments and terminating summations
+  can then address `wilson_orthogonal`; continuous dual Hahn additionally needs
+  its own weight evaluation or a justified dominated limit. Avoid circularly
+  using admitted Wilson orthogonality to evaluate the weight integral.
+- The two complex continued fractions for upper incomplete Gamma and generalized
+  exponential integrals should share convergence work. The existing
+  `incGF_LF_tendsto` handles real parameters below one on the slit plane; the
+  admitted public statements allow arbitrary complex parameters. Prove that
+  extension with control of exceptional terminating cases, then transport
+  between the two normalizations. The incomplete-Beta fraction is a separate
+  convergence problem.
+- `Gamma_ratio_norm_le` is useful general analysis but still needs the
+  fractional-shift complex estimate. The natural-shift result already exists;
+  taking absolute values in the real Beta integral gives `Re z`, not the required
+  `‖z‖`. A rotated Beta/Laplace integral is a promising specific next milestone.
+
+### Defer broad asymptotic campaigns until their common estimates exist
+
+The 17 admissions in `Legendre/Uniform.lean`, the conical uniform expansions,
+the cylinder turning-point and zero expansions, and the coalescing-parameter
+Kummer expansions should be organized around a proved comparison equation,
+normalization of the actual special-function solution, and a uniform remainder
+bound. Existing coordinate and coefficient formulas do not by themselves supply
+these estimates. Prefer one complete parameter regime before extending to the
+other regimes and related functions.
+
+Likewise, `angerScaledB_initial`, `angerScaledB_debye`, `gammaParis_printed`,
+and the first/transition Beta coefficient formulas are not cheap evaluations:
+their coefficients are defined using `asymptoticCoeff` of the exact functions.
+They need genuine asymptotic estimates and uniqueness before the printed
+algebra can be verified. The fixed-coefficient asymptotic inversion API explicitly
+does not cover the polynomial logarithmic coefficients of error/Fresnel zero
+asymptotics. Airy cubic product integrals also need conditional-convergence
+control, and the quartic product integral needs a further product evaluation;
+the newly proved cylinder product integral does not settle these automatically.
+
+Retain the lower priority assigned by `AGENTS.md` to Apéry, partition congruences,
+finite-field Selberg, Hasse–Davenport, Siegel, Vietoris, Favard and other named
+supporting-source targets. Conversely, missing tags are not evidence of being
+outside DLMF: besides Whipple above, `nicholson_integral` specializes
+[DLMF 10.9.30](https://dlmf.nist.gov/10.9.E30) and `ramanujan_1psi1` corresponds
+to [DLMF 17.8.2](https://dlmf.nist.gov/17.8.E2). Both remain legitimate later
+DLMF targets. Do not prioritize an otherwise difficult isolated theorem just
+to make its chapter admission-free.
+
+For the next bounded proof round, start with the compact Chebyshev pair,
+Askey–Wilson difference equation and fixed-x Beta expansion. Follow with the
+Buchholz identity and inverse-erf series. For sustained infrastructure work,
+prefer Airy derivative remainders, then Lommel continuation and the global
+incomplete-Gamma inverse. Keep the zero-enumeration work as an explicit larger
+project. Count a target as completed only when its compiled axiom dependencies
+exclude `sorryAx` and preserve its full domain and exceptional parameters.
+
+### Review validation and limits
+
+The source inventory and fresh compiled audit agree on the 197 direct admissions;
+the eight extra audit entries are exactly the six zero-enumeration consequences
+and two Alpha-series consequences discussed above. Focused searches of the pinned
+Mathlib and TauCeti sources did not identify direct replacements for the proposed
+first targets; this is not an exhaustive search of upstream mathematics. DLMF
+pages were checked for the cited scope and formulas. No new false statement was
+established by this review; the admitted statements have not all received a full
+correctness audit. No theorem was proved, no hypothesis or definition changed,
+and no admission was removed in this documentation-only review.
+
+## Priority proof implementation with parallel ownership (2026-10-24)
+
+The requested parallel implementation proves **eight previously admitted
+theorems**, reducing the pre-Chapter-4 source inventory from **197 to 189**.
+The compiled audit has **13,111 project theorems**, of which **195 depend on
+`sorryAx`**, down from 205. Closing the global incomplete-Gamma inverse also
+independently verifies its two existing inverse-series consequences. No new
+nonstandard axiom occurs, and the completed statements retain their hypotheses.
+
+- `pcfU_chebyshev_compact` and `pcfV_chebyshev_compact` follow from a shared
+  complex Chebyshev-series theorem for entire functions, including pointwise
+  convergence at the interval endpoints. The real orthogonal-polynomial API
+  now adapts this common result.
+- `askeyWilson_difference_equation` follows by triangular action on the finite
+  Laurent basis and telescoping, with the original denominator restrictions
+  and the cases `n = 0` and `a = 0` retained.
+- `incBeta_large_a_fixed_x` uses an exact finite diagonal-shift remainder and
+  a uniform hypergeometric majorant. It covers arbitrary positive real `b`,
+  including terminating reciprocal-Gamma factors, without restricting `b-N`.
+- `whipple_7F6` is a finite exponential-base `q → 1` limit of the project's
+  proved Watson transformation. It now carries the DLMF 16.4.15 tag.
+- `hasSum_invErf` identifies the analytic inverse's coefficients with the
+  existing recurrence and establishes convergence on the full interval
+  `|x| < 1` using positivity of derivative polynomials and Taylor bounds.
+- `airy_biDeriv_bound` is proved independently of the still-admitted derivative
+  remainder estimates, using the Airy energy, the initial value, and an explicit
+  polynomial envelope.
+- `gammaUniformInverseLog_spec` now covers the full disk `|η| < 2 sqrt π`.
+  Compact preimages in the logarithmic strip make the saddle coordinate a
+  covering map; lifting the disk and the analytic inverse-function theorem
+  produce the normalized global inverse. Consequently
+  `gammaUniformAlpha_hasSum` and `gammaUniformAlpha_printed` no longer depend
+  on an admission.
+
+The generic Chebyshev machinery is in
+`ToMathlib/Analysis/SpecialFunctions/ChebyshevSeries.lean`. The new
+`ToMathlib/Analysis/Complex/TaylorParameter.lean` consolidates differentiation
+of parameterized Taylor coefficients and uniform Cauchy bounds; the existing
+hypergeometric coefficient theorem is retained as an adapter.
+
+The remaining identities and analytic prerequisites have explicit checkpoints,
+not completed admission removals: the Buchholz generating-function PDE and
+Taylor-coefficient recurrence; the Ai′ Stieltjes representation and positive
+Laplace-mixture estimates; and joint parameter holomorphy and exceptional-tail
+reductions for Lommel functions. The final Buchholz identity, sharp Ai′/Bi′
+remainders, and Lommel continuation remain open. Chapter 4 acquisition, requested
+subsequently, is tracked separately and may add new source admissions.
+
+Three workers used disjoint ownership and temporary staging directories. A
+shared lock protected every compiled-import probe; the sole integrating writer
+held the exclusive lock through source installation and each ordinary build.
+The final build passed (10,099 jobs). Strict direct checks passed for all twelve
+changed Lean files and the additional `DLMF.lean` entry point. The axiom audit
+removes exactly the ten named direct/downstream dependencies above, with none
+entering the admitted set. These counts precede the new Chapter 4 acquisition.
+
+## Chapters 4, 16 and 17 acquisition and Elementary proofs (2026-10-24)
+
+The new entry modules are `DLMF.Elementary`, `DLMF.GeneralizedHypergeometric` and
+`DLMF.QHypergeometric`. The chapter ledgers enumerate 510 active in-scope numbered
+Chapter 4 equations plus seven exact tables, all 101 Chapter 16 equations, and all
+186 Chapter 17 equations. They also cover analytical prose and record numerical,
+graphical, application and bibliographic exclusions. Existing Mathlib and TauCeti
+results have checked pointers; existing project results receive native tags.
+The older `Core.UpstreamElementary` import remains compatible.
+
+The acquisition adds 447 Chapter 4 admissions before its proof round, 165 Chapter 16
+admissions and 188 Chapter 17 admissions. These are new analytical statements in an
+expanded scope. Branch-family and normalized-continuation constructions are admitted
+explicitly; neither their derived definitions nor their downstream theorems are
+counted as admission-independent merely because their own bodies contain no `sorry`.
+`ToMathlib` receives general ODE-singularity and separating-contour predicates with
+Mathlib-only imports and no admissions.
+
+### Parallel admission removal in Chapter 4
+
+Workers stage changes outside the repository. Per-file ownership and SHA-guarded
+handoffs prevent edit clashes; an exclusive integration/build lock separates root
+writes from shared-lock Lean probes. The completed batch removes **102 admissions**,
+leaving **345** in Elementary. Every completed theorem retains its acquired hypotheses
+and conclusion and has only the standard three axioms.
+
+- Sixty trig proofs cover integer De Moivre, meromorphy of reciprocal functions,
+  inverse/reciprocal identities, exact tables, norm formulas and bounds, integer
+  orthogonality, elementary real and complex primitives, principal atan/acot
+  calculus and oddness, and all seven Gudermannian/inverse-Gudermannian identities.
+- Twenty-six hyperbolic proofs cover reciprocal derivatives, addition and subtraction,
+  product/square identities, multiple angles and integer De Moivre.
+- Eleven power/logarithm proofs cover magnitudes and phases, general and closed
+  power-value inversion, integer powers, square-root cut cases and horizontal/vertical
+  exponential images.
+- Five logarithm/exponential primitives are proved directly by derivative calculus.
+
+The remaining Chapter 4 source admissions are Hyperbolic 153, Trigonometric 71,
+LogExpAnalysis 52, LambertW 43, LogExpIntegrals 11, Generalized 9 and LogExpBasic 6.
+The computation and exact Bessel-connection modules have none.
+
+### Source and domain review
+
+The ledgers record branch correlations, both logarithm cut banks, conditional
+natural-order series convergence, exceptional terminating parameters, removable values,
+resonant limits and the difference between a defining tsum and analytic continuation.
+Meijer G keeps its contour geometries and logarithmic sheets. The q-series APIs retain
+DLMF's integer phase even when upper/lower lengths differ. Bailey chains now require
+successive Bailey-lemma steps; the q-Lauricella dimension-two specialization is proved.
+
+The printed 17.7.E19 and 17.7.E23 have exact Lean counterexamples. Their corrected
+forms follow primary Gasper–Rahman references, rather than admitting the false printed
+versions. The repeated left side in 17.14.E3 is corrected from its displayed constant
+term; its linear coefficient already distinguishes it from the printed expression.
+The acosh signs in 4.37.E11/E14 and the n=0 sign in 16.19.E5 are recorded explicitly.
+The 17.13.E3 Gamma quotient has both a genuine removable-limit obligation and an
+integral statement, rather than relying on a totalized limit without a limit theorem.
+
+### Next proof priorities
+
+1. Finish elementary algebra, derivatives and primitives in Hyperbolic, Trigonometric
+   and LogExpAnalysis, checking Mathlib/TauCeti before each family. These give the best
+   immediate return and need little new infrastructure.
+2. Prove shared branch-qualified log/inverse-function series, product and continuation
+   lemmas. They support the remaining Elementary expansions and reduce repeated work.
+3. Close the basic qPhi/qPsi convergence and q-calculus bridges using the established
+   QSeries and q-Gamma APIs. Prefer full-domain finite identities and exceptional-value
+   adapters before broad analytic-continuation claims.
+4. Establish normalized generalized-hypergeometric continuation and regularity once,
+   then use it for derivatives, differential equations, transforms and Appell formulas.
+   Meijer contour independence and resonant asymptotics need larger dedicated work.
+5. Continue the older DLMF proof backlog with the now-proved shared tools: Buchholz
+   generating identities, sharp Airy remainders and exceptional Lommel continuation.
+   AAR-only results retain their lower priority. Askey–Gasper has a Chapter 16
+   counterpart and is therefore in DLMF scope.
+
+### Validation
+
+The ordinary build passes (10,339 jobs). All 71 changed Lean files, including the
+new chapter umbrellas, and both root entry modules are checked separately with
+`autoImplicit=false` and `relaxedAutoImplicit=false`. The final compiled audit finds
+14,148 project theorems, 900 depending on `sorryAx`, and no other nonstandard axiom.
+A separate check confirms all 102 Elementary proofs, the eight original priority
+proofs, their two inverse-series consequences and the 17 new q-series proofs use
+only the standard axioms. All 517/101/186 in-scope numbered/table IDs of Chapters
+4/16/17 have both tag coverage and ledger entries. The import graph is acyclic;
+`ToMathlib` has no admission or forbidden import; the shared Laplace/Carlson files
+remain identical. The build topology, toolchain and dependency pins are unchanged.
+`git diff --check` and checks of newly introduced whitespace pass.

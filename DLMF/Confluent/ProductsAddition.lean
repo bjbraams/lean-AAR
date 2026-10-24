@@ -192,7 +192,7 @@ lemma cpow_first_parameter_prefactor {x y : ℂ} (hx : 0 < x.re)
     sub_eq_add_neg]
 
 /-- The reverse-ratio form of the same first-parameter prefactor. -/
-lemma cpow_first_parameter_prefactor_inv {x y : ℂ} (hx : 0 < x.re)
+lemma cpow_first_parameter_prefactor_recip {x y : ℂ} (hx : 0 < x.re)
     (hy : -1 / 2 < (y / x).re) (s a : ℂ) :
     (x + y) ^ s * (x / (x + y)) ^ a = (x / (x + y)) ^ (a - s) * x ^ s := by
   have hx0 := slitPlane_ne_zero (Or.inl hx : x ∈ slitPlane)
@@ -776,7 +776,7 @@ theorem whittakerM_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
   intro n
   rw [show μ - (κ + n) + 1 / 2 = μ - κ + 1 / 2 - n by ring,
     show 1 + 2 * μ - (μ - κ + 1 / 2) = 1 / 2 + μ + κ by ring]
-  have hp := cpow_first_parameter_prefactor_inv hx hy' (μ + 1 / 2) (1 / 2 + μ + κ)
+  have hp := cpow_first_parameter_prefactor_recip hx hy' (μ + 1 / 2) (1 / 2 + μ + κ)
   rw [show (1 / 2 + μ + κ) - (μ + 1 / 2) = κ by ring] at hp
   have he : exp (-(x + y) / 2) * exp y = exp (y / 2) * exp (-x / 2) := by
     rw [← exp_add, ← exp_add]; congr 1; ring
@@ -922,7 +922,7 @@ theorem whittakerW_addition_exp_shift_kappa {κ μ x y : ℂ} (hx : 0 < x.re)
   intro n
   rw [show 1 / 2 + μ - (κ + n) = 1 / 2 + μ - κ - n by ring,
     show 1 + 2 * μ - (1 / 2 + μ - κ) = 1 / 2 + μ + κ by ring, div_pow]
-  have hp := cpow_first_parameter_prefactor_inv hx hy (1 / 2 + μ) (1 / 2 + μ + κ)
+  have hp := cpow_first_parameter_prefactor_recip hx hy (1 / 2 + μ) (1 / 2 + μ + κ)
   rw [show (1 / 2 + μ + κ) - (1 / 2 + μ) = κ by ring] at hp
   have he : exp (-(x + y) / 2) * exp y = exp (y / 2) * exp (-x / 2) := by
     rw [← exp_add, ← exp_add]; congr 1; ring

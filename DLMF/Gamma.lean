@@ -34,7 +34,7 @@ public import DLMF.Gamma.QGamma
 public import DLMF.Gamma.MathlibCoverage
 public import DLMF.Gamma.VerticalBounds
 public import DLMF.Gamma.MellinBarnes
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 public import DLMF.Gamma.ShiftedLineBounds
 
 /-!
@@ -49,7 +49,7 @@ Graphics §5.3, applications §§5.19–5.20, and computation §§5.21–5.24 ar
 Each statement taken from the DLMF records its equation number in a `@[dlmf]`
 attribute. Many newly acquired statements are admitted and remain proof obligations.
 
-`DLMF.Gamma.InvGammaDeriv` defines the entire derivatives `(1/Γ)^{(n)}`. Statements in which
+`DLMF.Gamma.RecipGammaDeriv` defines the entire derivatives `(1/Γ)^{(n)}`. Statements in which
 digamma occurs only through products with a reciprocal Gamma are given in that form, valid
 for all parameters, because Mathlib's digamma takes the value `0` at its poles.
 -/

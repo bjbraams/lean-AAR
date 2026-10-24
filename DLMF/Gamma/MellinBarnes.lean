@@ -199,14 +199,14 @@ theorem Gamma_mul_one_add_cpow_neg {a : ℂ} {σ : ℝ} (hσ : 0 < σ) (hσa : �
   push_cast
   field_simp
 
-lemma differentiable_inv_Gamma : Differentiable ℂ fun s : ℂ => (Gamma s)⁻¹ := by
+lemma differentiable_recip_Gamma : Differentiable ℂ fun s : ℂ => (Gamma s)⁻¹ := by
   simpa [one_div] using Complex.differentiable_one_div_Gamma
 
 /-- A bound for `1/Γ` on closed unit discs about the points `c + σ + iy`, `c` near `c₀`. -/
-lemma exists_norm_inv_Gamma_disc_le (c₀ : ℂ) (σ : ℝ) :
+lemma exists_norm_recip_Gamma_disc_le (c₀ : ℂ) (σ : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, ∀ c ∈ Metric.ball c₀ 1, ∀ y : ℝ, ∀ w : ℂ, ‖w - (c + σ + I * y)‖ ≤ 1 →
       ‖(Gamma w)⁻¹‖ ≤ C * (1 + |y|) ^ K * Real.exp (π * |y| / 2) := by
-  obtain ⟨C, K, hC⟩ := exists_norm_inv_Gamma_le (|c₀.re + σ| + 2)
+  obtain ⟨C, K, hC⟩ := exists_norm_recip_Gamma_le (|c₀.re + σ| + 2)
   have hC0 : 0 ≤ C := by
     have := (norm_nonneg _).trans (hC 1 ⟨by linarith [abs_nonneg (c₀.re + σ)],
       by linarith [abs_nonneg (c₀.re + σ)]⟩ 0)
@@ -249,13 +249,13 @@ lemma exists_norm_inv_Gamma_disc_le (c₀ : ℂ) (σ : ℝ) :
 
 /-- **Integrals against `1/Γ` are entire in the parameter**: if `A` is continuous with
 `|A(y)| ≤ C (1+|y|)^K e^{-π|y|}`, then `c ↦ ∫ A(y)/Γ(c+σ+iy) dy` is entire. -/
-theorem differentiable_integral_mul_inv_Gamma {A : ℝ → ℂ} (hA : Continuous A) {C : ℝ} {K : ℕ}
+theorem differentiable_integral_mul_recip_Gamma {A : ℝ → ℂ} (hA : Continuous A) {C : ℝ} {K : ℕ}
     (hAb : ∀ y : ℝ, ‖A y‖ ≤ C * (1 + |y|) ^ K * Real.exp (-(π * |y|))) (σ : ℝ) :
     Differentiable ℂ fun c : ℂ => ∫ y : ℝ, A y * (Gamma (c + σ + I * y))⁻¹ := by
   intro c₀
-  obtain ⟨D, L, hD⟩ := exists_norm_inv_Gamma_disc_le c₀ σ
+  obtain ⟨D, L, hD⟩ := exists_norm_recip_Gamma_disc_le c₀ σ
   set g : ℂ → ℂ := fun s => (Gamma s)⁻¹
-  have hg : Differentiable ℂ g := differentiable_inv_Gamma
+  have hg : Differentiable ℂ g := differentiable_recip_Gamma
   set F : ℂ → ℝ → ℂ := fun c y => A y * g (c + σ + I * y) with hF
   set F' : ℂ → ℝ → ℂ := fun c y => A y * deriv g (c + σ + I * y) with hF'
   set bound : ℝ → ℝ := fun y => C * D * ((1 + |y|) ^ (K + L) * Real.exp (-(π / 2 * |y|)))
@@ -502,10 +502,10 @@ theorem differentiableOn_integral_mul_cpow {B : ℝ → ℂ} (hB : Continuous B)
   exact key.2.differentiableAt.differentiableWithinAt
 
 /-- A bound `C (1+|y|)^K e^{π|y|/2}` for `1/Γ(x + i(β+y))`. -/
-lemma exists_norm_inv_Gamma_shift_le (x β : ℝ) :
+lemma exists_norm_recip_Gamma_shift_le (x β : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, ∀ y : ℝ,
       ‖(Gamma (x + I * (β + y)))⁻¹‖ ≤ C * (1 + |y|) ^ K * Real.exp (π * |y| / 2) := by
-  obtain ⟨C, K, hC⟩ := exists_norm_inv_Gamma_le |x|
+  obtain ⟨C, K, hC⟩ := exists_norm_recip_Gamma_le |x|
   have hx : x ∈ Set.Icc (-|x|) |x| := ⟨neg_abs_le x, le_abs_self x⟩
   have hC0 : 0 ≤ C := by
     have := (norm_nonneg _).trans (hC x hx 0); simpa using this

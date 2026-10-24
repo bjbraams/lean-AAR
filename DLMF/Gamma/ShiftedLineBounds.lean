@@ -15,13 +15,13 @@ Contour shifts in Mellin–Barnes integrals move a vertical line `Re s = c` to `
 and need bounds for `Γ` that are uniform in `N`. Writing `s = x + iy`:
 
 * `shiftB_norm_Gamma_le`: `|Γ(x+iy)| ≤ Γ(x)` for `x > 0`;
-* `shiftB_norm_inv_Gamma_le`: `|1/Γ(x+iy)| ≤ e^{π|y|/2} / Γ(x)` for `x ≥ 1/2`, uniformly in
+* `shiftB_norm_recip_Gamma_le`: `|1/Γ(x+iy)| ≤ e^{π|y|/2} / Γ(x)` for `x ≥ 1/2`, uniformly in
   `x` (from `|Γ(x)/Γ(x+iy)|² = ∏ (1 + y²/(x+k)²) ≤ cosh πy`, DLMF 5.8.3);
 * `shiftB_norm_Gamma_le_of_le_half`: `|Γ(x+iy)| ≤ 2π e^{-π|y|/2} / (|sin πx| Γ(1-x))` for
   `x ≤ 1/2`, uniformly in `x` (reflection formula);
 * `shiftB_norm_Gamma_sub_nat_le`: hence on the shifted lines `x = x₀ - N`,
   `|Γ(x₀ - N + iy)| ≤ 2π e^{-π|y|/2} / (|sin πx₀| Γ(1 - x₀ + N))`, uniformly in `N`;
-* `shiftB_norm_inv_Gamma_add_nat_le`: on `x = x₀ + N` with `x₀ ≥ 1/2`,
+* `shiftB_norm_recip_Gamma_add_nat_le`: on `x = x₀ + N` with `x₀ ≥ 1/2`,
   `|1/Γ(x₀ + N + iy)| ≤ e^{π|y|/2} / Γ(x₀ + N)`.
 
 The factorial growth of `Γ(1 - x₀ + N)` and `Γ(x₀ + N)` makes the shifted-line integrals of
@@ -49,9 +49,9 @@ theorem shiftB_norm_Gamma_le {x : ℝ} (hx : 0 < x) (y : ℝ) :
   exact div_le_self (by positivity) hP
 
 /-- `|1/Γ(x+iy)| ≤ e^{π|y|/2} / Γ(x)` for `x ≥ 1/2`, uniformly in `x`. -/
-theorem shiftB_norm_inv_Gamma_le {x : ℝ} (hx : 1 / 2 ≤ x) (y : ℝ) :
+theorem shiftB_norm_recip_Gamma_le {x : ℝ} (hx : 1 / 2 ≤ x) (y : ℝ) :
     ‖(Complex.Gamma (x + y * I))⁻¹‖ ≤ Real.exp (π * |y| / 2) / Real.Gamma x := by
-  have h := norm_inv_Gamma_sq_le hx y
+  have h := norm_recip_Gamma_sq_le hx y
   rw [mul_comm I] at h
   have hG := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < x)
   refine (pow_le_pow_iff_left₀ (norm_nonneg _) (by positivity) two_ne_zero).mp (h.trans ?_)
@@ -70,7 +70,7 @@ theorem shiftB_norm_Gamma_le_of_le_half {x : ℝ} (hx : x ≤ 1 / 2) (hs : Real.
   have h2 := barnesRes_sin_lower_line x y
   have h1s : (1 : ℂ) - s = ((1 - x : ℝ) : ℂ) + ((-y : ℝ) : ℂ) * I := by
     rw [hsdef]; push_cast; ring
-  have h3 := shiftB_norm_inv_Gamma_le (x := 1 - x) (by linarith) (-y)
+  have h3 := shiftB_norm_recip_Gamma_le (x := 1 - x) (by linarith) (-y)
   rw [← h1s, abs_neg] at h3
   have hG := Real.Gamma_pos_of_pos (by linarith : (0 : ℝ) < 1 - x)
   have hsa : 0 < |Real.sin (π * x)| := abs_pos.mpr hs
@@ -119,10 +119,10 @@ theorem shiftB_norm_Gamma_sub_nat_le {x₀ : ℝ} (hx : x₀ ≤ 1 / 2) (hs : Re
 
 /-- **Uniform bound on right-shifted lines**: for `x₀ ≥ 1/2` and every `N : ℕ`,
 `|1/Γ(x₀ + N + iy)| ≤ e^{π|y|/2} / Γ(x₀ + N)`. -/
-theorem shiftB_norm_inv_Gamma_add_nat_le {x₀ : ℝ} (hx : 1 / 2 ≤ x₀) (N : ℕ) (y : ℝ) :
+theorem shiftB_norm_recip_Gamma_add_nat_le {x₀ : ℝ} (hx : 1 / 2 ≤ x₀) (N : ℕ) (y : ℝ) :
     ‖(Complex.Gamma (((x₀ + N : ℝ) : ℂ) + y * I))⁻¹‖ ≤
       Real.exp (π * |y| / 2) / Real.Gamma (x₀ + N) :=
-  shiftB_norm_inv_Gamma_le (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]) y
+  shiftB_norm_recip_Gamma_le (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]) y
 
 /-- **Growth of `Γ`**: `Γ(t) ≥ A^{t-1} e^{-(A+1)}` for `t ≥ 1` and every `A > 0` (the Euler
 integral over `[A, A+1]`). With `A` large this beats every geometric sequence, so that

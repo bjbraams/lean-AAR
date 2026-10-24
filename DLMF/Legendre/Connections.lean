@@ -104,7 +104,7 @@ theorem ferrers_connection_6 (ν μ : ℂ) (hplus : LegendreQRegular ν μ) (hmi
   obtain ⟨hk1, hk2⟩ := legendre_Gamma_half_ne_zero hother
   rw [show (-ν-1+μ+1)/2 = (μ-ν)/2 by ring] at hk1
   rw [show (-ν-1+μ+2)/2 = (1-ν+μ)/2 by ring] at hk2
-  obtain ⟨hA, hB⟩ := legendre_reflection_inv hplus
+  obtain ⟨hA, hB⟩ := legendre_reflection_recip hplus
   obtain ⟨-, -, e2, o2⟩ := legendre_reflections ν μ
   have pyth := sin_sq_add_cos_sq ((ν+μ)*π/2)
   have pytha := sin_sq_add_cos_sq ((ν-μ)*π/2)
@@ -197,7 +197,7 @@ theorem ferrers_connection_9 (ν μ : ℂ) (hplus : LegendreQRegular ν μ) (hmi
     2/(Gamma (ν+μ+1)*Gamma (μ-ν))*ferrersQ ν μ x=-cos (ν*π)*ferrersP ν (-μ) x+cos (μ*π)*ferrersP ν (-μ) (-x) := by
   obtain ⟨hg1, hg2⟩ := legendre_Gamma_half_ne_zero hplus
   obtain ⟨hh1, hh2⟩ := legendre_Gamma_half_ne_zero_neg hminus
-  obtain ⟨hA, hB⟩ := legendre_reflection_inv_neg hminus
+  obtain ⟨hA, hB⟩ := legendre_reflection_recip_neg hminus
   have pyth := sin_sq_add_cos_sq ((ν+μ)*π/2)
   have pytha := sin_sq_add_cos_sq ((ν-μ)*π/2)
   have hs : (Real.sqrt π:ℂ) ≠ 0 := ofReal_ne_zero.mpr (Real.sqrt_pos.mpr Real.pi_pos).ne'
@@ -206,7 +206,7 @@ theorem ferrers_connection_9 (ν μ : ℂ) (hplus : LegendreQRegular ν μ) (hmi
   have hN : (2:ℂ)^ν ≠ 0 := by simp
   have hP : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   rw [ferrersP_neg_regular hminus hx, ferrersP_neg_regular hminus (ferrers_neg_mem_Ioo hx), ferrersEven_neg,
-    ferrersOdd_neg, ferrersQ_even_odd, div_eq_mul_inv, mul_inv, legendre_inv_Gamma_sub, hA, hB,
+    ferrersOdd_neg, ferrersQ_even_odd, div_eq_mul_inv, mul_inv, legendre_recip_Gamma_sub, hA, hB,
     legendre_Gamma_plus, cpow_neg]
   rw [show μ*π = (ν+μ)*π/2 - (ν-μ)*π/2 by ring, show ν*π = (ν+μ)*π/2 + (ν-μ)*π/2 by ring,
     cos_sub, cos_add]
@@ -334,12 +334,12 @@ theorem associated_connection_12 (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane
     (f := fun μ => cos (ν*π)*associatedP ν (-μ) z)
     (g := fun μ => -olverQ ν μ z*(Gamma (μ-ν))⁻¹+olverQ (-ν-1) μ z*(Gamma (ν+μ+1))⁻¹)
     (continuous_const.mul (continuous_associatedP_neg_order ν hz))
-    ((((olverQ_entire_order ν z hz).continuous.neg.mul (continuous_inv_Gamma.comp (by fun_prop)))).add
-      ((olverQ_entire_order (-ν-1) z hz).continuous.mul (continuous_inv_Gamma.comp (by fun_prop))))
+    ((((olverQ_entire_order ν z hz).continuous.neg.mul (continuous_recip_Gamma.comp (by fun_prop)))).add
+      ((olverQ_entire_order (-ν-1) z hz).continuous.mul (continuous_recip_Gamma.comp (by fun_prop))))
     (fun μ hμ => ?_) μ |>.trans (by simp only [div_eq_mul_inv])
   rw [(olverQ_eventuallyEq_nonint ν μ hμ hz).eq_of_nhds, (olverQ_reflect_eventuallyEq_nonint ν μ hμ hz).eq_of_nhds]
-  have r1 := legendre_inv_Gamma_reflection (ν+μ+1)
-  have r2 := legendre_inv_Gamma_reflection (ν-μ+1)
+  have r1 := legendre_recip_Gamma_reflection (ν+μ+1)
+  have r2 := legendre_recip_Gamma_reflection (ν-μ+1)
   rw [show 1-(ν+μ+1) = -ν-1-μ+1 by ring] at r1
   rw [show 1-(ν-μ+1) = μ-ν by ring] at r2
   rw [show -ν-1+μ+1 = μ-ν by ring]
@@ -466,7 +466,7 @@ theorem associatedP_neg_eq_quadratic (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitP
       mem_cutPlane_of_one_add (Or.inl (by simp; linarith)), ?_⟩
     show 1 - (1 - 1/w^2) ∈ slitPlane
     rw [sub_sub_cancel, one_div]
-    exact inv_mem_slitPlane' (sq_mem_slitPlane h1)
+    exact recip_mem_slitPlane' (sq_mem_slitPlane h1)
   have hf : AnalyticOnNhd ℂ (associatedP ν (-μ)) D := by
     refine DifferentiableOn.analyticOnNhd (fun w hw => ?_) hDo
     obtain ⟨h1, h2, -, h4, -⟩ := hmem w hw
@@ -523,7 +523,7 @@ theorem associatedP_neg_eq_quadratic (ν μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitP
       ⟨by simp, Or.inl (by simp)⟩).isConnected.isPreconnected h32 hfreq ⟨hre, hz⟩
 
 /-- Off `(-∞,1]`, `1 - 1/z²` lies in the slit plane. -/
-lemma one_sub_inv_sq_mem_slitPlane_of_sub_one {z : ℂ} (hz : z-1 ∈ slitPlane) : 1-1/z^2 ∈ slitPlane := by
+lemma one_sub_recip_sq_mem_slitPlane_of_sub_one {z : ℂ} (hz : z-1 ∈ slitPlane) : 1-1/z^2 ∈ slitPlane := by
   have hz0 : z ≠ 0 := by
     rintro rfl; rw [mem_slitPlane_iff] at hz; norm_num at hz
   rw [mem_slitPlane_iff_not_le_zero]
@@ -787,9 +787,9 @@ lemma whipple_domain {w : ℂ} (hw : w ∈ {z : ℂ | 0 < z.re ∧ z-1 ∈ slitP
     · right; simpa using h
   have hp : ∀ u : ℂ, u - 1 ∈ slitPlane → u + 1 ∈ slitPlane := fun u hu => by
     have := one_add_mem_slitPlane_of_sub_one hu; rwa [add_comm] at this
-  exact ⟨hp w h2, h2, hsl w h2, one_sub_inv_sq_mem_slitPlane_of_sub_one h2, hm, hp _ hm, hsl _ hm,
+  exact ⟨hp w h2, h2, hsl w h2, one_sub_recip_sq_mem_slitPlane_of_sub_one h2, hm, hp _ hm, hsl _ hm,
     mem_cutPlane_of_one_add (one_add_mem_slitPlane_of_sub_one hm),
-    one_sub_inv_sq_mem_slitPlane_of_sub_one hm⟩
+    one_sub_recip_sq_mem_slitPlane_of_sub_one hm⟩
 
 /-- Principal-sheet formula; Whipple transformation is stated in the right half-plane to fix its inherited branch. -/
 @[dlmf 14.9.E16]

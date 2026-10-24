@@ -10,9 +10,10 @@ public import DLMF.Confluent.Whittaker
 public import DLMF.Bessel.Basic
 public import DLMF.Bessel.Modified
 public import DLMF.Bessel.NeumannSeries
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 public import Mathlib.Analysis.Complex.Trigonometric
 public import Mathlib.Analysis.Complex.TaylorSeries
+public import ToMathlib.Analysis.Complex.TaylorParameter
 public import Mathlib.Analysis.Complex.RemovableSingularity
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
@@ -24,6 +25,9 @@ public import Mathlib.RingTheory.PowerSeries.Exp
 
 Bessel-function expansions of `M` and `M_{κ,μ}`. The generating function 13.11.4
 for the coefficients `A_s` and 13.24.3 for `p_s^{(μ)}` are included.
+The Buchholz generating function has independently proved disk holomorphy and a
+parameter differential equation. Its Taylor coefficients have locally uniform bounds
+and a differential recurrence; identification of the full Buchholz sum remains open.
 -/
 
 @[expose] public section
@@ -98,7 +102,7 @@ theorem kummerBesselISeriesCoeff_sum {a b : ℂ} (hν : ∀ j : ℕ, a - 1 / 2 +
 /-- Geometric growth of `kummerBesselISeriesCoeff`. -/
 theorem exists_norm_kummerBesselISeriesCoeff_le (a : ℂ) {b : ℂ} (hb : ∀ k : ℕ, b ≠ -k) :
     ∃ C X : ℝ, 0 ≤ C ∧ 1 ≤ X ∧ ∀ k, ‖kummerBesselISeriesCoeff a b k‖ ≤ C * X ^ k := by
-  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le b
+  obtain ⟨C, hC0, hC⟩ := exists_norm_recip_Gamma_add_nat_le b
   have hbi : ∀ i : ℕ, b + i ≠ 0 := fun i h => hb i (by rw [← sub_eq_zero, sub_neg_eq_add, h])
   refine ⟨‖Gamma b‖ * C * Real.exp (‖2 * a - 1‖ + ‖2 * a - b‖ + ‖a - 1 / 2‖),
     2 * Real.exp 1 ^ 3, by positivity, ?_, fun k => ?_⟩
@@ -635,7 +639,7 @@ theorem regularizedHGFun_eq_besselExpansion (a b z : ℂ) :
   -- Cauchy product with `e^{-z/2}`
   set f : ℕ → ℂ := fun m => regularizedHGFunCoeff {a} {b} m * z ^ m with hf
   set g : ℕ → ℂ := fun r => (-w) ^ r / (r ! : ℂ) with hg
-  obtain ⟨Cg, hCg0, hCg⟩ := exists_norm_inv_Gamma_add_nat_le b
+  obtain ⟨Cg, hCg0, hCg⟩ := exists_norm_recip_Gamma_add_nat_le b
   have hfs : Summable fun m => ‖f m‖ := by
     refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun m => ?_)
       ((Real.summable_pow_div_factorial (2 * Real.exp 1 * ‖z‖)).mul_left (Cg * Real.exp ‖a‖))
@@ -669,7 +673,7 @@ theorem regularizedHGFun_eq_besselExpansion (a b z : ℂ) :
         (Finset.Nat.sum_antidiagonal_eq_sum_range_succ _ N).symm, Finset.mul_sum]
     refine Finset.sum_congr rfl fun p hp => ?_
     rw [mem_antidiagonal] at hp
-    have hG := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (b + p.1) p.2
+    have hG := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (b + p.1) p.2
     rw [add_assoc, ← Nat.cast_add, hp] at hG
     simp only [hf, hg, regularizedHGFunCoeff_singleton, besselExpansionTerm]
     rw [div_eq_mul_inv (poch a p.1), mul_inv, ← hG, ← hp, pow_add, hw, neg_pow, div_pow, div_pow]
@@ -828,11 +832,14 @@ theorem real_sinh_one_lt_two : Real.sinh 1 < 2 := by
   have h2 := Real.exp_pos (-1)
   linarith
 
-@[dlmf 13.24.E3]
-theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
-    (hsmall : ‖t‖ < 1) :
-    HasSum (fun s : ℕ => whittakerBesselCoeff μ z s * (-t / z) ^ s)
-      (exp (-z / 2 * (cosh t / sinh t - 1 / t)) * (t / sinh t) ^ (1 - 2 * μ)) := by
+/-- whittakerBesselBase; support for the Buchholz coefficient transformation. -/
+private noncomputable def whittakerBesselBase (t : ℂ) : ℂ := if t=0 then 1 else t/sinh t
+
+/-- whittakerBessel core analytic; support for the Buchholz coefficient transformation. -/
+private lemma whittakerBessel_core_analytic :
+    DifferentiableOn ℂ (fun t : ℂ => cosh t/sinh t-t⁻¹) (Metric.ball 0 1) ∧
+    DifferentiableOn ℂ whittakerBesselBase (Metric.ball 0 1) ∧
+    ∀ t : ℂ, ‖t‖ < 1 → whittakerBesselBase t ∈ slitPlane := by
   set S : ℂ → ℂ := dslope sinh 0 with hS
   set h : ℂ → ℂ := fun t => t * cosh t - sinh t with hh
   set E : ℂ → ℂ := dslope (dslope h 0) 0 with hE
@@ -879,8 +886,6 @@ theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
       exact (hodd x hx).symm
     have := tendsto_nhds_unique h2 h3
     linear_combination this / 2
-  -- the extension of the generating function
-  set H : ℂ → ℂ := fun x => exp (-z / 2 * (E x / S x)) * (1 / S x) ^ (1 - 2 * μ) with hH
   have hSb : ∀ x : ℂ, ‖x‖ < 1 → ‖S x - 1‖ < 1 := fun x hx =>
     (norm_dslope_sinh_sub_one_le hx.le).trans_lt (by linarith [real_sinh_one_lt_two])
   have hSre : ∀ x : ℂ, ‖x‖ < 1 → 0 < (S x).re := fun x hx => by
@@ -894,25 +899,386 @@ theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
     rw [mem_slitPlane_iff, one_div, Complex.inv_re]
     exact Or.inl (div_pos (hSre x hx) (Complex.normSq_pos.mpr (hSne x hx)))
   have hball : ∀ x ∈ Metric.ball (0 : ℂ) 1, ‖x‖ < 1 := fun x hx => by simpa using hx
-  have hHd : DifferentiableOn ℂ H (Metric.ball 0 1) := fun x hx => by
-    have hx' := hball x hx
-    refine DifferentiableAt.differentiableWithinAt ?_
-    simp only [hH]
-    refine (((hEd x).div (hSd x) (hSne x hx')).const_mul _).cexp.mul ?_
-    exact ((differentiableAt_const _).div (hSd x) (hSne x hx')).cpow (differentiableAt_const _)
-      (hslit x hx')
-  have hGH : Set.EqOn (whittakerBesselGenerating μ z) H (Metric.ball 0 1) := fun x hx => by
-    have hx' := hball x hx
-    simp only [hH, whittakerBesselGenerating]
-    rcases eq_or_ne x 0 with rfl | hx0
-    · simp [hS0, hE0]
-    · simp only [hx0, ↓reduceIte]
-      rw [hS_ne x hx0, hE_ne x hx0]
-      have hsh : sinh x ≠ 0 := fun h0 => hSne x hx' (by rw [hS_ne x hx0, h0, zero_div])
-      congr 2
-      · simp only [hh]; field_simp
-      · field_simp
-  have hGd := hHd.congr hGH
+
+  have hAeq : Set.EqOn (fun t : ℂ => cosh t/sinh t-t⁻¹)
+      (fun t => E t/S t) (Metric.ball 0 1) := by
+    intro t ht
+    have ht' := hball t ht
+    change cosh t/sinh t-t⁻¹=E t/S t
+    rcases eq_or_ne t 0 with rfl | ht0
+    · simp [hE0,hS0]
+    · rw [hE_ne t ht0,hS_ne t ht0]
+      have hsh : sinh t ≠ 0 := fun h0 => hSne t ht' (by rw [hS_ne t ht0,h0,zero_div])
+      simp only [hh]
+      field_simp
+  have hBeq : Set.EqOn whittakerBesselBase (fun t => 1/S t) (Metric.ball 0 1) := by
+    intro t ht
+    rcases eq_or_ne t 0 with rfl | ht0
+    · simp [whittakerBesselBase,hS0]
+    · simp only [whittakerBesselBase,ht0,↓reduceIte,hS_ne t ht0]
+      field_simp
+  have hAd : DifferentiableOn ℂ (fun t => E t/S t) (Metric.ball 0 1) :=
+    fun t ht => ((hEd t).div (hSd t) (hSne t (hball t ht))).differentiableWithinAt
+  have hBd : DifferentiableOn ℂ (fun t => 1/S t) (Metric.ball 0 1) :=
+    fun t ht => ((differentiableAt_const _).div (hSd t)
+      (hSne t (hball t ht))).differentiableWithinAt
+  refine ⟨hAd.congr hAeq,hBd.congr hBeq,?_⟩
+  intro t ht
+  rw [hBeq (by simpa using ht)]
+  exact hslit t ht
+
+/-- whittakerBesselGenerating eq core; support for the Buchholz coefficient transformation. -/
+private lemma whittakerBesselGenerating_eq_core (μ z t : ℂ) :
+    whittakerBesselGenerating μ z t=
+      exp (-z/2*(cosh t/sinh t-t⁻¹))*whittakerBesselBase t^(1-2*μ) := by
+  by_cases ht : t=0
+  · simp [whittakerBesselGenerating,whittakerBesselBase,ht]
+  · simp [whittakerBesselGenerating,whittakerBesselBase,ht]
+
+/-- whittakerBesselGenerating differentiableOn; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_differentiableOn (μ z : ℂ) :
+    DifferentiableOn ℂ (whittakerBesselGenerating μ z) (Metric.ball 0 1) := by
+  have h := whittakerBessel_core_analytic
+  have hf : DifferentiableOn ℂ (fun t : ℂ =>
+      exp (-z/2*(cosh t/sinh t-t⁻¹))*whittakerBesselBase t^(1-2*μ)) (Metric.ball 0 1) := by
+    intro t ht
+    have hA := h.1.differentiableAt (Metric.isOpen_ball.mem_nhds ht)
+    have hB := h.2.1.differentiableAt (Metric.isOpen_ball.mem_nhds ht)
+    exact (((hA.const_mul _).cexp).mul (hB.cpow (differentiableAt_const _)
+      (h.2.2 t (by simpa using ht)))).differentiableWithinAt
+  exact hf.congr fun t _ => whittakerBesselGenerating_eq_core μ z t
+
+/-- whittakerBesselGenerating joint continuousAt; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_joint_continuousAt (μ : ℂ) {z t : ℂ} (ht : ‖t‖ < 1) :
+    ContinuousAt (fun p : ℂ × ℂ => whittakerBesselGenerating μ p.1 p.2) (z,t) := by
+  have ht' : t ∈ Metric.ball (0:ℂ) 1 := by simpa using ht
+  have h := whittakerBessel_core_analytic
+  have hA : ContinuousAt (fun p : ℂ × ℂ => cosh p.2/sinh p.2-p.2⁻¹) (z,t) :=
+    (h.1.differentiableAt (Metric.isOpen_ball.mem_nhds ht')).continuousAt.comp (x:=(z,t)) continuousAt_snd
+  have hBc : ContinuousAt whittakerBesselBase t :=
+    (h.2.1.differentiableAt (Metric.isOpen_ball.mem_nhds ht')).continuousAt
+  have hB : ContinuousAt (fun p : ℂ × ℂ => whittakerBesselBase p.2) (z,t) :=
+    hBc.comp (g:=whittakerBesselBase) (f:=fun p : ℂ × ℂ => p.2) (x:=(z,t)) continuousAt_snd
+  have hf : ContinuousAt (fun p : ℂ × ℂ =>
+      exp (-p.1/2*(cosh p.2/sinh p.2-p.2⁻¹))*whittakerBesselBase p.2^(1-2*μ)) (z,t) :=
+    (((continuousAt_fst.neg.div_const 2).mul hA).cexp).mul
+      (hB.cpow continuousAt_const (h.2.2 t ht))
+  exact hf.congr (Eventually.of_forall fun p => (whittakerBesselGenerating_eq_core μ p.1 p.2).symm)
+
+/-- whittakerBessel base mem slit; support for the Buchholz coefficient transformation. -/
+private lemma whittakerBessel_base_mem_slit {t : ℂ} (ht : t ≠ 0) (hsmall : ‖t‖ < 1) :
+    t/sinh t ∈ slitPlane := by
+  have hbd := (norm_dslope_sinh_sub_one_le hsmall.le).trans_lt
+    (show Real.sinh 1-1 < 1 by linarith [real_sinh_one_lt_two])
+  have h1 := Complex.abs_re_le_norm (dslope sinh 0 t-1)
+  rw [Complex.sub_re,Complex.one_re] at h1
+  have hS : 0 < (dslope sinh 0 t).re := by linarith [neg_abs_le ((dslope sinh 0 t).re-1)]
+  have hSn : dslope sinh 0 t ≠ 0 := fun h0 => by simpa [h0] using hS
+  have hEq : dslope sinh 0 t=sinh t/t := by
+    rw [dslope_of_ne _ ht,slope_def_field,sinh_zero,sub_zero,sub_zero]
+  have hBase : t/sinh t=(dslope sinh 0 t)⁻¹ := by rw [hEq,inv_div]
+  rw [hBase,mem_slitPlane_iff,inv_re]
+  exact Or.inl (div_pos hS (normSq_pos.mpr hSn))
+
+/-- whittakerBessel hasDerivAt z; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_hasDerivAt_z (μ z t : ℂ) :
+    HasDerivAt (fun w => whittakerBesselGenerating μ w t)
+      (-(cosh t/sinh t-t⁻¹)/2*whittakerBesselGenerating μ z t) z := by
+  by_cases ht : t=0
+  · subst t
+    simpa [whittakerBesselGenerating] using hasDerivAt_const z (1:ℂ)
+  · have h := (((hasDerivAt_id' z).const_mul (-(cosh t/sinh t-t⁻¹)/2)).cexp).mul_const
+      ((t/sinh t)^(1-2*μ))
+    convert h using 1
+    · funext w
+      simp only [whittakerBesselGenerating,ht,↓reduceIte]
+      congr 2 <;> ring
+    · simp only [whittakerBesselGenerating,ht,↓reduceIte]
+      have he : -(cosh t/sinh t-t⁻¹)/2*z = -z/2*(cosh t/sinh t-t⁻¹) := by ring
+      rw [he]
+      ring
+
+/-- whittakerBessel deriv z; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_deriv_z (μ z t : ℂ) :
+    deriv (fun w => whittakerBesselGenerating μ w t) z =
+      -(cosh t/sinh t-t⁻¹)/2*whittakerBesselGenerating μ z t :=
+  (whittakerBesselGenerating_hasDerivAt_z μ z t).deriv
+
+/-- whittakerBessel iteratedDeriv two z; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_iteratedDeriv_two_z (μ z t : ℂ) :
+    iteratedDeriv 2 (fun w => whittakerBesselGenerating μ w t) z =
+      (cosh t/sinh t-t⁻¹)^2/4*whittakerBesselGenerating μ z t := by
+  have he : deriv (fun w => whittakerBesselGenerating μ w t) =
+      fun w => -(cosh t/sinh t-t⁻¹)/2*whittakerBesselGenerating μ w t :=
+    funext fun w => whittakerBesselGenerating_deriv_z μ w t
+  rw [iteratedDeriv_succ,iteratedDeriv_one,he]
+  rw [((whittakerBesselGenerating_hasDerivAt_z μ z t).const_mul
+    (-(cosh t/sinh t-t⁻¹)/2)).deriv]
+  ring
+
+/-- whittakerBessel hasDerivAt t; support for the Buchholz coefficient transformation. -/
+lemma whittakerBesselGenerating_hasDerivAt_t {μ z t : ℂ} (ht : t ≠ 0) (hsmall : ‖t‖ < 1) :
+    HasDerivAt (whittakerBesselGenerating μ z)
+      (2*z*iteratedDeriv 2 (fun w => whittakerBesselGenerating μ w t) z -
+        2*z/t*deriv (fun w => whittakerBesselGenerating μ w t) z -
+        2*(2*μ-1)*deriv (fun w => whittakerBesselGenerating μ w t) z -
+        z/2*whittakerBesselGenerating μ z t) t := by
+  have hbase := whittakerBessel_base_mem_slit ht hsmall
+  have hbase0 := slitPlane_ne_zero hbase
+  have hsh : sinh t ≠ 0 := fun h0 => hbase0 (by rw [h0,div_zero])
+  have hquot := (Complex.hasDerivAt_cosh t).div (Complex.hasDerivAt_sinh t) hsh
+  have hexp := ((hquot.sub ((hasDerivAt_id' t).inv ht)).const_mul (-z/2)).cexp
+  have hpow := ((hasDerivAt_id' t).div (Complex.hasDerivAt_sinh t) hsh).cpow_const
+    (c:=1-2*μ) hbase
+  have h := hexp.mul hpow
+  have heq : whittakerBesselGenerating μ z =ᶠ[𝓝 t]
+      fun v => exp (-z/2*(cosh v/sinh v-v⁻¹))*(v/sinh v)^(1-2*μ) := by
+    filter_upwards [eventually_ne_nhds ht] with v hv
+    simp [whittakerBesselGenerating,hv]
+  apply (h.congr_of_eventuallyEq heq).congr_deriv
+  rw [whittakerBesselGenerating_deriv_z,whittakerBesselGenerating_iteratedDeriv_two_z]
+  simp only [whittakerBesselGenerating,ht,↓reduceIte,Pi.div_apply,Pi.sub_apply,Pi.inv_apply,id_eq]
+  rw [Complex.cpow_sub (1-2*μ) 1 hbase0,Complex.cpow_one]
+  generalize exp (-z/2*(cosh t/sinh t-t⁻¹)) = E
+  generalize (t/sinh t)^(1-2*μ) = P
+  field_simp [ht,hsh]
+  ring_nf
+
+
+/-- whittakerGenD; support for the Buchholz coefficient transformation. -/
+private noncomputable def whittakerGenD (μ : ℂ) (j : ℕ) (z t : ℂ) : ℂ :=
+  (-(cosh t/sinh t-t⁻¹)/2)^j*whittakerBesselGenerating μ z t
+
+/-- whittakerTaylorD; support for the Buchholz coefficient transformation. -/
+private noncomputable def whittakerTaylorD (μ : ℂ) (j : ℕ) (z : ℂ) (s : ℕ) : ℂ :=
+  iteratedDeriv s (whittakerGenD μ j z) 0/s.factorial
+
+/-- whittakerGenD t diff; support for the Buchholz coefficient transformation. -/
+private lemma whittakerGenD_t_diff (μ : ℂ) (j : ℕ) (z : ℂ) :
+    DifferentiableOn ℂ (whittakerGenD μ j z) (Metric.ball 0 1) := by
+  exact ((((whittakerBessel_core_analytic.1.neg).div_const 2).pow j).mul
+    (whittakerBesselGenerating_differentiableOn μ z))
+
+/-- whittakerGenD joint cont; support for the Buchholz coefficient transformation. -/
+private lemma whittakerGenD_joint_cont (μ : ℂ) (j : ℕ) {z t : ℂ} (ht : ‖t‖ < 1) :
+    ContinuousAt (fun p : ℂ × ℂ => whittakerGenD μ j p.1 p.2) (z,t) := by
+  have ht' : t ∈ Metric.ball (0:ℂ) 1 := by simpa using ht
+  have hA : ContinuousAt (fun p : ℂ × ℂ => cosh p.2/sinh p.2-p.2⁻¹) (z,t) :=
+    (whittakerBessel_core_analytic.1.differentiableAt
+      (Metric.isOpen_ball.mem_nhds ht')).continuousAt.comp (x:=(z,t)) continuousAt_snd
+  exact (((hA.neg.div_const 2).pow j).mul (whittakerBesselGenerating_joint_continuousAt μ ht))
+
+/-- whittakerGenD z deriv; support for the Buchholz coefficient transformation. -/
+private lemma whittakerGenD_z_deriv (μ : ℂ) (j : ℕ) (z t : ℂ) :
+    HasDerivAt (fun w => whittakerGenD μ j w t) (whittakerGenD μ (j+1) z t) z := by
+  convert (whittakerBesselGenerating_hasDerivAt_z μ z t).const_mul
+    ((-(cosh t/sinh t-t⁻¹)/2)^j) using 1
+  · rfl
+  · simp only [whittakerGenD,pow_succ]
+    ring
+
+/-- whittakerTaylorD hasDerivAt; support for the Buchholz coefficient transformation. -/
+private lemma whittakerTaylorD_hasDerivAt (μ : ℂ) (j s : ℕ) (z : ℂ) :
+    HasDerivAt (fun w => whittakerTaylorD μ j w s) (whittakerTaylorD μ (j+1) z s) z := by
+  have hdt (j : ℕ) (z : ℂ) : DifferentiableOn ℂ (whittakerGenD μ j z)
+      (Metric.closedBall 0 (1/2)) := by
+    apply (whittakerGenD_t_diff μ j z).mono
+    intro t ht
+    have ht' : ‖t‖ ≤ 1/2 := by simpa using ht
+    simpa using (show ‖t‖ < 1 by linarith)
+  have h := Complex.hasDerivAt_iteratedDeriv_param (G:=whittakerGenD μ j)
+    (Gz:=whittakerGenD μ (j+1)) (r:=1/2) (by norm_num)
+    (fun z t ht => whittakerGenD_joint_cont μ j (by rw [ht];norm_num))
+    (fun z t ht => whittakerGenD_joint_cont μ (j+1) (by rw [ht];norm_num))
+    (hdt j) (hdt (j+1)) (fun z t _ => whittakerGenD_z_deriv μ j z t) s z
+  exact h.div_const _
+
+/-- whittakerTaylorD uniform bound; support for the Buchholz coefficient transformation. -/
+private lemma whittakerTaylorD_uniform_bound (μ : ℂ) (j : ℕ) (R : ℝ) :
+    ∃ M : ℝ,0 ≤ M ∧ ∀ z ∈ Metric.closedBall (0:ℂ) R,∀ s : ℕ,
+      ‖whittakerTaylorD μ j z s‖ ≤ M*2^s := by
+  have hdt (z : ℂ) : DifferentiableOn ℂ (whittakerGenD μ j z)
+      (Metric.closedBall 0 (1/2)) := by
+    apply (whittakerGenD_t_diff μ j z).mono
+    intro t ht
+    have ht' : ‖t‖ ≤ 1/2 := by simpa using ht
+    simpa using (show ‖t‖ < 1 by linarith)
+  obtain ⟨M,hM,hbd⟩ := Complex.exists_uniform_norm_taylorCoeff_le (G:=whittakerGenD μ j)
+    (r:=1/2) (by norm_num)
+    (fun z t ht => whittakerGenD_joint_cont μ j (by rw [ht];norm_num)) hdt 0 R
+  refine ⟨M,hM,fun z hz s => ?_⟩
+  have h := hbd z hz s
+  simpa only [whittakerTaylorD,one_div,inv_pow,div_inv_eq_mul] using h
+
+
+/-- whittakerGenD analyticAt; support for the Buchholz coefficient transformation. -/
+private lemma whittakerGenD_analyticAt (μ : ℂ) (j : ℕ) (z : ℂ) {t : ℂ} (ht : ‖t‖ < 1) :
+    AnalyticAt ℂ (whittakerGenD μ j z) t :=
+  (whittakerGenD_t_diff μ j z).analyticOnNhd Metric.isOpen_ball t (by simpa using ht)
+
+/-- whittakerGenD zero; support for the Buchholz coefficient transformation. -/
+private lemma whittakerGenD_zero (μ z : ℂ) : whittakerGenD μ 0 z=whittakerBesselGenerating μ z := by
+  funext t
+  simp [whittakerGenD]
+
+/-- buchholz iteratedDeriv id mul zero; support for the Buchholz coefficient transformation. -/
+private lemma buchholz_iteratedDeriv_id_mul_zero {f : ℂ → ℂ} (hf : AnalyticAt ℂ f 0) (n : ℕ) :
+    iteratedDeriv (n+1) (fun t : ℂ => t*f t) 0 = (n+1)*iteratedDeriv n f 0 := by
+  rw [iteratedDeriv_fun_mul (f:=fun t:ℂ=>t) (g:=f) contDiffAt_id hf.contDiffAt]
+  simp only [iteratedDeriv_fun_id_zero,mul_ite,mul_one,mul_zero,ite_mul,zero_mul]
+  simp [show 1 < n+1+1 by omega]
+
+/-- whittakerBesselGenerating pde; support for the Buchholz coefficient transformation. -/
+private lemma whittakerBesselGenerating_pde {μ z t : ℂ} (ht : ‖t‖ < 1) :
+    t*deriv (whittakerBesselGenerating μ z) t+2*z*whittakerGenD μ 1 z t =
+      2*z*(t*whittakerGenD μ 2 z t)-2*(2*μ-1)*(t*whittakerGenD μ 1 z t)-
+        z/2*(t*whittakerGenD μ 0 z t) := by
+  by_cases ht0 : t=0
+  · subst t
+    simp [whittakerGenD]
+  · rw [(whittakerBesselGenerating_hasDerivAt_t ht0 ht).deriv,
+      whittakerBesselGenerating_deriv_z,whittakerBesselGenerating_iteratedDeriv_two_z]
+    simp only [whittakerGenD,pow_zero,pow_one,one_mul]
+    field_simp
+    ring
+
+/-- whittakerTaylorD recurrence; support for the Buchholz coefficient transformation. -/
+private lemma whittakerTaylorD_recurrence (μ z : ℂ) (s : ℕ) :
+    (s+1)*whittakerTaylorD μ 0 z (s+1)+2*z*whittakerTaylorD μ 1 z (s+1) =
+      2*z*whittakerTaylorD μ 2 z s-2*(2*μ-1)*whittakerTaylorD μ 1 z s-
+        z/2*whittakerTaylorD μ 0 z s := by
+  let G := whittakerBesselGenerating μ z
+  have hG : AnalyticAt ℂ G 0 := by
+    exact (whittakerBesselGenerating_differentiableOn μ z).analyticOnNhd Metric.isOpen_ball 0 (by simp)
+  have hF (j : ℕ) : AnalyticAt ℂ (whittakerGenD μ j z) 0 :=
+    whittakerGenD_analyticAt μ j z (by simp)
+  have hX (j : ℕ) : AnalyticAt ℂ (fun t : ℂ => t*whittakerGenD μ j z t) 0 :=
+    analyticAt_id.mul (hF j)
+  have he : (fun t : ℂ => t*deriv G t+2*z*whittakerGenD μ 1 z t) =ᶠ[𝓝 0]
+      (fun t : ℂ => 2*z*(t*whittakerGenD μ 2 z t)-2*(2*μ-1)*(t*whittakerGenD μ 1 z t)-
+        z/2*(t*whittakerGenD μ 0 z t)) := by
+    filter_upwards [Metric.ball_mem_nhds (0:ℂ) (by norm_num : (0:ℝ) < 1)] with t ht
+    exact whittakerBesselGenerating_pde (by simpa using ht)
+  have h := he.iteratedDeriv_eq (s+1)
+  have hL1 : AnalyticAt ℂ (fun t : ℂ => t*deriv G t) 0 := analyticAt_id.mul hG.deriv
+  have hL2 : AnalyticAt ℂ (fun t : ℂ => 2*z*whittakerGenD μ 1 z t) 0 :=
+    analyticAt_const.mul (hF 1)
+  have hR1 : AnalyticAt ℂ (fun t : ℂ => 2*z*(t*whittakerGenD μ 2 z t)) 0 :=
+    analyticAt_const.mul (hX 2)
+  have hR2 : AnalyticAt ℂ (fun t : ℂ => 2*(2*μ-1)*(t*whittakerGenD μ 1 z t)) 0 :=
+    analyticAt_const.mul (hX 1)
+  have hR3 : AnalyticAt ℂ (fun t : ℂ => z/2*(t*whittakerGenD μ 0 z t)) 0 :=
+    analyticAt_const.mul (hX 0)
+  rw [iteratedDeriv_fun_add hL1.contDiffAt hL2.contDiffAt] at h
+  change _ = iteratedDeriv (s+1)
+    (((fun t : ℂ => 2*z*(t*whittakerGenD μ 2 z t)) -
+      (fun t : ℂ => 2*(2*μ-1)*(t*whittakerGenD μ 1 z t))) -
+      (fun t : ℂ => z/2*(t*whittakerGenD μ 0 z t))) 0 at h
+  rw [iteratedDeriv_sub (hR1.sub hR2).contDiffAt hR3.contDiffAt,
+    iteratedDeriv_sub hR1.contDiffAt hR2.contDiffAt] at h
+  simp only [iteratedDeriv_const_mul_field] at h
+  rw [buchholz_iteratedDeriv_id_mul_zero hG.deriv,
+    buchholz_iteratedDeriv_id_mul_zero (hF 2),buchholz_iteratedDeriv_id_mul_zero (hF 1),
+    buchholz_iteratedDeriv_id_mul_zero (hF 0)] at h
+  simp only [←iteratedDeriv_succ'] at h
+  dsimp only [G] at h
+  rw [←whittakerGenD_zero μ z] at h
+  dsimp only [whittakerTaylorD]
+  have hfac : (s.factorial:ℂ) ≠ 0 := Nat.cast_ne_zero.mpr s.factorial_ne_zero
+  have hs : (s+1:ℂ) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero s
+  rw [Nat.factorial_succ]
+  push_cast
+  field_simp
+  linear_combination 2*h
+
+
+/-- buchholzC; support for the Buchholz coefficient transformation. -/
+private noncomputable def buchholzC (μ : ℂ) (s : ℕ) (z : ℂ) : ℂ :=
+  (-1/2:ℂ)^s*z^s*whittakerTaylorD μ 0 z s
+
+/-- buchholzC1; support for the Buchholz coefficient transformation. -/
+private noncomputable def buchholzC1 (μ : ℂ) (s : ℕ) (z : ℂ) : ℂ :=
+  (-1/2:ℂ)^s*((s:ℂ)*z^(s-1)*whittakerTaylorD μ 0 z s+z^s*whittakerTaylorD μ 1 z s)
+
+/-- buchholzC2; support for the Buchholz coefficient transformation. -/
+private noncomputable def buchholzC2 (μ : ℂ) (s : ℕ) (z : ℂ) : ℂ :=
+  (-1/2:ℂ)^s*((s:ℂ)*(s-1:ℕ)*z^(s-2)*whittakerTaylorD μ 0 z s+
+    2*s*z^(s-1)*whittakerTaylorD μ 1 z s+z^s*whittakerTaylorD μ 2 z s)
+
+/-- buchholzC hasDerivAt; support for the Buchholz coefficient transformation. -/
+private lemma buchholzC_hasDerivAt (μ : ℂ) (s : ℕ) (z : ℂ) :
+    HasDerivAt (buchholzC μ s) (buchholzC1 μ s z) z := by
+  convert (((hasDerivAt_id' z).pow s).mul (whittakerTaylorD_hasDerivAt μ 0 s z)).const_mul
+    ((-1/2:ℂ)^s) using 1
+  · funext w
+    simp only [buchholzC,Pi.mul_apply,Pi.pow_apply]
+    ring
+  · simp only [buchholzC1,Pi.pow_apply,Nat.zero_add,mul_one]
+
+/-- buchholzC1 hasDerivAt; support for the Buchholz coefficient transformation. -/
+private lemma buchholzC1_hasDerivAt (μ : ℂ) (s : ℕ) (z : ℂ) :
+    HasDerivAt (buchholzC1 μ s) (buchholzC2 μ s z) z := by
+  have h := (((((hasDerivAt_id' z).pow (s-1)).const_mul (s:ℂ)).mul
+    (whittakerTaylorD_hasDerivAt μ 0 s z)).add
+    (((hasDerivAt_id' z).pow s).mul (whittakerTaylorD_hasDerivAt μ 1 s z))).const_mul
+      ((-1/2:ℂ)^s)
+  convert h using 1
+  · rfl
+  · simp only [buchholzC2,Nat.sub_sub,Pi.pow_apply,Nat.zero_add,Nat.reduceAdd,mul_one]
+    ring
+
+/-- buchholzC weighted deriv; support for the Buchholz coefficient transformation. -/
+private lemma buchholzC_weighted_deriv (μ : ℂ) (s : ℕ) (z : ℂ) :
+    z*buchholzC1 μ s z=(-1/2:ℂ)^s*z^s*((s:ℂ)*whittakerTaylorD μ 0 z s+
+      z*whittakerTaylorD μ 1 z s) := by
+  cases s with
+  | zero => simp [buchholzC1]
+  | succ s => simp only [buchholzC1,Nat.add_sub_cancel,pow_succ];ring
+
+/-- buchholzC weighted second; support for the Buchholz coefficient transformation. -/
+private lemma buchholzC_weighted_second (μ : ℂ) (s : ℕ) (z : ℂ) :
+    z^2*buchholzC2 μ s z=(-1/2:ℂ)^s*z^s*((s:ℂ)*(s-1)*whittakerTaylorD μ 0 z s+
+      2*s*z*whittakerTaylorD μ 1 z s+z^2*whittakerTaylorD μ 2 z s) := by
+  cases s with
+  | zero => simp [buchholzC2]
+  | succ s => cases s with
+    | zero => simp [buchholzC2];ring
+    | succ s =>
+      simp only [buchholzC2,show s+1+1-2=s by omega,show s+1+1-1=s+1 by omega,
+        Nat.cast_add,Nat.cast_one,pow_succ]
+      ring
+
+/-- buchholzA; support for the Buchholz coefficient transformation. -/
+private noncomputable def buchholzA (μ : ℂ) (s : ℕ) (z : ℂ) : ℂ :=
+  (-1/2:ℂ)^s*z^s*((s:ℂ)*whittakerTaylorD μ 0 z s+2*z*whittakerTaylorD μ 1 z s)
+
+/-- buchholzA eq; support for the Buchholz coefficient transformation. -/
+private lemma buchholzA_eq (μ : ℂ) (s : ℕ) (z : ℂ) :
+    buchholzA μ s z=2*z*buchholzC1 μ s z-(s:ℂ)*buchholzC μ s z := by
+  rw [show 2*z*buchholzC1 μ s z=2*(z*buchholzC1 μ s z) by ring,buchholzC_weighted_deriv]
+  simp only [buchholzA,buchholzC]
+  ring
+
+/-- buchholzC recurrence; support for the Buchholz coefficient transformation. -/
+private lemma buchholzC_recurrence (μ : ℂ) (s : ℕ) (z : ℂ) :
+    buchholzA μ (s+1) z = -z^2*buchholzC2 μ s z+(2*s+2*μ-1)*z*buchholzC1 μ s z-
+      (s:ℂ)*(s+2*μ)*buchholzC μ s z+z^2/4*buchholzC μ s z := by
+  rw [show -z^2*buchholzC2 μ s z= -(z^2*buchholzC2 μ s z) by ring,
+    show (2*s+2*μ-1)*z*buchholzC1 μ s z=(2*s+2*μ-1)*(z*buchholzC1 μ s z) by ring,
+    buchholzC_weighted_second,buchholzC_weighted_deriv]
+  simp only [buchholzA,buchholzC,pow_succ,Nat.cast_add,Nat.cast_one]
+  have h := whittakerTaylorD_recurrence μ z s
+  push_cast at h
+  linear_combination ((-1/2:ℂ)^s*z^(s+1)*(-1/2))*h
+
+
+
+@[dlmf 13.24.E3]
+theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
+    (hsmall : ‖t‖ < 1) :
+    HasSum (fun s : ℕ => whittakerBesselCoeff μ z s * (-t / z) ^ s)
+      (exp (-z / 2 * (cosh t / sinh t - 1 / t)) * (t / sinh t) ^ (1 - 2 * μ)) := by
+  have hGd := whittakerBesselGenerating_differentiableOn μ z
   have hT := Complex.hasSum_taylorSeries_on_ball hGd (z := t) (by simpa using hsmall)
   convert hT using 1
   · funext s
@@ -922,6 +1288,92 @@ theorem whittakerBesselCoeff_hasSum {μ z t : ℂ} (ht : t ≠ 0) (hz : z ≠ 0)
     field_simp
   · simp only [whittakerBesselGenerating, ht, ↓reduceIte, one_div]
 
+/-- Exponential coefficient bound from the generating function inside its disk. -/
+theorem exists_norm_whittakerBesselCoeff_le (μ : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ s : ℕ, ‖whittakerBesselCoeff μ z s‖ ≤ C*(2*‖z‖)^s := by
+  have hs := (whittakerBesselCoeff_hasSum (μ := μ) (z := z) (t := 1/2)
+    (by norm_num) hz (by norm_num)).summable.norm
+  let C := ∑' s : ℕ, ‖whittakerBesselCoeff μ z s * (-(1/2:ℂ)/z)^s‖
+  refine ⟨C, tsum_nonneg fun _ => norm_nonneg _, fun s => ?_⟩
+  have h := hs.le_tsum s (fun _ _ => norm_nonneg _)
+  have hz' : 0 < ‖z‖ := norm_pos_iff.mpr hz
+  have hpow : 0 < (2*‖z‖)^s := pow_pos (by positivity) s
+  have he : ‖whittakerBesselCoeff μ z s * (-(1/2:ℂ)/z)^s‖ =
+      ‖whittakerBesselCoeff μ z s‖ / (2*‖z‖)^s := by
+    simp only [norm_mul, norm_pow, norm_div, norm_neg]
+    norm_num
+    rw [div_div, div_pow, one_pow, ← mul_div_assoc, mul_one]
+  rw [he] at h
+  exact (div_le_iff₀ hpow).mp h
+
+/-- Absolute convergence of the regularized form of the Buchholz series. -/
+theorem summable_whittakerBessel_regularized (κ μ : ℂ) {z : ℂ} (hz : z ≠ 0) :
+    Summable fun s : ℕ => whittakerBesselCoeff μ z s / (2:ℂ)^s *
+      regularizedHGFun (∅ : Multiset ℂ) {2*μ+s+1} (-(κ*z)) := by
+  obtain ⟨C, hC, hcoef⟩ := exists_norm_whittakerBesselCoeff_le μ hz
+  have hs : Summable fun s : ℕ => ‖whittakerBesselCoeff μ z s‖ / s ! := by
+    refine Summable.of_nonneg_of_le (fun _ => by positivity) (fun s => ?_)
+      ((Real.summable_pow_div_factorial (2*‖z‖)).mul_left C)
+    exact (div_le_div_of_nonneg_right (hcoef s) (by positivity)).trans_eq (by ring)
+  have ha : Summable fun s : ℕ => ‖whittakerBesselCoeff μ z s / (2:ℂ)^s‖ *
+      ‖(1:ℂ)‖ ^ (0:ℕ) * ((2:ℝ)^s/s !) := by
+    convert hs using 1
+    funext s
+    simp only [norm_div, norm_pow, norm_ofNat, pow_zero, mul_one]
+    field_simp
+  simpa using (hasSum_neumann (2*μ) (-(κ*z)) 1
+    (fun s => whittakerBesselCoeff μ z s / (2:ℂ)^s) id (fun _ => 0) ha).summable
+
+/-- Cancellation of principal powers in each Buchholz Bessel term. -/
+theorem whittakerBessel_term_eq_regularized {κ z : ℂ} (hκ : κ ≠ 0) (hz : z ≠ 0)
+    (μ : ℂ) (s : ℕ) :
+    (2:ℂ)^(2*μ) * (2*(κ*z)^(1/2:ℂ))^(-(2*μ+s)) *
+      besselJ (2*μ+s) (2*(κ*z)^(1/2:ℂ)) =
+    1/(2:ℂ)^s * regularizedHGFun (∅ : Multiset ℂ) {2*μ+s+1} (-(κ*z)) := by
+  set x := 2*(κ*z)^(1/2:ℂ)
+  have hx0 : x ≠ 0 := mul_ne_zero two_ne_zero (Complex.cpow_ne_zero_iff.mpr (Or.inl (mul_ne_zero hκ hz)))
+  have hx2 : x^2/4 = κ*z := by
+    dsimp only [x]
+    rw [mul_pow, one_div, cpow_ofNat_inv_pow]
+    ring
+  rw [besselJ_eq_regularized, hx2]
+  have hp : (x/2)^(2*μ+s) = x^(2*μ+s)/(2:ℂ)^(2*μ+s) := by
+    simpa using div_ofReal_cpow (r := 2) (by norm_num) hx0 (2*μ+s)
+  rw [hp, cpow_add _ _ two_ne_zero, cpow_natCast, cpow_neg]
+  have hxpow : x^(2*μ+s) ≠ 0 := Complex.cpow_ne_zero_iff.mpr (Or.inl hx0)
+  have h2pow : (2:ℂ)^(2*μ) ≠ 0 := Complex.cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have h2s : (2:ℂ)^s ≠ 0 := pow_ne_zero _ two_ne_zero
+  field_simp
+
+/-- The Buchholz sum has no residual principal-branch factors after normalization. -/
+theorem whittakerBessel_series_eq_regularized {κ z : ℂ} (hκ : κ ≠ 0) (hz : z ≠ 0)
+    (μ : ℂ) :
+    (2:ℂ)^(2*μ) * (∑' s : ℕ, whittakerBesselCoeff μ z s *
+      (2*(κ*z)^(1/2:ℂ))^(-(2*μ+s)) *
+      besselJ (2*μ+s) (2*(κ*z)^(1/2:ℂ))) =
+    ∑' s : ℕ, whittakerBesselCoeff μ z s / (2:ℂ)^s *
+      regularizedHGFun (∅ : Multiset ℂ) {2*μ+s+1} (-(κ*z)) := by
+  rw [← tsum_mul_left]
+  refine tsum_congr fun s => ?_
+  have h := whittakerBessel_term_eq_regularized hκ hz μ s
+  linear_combination whittakerBesselCoeff μ z s * h
+
+/-- The Bessel series in DLMF 13.24.2 is absolutely convergent. -/
+theorem summable_whittakerM_besselJ_series {κ z : ℂ} (hκ : κ ≠ 0) (hz : z ≠ 0)
+    (μ : ℂ) :
+    Summable fun s : ℕ => ‖whittakerBesselCoeff μ z s *
+      (2*(κ*z)^(1/2:ℂ))^(-(2*μ+s)) *
+      besselJ (2*μ+s) (2*(κ*z)^(1/2:ℂ))‖ := by
+  have h2pow : (2:ℂ)^(2*μ) ≠ 0 := Complex.cpow_ne_zero_iff.mpr (Or.inl two_ne_zero)
+  have hs := (summable_whittakerBessel_regularized κ μ hz).mul_left ((2:ℂ)^(2*μ))⁻¹
+  apply Summable.norm
+  refine hs.congr fun s => ?_
+  have h := whittakerBessel_term_eq_regularized hκ hz μ s
+  field_simp at h ⊢
+  linear_combination -(whittakerBesselCoeff μ z s)*h
+/- The Buchholz transform identifying this convergent series with Whittaker M
+remains to be proved. Convergence and cancellation of the principal powers are
+established above using the existing Neumann-series estimates. -/
 @[dlmf 13.24.E2]
 theorem whittakerM_besselJ_series {κ μ z : ℂ} (hz : z ∈ slitPlane)
     (hκ : 0 < κ.re) (hμ : ∀ k : ℕ, 1 + 2 * μ ≠ -k) :

@@ -9,6 +9,7 @@ public import Mathlib.Tactic.CrossRefAttribute
 public import DLMF.Hypergeometric.EulerIntegral
 public import DLMF.Hypergeometric.Transformations
 public import DLMF.Hypergeometric.FurtherTransformations
+public import DLMF.Bailey
 public import DLMF.Gamma.VerticalBounds
 public import DLMF.Gamma.Inequalities
 public import DLMF.Gamma.Asymptotics
@@ -21,6 +22,8 @@ public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 
 Kummer's theorem, Dixon's theorem, Whipple's `₇F₆` transformation, and Dougall's bilateral
 sum are the main closed-form identities of AAR Chapter 3 that are absent from Mathlib.
+The terminating Whipple transformation is proved from the rational Watson transformation
+in `DLMF.Bailey`, taking finite q-Pochhammer limits with complex exponential parameters.
 -/
 
 @[expose] public section
@@ -260,7 +263,7 @@ theorem eq_zero_of_periodic_of_bound {f : ℂ → ℂ} {δ : ℝ} (hδ : 0 < δ)
 
 
 /-- `z / Γ(z+1) = 1 / Γ(z)` for every `z`, including the poles. -/
-lemma mul_inv_Gamma_add_one (z : ℂ) : z * (Gamma (z + 1))⁻¹ = (Gamma z)⁻¹ := by
+lemma mul_recip_Gamma_add_one (z : ℂ) : z * (Gamma (z + 1))⁻¹ = (Gamma z)⁻¹ := by
   rcases eq_or_ne z 0 with rfl | hz
   · simp [Complex.Gamma_zero]
   rw [Complex.Gamma_add_one z hz, mul_inv, ← mul_assoc, mul_inv_cancel₀ hz, one_mul]
@@ -279,9 +282,9 @@ lemma norm_sin_le_exp_abs_im (z : ℂ) : ‖Complex.sin z‖ ≤ Real.exp |z.im|
   exact (pow_le_pow_iff_left₀ (norm_nonneg _) (Real.exp_pos _).le two_ne_zero).mp (h ▸ hc)
 
 /-- Growth of `1/Γ` to the right of `1/2`: `‖1/Γ(z)‖ ≤ e^{π|Im z|/2}/Γ(Re z)`. -/
-lemma norm_inv_Gamma_le_of_half_le {z : ℂ} (hz : 1 / 2 ≤ z.re) :
+lemma norm_recip_Gamma_le_of_half_le {z : ℂ} (hz : 1 / 2 ≤ z.re) :
     ‖(Gamma z)⁻¹‖ ≤ Real.exp (π * |z.im| / 2) / Real.Gamma z.re := by
-  have h := DLMF.Gamma.norm_inv_Gamma_sq_le hz z.im
+  have h := DLMF.Gamma.norm_recip_Gamma_sq_le hz z.im
   have hz' : (z.re : ℂ) + I * z.im = z := by rw [mul_comm]; exact Complex.re_add_im z
   rw [hz'] at h
   have hG := Real.Gamma_pos_of_pos (show 0 < z.re by linarith)
@@ -293,7 +296,7 @@ lemma norm_inv_Gamma_le_of_half_le {z : ℂ} (hz : 1 / 2 ≤ z.re) :
 
 /-- Growth of `1/Γ` to the left of `1/2`, by reflection:
 `‖1/Γ(z)‖ ≤ e^{π|Im z|} Γ(1 - Re z)/π`. -/
-lemma norm_inv_Gamma_le_of_lt_half {z : ℂ} (hz : z.re < 1 / 2) :
+lemma norm_recip_Gamma_le_of_lt_half {z : ℂ} (hz : z.re < 1 / 2) :
     ‖(Gamma z)⁻¹‖ ≤ Real.exp (π * |z.im|) * Real.Gamma (1 - z.re) / π := by
   have hG := Real.Gamma_pos_of_pos (show 0 < 1 - z.re by linarith)
   by_cases hpole : ∃ m : ℕ, z = -m
@@ -394,10 +397,10 @@ lemma exists_norm_Gamma_le_strip {X₁ X₂ : ℝ} (hX₁ : 0 < X₁) :
       simp only [B]; ring
 
 /-- **Uniform vertical growth of `1/Γ`** on a strip `|Re z| ≤ X`. -/
-lemma exists_norm_inv_Gamma_le_strip (X : ℝ) :
+lemma exists_norm_recip_Gamma_le_strip (X : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, ∀ z : ℂ, |z.re| ≤ X →
       ‖(Gamma z)⁻¹‖ ≤ C * (1 + |z.im|) ^ K * Real.exp (π * |z.im| / 2) := by
-  obtain ⟨C, K, hC⟩ := DLMF.Gamma.exists_norm_inv_Gamma_le X
+  obtain ⟨C, K, hC⟩ := DLMF.Gamma.exists_norm_recip_Gamma_le X
   refine ⟨C, K, fun z hz => ?_⟩
   have hz' : (z.re : ℂ) + I * z.im = z := by rw [mul_comm]; exact Complex.re_add_im z
   have h := hC z.re ⟨by linarith [neg_abs_le z.re], le_trans (le_abs_self _) hz⟩ z.im
@@ -484,7 +487,7 @@ lemma isBigO_gaussHGCoeff (a b c : ℂ) (hc : ∀ k : ℕ, c ≠ -k) :
   exact hn
 
 /-- Reflection for `1/Γ` away from the positive integers: `1/Γ(z) = Γ(1-z) sin(πz)/π`. -/
-lemma inv_Gamma_eq_reflect {z : ℂ} (hz : ∀ m : ℕ, z ≠ m + 1) :
+lemma recip_Gamma_eq_reflect {z : ℂ} (hz : ∀ m : ℕ, z ≠ m + 1) :
     (Gamma z)⁻¹ = Gamma (1 - z) * Complex.sin (π * z) / π := by
   by_cases hpole : ∃ m : ℕ, z = -m
   · obtain ⟨m, rfl⟩ := hpole
@@ -533,7 +536,7 @@ lemma norm_Gamma_eq_reflect {z : ℂ} (hz : ∀ n : ℤ, z ≠ n) :
   linarith [h2]
 
 /-- A uniform bound for `1/Γ` on the strip `-2 ≤ Re z ≤ 3`. -/
-lemma exists_norm_inv_Gamma_mid :
+lemma exists_norm_recip_Gamma_mid :
     ∃ M : ℝ, 0 ≤ M ∧ ∀ z : ℂ, -2 ≤ z.re → z.re ≤ 3 →
       ‖(Gamma z)⁻¹‖ ≤ M * Real.exp (π * |z.im|) := by
   have hcont : ContinuousOn Real.Gamma (Icc (1 / 2 : ℝ) 3) := fun x hx =>
@@ -549,13 +552,13 @@ lemma exists_norm_inv_Gamma_mid :
   have hE : Real.exp (π * |z.im| / 2) ≤ Real.exp (π * |z.im|) :=
     Real.exp_le_exp.mpr (by nlinarith [abs_nonneg z.im, Real.pi_pos])
   rcases le_or_gt (1 / 2) z.re with h | h
-  · refine (norm_inv_Gamma_le_of_half_le h).trans ?_
+  · refine (norm_recip_Gamma_le_of_half_le h).trans ?_
     have hGz : m ≤ Real.Gamma z.re := hmin ⟨h, hz2⟩
     calc Real.exp (π * |z.im| / 2) / Real.Gamma z.re ≤ Real.exp (π * |z.im|) / m := by
           gcongr
       _ = m⁻¹ * Real.exp (π * |z.im|) := by ring
       _ ≤ max m⁻¹ (G₀ / π) * Real.exp (π * |z.im|) := by gcongr; exact le_max_left _ _
-  · refine (norm_inv_Gamma_le_of_lt_half h).trans ?_
+  · refine (norm_recip_Gamma_le_of_lt_half h).trans ?_
     have hG : Real.Gamma (1 - z.re) ≤ G₀ := Real.convexOn_Gamma.le_max_of_mem_Icc
       (show (1 / 2 : ℝ) ∈ Ioi 0 by norm_num) (show (3 : ℝ) ∈ Ioi 0 by norm_num)
       ⟨by linarith, by linarith⟩
@@ -592,10 +595,10 @@ lemma exists_norm_Gamma_add_le_strip (p : ℂ) {X₁ X₂ : ℝ} (hX₁ : 0 < X�
           Real.exp (-(π * |d.im|) / 2) := by rw [mul_pow]; ring
 
 /-- Uniform vertical growth of `1/Γ(d + p)` in terms of `Im d`, on a strip `|Re (d + p)| ≤ X`. -/
-lemma exists_norm_inv_Gamma_add_le_strip (p : ℂ) (X : ℝ) :
+lemma exists_norm_recip_Gamma_add_le_strip (p : ℂ) (X : ℝ) :
     ∃ C : ℝ, ∃ K : ℕ, 0 ≤ C ∧ ∀ d : ℂ, |(d + p).re| ≤ X →
       ‖(Gamma (d + p))⁻¹‖ ≤ C * (1 + |d.im|) ^ K * Real.exp (π * |d.im| / 2) := by
-  obtain ⟨C, K, hC⟩ := exists_norm_inv_Gamma_le_strip X
+  obtain ⟨C, K, hC⟩ := exists_norm_recip_Gamma_le_strip X
   refine ⟨max C 0 * (1 + |p.im|) ^ K * Real.exp (π * |p.im| / 2), K, by positivity,
     fun d h1 => ?_⟩
   refine (hC (d + p) h1).trans ?_
@@ -618,13 +621,13 @@ lemma exists_norm_inv_Gamma_add_le_strip (p : ℂ) (X : ℝ) :
           Real.exp (π * |d.im| / 2) := by rw [mul_pow]; ring
 
 /-- A majorant for `1/Γ(d + n)`, `n ∈ ℤ`, uniform for `x₁ ≤ Re d ≤ x₁ + 1`. -/
-lemma exists_inv_Gamma_shift_bound (x₁ : ℝ) :
+lemma exists_recip_Gamma_shift_bound (x₁ : ℝ) :
     ∃ B : ℤ → ℝ, (∀ n, 0 ≤ B n) ∧
       (∀ n : ℤ, (2 : ℝ) ≤ x₁ + n → B n = (Real.Gamma (x₁ + n))⁻¹) ∧
       (∀ n : ℤ, ¬ (2 : ℝ) ≤ x₁ + n → x₁ + 1 + n ≤ -1 → B n = Real.Gamma (1 - x₁ - n) / π) ∧
       ∀ (n : ℤ) (d : ℂ), x₁ ≤ d.re → d.re ≤ x₁ + 1 →
         ‖(Gamma (d + n))⁻¹‖ ≤ Real.exp (π * |d.im|) * B n := by
-  obtain ⟨M, hM0, hM⟩ := exists_norm_inv_Gamma_mid
+  obtain ⟨M, hM0, hM⟩ := exists_norm_recip_Gamma_mid
   set B : ℤ → ℝ := fun n => if (2 : ℝ) ≤ x₁ + n then (Real.Gamma (x₁ + n))⁻¹
     else if x₁ + 1 + n ≤ -1 then Real.Gamma (1 - x₁ - n) / π else M with hBdef
   have hB0 : ∀ n, 0 ≤ B n := by
@@ -642,7 +645,7 @@ lemma exists_inv_Gamma_shift_bound (x₁ : ℝ) :
     simp only [hBdef]
     split_ifs with h1 h2
     · have hz : 1 / 2 ≤ (d + n).re := by rw [hre]; linarith
-      refine (norm_inv_Gamma_le_of_half_le hz).trans ?_
+      refine (norm_recip_Gamma_le_of_half_le hz).trans ?_
       rw [hre, him]
       have hmono : Real.Gamma (x₁ + n) ≤ Real.Gamma (d.re + n) :=
         Real.Gamma_strictMonoOn_Ici.monotoneOn (show (2 : ℝ) ≤ x₁ + n from h1)
@@ -654,7 +657,7 @@ lemma exists_inv_Gamma_shift_bound (x₁ : ℝ) :
           ≤ Real.exp (π * |d.im|) / Real.Gamma (x₁ + n) := by gcongr
         _ = Real.exp (π * |d.im|) * (Real.Gamma (x₁ + n))⁻¹ := div_eq_mul_inv _ _
     · have hz : (d + n).re < 1 / 2 := by rw [hre]; linarith
-      refine (norm_inv_Gamma_le_of_lt_half hz).trans ?_
+      refine (norm_recip_Gamma_le_of_lt_half hz).trans ?_
       rw [hre, him]
       have hmono : Real.Gamma (1 - (d.re + n)) ≤ Real.Gamma (1 - x₁ - n) :=
         Real.Gamma_strictMonoOn_Ici.monotoneOn (show (2 : ℝ) ≤ 1 - (d.re + n) by linarith)
@@ -694,7 +697,7 @@ lemma exists_bound (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ k) {x₁
       ‖term a b c d n‖ ≤ Real.exp (π * |d.im|) * u n := by
   simp only [Complex.sub_re, Complex.add_re] at hx₁
   set h : ℤ → ℝ := fun n => ‖Gamma (a + n)‖ * ‖Gamma (b + n)‖ * ‖(Gamma (c + n))⁻¹‖ with hh
-  obtain ⟨B, hB0, hBpos, hBneg, hbound⟩ := exists_inv_Gamma_shift_bound x₁
+  obtain ⟨B, hB0, hBpos, hBneg, hbound⟩ := exists_recip_Gamma_shift_bound x₁
   refine ⟨fun n => h n * B n, ?_, fun n => mul_nonneg (by positivity) (hB0 n),
     fun n d hd1 hd2 => ?_⟩
   swap
@@ -749,7 +752,7 @@ lemma exists_bound (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ k) {x₁
       linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m), abs_nonneg x₁]
     have hA := norm_Gamma_eq_reflect hsa
     have hB := norm_Gamma_eq_reflect hsb
-    have hC := inv_Gamma_eq_reflect hsc
+    have hC := recip_Gamma_eq_reflect hsc
     have hsin (z : ℂ) : ‖Complex.sin (π * (z - k))‖ = ‖Complex.sin (π * z)‖ := by
       have := norm_sin_pi_mul_add_int z (-(k : ℤ)); push_cast at this
       rwa [← sub_eq_add_neg] at this
@@ -846,9 +849,9 @@ lemma term_recurrence (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ k) (d
   have e2 : Gamma (b + ((n + 1 : ℤ) : ℂ)) = (b + n) * Gamma (b + n) := by
     rw [show b + ((n + 1 : ℤ) : ℂ) = (b + n) + 1 by push_cast; ring, Complex.Gamma_add_one _ hB]
   have e3 : (Gamma (c - 1 + n))⁻¹ = (c - 1 + n) * (Gamma (c + n))⁻¹ := by
-    rw [← mul_inv_Gamma_add_one (c - 1 + n)]; ring_nf
+    rw [← mul_recip_Gamma_add_one (c - 1 + n)]; ring_nf
   have e4 : (Gamma (d + n))⁻¹ = (d + n) * (Gamma (d + n + 1))⁻¹ := by
-    rw [← mul_inv_Gamma_add_one (d + n)]
+    rw [← mul_recip_Gamma_add_one (d + n)]
   have e5 : c - 1 + ((n + 1 : ℤ) : ℂ) = c + n := by push_cast; ring
   have e6 : d + 1 + (n : ℂ) = d + n + 1 := by ring
   have e7 : d + ((n + 1 : ℤ) : ℂ) = d + n + 1 := by push_cast; ring
@@ -1104,7 +1107,7 @@ theorem tsum_eq_of_not_int (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ 
     (X₁ := m₀ - a.re) (X₂ := m₀ + 1 - a.re) (by linarith [abs_nonneg s, abs_nonneg b.re])
   obtain ⟨C₂, K₂, hC₂, hb₂⟩ := exists_norm_Gamma_add_le_strip (-b)
     (X₁ := m₀ - b.re) (X₂ := m₀ + 1 - b.re) (by linarith [abs_nonneg s, abs_nonneg a.re])
-  obtain ⟨C₃, K₃, hC₃, hb₃⟩ := exists_norm_inv_Gamma_add_le_strip (c - a - b - 1)
+  obtain ⟨C₃, K₃, hC₃, hb₃⟩ := exists_norm_recip_Gamma_add_le_strip (c - a - b - 1)
     (m₀ + 1 + |(c - a - b - 1).re|)
   obtain ⟨u, hu, hu0, hbd⟩ := exists_bound (c := c) ha hb (x₁ := m₀)
     (by linarith [abs_nonneg a.re, abs_nonneg b.re])
@@ -1257,7 +1260,7 @@ lemma wz_zero (a b c : ℂ) :
     (1 + a / 2 - b - c) * s a b c 0 - (1 + a / 2 - c) * (1 + a - b - c) * s a b (c - 1) 0 =
       -(1 / 2) * H a b c 0 := by
   have e : (Gamma (1 + a - c))⁻¹ = (1 + a - c) * (Gamma (2 + a - c))⁻¹ := by
-    rw [← mul_inv_Gamma_add_one]; ring_nf
+    rw [← mul_recip_Gamma_add_one]; ring_nf
   simp only [s, H, gaussHGCoeff, poch_zero, Nat.factorial_zero, Nat.cast_one, Nat.cast_zero,
     add_zero, mul_one, div_one]
   rw [show 1 + a - (c - 1) = 2 + a - c by ring, e]
@@ -1272,7 +1275,7 @@ lemma wz_succ (hb : ∀ k : ℕ, 1 + a - b ≠ -k) (c : ℂ) (n : ℕ) :
   have hf : (n.factorial : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hn1 : (n : ℂ) + 1 ≠ 0 := by exact_mod_cast n.succ_ne_zero
   have e2 : (Gamma (2 + a - c + n))⁻¹ = (2 + a - c + n) * (Gamma (3 + a - c + n))⁻¹ := by
-    rw [← mul_inv_Gamma_add_one]; ring_nf
+    rw [← mul_recip_Gamma_add_one]; ring_nf
   have c1 : poch (c - 1) (n + 1) = (c - 1) * poch c n := by
     rw [poch_succ_left]; ring_nf
   simp only [s, H]
@@ -1329,7 +1332,7 @@ lemma P_sub_one (hb : ∀ k : ℕ, 1 + a - b ≠ -k) {c : ℂ} (h1 : Summable (s
     rw [show 1 + a - b - (c - 1) = (1 + a - b - c) + 1 by ring, Complex.Gamma_add_one _ hc2]
   have g3 : (Gamma (1 + a / 2 - b - c))⁻¹ =
       (1 + a / 2 - b - c) * (Gamma (1 + a / 2 - b - (c - 1)))⁻¹ := by
-    rw [← mul_inv_Gamma_add_one]; ring_nf
+    rw [← mul_recip_Gamma_add_one]; ring_nf
   simp only [P]
   rw [g1, g2, g3]
   linear_combination (Gamma (1 + a / 2 - c) * Gamma (1 + a - b - c) *
@@ -1466,12 +1469,12 @@ lemma P_neg_nat (ha : ∀ k : ℕ, 1 + a / 2 ≠ -k) (hb : ∀ k : ℕ, 1 + a - 
     push_cast; ring
 
 /-- `(c)_n / Γ(1-c) = (-1)^n / Γ(1-c-n)`, for every `c`. -/
-lemma poch_mul_inv_Gamma_one_sub (c : ℂ) (n : ℕ) :
+lemma poch_mul_recip_Gamma_one_sub (c : ℂ) (n : ℕ) :
     poch c n * (Gamma (1 - c))⁻¹ = (-1) ^ n * (Gamma (1 - c - n))⁻¹ := by
   induction n with
   | zero => simp [poch_zero]
   | succ n ih =>
-    have h := mul_inv_Gamma_add_one (-c - n)
+    have h := mul_recip_Gamma_add_one (-c - n)
     rw [show -c - (n : ℂ) + 1 = 1 - c - n by ring] at h
     rw [poch_succ, mul_right_comm, ih, show (1 : ℂ) - c - ((n + 1 : ℕ) : ℂ) = -c - n by
       push_cast; ring, ← h, pow_succ]
@@ -1479,7 +1482,7 @@ lemma poch_mul_inv_Gamma_one_sub (c : ℂ) (n : ℕ) :
 
 lemma norm_poch_eq {c : ℂ} (hc : Gamma (1 - c) ≠ 0) (n : ℕ) :
     ‖poch c n‖ = ‖Gamma (1 - c)‖ * ‖(Gamma (1 - c - n))⁻¹‖ := by
-  have h := congrArg norm (poch_mul_inv_Gamma_one_sub c n)
+  have h := congrArg norm (poch_mul_recip_Gamma_one_sub c n)
   rw [norm_mul, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul, norm_inv] at h
   rw [← h]
   field_simp [norm_ne_zero_iff.mpr hc]
@@ -1491,7 +1494,7 @@ lemma exists_bound (hb : ∀ k : ℕ, 1 + a - b ≠ -k) {x₁ : ℝ} (hx₁ : 2 
       x₁ ≤ (1 - c).re → (1 - c).re ≤ x₁ + 1 →
         ‖s a b c n‖ ≤ ‖Gamma (1 - c)‖ * Real.exp (π * |c.im|) *
           Real.exp (π * (|c.im| + |a.im|) / 2) * u n := by
-  obtain ⟨B, hB0, -, hBneg, hbound⟩ := exists_inv_Gamma_shift_bound x₁
+  obtain ⟨B, hB0, -, hBneg, hbound⟩ := exists_recip_Gamma_shift_bound x₁
   set coef := gaussHGCoeff a b (1 + a - b)
   set u : ℕ → ℝ := fun n => ‖coef n‖ * B (-(n : ℤ)) * (Real.Gamma (a.re + x₁ + n))⁻¹ with hu
   have hu0 : ∀ n, 0 ≤ u n := fun n => mul_nonneg (mul_nonneg (norm_nonneg _) (hB0 _))
@@ -1552,7 +1555,7 @@ lemma exists_bound (hb : ∀ k : ℕ, 1 + a - b ≠ -k) {x₁ : ℝ} (hx₁ : 2 
     rw [this]; have := abs_sub a.im c.im; linarith [abs_sub_comm a.im c.im]
   have hGz : ‖(Gamma z)⁻¹‖ ≤ Real.exp (π * (|c.im| + |a.im|) / 2) *
       (Real.Gamma (a.re + x₁ + n))⁻¹ := by
-    refine (norm_inv_Gamma_le_of_half_le (by rw [hzre]; linarith)).trans ?_
+    refine (norm_recip_Gamma_le_of_half_le (by rw [hzre]; linarith)).trans ?_
     have hmono : Real.Gamma (a.re + x₁ + n) ≤ Real.Gamma z.re :=
       Real.Gamma_strictMonoOn_Ici.monotoneOn hzre2 (show (2 : ℝ) ≤ z.re by rw [hzre]; linarith)
         (by rw [hzre]; linarith)
@@ -1692,7 +1695,7 @@ lemma exists_P_eq_K (ha : ∀ k : ℕ, 1 + a / 2 ≠ -k) (hb : ∀ k : ℕ, 1 + 
     (X₁ := 1 + a.re / 2 + m₀) (X₂ := 2 + a.re / 2 + m₀) (by linarith)
   obtain ⟨C₃, K₃, hC₃, hb₃⟩ := exists_norm_Gamma_add_le_strip (1 + a - b + m₀)
     (X₁ := 1 + a.re - b.re + m₀) (X₂ := 2 + a.re - b.re + m₀) (by linarith)
-  obtain ⟨C₄, K₄, hC₄, hb₄⟩ := exists_norm_inv_Gamma_add_le_strip (1 + a / 2 - b + m₀)
+  obtain ⟨C₄, K₄, hC₄, hb₄⟩ := exists_norm_recip_Gamma_add_le_strip (1 + a / 2 - b + m₀)
     (|1 + a.re / 2 - b.re + m₀| + 1)
   set A : ℝ := C₁ * C₂ * C₃ * C₄ * S * Real.exp (π * |a.im| / 2) with hA
   have hstrip : ∀ w : ℂ, 0 ≤ w.re → w.re ≤ 1 →
@@ -1772,10 +1775,10 @@ lemma Rh_recurrence {c : ℂ} (hc : 1 + a / 2 - b - c ≠ 0) :
     rw [show 1 + a / 2 - b - (c - 1) = (1 + a / 2 - b - c) + 1 by ring,
       Complex.Gamma_add_one _ hc]
   have g2 : (1 + a / 2 - c) * (Gamma (1 + a / 2 - (c - 1)))⁻¹ = (Gamma (1 + a / 2 - c))⁻¹ := by
-    have h := mul_inv_Gamma_add_one (1 + a / 2 - c)
+    have h := mul_recip_Gamma_add_one (1 + a / 2 - c)
     rwa [show 1 + a / 2 - c + 1 = 1 + a / 2 - (c - 1) by ring] at h
   have g3 : (1 + a - b - c) * (Gamma (1 + a - b - (c - 1)))⁻¹ = (Gamma (1 + a - b - c))⁻¹ := by
-    have h := mul_inv_Gamma_add_one (1 + a - b - c)
+    have h := mul_recip_Gamma_add_one (1 + a - b - c)
     rwa [show 1 + a - b - c + 1 = 1 + a - b - (c - 1) by ring] at h
   simp only [Rh]
   rw [g1, ← g2, ← g3]
@@ -1787,6 +1790,7 @@ end CarlsonApplications
 
 open DixonAux in
 /-- Dixon's well-poised `₃F₂(1)` evaluation (AAR Theorem 3.4.1). -/
+@[dlmf 16.4.E4]
 theorem dixon_sum {a b c : ℂ}
     (h : 0 < (1 + a / 2 - b - c).re)
     (ha : ∀ k : ℕ, (1 + a / 2 : ℂ) ≠ -k)
@@ -1880,8 +1884,246 @@ theorem dixon_sum {a b c : ℂ}
   simp only [Rh, K, div_eq_mul_inv, mul_inv]
   ring
 
+section Whipple
+
+open Filter Finset DLMF.QSeries
+open scoped Topology Nat
+
+/-- The exponential difference quotient tends to its complex exponent. -/
+private lemma whipple_exp_ratio (a : ℂ) :
+    Tendsto (fun t : ℂ => (1-exp (a*t))/(1-exp t)) (𝓝[≠] 0) (𝓝 a) := by
+  have h (a : ℂ) : Tendsto (fun t : ℂ => (exp (a*t)-1)/t) (𝓝[≠] 0) (𝓝 a) := by
+    have hd : HasDerivAt (fun t : ℂ => exp (a*t)) a 0 := by
+      convert ((hasDerivAt_id' (0:ℂ)).const_mul a).cexp using 1 <;> simp
+    simpa only [zero_add,mul_zero,exp_zero,smul_eq_mul,div_eq_mul_inv,mul_comm]
+      using hd.tendsto_slope_zero
+  have hh := (h a).div (h 1) (by norm_num : (1:ℂ) ≠ 0)
+  simp only [one_mul,div_one] at hh
+  refine hh.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with t (ht : t ≠ 0)
+  simp only [Pi.div_apply]
+  rw [div_div_div_cancel_right₀ ht]
+  rw [show 1-exp (a*t)=-(exp (a*t)-1) by ring,
+    show 1-exp t=-(exp t-1) by ring,neg_div_neg_eq]
+
+/-- The exponential base is different from one on a punctured neighborhood of zero. -/
+private lemma whipple_exp_base_ne : ∀ᶠ t : ℂ in 𝓝[≠] 0, 1-exp t ≠ 0 := by
+  have h : Tendsto (fun t : ℂ => (exp t-1)/t) (𝓝[≠] 0) (𝓝 (1:ℂ)) := by
+    simpa only [zero_add,exp_zero,smul_eq_mul,div_eq_mul_inv,mul_comm]
+      using (Complex.hasDerivAt_exp 0).tendsto_slope_zero
+  filter_upwards [h.eventually_ne (by norm_num : (1:ℂ) ≠ 0)] with t ht
+  intro he
+  apply ht
+  rw [sub_eq_zero.mp he,sub_self,zero_div]
+
+/-- Finite q-Pochhammer symbols have the classical Pochhammer limit for complex exponents. -/
+private lemma whipple_exp_qpoch (a : ℂ) (k : ℕ) :
+    Tendsto (fun t : ℂ => qPochhammer (exp (a*t)) (exp t) k/(1-exp t)^k)
+      (𝓝[≠] 0) (𝓝 (poch a k)) := by
+  induction k with
+  | zero => simp [qPochhammer_zero,poch_zero]
+  | succ k ih =>
+    have h := ih.mul (whipple_exp_ratio (a+k))
+    rw [poch_succ]
+    refine h.congr' ?_
+    filter_upwards [whipple_exp_base_ne] with t ht
+    rw [qPochhammer_succ,pow_succ]
+    have he : exp (a*t)*exp t^k=exp ((a+k)*t) := by
+      rw [←exp_nat_mul,←exp_add];congr 1;ring
+    rw [he]
+    field_simp
+
+/-- The very-well-poised classical numerator after cancelling its half-parameter ratio. -/
+private noncomputable def whippleUnit (a : ℂ) : ℕ → ℂ
+  | 0 => 1
+  | k+1 => poch (a+1) k*(a+2*(k+1))
+
+/-- The cancelled very-well-poised factor has its classical limit. -/
+private lemma whipple_unit_limit (a : ℂ) (k : ℕ) :
+    Tendsto (fun t : ℂ => DLMF.Bailey.unitD (exp (a*t)) (exp t) k/(1-exp t)^k)
+      (𝓝[≠] 0) (𝓝 (whippleUnit a k)) := by
+  cases k with
+  | zero => simp [DLMF.Bailey.unitD,whippleUnit]
+  | succ k =>
+    have h := (whipple_exp_qpoch (a+1) k).mul (whipple_exp_ratio (a+2*(k+1)))
+    refine h.congr' ?_
+    filter_upwards [whipple_exp_base_ne] with t ht
+    rw [DLMF.Bailey.unitD]
+    have he : exp (a*t)*exp t=exp ((a+1)*t) := by rw [←exp_add];congr 1;ring
+    have he' : exp (a*t)*exp t^(2*(k+1))=exp ((a+2*(k+1))*t) := by
+      rw [←exp_nat_mul,←exp_add];congr 1;push_cast;ring
+    rw [he,he',pow_succ]
+    field_simp
+
+
+/-- The cancelled numerator equals the standard half-parameter Pochhammer ratio. -/
+private lemma whippleUnit_eq (a : ℂ) (ha : ∀ j : ℕ, a/2 ≠ -j) (k : ℕ) :
+    whippleUnit a k=poch a k*poch (a/2+1) k/poch (a/2) k := by
+  cases k with
+  | zero => simp [whippleUnit,poch_zero]
+  | succ k =>
+    have ha0 : a ≠ 0 := by intro h;simpa [h] using ha 0
+    have hP := poch_ne_zero_of_not_neg_nat ha (k+1)
+    have hs : (a/2)*poch (a/2+1) (k+1)=poch (a/2) (k+1)*(a/2+(k+1)) := by
+      rw [←poch_succ_left,poch_succ]
+      push_cast
+      ring
+    rw [whippleUnit,poch_succ_left a k]
+    generalize poch (a/2+1) (k+1)=X at hs ⊢
+    generalize poch (a/2) (k+1)=Y at hP hs ⊢
+    field_simp
+    linear_combination -2*poch (a+1) k*hs
+
+/-- A finite product of normalized q-Pochhammer factors has its termwise limit. -/
+private lemma whipple_qprod_limit (xs : List ℂ) (k : ℕ) :
+    Tendsto (fun t : ℂ => (xs.map (fun a => qPochhammer (exp (a*t)) (exp t) k/(1-exp t)^k)).prod)
+      (𝓝[≠] 0) (𝓝 ((xs.map (fun a => poch a k)).prod)) := by
+  induction xs with
+  | nil => simp
+  | cons a xs ih => simpa only [List.map_cons,List.prod_cons] using (whipple_exp_qpoch a k).mul ih
+
+/-- Collect the common normalization power in a finite q-Pochhammer product. -/
+private lemma whipple_qprod_normalize (xs : List ℂ) (k : ℕ) (t : ℂ) :
+    (xs.map (fun a => qPochhammer (exp (a*t)) (exp t) k/(1-exp t)^k)).prod =
+      (xs.map (fun a => qPochhammer (exp (a*t)) (exp t) k)).prod/(1-exp t)^(xs.length*k) := by
+  induction xs with
+  | nil => simp
+  | cons a xs ih =>
+    simp only [List.map_cons,List.prod_cons,List.length_cons,ih,Nat.add_mul,pow_add]
+    rw [mul_comm ((1-exp t)^(xs.length*k)) ((1-exp t)^(1*k))]
+    simp only [one_mul]
+    ring
+
+/-- Ratios with equally many finite q-Pochhammer factors have classical limits. -/
+private lemma whipple_qratio_limit (xs ys : List ℂ) (hlen : xs.length=ys.length) (k : ℕ)
+    (hy : ∀ a ∈ ys, poch a k ≠ 0) :
+    Tendsto (fun t : ℂ => (xs.map (fun a => qPochhammer (exp (a*t)) (exp t) k)).prod /
+      (ys.map (fun a => qPochhammer (exp (a*t)) (exp t) k)).prod)
+      (𝓝[≠] 0) (𝓝 ((xs.map (fun a => poch a k)).prod/(ys.map (fun a => poch a k)).prod)) := by
+  have hY : (ys.map (fun a => poch a k)).prod ≠ 0 := by
+    apply List.prod_ne_zero
+    intro hx
+    obtain ⟨a,ha,h0⟩ := List.mem_map.mp hx
+    exact hy a ha h0
+  have h := (whipple_qprod_limit xs k).div (whipple_qprod_limit ys k) hY
+  refine h.congr' ?_
+  filter_upwards [whipple_exp_base_ne] with t ht
+  simp only [Pi.div_apply,whipple_qprod_normalize,hlen]
+  exact div_div_div_cancel_right₀ (pow_ne_zero _ ht) _ _
+
+/-- Include the cancelled very-well-poised factor in the finite product limit. -/
+private lemma whipple_unit_ratio_limit (a : ℂ) (xs ys : List ℂ) (hlen : xs.length+1=ys.length) (k : ℕ)
+    (hy : ∀ b ∈ ys, poch b k ≠ 0) :
+    Tendsto (fun t : ℂ => DLMF.Bailey.unitD (exp (a*t)) (exp t) k *
+      (xs.map (fun b => qPochhammer (exp (b*t)) (exp t) k)).prod /
+      (ys.map (fun b => qPochhammer (exp (b*t)) (exp t) k)).prod)
+      (𝓝[≠] 0) (𝓝 (whippleUnit a k*(xs.map (fun b => poch b k)).prod/
+        (ys.map (fun b => poch b k)).prod)) := by
+  have hY : (ys.map (fun b => poch b k)).prod ≠ 0 := by
+    apply List.prod_ne_zero
+    intro hx
+    obtain ⟨b,hb,h0⟩ := List.mem_map.mp hx
+    exact hy b hb h0
+  have h := ((whipple_unit_limit a k).mul (whipple_qprod_limit xs k)).div
+    (whipple_qprod_limit ys k) hY
+  refine h.congr' ?_
+  filter_upwards [whipple_exp_base_ne] with t ht
+  simp only [Pi.div_apply,whipple_qprod_normalize,←hlen,Nat.add_mul,pow_add,one_mul]
+  field_simp
+
+
+/-- The shifted denominator parameter in exponential coordinates. -/
+private lemma whipple_exp_param (a b t : ℂ) :
+    exp (a*t)*exp t/exp (b*t)=exp ((a-b+1)*t) := by
+  rw [←exp_add,←exp_sub];congr 1;ring
+
+/-- A negative integer base power in exponential coordinates. -/
+private lemma whipple_exp_neg_pow (t : ℂ) (n : ℕ) : (exp t)⁻¹^n=exp (-(n:ℂ)*t) := by
+  rw [←exp_neg,←exp_nat_mul];congr 1;ring
+
+/-- The terminating denominator parameter in exponential coordinates. -/
+private lemma whipple_exp_nparam (a t : ℂ) (n : ℕ) :
+    exp (a*t)*exp t*exp t^n=exp ((a+n+1)*t) := by
+  rw [←exp_nat_mul,←exp_add,←exp_add];congr 1;ring
+
+/-- The balanced denominator parameter in exponential coordinates. -/
+private lemma whipple_exp_yparam (a d e t : ℂ) (n : ℕ) :
+    exp (d*t)*exp (e*t)*(exp t)⁻¹^n/exp (a*t)=exp ((d+e-a-n)*t) := by
+  rw [whipple_exp_neg_pow,←exp_add,←exp_add,←exp_sub];congr 1;ring
+
+/-- The transformed numerator parameter in exponential coordinates. -/
+private lemma whipple_exp_xparam (a b c t : ℂ) :
+    exp (a*t)*exp t/(exp (b*t)*exp (c*t))=exp ((a-b-c+1)*t) := by
+  rw [←exp_add,←exp_add,←exp_sub];congr 1;ring
+
+/-- Every exponential parameter tends to one with the base. -/
+private lemma whipple_exp_tendsto (a : ℂ) : Tendsto (fun t : ℂ => exp (a*t)) (𝓝[≠] 0) (𝓝 1) := by
+  have h : ContinuousAt (fun t : ℂ => exp (a*t)) 0 := by fun_prop
+  simpa using h.tendsto.mono_left nhdsWithin_le_nhds
+
+/-- The finite Watson summand tends to the very-well-poised classical summand. -/
+private lemma whipple_watson8_limit (a b c d e : ℂ) (n k : ℕ)
+    (hden : ∀ p ∈ [a-b+1,a-c+1,a-d+1,a-e+1,a+n+1,1], ∀ j : ℕ, p ≠ -j) :
+    Tendsto (fun t : ℂ => DLMF.Bailey.watsonR8 (exp (a*t)) (exp (b*t))
+      (exp (c*t)) (exp (d*t)) (exp (e*t)) (exp t) n k) (𝓝[≠] 0)
+      (𝓝 (whippleUnit a k*poch b k*poch c k*poch d k*poch e k*poch (-(n:ℂ)) k/
+        (poch (a-b+1) k*poch (a-c+1) k*poch (a-d+1) k*poch (a-e+1) k*
+          poch (a+n+1) k*poch 1 k))) := by
+  have hscale := (((((whipple_exp_tendsto a).pow 2).mul
+    ((whipple_exp_tendsto 1).pow 2)).mul ((whipple_exp_tendsto 1).pow n)).div
+    ((((whipple_exp_tendsto b).mul (whipple_exp_tendsto c)).mul
+      (whipple_exp_tendsto d)).mul (whipple_exp_tendsto e)) (by norm_num)).pow k
+  simp only [one_mul,one_pow,one_div,inv_one] at hscale
+  have h := (whipple_unit_ratio_limit a [b,c,d,e,-(n:ℂ)]
+    [a-b+1,a-c+1,a-d+1,a-e+1,a+n+1,1] rfl k
+    (fun p hp => poch_ne_zero_of_not_neg_nat (hden p hp) k)).mul hscale
+  convert h using 1
+  · funext t
+    simp only [Pi.div_apply,neg_mul,DLMF.Bailey.watsonR8,List.map_cons,List.map_nil,List.prod_cons,
+      List.prod_nil,mul_one,one_mul,whipple_exp_neg_pow,whipple_exp_param,whipple_exp_nparam]
+    ring
+  · simp only [List.map_cons,List.map_nil,List.prod_cons,List.prod_nil,mul_one]
+    ring
+
+/-- The transformed Watson summand tends to its classical terminating summand. -/
+private lemma whipple_watson4_limit (a b c d e : ℂ) (n k : ℕ)
+    (hden : ∀ p ∈ [a-b+1,a-c+1,d+e-a-n,1], ∀ j : ℕ, p ≠ -j) :
+    Tendsto (fun t : ℂ => DLMF.Bailey.watsonR4 (exp (a*t)) (exp (b*t))
+      (exp (c*t)) (exp (d*t)) (exp (e*t)) (exp t) n k) (𝓝[≠] 0)
+      (𝓝 (poch (a-b-c+1) k*poch d k*poch e k*poch (-(n:ℂ)) k/
+        (poch (a-b+1) k*poch (a-c+1) k*poch (d+e-a-n) k*poch 1 k))) := by
+  have h := (whipple_qratio_limit [-(n:ℂ),d,e,a-b-c+1]
+    [a-b+1,a-c+1,d+e-a-n,1] rfl k
+    (fun p hp => poch_ne_zero_of_not_neg_nat (hden p hp) k)).mul
+      ((whipple_exp_tendsto 1).pow k)
+  convert h using 1
+  · funext t
+    simp only [DLMF.Bailey.watsonR4]
+    rw [whipple_exp_yparam]
+    simp only [neg_mul,List.map_cons,List.map_nil,List.prod_cons,
+      List.prod_nil,mul_one,one_mul,whipple_exp_neg_pow,whipple_exp_param,whipple_exp_xparam]
+    ring
+  · simp only [List.map_cons,List.map_nil,List.prod_cons,List.prod_nil,mul_one,one_pow]
+    ring
+
+
+/-- The shifted numerator parameter in exponential coordinates. -/
+private lemma whipple_exp_oneparam (a t : ℂ) : exp (a*t)*exp t=exp ((a+1)*t) := by
+  rw [←exp_add];congr 1;ring
+
+/-- A nonzero classical Pochhammer limit ensures nonzero nearby q-Pochhammer factors. -/
+private lemma whipple_qpoch_eventually_ne (a : ℂ) (k : ℕ) (ha : poch a k ≠ 0) :
+    ∀ᶠ t : ℂ in 𝓝[≠] 0,qPochhammer (exp (a*t)) (exp t) k ≠ 0 := by
+  filter_upwards [(whipple_exp_qpoch a k).eventually_ne ha] with t ht
+  intro h0
+  apply ht
+  rw [h0,zero_div]
+
 /-- Whipple's terminating very well-poised `₇F₆(1)` transformation into a balanced
-`₄F₃(1)`, AAR Theorem 3.4.4. -/
+`₄F₃(1)`, AAR Theorem 3.4.4 and the terminating case of DLMF 16.4.15.
+The proof takes the complex-parameter exponential-base limit of the proved rational
+Watson transformation `DLMF.Bailey.watsonR`. -/
+@[dlmf 16.4.E15]
 theorem whipple_7F6 {a b c d e : ℂ} (m : ℕ)
     (hden : ∀ z ∈ [a / 2, a - b + 1, a - c + 1, a - d + 1,
       a - e + 1, a + m + 1, d + e - a - m], ∀ k : ℕ, z ≠ -k) :
@@ -1896,11 +2138,86 @@ theorem whipple_7F6 {a b c d e : ℂ} (m : ℕ)
         poch (a - b - c + 1) n * poch d n * poch e n * poch (-m : ℂ) n /
           (poch (a - b + 1) n * poch (a - c + 1) n *
             poch (d + e - a - m) n * n.factorial)) := by
-  sorry
+  have hA := hden (a/2) (by simp)
+  have hB := hden (a-b+1) (by simp)
+  have hC := hden (a-c+1) (by simp)
+  have hD := hden (a-d+1) (by simp)
+  have hE := hden (a-e+1) (by simp)
+  have hN := hden (a+m+1) (by simp)
+  have hY := hden (d+e-a-m) (by simp)
+  have h1 : ∀ j : ℕ,(1:ℂ) ≠ -j := not_neg_nat_of_re_pos (by norm_num)
+  have hden8 : ∀ p ∈ [a-b+1,a-c+1,a-d+1,a-e+1,a+m+1,1], ∀ j : ℕ,p ≠ -j := by
+    intro p hp
+    simp only [List.mem_cons,List.not_mem_nil,or_false] at hp
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl <;> assumption
+  have hden4 : ∀ p ∈ [a-b+1,a-c+1,d+e-a-m,1], ∀ j : ℕ,p ≠ -j := by
+    intro p hp
+    simp only [List.mem_cons,List.not_mem_nil,or_false] at hp
+    rcases hp with rfl | rfl | rfl | rfl <;> assumption
+  have hL := tendsto_finsetSum (Finset.range (m+1)) fun k _ =>
+    whipple_watson8_limit a b c d e m k hden8
+  have hPref0 := whipple_qratio_limit [a+1,a-d-e+1] [a-d+1,a-e+1] rfl m (by
+    intro p hp
+    simp only [List.mem_cons,List.not_mem_nil,or_false] at hp
+    rcases hp with rfl | rfl
+    · exact poch_ne_zero_of_not_neg_nat hD m
+    · exact poch_ne_zero_of_not_neg_nat hE m)
+  have hPref : Tendsto (fun t : ℂ =>
+      qPochhammer (exp (a*t)*exp t) (exp t) m*
+        qPochhammer (exp (a*t)*exp t/(exp (d*t)*exp (e*t))) (exp t) m/
+      (qPochhammer (exp (a*t)*exp t/exp (d*t)) (exp t) m*
+        qPochhammer (exp (a*t)*exp t/exp (e*t)) (exp t) m)) (𝓝[≠] 0)
+      (𝓝 (poch (a+1) m*poch (a-d-e+1) m/(poch (a-d+1) m*poch (a-e+1) m))) := by
+    convert hPref0 using 1
+    · funext t
+      rw [whipple_exp_xparam,whipple_exp_param,whipple_exp_param,whipple_exp_oneparam]
+      simp only [List.map_cons,List.map_nil,List.prod_cons,List.prod_nil,mul_one]
+    · simp only [List.map_cons,List.map_nil,List.prod_cons,List.prod_nil,mul_one]
+  have hR := hPref.mul (tendsto_finsetSum (Finset.range (m+1)) fun k _ =>
+    whipple_watson4_limit a b c d e m k hden4)
+  have hQB := whipple_qpoch_eventually_ne (a-b+1) m (poch_ne_zero_of_not_neg_nat hB m)
+  have hQC := whipple_qpoch_eventually_ne (a-c+1) m (poch_ne_zero_of_not_neg_nat hC m)
+  have hQD := whipple_qpoch_eventually_ne (a-d+1) m (poch_ne_zero_of_not_neg_nat hD m)
+  have hQE := whipple_qpoch_eventually_ne (a-e+1) m (poch_ne_zero_of_not_neg_nat hE m)
+  have hQN := whipple_qpoch_eventually_ne (a+m+1) m (poch_ne_zero_of_not_neg_nat hN m)
+  have hQY := whipple_qpoch_eventually_ne (d+e-a-m) m (poch_ne_zero_of_not_neg_nat hY m)
+  have hQQ : ∀ᶠ t : ℂ in 𝓝[≠] 0,∀ k ∈ Finset.range (m+1),
+      qPochhammer (exp t) (exp t) k ≠ 0 := by
+    refine (Filter.eventually_all_finset _).mpr fun k _ => ?_
+    simpa only [one_mul] using
+      whipple_qpoch_eventually_ne 1 k (poch_ne_zero_of_not_neg_nat h1 k)
+  have heq : (fun t : ℂ => ∑ k ∈ Finset.range (m+1),DLMF.Bailey.watsonR8
+      (exp (a*t)) (exp (b*t)) (exp (c*t)) (exp (d*t)) (exp (e*t)) (exp t) m k) =ᶠ[𝓝[≠] 0]
+      (fun t : ℂ =>
+      qPochhammer (exp (a*t)*exp t) (exp t) m*
+        qPochhammer (exp (a*t)*exp t/(exp (d*t)*exp (e*t))) (exp t) m/
+      (qPochhammer (exp (a*t)*exp t/exp (d*t)) (exp t) m*
+        qPochhammer (exp (a*t)*exp t/exp (e*t)) (exp t) m)*
+      ∑ k ∈ Finset.range (m+1),DLMF.Bailey.watsonR4
+        (exp (a*t)) (exp (b*t)) (exp (c*t)) (exp (d*t)) (exp (e*t)) (exp t) m k) := by
+    filter_upwards [hQB,hQC,hQD,hQE,hQN,hQY,hQQ] with t hB hC hD hE hN hY hQ
+    refine DLMF.Bailey.watsonR m (exp_ne_zero _) (exp_ne_zero _) (exp_ne_zero _)
+      (exp_ne_zero _) (exp_ne_zero _) (exp_ne_zero _) (fun k hk => hQ k (by simpa using hk))
+      ?_ ?_ ?_ ?_ ?_ ?_
+    · simpa only [whipple_exp_param] using hB
+    · simpa only [whipple_exp_param] using hC
+    · simpa only [whipple_exp_param] using hD
+    · simpa only [whipple_exp_param] using hE
+    · simpa only [whipple_exp_yparam] using hY
+    · simpa only [whipple_exp_nparam] using hN
+  have h := tendsto_nhds_unique hL (hR.congr' heq.symm)
+  simp only [poch_nat_one] at h
+  rw [← h]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [whippleUnit_eq a hA]
+  ring
+
+
+end Whipple
 
 open DougallAux in
 /-- Dougall's bilateral `₂H₂` sum, in Gamma form (AAR Theorem 2.8.2). -/
-@[dlmf 15.4.E25]
+@[dlmf 15.4.E25, dlmf 16.4.E17]
 theorem dougall_bilateral {a b c d : ℂ}
     (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ k)
     (hconv : 1 + (a + b).re < (c + d).re) :
@@ -1932,7 +2249,7 @@ form in the parameter `m = k²` is `DLMF.Elliptic.Real.compEllIntKm`. -/
 def compEllIntKkSeries (k : ℂ) : ℂ :=
   (π / 2) * ₂F₁ (1 / 2 : ℂ) (1 / 2) 1 (k ^ 2)
 
-/-- The inverse square root of the square of a positive real number. -/
+/-- The reciprocal square root of the square of a positive real number. -/
 lemma cpow_sq_neg_half {x : ℝ} (hx : 0 < x) :
     ((x : ℂ) ^ 2) ^ (-(1 / 2 : ℂ)) = (x : ℂ)⁻¹ := by
   have hh : ((x : ℂ) ^ 2) ^ (1 / 2 : ℂ) = (x : ℂ) := by

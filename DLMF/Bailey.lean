@@ -208,6 +208,7 @@ lemma bailey_limit_relation {a q : ℂ} {α β : ℕ → ℂ} {n : ℕ}
   ring
 
 /-- A Bailey pair relative to `a`: `β_n = ∑_{k=0}^n α_k / ((q;q)_{n-k} (aq;q)_{n+k})`. -/
+@[dlmf 17.12.E3]
 def IsBaileyPair (a q : ℂ) (α β : ℕ → ℂ) : Prop :=
   ∀ n : ℕ,
     β n =
@@ -335,6 +336,7 @@ lemma bailey_relation {a q rho1 rho2 : ℂ} {α β : ℕ → ℂ} {n : ℕ}
 /-- Bailey's lemma (AAR §12.2): a Bailey pair produces a new Bailey pair. The parameters are
 nondegenerate: with `rho1 = 0` or a vanishing denominator, the totalized quotients no longer
 give a Bailey pair. -/
+@[dlmf 17.12.E5]
 theorem bailey_lemma {a q rho1 rho2 : ℂ} {α β : ℕ → ℂ} (h : IsBaileyPair a q α β)
     (hρ1 : rho1 ≠ 0) (hρ2 : rho2 ≠ 0) (hqq : ∀ m, qPochhammer q q m ≠ 0)
     (haq : ∀ m, qPochhammer (a * q) q m ≠ 0) (h1 : ∀ m, qPochhammer (a * q / rho1) q m ≠ 0)
@@ -757,7 +759,7 @@ lemma watsonR {a b c d e q : ℂ} (n : ℕ) (ha : a ≠ 0) (hb : b ≠ 0) (hc : 
     tendsto_const_nhds.congr' (hev.mono fun t ht => ht.symm)
   exact tendsto_nhds_unique h1 h2
 
-private lemma qPochhammer_inv_pow_zero {q : ℂ} (hq : q ≠ 0) {n k : ℕ} (hk : n < k) :
+private lemma qPochhammer_recip_pow_zero {q : ℂ} (hq : q ≠ 0) {n k : ℕ} (hk : n < k) :
     qPochhammer (q⁻¹ ^ n) q k = 0 := by
   rw [qPochhammer_eq_prod]
   exact prod_eq_zero (mem_range.mpr hk) (by rw [inv_pow]; field_simp; ring)
@@ -765,6 +767,7 @@ private lemma qPochhammer_inv_pow_zero {q : ℂ} (hq : q ≠ 0) {n k : ℕ} (hk 
 /-- Watson's transformation of a terminating very-well-poised `₈φ₇` into a balanced `₄φ₃`
 (AAR §12.3), with `f = q⁻ⁿ`. The listed denominator parameters must not produce vanishing
 factors in the finite sums. -/
+@[dlmf 17.9.E15]
 theorem watson_transformation {a b c d e q : ℂ} (n : ℕ) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0)
     (hd : d ≠ 0) (he : e ≠ 0) (hq : q ≠ 0)
     (hden : ∀ x ∈ [a ^ (1 / 2 : ℂ), -a ^ (1 / 2 : ℂ), a * q / b, a * q / c, a * q / d,
@@ -803,7 +806,7 @@ theorem watson_transformation {a b c d e q : ℂ} (n : ℕ) (ha : a ≠ 0) (hb :
   have hW := watsonR n ha hb hc hd he hq (fun m hm => HQ m (by omega)) (HB n (by omega))
     (HC n (by omega)) (HD n (by omega)) (HE n (by omega)) (HY n (by omega)) (HN n (by omega))
   have hzero : ∀ k, n < k → qPochhammer (q⁻¹ ^ n) q k = 0 :=
-    fun k hk => qPochhammer_inv_pow_zero hq hk
+    fun k hk => qPochhammer_recip_pow_zero hq hk
   unfold basicHG
   rw [tsum_eq_sum (s := range (n + 1)), tsum_eq_sum (s := range (n + 1))]
   rotate_left

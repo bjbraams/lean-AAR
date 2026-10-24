@@ -79,7 +79,7 @@ lemma norm_confluent_term_le_majorant {a b z : ℂ} {α : ℝ} (ha : ‖a‖ ≤
   rw [norm_regularizedConfluentSeries_apply_ofReal α N n hn, norm_mul, norm_div, norm_mul,
     norm_pow, Complex.norm_natCast]
   have hA : ‖poch a n‖ ≤ ‖poch (α : ℂ) n‖ := norm_ascPochhammer_eval_le ha n
-  have hG := norm_inv_Gamma_add_nat_le hre hm hΓ hn
+  have hG := norm_recip_Gamma_add_nat_le hre hm hΓ hn
   have hf : (0 : ℝ) < n.factorial := by positivity
   have hf' : (0 : ℝ) < (n - N).factorial := by positivity
   calc ‖poch a n‖ * ‖z‖ ^ n / n.factorial * ‖(Gamma (b + n))⁻¹‖

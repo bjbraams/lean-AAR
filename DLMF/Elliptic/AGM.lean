@@ -32,7 +32,7 @@ noncomputable section
 namespace DLMF.Elliptic
 
 /-- `x^{-1/2} = (√x)⁻¹` for `x ≥ 0`. -/
-lemma rpow_neg_half_eq_inv_sqrt {x : ℝ} (hx : 0 ≤ x) : x ^ (-(1 / 2) : ℝ) = (√x)⁻¹ := by
+lemma rpow_neg_half_eq_recip_sqrt {x : ℝ} (hx : 0 ≤ x) : x ^ (-(1 / 2) : ℝ) = (√x)⁻¹ := by
   rw [rpow_neg hx, sqrt_eq_rpow]
 
 /-- The integral `∫₀^∞ ((t²+a²)(t²+b²))^{-1/2} dt`. -/
@@ -88,7 +88,7 @@ lemma gaussSubst_pointwise {a b t : ℝ} (ha : 0 < a) (hb : 0 < b) (ht : 0 < t) 
     rw [sq_sqrt hab, hX, hY, gaussSubst]
     field_simp
     ring
-  rw [hprod, rpow_neg_half_eq_inv_sqrt (by positivity), rpow_neg_half_eq_inv_sqrt hX0.le,
+  rw [hprod, rpow_neg_half_eq_recip_sqrt (by positivity), rpow_neg_half_eq_recip_sqrt hX0.le,
     sqrt_mul hX0.le, sqrt_sq hY0.le, abs_of_pos (by positivity)]
   have hsX : 0 < √X := sqrt_pos.mpr hX0
   rw [hY]
@@ -149,7 +149,7 @@ lemma agmIntegral_pointwise {a b t : ℝ} (ha : 0 < a) (hb : 0 < b) (ht : 0 < t)
     rw [div_pow, div_pow, h1]
     field_simp
     ring
-  rw [hbase, rpow_neg_half_eq_inv_sqrt (by positivity), rpow_neg_half_eq_inv_sqrt (by positivity),
+  rw [hbase, rpow_neg_half_eq_recip_sqrt (by positivity), rpow_neg_half_eq_recip_sqrt (by positivity),
     sqrt_mul (by positivity), sqrt_mul' _ (by positivity), sqrt_sq hb.le,
     sqrt_div' _ (by positivity), abs_of_pos (by positivity)]
   have hA : 0 < √(t ^ 2 + a ^ 2) := sqrt_pos.mpr (by positivity)

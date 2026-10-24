@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.ScalarSeries
 public import Mathlib.Analysis.Complex.TaylorSeries
 public import Mathlib.Analysis.Analytic.OfScalars
 
@@ -25,22 +26,7 @@ namespace DLMF.OrthogonalPolynomials
 lemma scalarSeries_unique {c d : ℕ → ℂ} {f : ℂ → ℂ}
     (hc : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => c n * z ^ n) (f z))
     (hd : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => d n * z ^ n) (f z)) : c = d := by
-  have series {e : ℕ → ℂ}
-      (he : ∀ z : ℂ, ‖z‖ < 1 → HasSum (fun n => e n * z ^ n) (f z)) :
-      HasFPowerSeriesOnBall f (FormalMultilinearSeries.ofScalars ℂ e) 0
-        ((1 / 2 : NNReal) : ENNReal) := by
-    refine ⟨?_, by norm_num, ?_⟩
-    · apply FormalMultilinearSeries.le_radius_of_summable_norm
-      simpa [FormalMultilinearSeries.ofScalars_norm, norm_mul, norm_pow] using
-        (he (1 / 2) (by norm_num)).summable.norm
-    · intro z hz
-      have hzNN : ‖z‖₊ < (1 / 2 : NNReal) := by
-        simpa only [Metric.mem_eball, edist_zero_right, enorm_lt_coe] using hz
-      have hz' : ‖z‖ < (1 / 2 : ℝ) := by exact_mod_cast hzNN
-      simpa [FormalMultilinearSeries.ofScalars_apply_eq, smul_eq_mul, mul_comm] using
-        he z (by linarith)
-  exact FormalMultilinearSeries.ofScalars_series_injective ℂ ℂ
-    ((series hc).hasFPowerSeriesAt.eq_formalMultilinearSeries (series hd).hasFPowerSeriesAt)
+  exact Complex.powerSeries_coefficients_unique hc hd
 
 /-- Multiplication of a power series by a monomial inserts a zero prefix. -/
 lemma hasSum_scalar_shift {c : ℕ → ℂ} {z u : ℂ}

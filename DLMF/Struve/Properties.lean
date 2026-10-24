@@ -85,7 +85,7 @@ theorem struve_half_prefactor {z : ℂ} (hz : z∈slitPlane) :
     (z/2)^(-(1/2):ℂ)/(Real.sqrt π:ℂ)=(2/(π*z))^(1/2:ℂ) := by
   have hp : (π:ℂ)^(1/2:ℂ)=(Real.sqrt π:ℂ) :=
     Complex.Gamma_one_half_eq.symm.trans DLMF.Confluent.Gamma_one_half_eq_sqrt
-  rw [cpow_half_inv_div_two hz,cpow_half_two_div_pi_z hz,cpow_half_div_pi,hp]
+  rw [cpow_half_recip_div_two hz,cpow_half_two_div_pi_z hz,cpow_half_div_pi,hp]
   ring
 
 /-- The other elementary half-power shares the inherited slit-plane branch. -/
@@ -542,7 +542,7 @@ theorem struveH_bessel_series_19 (ν : ℂ)  {z : ℂ} (hz : z ∈ slitPlane) :
   have hz0 := slitPlane_ne_zero hz
   have hw0 : z / 2 ≠ 0 := div_ne_zero hz0 two_ne_zero
   set a : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + 1 / 2)) with ha_def
-  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le (1 / 2 : ℂ)
+  obtain ⟨B, hB0, hB⟩ := exists_norm_recip_nat_add_le (1 / 2 : ℂ)
   have ha : ∀ k, ‖a k‖ ≤ B * 1 ^ k := fun k => by
     have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
     show ‖1 / ((k ! : ℂ) * (k + 1 / 2))‖ ≤ B * 1 ^ k
@@ -601,7 +601,7 @@ theorem struveH_bessel_series_20 (ν : ℂ) (hν : ∀ n : ℕ, ν+1/2 ≠ -n) {
   have hz0 := slitPlane_ne_zero hz
   have hw0 : z / 2 ≠ 0 := div_ne_zero hz0 two_ne_zero
   set a : ℕ → ℂ := fun k => 1 / ((k ! : ℂ) * (k + ν + 1 / 2)) with ha_def
-  obtain ⟨B, hB0, hB⟩ := exists_norm_inv_nat_add_le (ν + 1 / 2 : ℂ)
+  obtain ⟨B, hB0, hB⟩ := exists_norm_recip_nat_add_le (ν + 1 / 2 : ℂ)
   have ha : ∀ k, ‖a k‖ ≤ B * 1 ^ k := fun k => by
     have hf : (1 : ℝ) ≤ k ! := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero k)
     show ‖1 / ((k ! : ℂ) * (k + ν + 1 / 2))‖ ≤ B * 1 ^ k
@@ -682,7 +682,7 @@ theorem struveH_zero_products {z : ℂ} (hz : z ∈ slitPlane) :
   set f : ℕ × ℕ → ℂ := fun p => 2 * (-1) ^ p.1 * u ^ (2 * p.1 + 1) *
     (poch (2 * p.1 + p.2 + 2 : ℂ) p.2 * (-(u ^ 2)) ^ p.2 / p.2 ! *
       ((Gamma (p.1 + p.2 + 3 / 2))⁻¹) ^ 2) with hf
-  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (3 / 2 : ℂ)
+  obtain ⟨C, hC0, hC⟩ := exists_norm_recip_Gamma_add_nat_le (3 / 2 : ℂ)
   -- absolute summability
   have hsum : Summable fun p => ‖f p‖ := by
     have hg := Real.summable_pow_div_factorial (16 * ‖u‖ ^ 2)
@@ -889,8 +889,8 @@ theorem struveH_one_products {z : ℂ} (hz : z ∈ slitPlane) :
     intro k m
     rw [show (4 * k + m + 3 : ℂ) = ((4 * k + m + 2 : ℕ) : ℂ) + 1 by push_cast; ring,
       poch_natCast_add_one_div_factorial, show 4 * k + m + 2 + m = 4 * k + 2 * m + 2 by ring]
-  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (3 / 2 : ℂ)
-  obtain ⟨C', hC0', hC'⟩ := exists_norm_inv_Gamma_add_nat_le (5 / 2 : ℂ)
+  obtain ⟨C, hC0, hC⟩ := exists_norm_recip_Gamma_add_nat_le (3 / 2 : ℂ)
+  obtain ⟨C', hC0', hC'⟩ := exists_norm_recip_Gamma_add_nat_le (5 / 2 : ℂ)
   -- absolute summability
   have hsum : Summable fun p => ‖f p‖ := by
     have hA := Real.summable_pow_div_factorial (256 * ‖u‖ ^ 4)
@@ -1065,7 +1065,7 @@ theorem struveH_weighted_deriv_27 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
 @[dlmf 11.4.E28, dlmf 11.7.E2]
 theorem struveH_weighted_deriv_28 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     HasDerivAt (fun z : ℂ => z^(-1*ν)*struveH ν z) (2^(-ν)/(Real.sqrt π*Gamma (ν+3/2)) - z^(-ν)*struveH (ν+1) z) z := by
-  have hd := hasDerivAt_inverse_weighted_struveQuadratic ν (-1) hz
+  have hd := hasDerivAt_reciprocal_weighted_struveQuadratic ν (-1) hz
   simpa only [struveQuadratic_H, one_mul, neg_one_mul, neg_mul, ← sub_eq_add_neg] using hd
 
 /-- struveH iterated weighted deriv. -/
@@ -1144,7 +1144,7 @@ theorem struveL_weighted_deriv_29 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
 @[dlmf 11.4.E30, dlmf 11.7.E4]
 theorem struveL_weighted_deriv_30 (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     HasDerivAt (fun z : ℂ => z^(-1*ν)*struveL ν z) (2^(-ν)/(Real.sqrt π*Gamma (ν+3/2)) + z^(-ν)*struveL (ν+1) z) z := by
-  have hd := hasDerivAt_inverse_weighted_struveQuadratic ν (1) hz
+  have hd := hasDerivAt_reciprocal_weighted_struveQuadratic ν (1) hz
   simpa only [struveQuadratic_L, one_mul, neg_one_mul, neg_mul, ← sub_eq_add_neg] using hd
 
 /-- struveL iterated weighted deriv. -/

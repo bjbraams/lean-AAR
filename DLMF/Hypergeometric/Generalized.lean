@@ -37,6 +37,7 @@ noncomputable section
 namespace DLMF.Hypergeometric
 
 /-- The Euler operator `θ f = z f'`. -/
+@[dlmf 16.8.E2]
 def eulerTheta (f : ℂ → ℂ) : ℂ → ℂ := fun z => z * deriv f z
 
 /-- A polynomial in the Euler operator, `P(θ) f = ∑ₖ Pₖ θᵏ f`. -/
@@ -103,7 +104,7 @@ theorem hasSum_thetaPoly {f : ℂ → ℂ} {c : ℕ → ℂ} {r : ℝ≥0∞}
   ring
 
 /-- `1/Γ(z) = z/Γ(z+1)` for every `z`, with the totalized `Γ`. -/
-lemma inv_Gamma_eq_mul_inv_Gamma_add_one (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
+lemma recip_Gamma_eq_mul_recip_Gamma_add_one (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
   by_cases hz : z = 0
   · subst hz; simp
   · rw [Complex.Gamma_add_one z hz, mul_inv, ← mul_assoc, mul_inv_cancel₀ hz, one_mul]
@@ -120,7 +121,7 @@ lemma regularizedHGFunCoeff_succ_mul (a b : Multiset ℂ) (n : ℕ) :
     rw [← Multiset.prod_map_inv, ← Multiset.prod_map_inv, ← Multiset.prod_map_mul]
     congr 1
     refine Multiset.map_congr rfl fun j _ => ?_
-    rw [inv_Gamma_eq_mul_inv_Gamma_add_one (j + n)]
+    rw [recip_Gamma_eq_mul_recip_Gamma_add_one (j + n)]
     push_cast; ring_nf
   have ha : (a.map (ascPochhammer ℂ (n + 1)).eval).prod =
       (a.map (ascPochhammer ℂ n).eval).prod * (a.map fun i => (n : ℂ) + i).prod := by

@@ -189,7 +189,7 @@ lemma legInt_kernel_P {ν μ z : ℂ} (hz : z+1 ∈ slitPlane) {t : ℝ} (ht : 0
   have hX0 : 1 - (z-1)/(z+1) * (legInt_hs t : ℂ) ≠ 0 := by
     have hc : (z-1)/(z+1) ∈ cutPlane := by
       rw [mem_cutPlane, show 1 - (z-1)/(z+1) = 2 * (z+1)⁻¹ by field_simp; ring]
-      have := inv_mem_slitPlane' hz
+      have := recip_mem_slitPlane' hz
       rcases mem_slitPlane_iff.mp this with h | h
       · exact Or.inl (by simpa using h)
       · exact Or.inr (by simpa using h)
@@ -221,7 +221,7 @@ lemma legInt_kernel_P {ν μ z : ℂ} (hz : z+1 ∈ slitPlane) {t : ℝ} (ht : 0
 lemma legInt_ratio_mem_cutPlane {z : ℂ} (hz : z+1 ∈ slitPlane) : (z-1)/(z+1) ∈ cutPlane := by
   have hA0 : z + 1 ≠ 0 := slitPlane_ne_zero hz
   rw [mem_cutPlane, show 1 - (z-1)/(z+1) = 2 * (z+1)⁻¹ by field_simp; ring]
-  have := inv_mem_slitPlane' hz
+  have := recip_mem_slitPlane' hz
   rcases mem_slitPlane_iff.mp this with h | h
   · exact Or.inl (by simpa using h)
   · exact Or.inr (by simpa using h)
@@ -477,7 +477,7 @@ lemma legInt_cpow_root_cosh {z : ℂ} (hz : z-1 ∈ slitPlane) {t : ℝ} (ht : 0
         simp only [hB, sub_im, one_im, zero_sub, pow_two, mul_im, ofReal_re, ofReal_im]
         ring
       rcases lt_or_eq_of_le h with h' | h'
-      · refine legInt_cpow_mul_of_im (inv_mem_slitPlane' hζs) hB0 (Or.inr ?_) p
+      · refine legInt_cpow_mul_of_im (recip_mem_slitPlane' hζs) hB0 (Or.inr ?_) p
         rw [inv_im, hBim]
         have hn := normSq_pos.mpr hζ0
         have : -ζ.im / normSq ζ * -(legInt_hs t * (2 * ζ.re * ζ.im)) =

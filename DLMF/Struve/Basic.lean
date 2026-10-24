@@ -455,8 +455,8 @@ theorem hasDerivAt_weighted_struveQuadratic (ν σ : ℂ) {z : ℂ} (hz : z ∈ 
   rw [cpow_sub _ _ (slitPlane_ne_zero hz),cpow_one]
   ring
 
-/-- Inverse weighting raises the order, with the Struve forcing term retained. -/
-theorem hasDerivAt_inverse_weighted_struveQuadratic (ν σ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
+/-- Reciprocal weighting raises the order, with the Struve forcing term retained. -/
+theorem hasDerivAt_reciprocal_weighted_struveQuadratic (ν σ : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     HasDerivAt (fun w => w^(-ν)*struveQuadratic ν σ w)
       (2^(-ν)/(Real.sqrt π*Gamma (ν+3/2))+σ*z^(-ν)*struveQuadratic (ν+1) σ z) z := by
   have hd := ((hasDerivAt_id z).cpow_const (c:=-ν) hz).mul (hasDerivAt_struveQuadratic ν σ hz)

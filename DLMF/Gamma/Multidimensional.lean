@@ -1201,7 +1201,7 @@ lemma dysonTerm_update {n : ℕ} (a : Fin n → ℕ) (θ : Fin n → ℝ) {j : F
 
 /-- Good's identity `∑_j ∏_{l ≠ j} (1 - z_j/z_l)⁻¹ = 1`, from Lagrange interpolation of the
 constant `1` evaluated at `0`. -/
-lemma sum_inv_dysonRow_one {n : ℕ} (hn : 0 < n) {θ : Fin n → ℝ}
+lemma sum_recip_dysonRow_one {n : ℕ} (hn : 0 < n) {θ : Fin n → ℝ}
     (hθ : ∀ j l, j ≠ l → Complex.exp (I * ((θ j - θ l : ℝ) : ℂ)) ≠ 1) :
     ∑ j, (dysonRow θ j 1)⁻¹ = 1 := by
   set v : Fin n → ℂ := fun j => Complex.exp (I * (θ j : ℂ)) with hv
@@ -1285,7 +1285,7 @@ lemma dysonInt_rec {n : ℕ} (hn : 0 < n) (a : Fin n → ℕ) (h : ∀ j, 1 ≤ 
       dysonTerm n a θ * (dysonRow θ j 1)⁻¹ := fun j => by
     rw [dysonTerm_update a θ (h j), mul_assoc, mul_inv_cancel₀ (dysonRow_ne_zero hθ j 1),
       mul_one]
-  simp only [key, ← Finset.mul_sum, sum_inv_dysonRow_one hn hθ, mul_one]
+  simp only [key, ← Finset.mul_sum, sum_recip_dysonRow_one hn hθ, mul_one]
 
 /-! ### Removing a coordinate with zero exponent -/
 

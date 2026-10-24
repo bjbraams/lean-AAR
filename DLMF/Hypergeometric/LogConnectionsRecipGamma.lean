@@ -6,22 +6,22 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.Hypergeometric.ConnectionFormulas
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 
 /-!
 # Logarithmic connection formulas without pole restrictions (DLMF 15.8.9–15.8.11)
 
 The statements `logarithmic_connection_one_sub` (15.8.10),
-`logarithmic_connection_one_div_one_sub` (15.8.9) and `logarithmic_connection_one_sub_inv`
+`logarithmic_connection_one_div_one_sub` (15.8.9) and `logarithmic_connection_one_sub_recip`
 (15.8.11) in `DLMF.Hypergeometric.ConnectionFormulas` assume nonintegrality of the parameters,
 because they contain products `ψ(x) / Γ(y)` in which Mathlib's totalized digamma would be
 evaluated at a pole. Here every such product is rewritten through the entire function
-`invGammaDeriv 1 = (1/Γ)'`, using `ψ(x+n)/Γ(x) = -(x)_n (1/Γ)'(x+n)` and
+`recipGammaDeriv 1 = (1/Γ)'`, using `ψ(x+n)/Γ(x) = -(x)_n (1/Γ)'(x+n)` and
 `ψ(x)/Γ(x) = -(1/Γ)'(x)`, and the formulas are proved for all parameters.
 
 The proofs repeat the parameter differentiation of the original ones with the everywhere-valid
-`hasDerivAt_inv_Gamma'`. The derivatives of the Pochhammer symbols are handled by the
-pole-free identities `inv_Gamma_mul_deriv_poch` and `inv_Gamma_mul_deriv_poch_one_sub`,
+`hasDerivAt_recip_Gamma'`. The derivatives of the Pochhammer symbols are handled by the
+pole-free identities `recip_Gamma_mul_deriv_poch` and `recip_Gamma_mul_deriv_poch_one_sub`,
 obtained by differentiating `(x)_n / Γ(x+n) = 1/Γ(x)` and `(1-y)_n / Γ(y) = (-1)^n / Γ(y-n)`.
 -/
 
@@ -37,24 +37,24 @@ namespace DLMF.Hypergeometric
 open DLMF.Gamma
 
 /-- `(x)_n' / Γ(x) = (x)_n ((1/Γ)'(x) - (x)_n (1/Γ)'(x+n))`, valid for every `x`. -/
-lemma inv_Gamma_mul_deriv_poch (x : ℂ) (n : ℕ) :
+lemma recip_Gamma_mul_deriv_poch (x : ℂ) (n : ℕ) :
     (Gamma x)⁻¹ * deriv (fun y => poch y n) x =
-      poch x n * (invGammaDeriv 1 x - poch x n * invGammaDeriv 1 (x + n)) := by
+      poch x n * (recipGammaDeriv 1 x - poch x n * recipGammaDeriv 1 (x + n)) := by
   have hp : HasDerivAt (fun y => poch y n) (deriv (fun y => poch y n) x) x :=
     ((Polynomial.differentiable (ascPochhammer ℂ n)) x).hasDerivAt
-  have hg := (hasDerivAt_inv_Gamma' (x + n)).comp x ((hasDerivAt_id x).add_const (n : ℂ))
+  have hg := (hasDerivAt_recip_Gamma' (x + n)).comp x ((hasDerivAt_id x).add_const (n : ℂ))
   have h := hp.mul hg
   have h' : HasDerivAt (fun y => (Gamma y)⁻¹) _ x := h.congr_of_eventuallyEq
     (Filter.Eventually.of_forall fun y => by
       simp only [Pi.mul_apply, Function.comp_apply, _root_.id]
-      exact (poch_mul_inv_Gamma_add_nat y n).symm)
-  have hu := (hasDerivAt_inv_Gamma' x).unique h'
+      exact (poch_mul_recip_Gamma_add_nat y n).symm)
+  have hu := (hasDerivAt_recip_Gamma' x).unique h'
   simp only [_root_.id, Function.comp_apply] at hu
-  rw [← poch_mul_inv_Gamma_add_nat x n]
+  rw [← poch_mul_recip_Gamma_add_nat x n]
   linear_combination (-poch x n) * hu
 
 /-- `(1-y)_n / Γ(y) = (-1)^n / Γ(y-n)`, valid for every `y`. -/
-lemma inv_Gamma_mul_poch_one_sub (y : ℂ) (n : ℕ) :
+lemma recip_Gamma_mul_poch_one_sub (y : ℂ) (n : ℕ) :
     (Gamma y)⁻¹ * poch (1 - y) n = (-1) ^ n * (Gamma (y - n))⁻¹ := by
   induction n with
   | zero => simp [poch_zero]
@@ -67,21 +67,21 @@ lemma inv_Gamma_mul_poch_one_sub (y : ℂ) (n : ℕ) :
 
 /-- `(1-y)_n' / Γ(y) = (1-y)_n (1/Γ)'(y) - (-1)^n (1/Γ)'(y-n)`, where `'` on the Pochhammer
 symbol is the derivative in its base at `1 - y`; valid for every `y`. -/
-lemma inv_Gamma_mul_deriv_poch_one_sub (y : ℂ) (n : ℕ) :
+lemma recip_Gamma_mul_deriv_poch_one_sub (y : ℂ) (n : ℕ) :
     (Gamma y)⁻¹ * deriv (fun x => poch x n) (1 - y) =
-      poch (1 - y) n * invGammaDeriv 1 y - (-1) ^ n * invGammaDeriv 1 (y - n) := by
+      poch (1 - y) n * recipGammaDeriv 1 y - (-1) ^ n * recipGammaDeriv 1 (y - n) := by
   have hp : HasDerivAt (fun x => poch x n) (deriv (fun x => poch x n) (1 - y)) (1 - y) :=
     ((Polynomial.differentiable (ascPochhammer ℂ n)) (1 - y)).hasDerivAt
   have hl : HasDerivAt (fun x : ℂ => 1 - x) (-1) y := by
     simpa using (hasDerivAt_id y).const_sub (1 : ℂ)
-  have h := (hasDerivAt_inv_Gamma' y).mul (hp.comp y hl)
-  have hr := ((hasDerivAt_inv_Gamma' (y - n)).comp y
+  have h := (hasDerivAt_recip_Gamma' y).mul (hp.comp y hl)
+  have hr := ((hasDerivAt_recip_Gamma' (y - n)).comp y
     ((hasDerivAt_id y).sub_const (n : ℂ))).const_mul
     ((-1 : ℂ) ^ n)
   have h' : HasDerivAt (fun x => (-1 : ℂ) ^ n * (Gamma (x - n))⁻¹) _ y := h.congr_of_eventuallyEq
     (Filter.Eventually.of_forall fun x => by
       simp only [Pi.mul_apply, Function.comp_apply]
-      exact (inv_Gamma_mul_poch_one_sub x n).symm)
+      exact (recip_Gamma_mul_poch_one_sub x n).symm)
   have hu := hr.unique h'
   simp only [Function.comp_apply] at hu
   linear_combination hu
@@ -90,7 +90,7 @@ lemma inv_Gamma_mul_deriv_poch_one_sub (y : ℂ) (n : ℕ) :
 `-(a)_{k+m} (1/Γ)'(a+k+m)/Γ(b)` and `-(b)_{k+m} (1/Γ)'(b+k+m)/Γ(a)`. Stronger than DLMF:
 no restriction on `a` and `b`; `logarithmic_connection_one_sub` is the digamma form. -/
 @[dlmf 15.8.E10]
-theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
+theorem logarithmic_connection_one_sub_recipGamma {a b z : ℂ} (m : ℕ)
     (hz : ‖z‖ < 1) (hw : ‖1 - z‖ < 1) :
     regularizedGaussHGFun a b (a + b + m) z =
       (1 / (Gamma (a + m) * Gamma (b + m))) *
@@ -100,8 +100,8 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
         poch (a + m) k * poch (b + m) k / ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) *
           (1 - z) ^ k * ((Gamma a * Gamma b)⁻¹ *
               (log (1 - z) - digamma (k + 1) - digamma (k + m + 1)) -
-            (Gamma b)⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) -
-            (Gamma a)⁻¹ * (poch b (k + m) * invGammaDeriv 1 (b + k + m))) := by
+            (Gamma b)⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) -
+            (Gamma a)⁻¹ * (poch b (k + m) * recipGammaDeriv 1 (b + k + m))) := by
   set w := 1 - z with hwdef
   set c₀ := a + b + m with hc₀
   set D : ℂ → ℂ := deriv (fun y : ℂ => (Gamma y)⁻¹) with hD
@@ -149,7 +149,7 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
     intro n
     have h1 : HasDerivAt (fun c : ℂ => a + b - c + 1 + n) (-1) c₀ := by
       simpa using (((hasDerivAt_id c₀).const_sub (a + b)).add_const 1).add_const (n : ℂ)
-    have h2 := ((hasDerivAt_inv_Gamma_any (a + b - c₀ + 1 + n)).comp c₀ h1).const_mul
+    have h2 := ((hasDerivAt_recip_Gamma_any (a + b - c₀ + 1 + n)).comp c₀ h1).const_mul
       (poch a n * poch b n * w ^ n / n.factorial)
     rw [show a + b - c₀ + 1 + n = 1 - m + n by rw [hc₀]; ring] at h2
     rw [show (fun c => poch ((fun _ => a) c) n * poch ((fun _ => b) c) n * w ^ n /
@@ -177,15 +177,15 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
       w ^ n / n.factorial * (Gamma ((fun c => c - a - b + 1) c + n))⁻¹) c₀ =
       (pd n (b + m) * poch (a + m) n * (Gamma (m + 1 + n))⁻¹ +
         poch (b + m) n * pd n (a + m) * (Gamma (m + 1 + n))⁻¹ +
-        poch (b + m) n * poch (a + m) n * invGammaDeriv 1 (m + 1 + n)) * w ^ n / n.factorial := by
+        poch (b + m) n * poch (a + m) n * recipGammaDeriv 1 (m + 1 + n)) * w ^ n / n.factorial := by
     intro n
     have e3 : c₀ - a - b + 1 + n = m + 1 + n := by rw [hc₀]; ring
     have hp1' : HasDerivAt (fun y => poch y n) (pd n (b + m)) (c₀ - a) := by
       rw [e1]; exact hpdd n _
     have hp2' : HasDerivAt (fun y => poch y n) (pd n (a + m)) (c₀ - b) := by
       rw [e2]; exact hpdd n _
-    have hg' : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (m + 1 + n))
-        (c₀ - a - b + 1 + n) := by rw [e3]; exact hasDerivAt_inv_Gamma' _
+    have hg' : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (m + 1 + n))
+        (c₀ - a - b + 1 + n) := by rw [e3]; exact hasDerivAt_recip_Gamma' _
     have hl1 : HasDerivAt (fun c : ℂ => c - a) 1 c₀ := (hasDerivAt_id c₀).sub_const a
     have hl2 : HasDerivAt (fun c : ℂ => c - b) 1 c₀ := (hasDerivAt_id c₀).sub_const b
     have hl3 : HasDerivAt (fun c : ℂ => c - a - b + 1 + n) 1 c₀ :=
@@ -204,13 +204,13 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
     simp only [Pi.mul_apply, Function.comp_apply, e1, e2]
     ring_nf
   -- derivative of the right side of the connection formula
-  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (invGammaDeriv 1 (b + m)) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (b + m)) (c₀ - a) := by
-      rw [e1]; exact hasDerivAt_inv_Gamma' _
+  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (recipGammaDeriv 1 (b + m)) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (b + m)) (c₀ - a) := by
+      rw [e1]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const a)
-  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (invGammaDeriv 1 (a + m)) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (a + m)) (c₀ - b) := by
-      rw [e2]; exact hasDerivAt_inv_Gamma' _
+  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (recipGammaDeriv 1 (a + m)) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (a + m)) (c₀ - b) := by
+      rw [e2]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const b)
   have hP : HasDerivAt (fun c : ℂ => w ^ (c - a - b)) (w ^ (m : ℂ) * log w * 1) c₀ := by
     have h := (((hasDerivAt_id c₀).sub_const a).sub_const b).const_cpow (c := w) (Or.inl hw0)
@@ -280,7 +280,7 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
       simp at this
       linarith [(Nat.cast_nonneg j : (0 : ℝ) ≤ j), (Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
     rw [htd, show 1 - (m : ℂ) + ((k + m : ℕ) : ℂ) = (k : ℂ) + 1 by push_cast; ring, hD,
-      deriv_inv_Gamma_eq hk1, ← hsS_shift k]
+      deriv_recip_Gamma_eq hk1, ← hsS_shift k]
     simp only [hsS, show 1 - (m : ℂ) + ((k + m : ℕ) : ℂ) = (k : ℂ) + 1 by push_cast; ring]
     ring
   have hdt_low : ∀ n : ℕ, n < m → dt n =
@@ -288,15 +288,15 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
         ((-1) ^ (m - 1 - n) * ((m - 1 - n).factorial : ℂ)) := by
     intro n hn
     simp only [hdt]
-    rw [htd, hpole n hn, hD, deriv_inv_Gamma_neg_nat]
+    rw [htd, hpole n hn, hD, deriv_recip_Gamma_neg_nat]
   have hSshift := (hasSum_nat_add_iff' m).mpr hSsum
   set G : ℂ := (Gamma (b + m))⁻¹ * (Gamma (a + m))⁻¹ with hGdef
-  set G' : ℂ := invGammaDeriv 1 (b + m) * (Gamma (a + m))⁻¹ +
-    (Gamma (b + m))⁻¹ * invGammaDeriv 1 (a + m) with hG'def
+  set G' : ℂ := recipGammaDeriv 1 (b + m) * (Gamma (a + m))⁻¹ +
+    (Gamma (b + m))⁻¹ * recipGammaDeriv 1 (a + m) with hG'def
   set K : ℂ := (Gamma a * Gamma b)⁻¹ with hK
   set t : ℕ → ℂ := fun k => q k * (K * (log w - digamma (k + 1) - digamma (m + 1 + k)) -
-    (Gamma b)⁻¹ * (poch a m * poch (a + m) k * invGammaDeriv 1 (a + m + k)) -
-    (Gamma a)⁻¹ * (poch b m * poch (b + m) k * invGammaDeriv 1 (b + m + k))) with ht
+    (Gamma b)⁻¹ * (poch a m * poch (a + m) k * recipGammaDeriv 1 (a + m + k)) -
+    (Gamma a)⁻¹ * (poch b m * poch (b + m) k * recipGammaDeriv 1 (b + m + k))) with ht
   have hEsum : HasSum (fun k => w ^ m * t k)
       ((K * w ^ m * log w - P * G' * w ^ m) * Q c₀ + K * w ^ m * deriv Q c₀ -
         G * (deriv S c₀ - ∑ i ∈ Finset.range m, dt i)) := by
@@ -305,13 +305,13 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
     convert h using 1
     funext k
     rw [hqd k, hdt_shift k]
-    have F1 : (Gamma (a + m))⁻¹ * pd k (a + m) = poch (a + m) k * (invGammaDeriv 1 (a + m) -
-        poch (a + m) k * invGammaDeriv 1 (a + m + k)) := inv_Gamma_mul_deriv_poch (a + m) k
-    have F2 : (Gamma (b + m))⁻¹ * pd k (b + m) = poch (b + m) k * (invGammaDeriv 1 (b + m) -
-        poch (b + m) k * invGammaDeriv 1 (b + m + k)) := inv_Gamma_mul_deriv_poch (b + m) k
-    have F3 := poch_mul_inv_Gamma_add_nat a m
-    have F4 := poch_mul_inv_Gamma_add_nat b m
-    have F7 := invGammaDeriv_one_eq (hmn k)
+    have F1 : (Gamma (a + m))⁻¹ * pd k (a + m) = poch (a + m) k * (recipGammaDeriv 1 (a + m) -
+        poch (a + m) k * recipGammaDeriv 1 (a + m + k)) := recip_Gamma_mul_deriv_poch (a + m) k
+    have F2 : (Gamma (b + m))⁻¹ * pd k (b + m) = poch (b + m) k * (recipGammaDeriv 1 (b + m) -
+        poch (b + m) k * recipGammaDeriv 1 (b + m + k)) := recip_Gamma_mul_deriv_poch (b + m) k
+    have F3 := poch_mul_recip_Gamma_add_nat a m
+    have F4 := poch_mul_recip_Gamma_add_nat b m
+    have F7 := recipGammaDeriv_one_eq (hmn k)
     simp only [ht, hK, hG'def, hGdef, hPdef, hq, mul_inv, F7]
     rw [← F3, ← F4]
     linear_combination (-w ^ m * (Gamma (a + m))⁻¹ *
@@ -324,8 +324,8 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
   have htsum : (∑' k : ℕ, poch (a + m) k * poch (b + m) k /
       ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) * w ^ k * ((Gamma a * Gamma b)⁻¹ *
         (log w - digamma (k + 1) - digamma (k + m + 1)) -
-      (Gamma b)⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) -
-      (Gamma a)⁻¹ * (poch b (k + m) * invGammaDeriv 1 (b + k + m)))) = ∑' k : ℕ, t k := by
+      (Gamma b)⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) -
+      (Gamma a)⁻¹ * (poch b (k + m) * recipGammaDeriv 1 (b + k + m)))) = ∑' k : ℕ, t k := by
     refine tsum_congr fun k => ?_
     simp only [ht, hq, hGk, hK]
     rw [show (k : ℂ) + m + 1 = m + 1 + k by ring, show a + k + m = a + m + k by ring,
@@ -358,7 +358,7 @@ theorem logarithmic_connection_one_sub_invGamma {a b z : ℂ} (m : ℕ)
 `-(a)_{k+m} (1/Γ)'(a+k+m)` and `-(c-a-m)_{k+m} (1/Γ)'(c-a+k)`. Stronger than DLMF: no
 restriction on `a` and `c`; `logarithmic_connection_one_div_one_sub` is the digamma form. -/
 @[dlmf 15.8.E9]
-theorem logarithmic_connection_one_div_one_sub_invGamma {a c z : ℂ} (m : ℕ)
+theorem logarithmic_connection_one_div_one_sub_recipGamma {a c z : ℂ} (m : ℕ)
     (hz : ‖z‖ < 1) (hw : 1 < ‖1 - z‖) :
     regularizedGaussHGFun a (a + m) c z =
       (1 - z) ^ (-a) / (Gamma (a + m) * Gamma (c - a)) *
@@ -369,8 +369,8 @@ theorem logarithmic_connection_one_div_one_sub_invGamma {a c z : ℂ} (m : ℕ)
           ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) * ((1 - z)⁻¹) ^ k *
           ((Gamma a * Gamma (c - a - m))⁻¹ *
               (log (1 - z) + digamma (k + 1) + digamma (k + m + 1)) +
-            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) +
-            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * invGammaDeriv 1 (c - a + k))) := by
+            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) +
+            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * recipGammaDeriv 1 (c - a + k))) := by
   have h1z : 1 - z ≠ 0 := by
     intro h; rw [h, norm_zero] at hw; linarith
   have hz1 : z - 1 ≠ 0 := by intro h; apply h1z; linear_combination -h
@@ -383,10 +383,10 @@ theorem logarithmic_connection_one_div_one_sub_invGamma {a c z : ℂ} (m : ℕ)
     rw [h1ζ, norm_inv]; exact inv_lt_one_of_one_lt₀ hw
   have hp := regularized_pfaff a (a + m) c hz (by rwa [show z / (z - 1) = z / (z - 1) from rfl])
   rw [hp, show c - (a + m) = c - a - m by ring]
-  have hE := logarithmic_connection_one_sub_invGamma (a := a) (b := c - a - m) (z := z / (z - 1))
+  have hE := logarithmic_connection_one_sub_recipGamma (a := a) (b := c - a - m) (z := z / (z - 1))
     m hζ h1ζn
   rw [show a + (c - a - m) + m = c by ring, h1ζ, hζ1, show c - a - m + m = c - a by ring] at hE
-  have hdig : ∀ k : ℕ, invGammaDeriv 1 (c - a - m + k + m) = invGammaDeriv 1 (c - a + k) :=
+  have hdig : ∀ k : ℕ, recipGammaDeriv 1 (c - a - m + k + m) = recipGammaDeriv 1 (c - a + k) :=
     fun k => by congr 1; ring
   simp only [hdig] at hE
   rw [hE]
@@ -408,22 +408,22 @@ theorem logarithmic_connection_one_div_one_sub_invGamma {a c z : ℂ} (m : ℕ)
           ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) * ((1 - z)⁻¹) ^ k *
           ((Gamma a * Gamma (c - a - m))⁻¹ *
               (log (1 - z) + digamma (k + 1) + digamma (k + m + 1)) +
-            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) +
-            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * invGammaDeriv 1 (c - a + k)))) =
+            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) +
+            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * recipGammaDeriv 1 (c - a + k)))) =
       -∑' k : ℕ, poch (a + m) k * poch (c - a) k /
           ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) * ((1 - z)⁻¹) ^ k *
           ((Gamma a * Gamma (c - a - m))⁻¹ *
               (-log (1 - z) - digamma (k + 1) - digamma (k + m + 1)) -
-            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) -
-            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * invGammaDeriv 1 (c - a + k))) by
+            (Gamma (c - a - m))⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) -
+            (Gamma a)⁻¹ * (poch (c - a - m) (k + m) * recipGammaDeriv 1 (c - a + k))) by
     rw [← tsum_neg]; exact tsum_congr fun k => by ring]
   ring
 
 /-- DLMF 15.8.11 with `ψ(a+k+m)/Γ(a)` written as `-(a)_{k+m} (1/Γ)'(a+k+m)` and
 `ψ(b-k)/Γ(b-k)` as `-(1/Γ)'(b-k)`. Stronger than DLMF: no restriction on `a` and `b`;
-`logarithmic_connection_one_sub_inv` is the digamma form. -/
+`logarithmic_connection_one_sub_recip` is the digamma form. -/
 @[dlmf 15.8.E11]
-theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
+theorem logarithmic_connection_one_sub_recip_recipGamma {a b z : ℂ} (m : ℕ)
     (hz : ‖z‖ < 1) (hw : ‖1 - 1 / z‖ < 1) :
     regularizedGaussHGFun a b (a + b + m) z =
       z ^ (-a) / Gamma (a + m) *
@@ -434,8 +434,8 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
           (-1 : ℂ) ^ k * (1 - 1 / z) ^ (k + m) *
           ((Gamma a)⁻¹ * (Gamma (b - k))⁻¹ *
               (log ((1 - z) / z) - digamma (k + 1) - digamma (k + m + 1)) -
-            (Gamma (b - k))⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) -
-            (Gamma a)⁻¹ * invGammaDeriv 1 (b - k)) := by
+            (Gamma (b - k))⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) -
+            (Gamma a)⁻¹ * recipGammaDeriv 1 (b - k)) := by
   set c₀ := a + b + m with hc₀
   set D : ℂ → ℂ := deriv (fun y : ℂ => (Gamma y)⁻¹) with hD
   set pd : ℕ → ℂ → ℂ := fun n => deriv (fun y => poch y n) with hpd
@@ -451,7 +451,7 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
         (Gamma a * Gamma b)⁻¹ * z ^ (-a) * (((1 - z) / z) ^ (c - a - b) *
           regularizedGaussHGFun (c - b) (1 - b) (c - a - b + 1) (1 - 1 / z)) := by
     intro c
-    rw [regularized_connection_one_sub_inv' a b c hz hw]
+    rw [regularized_connection_one_sub_recip' a b c hz hw]
     generalize (1 - 1 / z) = v
     simp only [div_eq_mul_inv, mul_inv]
     ring
@@ -490,7 +490,7 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
       simpa using ((hasDerivAt_id c₀).const_sub a).add_const (1 : ℂ)
     have hl2 : HasDerivAt (fun c : ℂ => a + b - c + 1 + n) (-1) c₀ := by
       simpa using (((hasDerivAt_id c₀).const_sub (a + b)).add_const 1).add_const (n : ℂ)
-    have hg := (hasDerivAt_inv_Gamma_any (a + b - c₀ + 1 + n)).comp c₀ hl2
+    have hg := (hasDerivAt_recip_Gamma_any (a + b - c₀ + 1 + n)).comp c₀ hl2
     have h := ((((hp'.comp c₀ hl1).const_mul (poch a n)).mul_const (v ^ n)).div_const
       (n.factorial : ℂ)).mul hg
     have h' : HasDerivAt (fun c => poch a n * ((fun y => poch y n) ∘ fun c : ℂ => a - c + 1) c *
@@ -521,14 +521,14 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
   have e2 : c₀ - b = a + m := by rw [hc₀]; ring
   have hqd : ∀ n : ℕ, deriv (fun c => poch ((fun c => c - b) c) n * poch ((fun _ => 1 - b) c) n *
       v ^ n / n.factorial * (Gamma ((fun c => c - a - b + 1) c + n))⁻¹) c₀ =
-      (pd n (a + m) * (Gamma (m + 1 + n))⁻¹ + poch (a + m) n * invGammaDeriv 1 (m + 1 + n)) *
+      (pd n (a + m) * (Gamma (m + 1 + n))⁻¹ + poch (a + m) n * recipGammaDeriv 1 (m + 1 + n)) *
         poch (1 - b) n * v ^ n / n.factorial := by
     intro n
     have e3 : c₀ - a - b + 1 + n = m + 1 + n := by rw [hc₀]; ring
     have hp' : HasDerivAt (fun y => poch y n) (pd n (a + m)) (c₀ - b) := by
       rw [e2]; exact hpdd n _
-    have hg' : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (m + 1 + n))
-        (c₀ - a - b + 1 + n) := by rw [e3]; exact hasDerivAt_inv_Gamma' _
+    have hg' : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (m + 1 + n))
+        (c₀ - a - b + 1 + n) := by rw [e3]; exact hasDerivAt_recip_Gamma' _
     have hl1 : HasDerivAt (fun c : ℂ => c - b) 1 c₀ := (hasDerivAt_id c₀).sub_const b
     have hl3 : HasDerivAt (fun c : ℂ => c - a - b + 1 + n) 1 c₀ :=
       ((((hasDerivAt_id c₀).sub_const a).sub_const b).add_const 1).add_const _
@@ -544,13 +544,13 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
     simp only [Function.comp_apply, e2, e3]
     ring_nf
   -- derivative of the right side
-  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (invGammaDeriv 1 (b + m)) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (b + m)) (c₀ - a) := by
-      rw [e1]; exact hasDerivAt_inv_Gamma' _
+  have hG1 : HasDerivAt (fun c : ℂ => (Gamma (c - a))⁻¹) (recipGammaDeriv 1 (b + m)) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (b + m)) (c₀ - a) := by
+      rw [e1]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const a)
-  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (invGammaDeriv 1 (a + m)) c₀ := by
-    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (invGammaDeriv 1 (a + m)) (c₀ - b) := by
-      rw [e2]; exact hasDerivAt_inv_Gamma' _
+  have hG2 : HasDerivAt (fun c : ℂ => (Gamma (c - b))⁻¹) (recipGammaDeriv 1 (a + m)) c₀ := by
+    have h1 : HasDerivAt (fun y => (Gamma y)⁻¹) (recipGammaDeriv 1 (a + m)) (c₀ - b) := by
+      rw [e2]; exact hasDerivAt_recip_Gamma' _
     simpa [Function.comp_def] using h1.comp c₀ ((hasDerivAt_id c₀).sub_const b)
   have hU : HasDerivAt (fun c : ℂ => ((1 - z) / z) ^ (c - a - b))
       (((1 - z) / z) ^ (m : ℂ) * log ((1 - z) / z) * 1) c₀ := by
@@ -623,27 +623,27 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
       linarith [(Nat.cast_nonneg j : (0 : ℝ) ≤ j), (Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
     simp only [hdt]
     rw [htd, show 1 - (m : ℂ) + ((k + m : ℕ) : ℂ) = (k : ℂ) + 1 by push_cast; ring, hD,
-      deriv_inv_Gamma_eq hk1, Gamma_nat_eq_factorial]
+      deriv_recip_Gamma_eq hk1, Gamma_nat_eq_factorial]
     ring
   have hdt_low : ∀ n : ℕ, n < m → dt n =
       -(poch a n * v ^ n / n.factorial) * (poch β n * ((-1) ^ (m - 1 - n) *
         ((m - 1 - n).factorial : ℂ))) := by
     intro n hn
     simp only [hdt]
-    rw [htd, hpole n hn, hD, deriv_inv_Gamma_neg_nat, Gamma_neg_nat_eq_zero, inv_zero]
+    rw [htd, hpole n hn, hD, deriv_recip_Gamma_neg_nat, Gamma_neg_nat_eq_zero, inv_zero]
     ring
   have hSshift := (hasSum_nat_add_iff' m).mpr hSsum
   set L := log ((1 - z) / z) with hLdef
   set σ : ℂ := (-1) ^ m with hσdef
   set G : ℂ := (Gamma (b + m))⁻¹ * (Gamma (a + m))⁻¹ with hGdef
-  set G' : ℂ := invGammaDeriv 1 (b + m) * (Gamma (a + m))⁻¹ +
-    (Gamma (b + m))⁻¹ * invGammaDeriv 1 (a + m) with hG'def
+  set G' : ℂ := recipGammaDeriv 1 (b + m) * (Gamma (a + m))⁻¹ +
+    (Gamma (b + m))⁻¹ * recipGammaDeriv 1 (a + m) with hG'def
   set K : ℂ := (Gamma a * Gamma b)⁻¹ with hK
   set t : ℕ → ℂ := fun k => poch (a + m) k / ((k.factorial : ℂ) * ((k + m).factorial : ℂ)) *
           (-1 : ℂ) ^ k * v ^ (k + m) *
           ((Gamma a)⁻¹ * (Gamma (b - k))⁻¹ * (L - digamma (k + 1) - digamma (k + m + 1)) -
-            (Gamma (b - k))⁻¹ * (poch a (k + m) * invGammaDeriv 1 (a + k + m)) -
-            (Gamma a)⁻¹ * invGammaDeriv 1 (b - k)) with ht
+            (Gamma (b - k))⁻¹ * (poch a (k + m) * recipGammaDeriv 1 (a + k + m)) -
+            (Gamma a)⁻¹ * recipGammaDeriv 1 (b - k)) with ht
   have hEsum : HasSum (fun k => σ * t k)
       ((σ * K * v ^ m * L - P * G' * v ^ m) * Q c₀ + σ * K * v ^ m * deriv Q c₀ -
         G * (deriv S c₀ - ∑ i ∈ Finset.range m, dt i)) := by
@@ -652,19 +652,19 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
     convert h using 1
     funext k
     rw [hqd k, hdt_shift k]
-    have F1 : (Gamma (a + m))⁻¹ * pd k (a + m) = poch (a + m) k * (invGammaDeriv 1 (a + m) -
-        poch (a + m) k * invGammaDeriv 1 (a + m + k)) := inv_Gamma_mul_deriv_poch (a + m) k
-    have J : (Gamma (b + m))⁻¹ * pd (k + m) β = poch β (k + m) * invGammaDeriv 1 (b + m) -
-        (-1) ^ (k + m) * invGammaDeriv 1 (b - k) := by
-      have := inv_Gamma_mul_deriv_poch_one_sub (b + m) (k + m)
+    have F1 : (Gamma (a + m))⁻¹ * pd k (a + m) = poch (a + m) k * (recipGammaDeriv 1 (a + m) -
+        poch (a + m) k * recipGammaDeriv 1 (a + m + k)) := recip_Gamma_mul_deriv_poch (a + m) k
+    have J : (Gamma (b + m))⁻¹ * pd (k + m) β = poch β (k + m) * recipGammaDeriv 1 (b + m) -
+        (-1) ^ (k + m) * recipGammaDeriv 1 (b - k) := by
+      have := recip_Gamma_mul_deriv_poch_one_sub (b + m) (k + m)
       rwa [show b + m - ((k + m : ℕ) : ℂ) = b - k by push_cast; ring] at this
     have I1k : (Gamma b)⁻¹ * poch (1 - b) k = (-1) ^ k * (Gamma (b - k))⁻¹ :=
-      inv_Gamma_mul_poch_one_sub b k
+      recip_Gamma_mul_poch_one_sub b k
     have I2 : (Gamma (b + m))⁻¹ * poch β m = σ * (Gamma b)⁻¹ := by
-      have := inv_Gamma_mul_poch_one_sub (b + m) m
+      have := recip_Gamma_mul_poch_one_sub (b + m) m
       rwa [show b + m - (m : ℂ) = b by ring] at this
-    have F3 := poch_mul_inv_Gamma_add_nat a m
-    have F7 := invGammaDeriv_one_eq (hmn k)
+    have F3 := poch_mul_recip_Gamma_add_nat a m
+    have F7 := recipGammaDeriv_one_eq (hmn k)
     have hpa : poch a (k + m) = poch a m * poch (a + m) k := by rw [add_comm, poch_add]
     have hpβ : poch β (k + m) = poch β m * poch (1 - b) k := by rw [add_comm, poch_add, hβm]
     rw [hpβ] at J
@@ -678,9 +678,9 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
       (-(Gamma (a + m))⁻¹ * poch a m * poch (a + m) k * v ^ m * X) * J +
       ((Gamma (a + m))⁻¹ * poch a m * poch (a + m) k * v ^ m * X * poch (1 - b) k *
           digamma (k + 1) +
-        poch a m * invGammaDeriv 1 (a + m) * poch (a + m) k * poch (1 - b) k * X * v ^ m) * I2 +
+        poch a m * recipGammaDeriv 1 (a + m) * poch (a + m) k * poch (1 - b) k * X * v ^ m) * I2 +
       (σ * (Gamma (a + m))⁻¹ * poch a m * poch (a + m) k * v ^ m * X * digamma (k + 1) +
-        σ * poch a m * invGammaDeriv 1 (a + m) * poch (a + m) k * X * v ^ m -
+        σ * poch a m * recipGammaDeriv 1 (a + m) * poch (a + m) k * X * v ^ m -
         σ * poch a m * (Gamma (a + m))⁻¹ * v ^ m * X * (L * poch (a + m) k + pd k (a + m) -
           poch (a + m) k * digamma (m + 1 + k))) * I1k +
       (-σ * poch a m * (-1) ^ k * (Gamma (b - k))⁻¹ * v ^ m * X) * F1
@@ -697,7 +697,7 @@ theorem logarithmic_connection_one_sub_inv_invGamma {a b z : ℂ} (m : ℕ)
     rw [Finset.mul_sum]
     refine Finset.sum_congr rfl fun k hk => ?_
     rw [Finset.mem_range] at hk
-    have I := inv_Gamma_mul_poch_one_sub (b + m) k
+    have I := recip_Gamma_mul_poch_one_sub (b + m) k
     rw [← hβ] at I
     rw [hdt_low k hk, show m - 1 - k = m - k - 1 by omega]
     obtain ⟨j, hj⟩ : ∃ j, m = k + 1 + j := ⟨m - k - 1, by omega⟩

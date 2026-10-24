@@ -293,7 +293,7 @@ theorem hasSum_arcsin_sq {x : ℝ} (hx : |x| < 1) :
 
 /-- **`π² = 18 ∑_{n≥1} 1/(n² C(2n,n))`** (Duverney Ex. 4.6), the case `x = 1/2` of
 `hasSum_arcsin_sq`. -/
-theorem hasSum_inv_sq_mul_centralBinom :
+theorem hasSum_recip_sq_mul_centralBinom :
     HasSum (fun n : ℕ => 1 / ((n : ℝ) ^ 2 * (2 * n).choose n)) (π ^ 2 / 18) := by
   have h := hasSum_arcsin_sq (x := 1 / 2) (by rw [abs_of_pos (by norm_num)]; norm_num)
   have harc : Real.arcsin (1 / 2) = π / 6 := by

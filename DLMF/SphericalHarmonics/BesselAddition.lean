@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Tactic.CrossRefAttribute
 public import DLMF.OrthogonalPolynomials.Series
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 
 /-!
 # Gegenbauer's addition theorem for Bessel functions (DLMF 10.23.8)
@@ -83,7 +83,7 @@ lemma shBes_hasSum_series (c w : ℂ) :
   ring
 
 /-- `‖Γ(c + N)⁻¹‖ ≤ ‖Γ(c)⁻¹‖ / N!` for `1 ≤ Re c`. -/
-lemma shBes_norm_inv_Gamma_add_nat {c : ℂ} (hc : 1 ≤ c.re) (N : ℕ) :
+lemma shBes_norm_recip_Gamma_add_nat {c : ℂ} (hc : 1 ≤ c.re) (N : ℕ) :
     ‖(Gamma (c + N))⁻¹‖ ≤ ‖(Gamma c)⁻¹‖ / N ! := by
   induction N with
   | zero => simp
@@ -143,7 +143,7 @@ lemma shBes_norm_F_le {c : ℂ} (hc : 1 ≤ c.re) (k : ℕ) (s : ℂ) :
   rw [show ‖(Gamma c)⁻¹‖ * (∑' m : ℕ, ‖s‖ ^ m / m !) / (k ! : ℝ) =
     ‖(Gamma c)⁻¹‖ / (k ! : ℝ) * ∑' m : ℕ, ‖s‖ ^ m / (m ! : ℝ) by ring]
   refine hs.norm_le_of_bounded hE fun m => ?_
-  have hG := shBes_norm_inv_Gamma_add_nat hc (k + m)
+  have hG := shBes_norm_recip_Gamma_add_nat hc (k + m)
   have hfac : ((k ! : ℝ) * m !) ≤ (k + m) ! := by
     exact_mod_cast Nat.le_of_dvd (Nat.factorial_pos _)
       (Nat.factorial_mul_factorial_dvd_factorial_add k m)
@@ -269,7 +269,7 @@ lemma shBes_hasSum_product {c : ℂ} (hc : 1 ≤ c.re) (x y : ℂ) :
     have hv := Real.summable_pow_div_factorial (‖y‖)
     have huv := (hu.mul_of_nonneg hv (fun _ => by positivity) (fun _ => by positivity)).mul_left K
     refine Summable.of_norm_bounded huv fun p => ?_
-    have h1 := shBes_norm_inv_Gamma_add_nat hc p.1
+    have h1 := shBes_norm_recip_Gamma_add_nat hc p.1
     have h2 := shBes_norm_F_le hc (2 * p.1 + p.2) x
     have hf1 : (1 : ℝ) ≤ p.1 ! := by
       exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.factorial_ne_zero _)
@@ -504,7 +504,7 @@ theorem besselJ_addition {ν : ℂ} {r rho phi : ℝ} (hν : 0 < ν.re)
     have hp : poch (ν + 1) (n + l) ≠ 0 := poch_ne_zero_of_re_pos (by simp; linarith) _
     have hg : Gamma ν ≠ 0 := Gamma_ne_zero_of_re_pos hν
     have hpg : ν⁻¹ * (poch (ν + 1) (n + l))⁻¹ = Gamma ν * (Gamma (ν + 1 + n + l))⁻¹ := by
-      have h1 := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (ν + 1) (n + l)
+      have h1 := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (ν + 1) (n + l)
       rw [Gamma_add_one ν hν0] at h1
       push_cast at h1
       rw [← add_assoc] at h1

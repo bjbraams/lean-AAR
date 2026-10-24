@@ -184,6 +184,7 @@ lemma multipliable_one_sub_mul_pow {w q : ℂ} (hq : ‖q‖ < 1) :
       (by simpa only [norm_neg, norm_mul, norm_pow] using
         (summable_geometric_of_lt_one (norm_nonneg q) hq).mul_left ‖w‖)
 
+@[dlmf 17.2.iii "exact: finite shifted factorials tend to the infinite product, |q|<1"]
 lemma tendsto_qPochhammer {w q : ℂ} (hq : ‖q‖ < 1) :
     Tendsto (fun n : ℕ => qPochhammer w q n) atTop (𝓝 (qPochhammerInf w q)) := by
   simpa only [qPochhammer_eq_prod, qPochhammerInf] using
@@ -267,7 +268,7 @@ lemma summable_q_binomial_series {a q z : ℂ} (hq : ‖q‖ < 1) (hz : ‖z‖ 
 
 /-- The `q`-binomial theorem (AAR §10.2, Heine):
 `(az;q)_∞ / (z;q)_∞ = ∑ (a;q)_n z^n / (q;q)_n` for `|z| < 1` and `|q| < 1`. -/
-@[dlmf 17.2.E37]
+@[dlmf 17.2.E37, dlmf 17.5.E2 "exact: one-phi-zero in |z|<1; local general-notation adapter proved"]
 theorem q_binomial_theorem {a q z : ℂ} (hq : ‖q‖ < 1) (hz : ‖z‖ < 1) :
     qPochhammerInf (a * z) q / qPochhammerInf z q =
       ∑' n : ℕ, qPochhammer a q n / qPochhammer q q n * z ^ n := by

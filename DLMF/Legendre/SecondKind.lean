@@ -27,7 +27,7 @@ noncomputable section
 namespace DLMF.Legendre
 
 /-- For `z ∉ (-∞, 1]`, `1/z²` lies in the cut plane. -/
-lemma inv_sq_mem_cutPlane {z : ℂ} (hz : z - 1 ∈ slitPlane) : 1 / z ^ 2 ∈ cutPlane := by
+lemma recip_sq_mem_cutPlane {z : ℂ} (hz : z - 1 ∈ slitPlane) : 1 / z ^ 2 ∈ cutPlane := by
   rw [mem_cutPlane, mem_slitPlane_iff]
   rw [mem_slitPlane_iff] at hz
   by_contra h
@@ -75,13 +75,13 @@ lemma isOpen_sub_one_mem_slitPlane : IsOpen {z : ℂ | z - 1 ∈ slitPlane} :=
   isOpen_slitPlane.preimage (by fun_prop)
 
 /-- Chain rule for `z ↦ z^p 𝐅(a,b;c;1/z²)`. -/
-lemma hasDerivAt_cpow_mul_regularizedGaussHG_inv_sq (a b c p : ℂ) {z : ℂ} (hz : z - 1 ∈ slitPlane) :
+lemma hasDerivAt_cpow_mul_regularizedGaussHG_recip_sq (a b c p : ℂ) {z : ℂ} (hz : z - 1 ∈ slitPlane) :
     HasDerivAt (fun z => z ^ p * regularizedGaussHG a b c (1 / z ^ 2))
       (p * z ^ (p - 1) * regularizedGaussHG a b c (1 / z ^ 2) -
         2 * z ^ (p - 3) * (a * b * regularizedGaussHG (a + 1) (b + 1) (c + 1) (1 / z ^ 2))) z := by
   have hs := mem_slitPlane_of_sub_one hz
   have hz0 := slitPlane_ne_zero hs
-  have hu := inv_sq_mem_cutPlane hz
+  have hu := recip_sq_mem_cutPlane hz
   have hG := (differentiableAt_regularizedGaussHG a b c hu).hasDerivAt
   rw [deriv_regularizedGaussHG _ _ _ hu] at hG
   have hinv : HasDerivAt (fun z : ℂ => 1 / z ^ 2) (-2 / z ^ 3) z := by
@@ -125,14 +125,14 @@ theorem legendreQ_ode (ν : ℂ) {z : ℂ}
   have hd (w : ℂ) (hw : w - 1 ∈ slitPlane) : HasDerivAt (legendreQ ν)
       (K * (p * w ^ (p - 1) * regularizedGaussHG a b c (1 / w ^ 2) -
         2 * w ^ (p - 3) * (a * b * regularizedGaussHG (a + 1) (b + 1) (c + 1) (1 / w ^ 2)))) w :=
-    (hasDerivAt_cpow_mul_regularizedGaussHG_inv_sq a b c p hw).const_mul K
+    (hasDerivAt_cpow_mul_regularizedGaussHG_recip_sq a b c p hw).const_mul K
   have hev : deriv (legendreQ ν) =ᶠ[𝓝 z] fun w =>
       K * (p * (w ^ (p - 1) * regularizedGaussHG a b c (1 / w ^ 2)) -
         2 * (a * b) * (w ^ (p - 3) * regularizedGaussHG (a + 1) (b + 1) (c + 1) (1 / w ^ 2))) := by
     filter_upwards [isOpen_sub_one_mem_slitPlane.mem_nhds hz] with w hw
     rw [(hd w hw).deriv]; ring
-  have h2 := (((hasDerivAt_cpow_mul_regularizedGaussHG_inv_sq a b c (p - 1) hz).const_mul p).sub
-    ((hasDerivAt_cpow_mul_regularizedGaussHG_inv_sq (a + 1) (b + 1) (c + 1) (p - 3) hz).const_mul
+  have h2 := (((hasDerivAt_cpow_mul_regularizedGaussHG_recip_sq a b c (p - 1) hz).const_mul p).sub
+    ((hasDerivAt_cpow_mul_regularizedGaussHG_recip_sq (a + 1) (b + 1) (c + 1) (p - 3) hz).const_mul
       (2 * (a * b)))).const_mul K
   have h2' : HasDerivAt (fun w =>
       K * (p * (w ^ (p - 1) * regularizedGaussHG a b c (1 / w ^ 2)) -
@@ -140,7 +140,7 @@ theorem legendreQ_ode (ν : ℂ) {z : ℂ}
             := h2
   have hQ : legendreQ ν z = K * (z ^ p * regularizedGaussHG a b c (1 / z ^ 2)) := rfl
   rw [iteratedDeriv_succ, iteratedDeriv_one, hev.deriv_eq, h2'.deriv, (hd z hz).deriv, hQ]
-  have hode := regularizedGaussHG_ode a b c (inv_sq_mem_cutPlane hz)
+  have hode := regularizedGaussHG_ode a b c (recip_sq_mem_cutPlane hz)
   have hpow (k : ℕ) : z ^ (p - k) = z ^ p / z ^ k := by
     rw [cpow_sub _ _ hz0, cpow_natCast]
   rw [show p - 1 - 1 = p - (2 : ℕ) by push_cast; ring,
@@ -162,7 +162,7 @@ theorem legendreQ_ode (ν : ℂ) {z : ℂ}
   linear_combination (-4 * K * Zp) * hode
 
 /-- `w ∈ slitPlane → w⁻¹ ∈ slitPlane`. -/
-lemma inv_mem_slitPlane' {w : ℂ} (hw : w ∈ slitPlane) : w⁻¹ ∈ slitPlane := by
+lemma recip_mem_slitPlane' {w : ℂ} (hw : w ∈ slitPlane) : w⁻¹ ∈ slitPlane := by
   have hn : 0 < normSq w := normSq_pos.mpr (slitPlane_ne_zero hw)
   rw [mem_slitPlane_iff] at hw ⊢
   rcases hw with h | h
@@ -172,7 +172,7 @@ lemma inv_mem_slitPlane' {w : ℂ} (hw : w ∈ slitPlane) : w⁻¹ ∈ slitPlane
 /-- For `z ∉ (-∞, 1]`, `(z+1)/(z-1)` lies in the slit plane. -/
 lemma div_mem_slitPlane {z : ℂ} (hz : z - 1 ∈ slitPlane) : (z + 1) / (z - 1) ∈ slitPlane := by
   have hz1 : z - 1 ≠ 0 := slitPlane_ne_zero hz
-  have hi := inv_mem_slitPlane' hz
+  have hi := recip_mem_slitPlane' hz
   rw [show (z + 1) / (z - 1) = 1 + 2 * (z - 1)⁻¹ by field_simp; ring]
   rw [mem_slitPlane_iff] at hi ⊢
   rcases hi with h | h
@@ -194,7 +194,7 @@ lemma analyticAt_legendreQ (ν : ℂ) {z : ℂ} (hz : z - 1 ∈ slitPlane) :
     AnalyticAt ℂ (legendreQ ν) z := by
   have hs := mem_slitPlane_of_sub_one hz
   have hz0 := slitPlane_ne_zero hs
-  have hu := inv_sq_mem_cutPlane hz
+  have hu := recip_sq_mem_cutPlane hz
   have hG : AnalyticAt ℂ (fun w : ℂ => regularizedGaussHG ((ν + 2) / 2) ((ν + 1) / 2) (ν + 3 / 2)
       (1 / w ^ 2)) z :=
     (analyticAt_regularizedGaussHG _ _ _ hu).comp_of_eq

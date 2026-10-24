@@ -74,7 +74,7 @@ Targets and proof routes follow D. Duverney, *An Introduction to Hypergeometric 
     `integral_tsum_of_summable_integral_norm`, `integral_image_eq_integral_abs_deriv_smul`.
   * Derivatives and series: `Complex.hasSum_deriv_of_summable_norm`,
     `tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm`, `Finset.sum_antidiagonal_choose_succ_mul`.
-* Project: Polygamma, Digamma and `deriv_inv_Gamma_neg_nat`; the `₂F₁` contiguous, Euler and
+* Project: Polygamma, Digamma and `deriv_recip_Gamma_neg_nat`; the `₂F₁` contiguous, Euler and
   quadratic transformations; `q_binomial_theorem` and `heine_transformation`; the Jacobi/AGM API;
   and the Bessel order-continuity and Wronskian lemmas.
 * The `linear_combination` multipliers for the Jacobi addition formulas and Clausen's formula were
@@ -160,7 +160,7 @@ TauCeti's `TauCeti.ofReal_lowerIncompleteGamma_eq_partialGamma`
 (`TauCeti.Analysis.SpecialFunctions.IncompleteGamma`), and `Si(x) → π/2` is TauCeti's
 `TauCeti.Contour.tendsto_integral_sinc_atTop`
 (`TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral`). Euler's constant enters
-`E₁` through the project's `DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add`.
+`E₁` through the project's `DLMF.Gamma.eulerMascheroni_eq_integral_recip_one_add`.
 
 ## Further local proofs (2026-10-08)
 
@@ -520,7 +520,7 @@ numerator parameters.
 The Mellin transforms in [Integrals.lean](DLMF/Confluent/Integrals.lean) follow
 DLMF 13.10.5 and 13.23.3. The new
 [regularized boundary summation](DLMF/Hypergeometric/Boundary.lean) uses the
-project's proved Gauss summation and inverse Gamma recurrence. The Gamma-moment
+project's proved Gauss summation and reciprocal Gamma recurrence. The Gamma-moment
 majorant reuses the local proved Gamma-ratio asymptotics and Mathlib's summable
 integral-norm theorem, real Gamma integral and finite-prefix series API.
 
@@ -573,7 +573,7 @@ project's proved Gauss parameter-differentiation argument in
 [ConnectionFormulas.lean](DLMF/Hypergeometric/ConnectionFormulas.lean), using the
 confluent majorant from [Regularized.lean](DLMF/Confluent/Regularized.lean).
 It reuses Mathlib's `hasSum_deriv_of_summable_norm` and the local proved
-inverse-Gamma and Pochhammer derivative formulas, including inverse-Gamma
+reciprocal-Gamma and Pochhammer derivative formulas, including reciprocal-Gamma
 zeros. [LogSeries.lean](DLMF/Confluent/LogSeries.lean) uses Mathlib's scalar
 formal power series, convergence radius and analyticity APIs. The remainder
 proofs use Mathlib's derivative-to-Big-O and complex logarithm norm estimates;
@@ -825,14 +825,14 @@ The branch-free form `regularizedHGFun_eq_besselExpansion` and the corrected Bes
 `regularizedHGFun_besselJ_series` in `DLMF/Confluent/Series.lean` are original work. They use
 Mathlib's formal power series derivative (`PowerSeries.derivative`) and
 `PowerSeries.exp_mul_exp_eq_exp_add`, and the project's Neumann-series coefficient bounds
-(`exists_norm_regularized0F1Coeff_le`, `exists_norm_inv_Gamma_add_nat_le`,
+(`exists_norm_regularized0F1Coeff_le`, `exists_norm_recip_Gamma_add_nat_le`,
 `norm_poch_le_factorial_mul_exp`). The telescoping certificate was found by hand after a sympy
 ansatz.
 
 ## Reciprocal-Gamma strengthening (2026-10-21)
 
-`DLMF/Gamma/InvGammaDeriv.lean`, `DLMF/Hypergeometric/LogConnectionsInvGamma.lean` and the
-`_invGamma` theorems in the Confluent and Legendre files are original project work. They use
+`DLMF/Gamma/RecipGammaDeriv.lean`, `DLMF/Hypergeometric/LogConnectionsRecipGamma.lean` and the
+`_recipGamma` theorems in the Confluent and Legendre files are original project work. They use
 Mathlib's `differentiable_one_div_Gamma`, `one_div_Gamma_eq_self_mul_one_div_Gamma_add_one`,
 `Complex.digamma` and `iteratedDeriv`. No code was copied from other projects.
 
@@ -992,3 +992,120 @@ error function, and the project's Watson lemma, saddle substitution and Barnes r
 The mathematical sources are DLMF Chapters 8, 9, 11, 12, 13, 14 and 15; Goursat's cubic
 transformations of the hypergeometric function; and the representation of Ai² as an integral of Ai
 (Reid; DLMF §9.11 context).
+
+## Duplication review (2026-10-22)
+
+The shared scalar-series helpers in `ToMathlib/Analysis/Complex/ScalarSeries.lean` consolidate
+the existing project proofs using the Mathlib contributors'
+`FormalMultilinearSeries.ofScalars_series_injective`,
+`HasFPowerSeriesAt.eq_formalMultilinearSeries`, and
+`hasSum_sum_range_mul_of_summable_norm`. The regularized Gauss boundary limit now combines
+the project's `hasSum_regularizedGauss_one` with Mathlib's
+`Complex.tendsto_tsum_powerSeries_nhdsWithin_lt`.
+
+Both spherical-harmonic scaling helpers now import and apply the Tau Ceti contributors'
+`MvPolynomial.IsHomogeneous.eval₂_const_mul` directly, from
+`TauCeti.RingTheory.MvPolynomial.Homogeneous`, instead of repeating its proof.
+The Poisson reproduction theorem reuses `zonal_poisson`, whose original Tau Ceti attribution
+is retained. Gamma and Selberg integral holomorphy reuse the existing general
+`Complex.differentiableOn_integral_of_locally_dominated` in `ToMathlib`.
+
+## Parallel proof and reuse round (2026-10-24)
+
+The lower incomplete-Gamma multiplication formula uses Mathlib's
+`Complex.hasSum_taylorSeries_of_entire` and the project's existing regularized
+confluent-hypergeometric derivatives. The associated Legendre degree derivative
+reuses the existing regularized Gauss parameter-derivative series, generalized
+from a real argument to its complex convergence disk.
+
+The Stieltjes–Wigert orthogonality proof uses the Tau Ceti contributors'
+`TauCeti.Probability.Distributions.LogNormal.Basic`, specifically
+`integrable_pow_logNormalMeasure`, `integral_pow_logNormalMeasure`, and
+`logNormalMeasure_eq_withDensity`, together with the project's finite q-binomial
+identity. The little-q-Jacobi proof reuses the project's `QOrthogonalityTools`
+moment and finite-sum lemmas. The q-Hahn proof reuses `DiscreteOrtho` finite
+self-adjointness after proving the coefficient recurrence and Pearson balance.
+
+The Goodwin–Staton proof reuses the project's Faddeeva Cauchy integral and
+exponential-integral horizontal representation. Its passage to the positive
+real axis uses Mathlib's dominated convergence theorem.
+
+The incomplete-Gamma local inverse uses Mathlib's analytic inverse-function
+theorem (`Mathlib.Analysis.Calculus.InverseFunctionTheorem.Analytic`). Its global
+inverse-series convergence uses `Complex.hasSum_taylorSeries_on_ball`; this last
+result and the printed inverse-series coefficients still depend on the admitted
+global inverse specification.
+
+`ToMathlib/Analysis/ODE/SymmetricSquare.lean` generalizes the existing Airy
+product calculation using Mathlib's derivative rules. It is original project
+work and has no dependency on special-function modules.
+
+The Meixner–Pollaczek moment proof reuses the project's two-Gamma Mellin–Barnes
+integral and holomorphy estimates, the reverse Pochhammer basis from
+`OrthogonalPolynomials/HahnMoments.lean`, and terminating Chu–Vandermonde. The
+parabolic-cylinder product proof uses Mathlib's change-of-variables theorem for
+the beta-integral initial value, the project's Gamma duplication/reflection formulas,
+and the shared third-order uniqueness argument.
+
+## Priority proof implementation (2026-10-24)
+
+The global incomplete-Gamma inverse uses the Tau Ceti contributors'
+`IsCoveringMapOn.of_isLocalHomeomorph_of_isCompact_preimage` from
+`TauCeti.Topology.Covering.Proper`, with Mathlib's covering-space lifting theorem
+in `Mathlib.Topology.Homotopy.Lifting` and contractibility of convex sets. This
+closes the global inverse specification left open in the preceding round and
+removes the inherited admissions from the Alpha-series convergence and printed
+coefficients.
+
+The shared complex Chebyshev-series module generalizes the project's previous
+real proof using Mathlib's Fourier reconstruction and rectangular contour
+integral. Compact cylinder expansions and the real Chebyshev API reuse it.
+The shared parameterized Taylor-coefficient module extracts the existing
+hypergeometric coefficient proof and uses Mathlib's circle-integral Cauchy
+formula and differentiation under an interval integral.
+
+Whipple's terminating transformation follows from the project's proved Watson
+q-transformation by a finite `q → 1` limit. The Askey–Wilson difference equation
+uses the existing q-Pochhammer finite basis. Fixed-argument incomplete-Beta
+asymptotics reuse the regularized hypergeometric coefficient and Gamma APIs.
+Inverse-erf's convergent series reuses the existing TauCeti real inverse and
+Mathlib's analytic inverse/Taylor theory. The real Bi′ bound uses the proved
+Airy differential equation, Gamma initial values, and a polynomial envelope.
+
+## DLMF Chapters 4, 16 and 17 acquisition and Elementary proofs (2026-10-24)
+
+The new chapter modules follow the NIST DLMF, version 1.2.8. Their acquisition
+ledgers record exact formulas, analytical prose, exclusions, parameter domains,
+branch conventions and source corrections. Existing project results retain their
+original proofs and now carry the additional DLMF references where appropriate.
+
+The Elementary catalog points directly to Mathlib's complex logarithm, exponential,
+power, trigonometric and hyperbolic APIs, inverse-function calculus, exact values,
+series, products and integrals. It also adopts the Tau Ceti contributors' inverse
+hyperbolic and orthogonality APIs from `Analysis.SpecialFunctions.Artanh`,
+`Analysis.SpecialFunctions.Hyperbolic` and
+`Analysis.SpecialFunctions.Trigonometric.Orthogonality`. The new proofs use those
+APIs and Mathlib's interval fundamental theorem, argument bounds and derivative
+uniqueness; they preserve the acquired theorem statements. The exact positive-root
+Bessel correspondence reuses the project's proved half-integer Bessel formula.
+
+Generalized hypergeometric functions reuse Mathlib's regularized series and radii,
+the Tau Ceti contributors' regularized contiguous identity, and the project's
+classical identities. Their continuation interfaces use the Tau Ceti contributors'
+`Analysis.Complex.Conformal.Continuation.Basic`. Residue expressions use
+`TauCeti.Analysis.Contour.Residue.Basic`, authored by Chris Birkbeck, retaining
+its AINTLIB attribution. Meijer contour and logarithmic-sheet statements are new
+acquisitions, with their proof obligations explicit.
+
+The q-hypergeometric development reuses the project's q-Pochhammer, q-binomial,
+Heine, q-Gamma, Jackson calculus and Bailey APIs. Checked upstream coverage also
+uses Mathlib's complex Dedekind-eta transformation and ordinary binomial theorem.
+Analytic continuation uses TauCeti's path-continuation API directly. The corrected
+Karlsson and bibasic sums are checked against Gasper–Rahman's *Basic Hypergeometric
+Series*, Eq 1.9.7, and Gasper's 1995 q-series lectures, Eq 4.1.23; exact rational
+counterexamples to the printed DLMF versions are proved in Lean. The constant-term
+correction in 17.14.E3 follows by expanding its displayed Jacobi numerator.
+
+`ToMathlib/Analysis/ODE/Singularities.lean` and
+`ToMathlib/Analysis/Complex/SeparatingContour.lean` supply general predicates using
+Mathlib only. They have no admissions and no special-function dependency.

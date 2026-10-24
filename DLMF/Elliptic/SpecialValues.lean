@@ -51,7 +51,7 @@ lemma sin_image_Ioo_arcsin {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
 
 /-- **The algebraic form of `F`** (Duverney Thm 5.9, DLMF 19.2.4 with `t = sin θ`): for
 `0 ≤ x ≤ 1`, `∫₀ˣ dt/√((1-t²)(1-mt²)) = F(arcsin x|m)`. -/
-theorem Real.integral_inv_sqrt_eq_incEllIntFm {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0 ≤ x)
+theorem Real.integral_recip_sqrt_eq_incEllIntFm {m : ℝ} (hm : m < 1) {x : ℝ} (hx0 : 0 ≤ x)
     (hx1 : x ≤ 1) :
     ∫ t in (0 : ℝ)..x, 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)) =
       Real.incEllIntFm (arcsin x) m := by
@@ -78,7 +78,7 @@ theorem Real.integral_inv_sqrt_eq_incEllIntFm {m : ℝ} (hm : m < 1) {x : ℝ} (
 @[dlmf 19.2.E8]
 theorem Real.compEllIntKm_eq_integral_algebraic {m : ℝ} (hm : m < 1) :
     Real.compEllIntKm m = ∫ t in (0 : ℝ)..1, 1 / Real.sqrt ((1 - t ^ 2) * (1 - m * t ^ 2)) := by
-  rw [Real.integral_inv_sqrt_eq_incEllIntFm hm zero_le_one le_rfl, arcsin_one,
+  rw [Real.integral_recip_sqrt_eq_incEllIntFm hm zero_le_one le_rfl, arcsin_one,
       Real.incEllIntFm_pi_div_two]
 
 /-- Jacobi's inverse function `arcsn(x|m) = F(arcsin x|m)` (Duverney (5.56)). -/
@@ -195,7 +195,7 @@ theorem Real.compEllIntKm_neg_one :
 
 /-- **The lemniscate integral** (Duverney (5.10)–(5.13)): `∫₀¹ dt/√(1-t⁴) = Γ(1/4)²/(4√(2π))`.
 The lemniscate `r² = a² cos 2θ` has length `4a` times this integral. -/
-theorem integral_inv_sqrt_one_sub_pow_four :
+theorem integral_recip_sqrt_one_sub_pow_four :
     ∫ t in (0 : ℝ)..1, 1 / Real.sqrt (1 - t ^ 4) =
       Real.Gamma (1 / 4) ^ 2 / (4 * Real.sqrt (2 * π)) := by
   have h := Real.compEllIntKm_eq_integral_algebraic (m := -1) (by norm_num)

@@ -353,14 +353,14 @@ theorem struveK_eq_struveKRotated (ν : ℂ) {α : ℝ} (hα : |α| < π / 2) {z
 
 
 /-- `(a)(a-1)⋯(a-k+1)/Γ(a+1) = 1/Γ(a+1-k)`. -/
-lemma neg_one_pow_mul_poch_mul_inv_Gamma (a : ℂ) (k : ℕ) :
+lemma neg_one_pow_mul_poch_mul_recip_Gamma (a : ℂ) (k : ℕ) :
     (Gamma (a + 1))⁻¹ * ((-1) ^ k * poch (-a) k) = (Gamma (a + 1 - k))⁻¹ := by
   induction k with
   | zero => simp [poch]
   | succ k ih =>
     rw [poch_succ, pow_succ, show (Gamma (a + 1))⁻¹ * ((-1) ^ k * (-1) * (poch (-a) k * (-a + k)))
       = (Gamma (a + 1))⁻¹ * ((-1) ^ k * poch (-a) k) * (a - k) by ring, ih,
-      DLMF.Hypergeometric.inv_Gamma_eq_mul_inv_Gamma_add_one (a + 1 - ((k + 1 : ℕ) : ℂ))]
+      DLMF.Hypergeometric.recip_Gamma_eq_mul_recip_Gamma_add_one (a + 1 - ((k + 1 : ℕ) : ℂ))]
     push_cast
     rw [show a + 1 - (k + 1) + 1 = a + 1 - k by ring]
     ring
@@ -387,7 +387,7 @@ lemma struveK_coeff_eq (ν : ℂ) {z : ℂ} (hz : z ≠ 0) (k : ℕ) :
   have hz2 : z / 2 ≠ 0 := div_ne_zero hz two_ne_zero
   have hch : Ring.choose (ν - 1 / 2) k = (-1) ^ k * poch (-(ν - 1 / 2)) k / k ! := by
     rw [← ring_choose_neg_eq_poch, neg_neg]
-  have hG := neg_one_pow_mul_poch_mul_inv_Gamma (ν - 1 / 2) k
+  have hG := neg_one_pow_mul_poch_mul_recip_Gamma (ν - 1 / 2) k
   rw [show ν - 1 / 2 + 1 = ν + 1 / 2 by ring] at hG
   have hH := Gamma_nat_add_half_mul k
   have hpow : (z / 2) ^ (ν - 2 * k - 1) = (z / 2) ^ ν * 2 ^ (2 * k + 1) * (z ^ (2 * k + 1))⁻¹ := by
@@ -779,7 +779,7 @@ lemma struveAsymptoticTerm_sum_sub_one (ν : ℂ) {z : ℂ} (hz : z ≠ 0) (N : 
     intro h; have := congrArg Complex.re h; simp at this; linarith [(k.cast_nonneg : (0:ℝ) ≤ k)]
   have hΓ : Gamma ((k : ℂ) + 1 + 1 / 2) = ((k : ℂ) + 1 / 2) * Gamma ((k : ℂ) + 1 / 2) := by
     rw [show (k : ℂ) + 1 + 1 / 2 = (k : ℂ) + 1 / 2 + 1 by ring, Complex.Gamma_add_one _ hk]
-  have hinv := DLMF.Hypergeometric.inv_Gamma_eq_mul_inv_Gamma_add_one (ν - 1 / 2 - k)
+  have hinv := DLMF.Hypergeometric.recip_Gamma_eq_mul_recip_Gamma_add_one (ν - 1 / 2 - k)
   rw [show ν - 1 / 2 - (k : ℂ) + 1 = ν + 1 / 2 - k by ring] at hinv
   have e1 : (z / 2) ^ (ν - 1 - 2 * (k : ℂ) - 1) = (z / 2) ^ (ν - 2 * k - 2) := by ring_nf
   have e2 : (z / 2) ^ (ν + 1 - 2 * ((k : ℂ) + 1) - 1) = (z / 2) ^ (ν - 2 * k - 2) := by ring_nf
@@ -1228,7 +1228,7 @@ lemma struvePrim_integral_euler {x : ℝ} (hx : 0 < x) :
   · simp_rw [hpt]; exact hgi.const_mul x
   · simp_rw [hpt]
     rw [integral_const_mul, integral_comp_mul_left_Ioi g 0 hx, mul_zero, smul_eq_mul,
-      ← mul_assoc, mul_inv_cancel₀ hx.ne', one_mul, DLMF.Gamma.eulerMascheroni_eq_integral_inv_one_add]
+      ← mul_assoc, mul_inv_cancel₀ hx.ne', one_mul, DLMF.Gamma.eulerMascheroni_eq_integral_recip_one_add]
 
 /-- The combined Frullani-type integral: `∫₀^∞ ((1+τ²)^{-1/2} - e^{-xτ})/τ dτ = log 2x + γ`. -/
 lemma struvePrim_integral_log_two_mul {x : ℝ} (hx : 0 < x) :
@@ -2273,7 +2273,7 @@ lemma mul_sin_le_norm_add_ofReal {ν : ℂ} {δ : ℝ} (hδ : 0 < δ) (harg : |a
     _ = ‖ν + s‖ := Real.sqrt_sq (norm_nonneg _)
 
 /-- `‖1/Γ(s₀ + k)‖ ≤ ‖1/Γ(s₀)‖ / ((3/2) sin δ)^k` for `s₀ = ν + N + 3/2` in the sector. -/
-lemma norm_inv_Gamma_add_nat_le_of_arg {ν : ℂ} {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π)
+lemma norm_recip_Gamma_add_nat_le_of_arg {ν : ℂ} {δ : ℝ} (hδ : 0 < δ) (hδπ : δ < π)
     (harg : |arg ν| ≤ π - δ) (N k : ℕ) :
     ‖(Gamma (ν + N + 3 / 2 + k))⁻¹‖ ≤
       ‖(Gamma (ν + N + 3 / 2))⁻¹‖ / (3 / 2 * Real.sin δ) ^ k := by
@@ -2292,7 +2292,7 @@ lemma norm_inv_Gamma_add_nat_le_of_arg {ν : ℂ} {δ : ℝ} (hδ : 0 < δ) (hδ
       nlinarith) hsn
     have hs0 : s ≠ 0 := by
       intro h; rw [h, norm_zero] at hs1; linarith
-    have hrec := DLMF.Hypergeometric.inv_Gamma_eq_mul_inv_Gamma_add_one s
+    have hrec := DLMF.Hypergeometric.recip_Gamma_eq_mul_recip_Gamma_add_one s
     have h1 : (Gamma (s + 1))⁻¹ = (Gamma s)⁻¹ / s := by
       rw [hrec]; field_simp
     rw [show ν + N + 3 / 2 + ((k + 1 : ℕ) : ℂ) = s + 1 by rw [hs]; push_cast; ring, h1,
@@ -2349,7 +2349,7 @@ lemma struve_series_tail_isBigO {z : ℂ} (hz : z ≠ 0) {ε : ℂ} (hε : ‖ε
   have hbd : ∀ k, ‖ε ^ (k + N) * (z / 2) ^ (2 * (k + N)) * struveCoeff ν (k + N)‖ ≤
       ‖(Gamma (ν + N + 3 / 2))⁻¹‖ * a k := by
     intro k
-    have hG := norm_inv_Gamma_add_nat_le_of_arg hδ hδπ harg N k
+    have hG := norm_recip_Gamma_add_nat_le_of_arg hδ hδπ harg N k
     rw [norm_mul, norm_mul, norm_pow, norm_pow, hε, one_pow, one_mul, struveCoeff, one_div,
       mul_inv, norm_mul, show ((k + N : ℕ) : ℂ) + 3 / 2 = (((k + N : ℕ) + 3 / 2 : ℝ) : ℂ) by
         push_cast; ring, Complex.Gamma_ofReal, ← ofReal_inv, Complex.norm_real,
@@ -2616,7 +2616,7 @@ lemma isEquivalent_of_struve_order_expansion {f : ℂ → ℂ} {z : ℂ} (hz : z
     have hw0 : ν + 3 / 2 ≠ 0 := slitPlane_ne_zero (by
       simpa using add_ofReal_mem_slitPlane_of_arg hν0 hδ harg (s := 3 / 2) (by norm_num))
     have hG32 : Gamma (3 / 2) ≠ 0 := Complex.Gamma_ne_zero_of_re_pos (by norm_num)
-    have hrec := DLMF.Hypergeometric.inv_Gamma_eq_mul_inv_Gamma_add_one (ν + 3 / 2)
+    have hrec := DLMF.Hypergeometric.recip_Gamma_eq_mul_recip_Gamma_add_one (ν + 3 / 2)
     have h5 : (Gamma (ν + ((1 : ℕ) : ℂ) + 3 / 2))⁻¹ = (Gamma (ν + 3 / 2))⁻¹ / (ν + 3 / 2) := by
       rw [show ν + ((1 : ℕ) : ℂ) + 3 / 2 = ν + 3 / 2 + 1 by push_cast; ring, eq_div_iff hw0,
         mul_comm, ← hrec]
@@ -3435,7 +3435,7 @@ def nonintegerOrderSector (ε : ℝ) : Filter ℂ :=
   sector π ⊓ 𝓟 {ν : ℂ | ∀ n : ℤ, ε ≤ ‖ν-n‖}
 
 /-- `Γ(a+k)⁻¹ Γ(b+k)⁻¹ ∏_{j<k} (a+j)(b+j) = Γ(a)⁻¹ Γ(b)⁻¹`, valid for all `a`, `b`. -/
-lemma struveAs_invGamma_mul_prod (a b : ℂ) (k : ℕ) :
+lemma struveAs_recipGamma_mul_prod (a b : ℂ) (k : ℕ) :
     (Gamma (a + k))⁻¹ * (Gamma (b + k))⁻¹ * ∏ j ∈ Finset.range k, ((a + j) * (b + j)) =
       (Gamma a)⁻¹ * (Gamma b)⁻¹ := by
   induction k with
@@ -3456,7 +3456,7 @@ def struveAs_P2 (ν : ℂ) (k : ℕ) : ℂ :=
   ∏ j ∈ Finset.range (k + 1), (((j : ℂ) + 1 / 2) ^ 2 - (ν / 2) ^ 2)
 
 /-- Reflection: `Γ(1+x)⁻¹ Γ(1-x)⁻¹ = sin(πx)/(πx)`. -/
-lemma struveAs_invGamma_one_add_mul {x : ℂ} (hx : x ≠ 0) :
+lemma struveAs_recipGamma_one_add_mul {x : ℂ} (hx : x ≠ 0) :
     (Gamma (x + 1))⁻¹ * (Gamma (1 - x))⁻¹ = sin (π * x) / (π * x) := by
   have h := Complex.Gamma_mul_Gamma_one_sub x
   rw [Complex.Gamma_add_one x hx]
@@ -3472,7 +3472,7 @@ lemma struveAs_invGamma_one_add_mul {x : ℂ} (hx : x ≠ 0) :
     field_simp
 
 /-- Reflection: `Γ(1/2+x)⁻¹ Γ(1/2-x)⁻¹ = cos(πx)/π`. -/
-lemma struveAs_invGamma_half_add_mul (x : ℂ) :
+lemma struveAs_recipGamma_half_add_mul (x : ℂ) :
     (Gamma (x + 1 / 2))⁻¹ * (Gamma (1 / 2 - x))⁻¹ = cos (π * x) / π := by
   have h := Complex.Gamma_mul_Gamma_one_sub (x + 1 / 2)
   rw [show 1 - (x + 1 / 2) = 1 / 2 - x by ring,
@@ -3501,8 +3501,8 @@ lemma struveAs_hasSum_S1 {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (z : ℂ) :
   have hs : sin (π * (ν / 2)) ≠ 0 := sin_pi_mul_ne_zero_of_not_int (not_int_half hν)
   have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
   refine ((hasSum_angerS1 ν z).mul_left _).congr_fun fun k => ?_
-  have h := struveAs_invGamma_mul_prod (ν / 2 + 1) (1 - ν / 2) k
-  rw [struveAs_invGamma_one_add_mul hx] at h
+  have h := struveAs_recipGamma_mul_prod (ν / 2 + 1) (1 - ν / 2) k
+  rw [struveAs_recipGamma_one_add_mul hx] at h
   have hP : ∏ j ∈ Finset.range k, ((ν / 2 + 1 + j) * (1 - ν / 2 + j)) = struveAs_P1 ν k :=
     Finset.prod_congr rfl fun j _ => by ring
   rw [hP] at h
@@ -3529,8 +3529,8 @@ lemma struveAs_hasSum_S2 {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (z : ℂ) :
     rw [show (π : ℂ) * ν = 2 * (π * (ν / 2)) by ring, Complex.sin_two_mul, h, mul_zero]
   have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
   refine ((hasSum_angerS2 ν z).mul_left _).congr_fun fun k => ?_
-  have h := struveAs_invGamma_mul_prod (ν / 2 + 1 / 2) (1 / 2 - ν / 2) (k + 1)
-  rw [struveAs_invGamma_half_add_mul] at h
+  have h := struveAs_recipGamma_mul_prod (ν / 2 + 1 / 2) (1 / 2 - ν / 2) (k + 1)
+  rw [struveAs_recipGamma_half_add_mul] at h
   have hP : ∏ j ∈ Finset.range (k + 1), ((ν / 2 + 1 / 2 + j) * (1 / 2 - ν / 2 + j)) =
       struveAs_P2 ν k := Finset.prod_congr rfl fun j _ => by ring
   rw [hP] at h
@@ -5855,7 +5855,7 @@ lemma struveSc_integrableOn_maj {lam : ℝ} (h0 : 0 < lam) (c : ℝ) :
 lemma struveSc_continuous_phiR (lam : ℝ) : Continuous (struveSc_phiR lam) :=
   (continuous_const.mul continuous_id).sub Real.continuous_arsinh
 
-lemma struveSc_exp_neg_le_inv {y : ℝ} (hy : 0 < y) : Real.exp (-y) ≤ 1 / y := by
+lemma struveSc_exp_neg_le_recip {y : ℝ} (hy : 0 < y) : Real.exp (-y) ≤ 1 / y := by
   rw [Real.exp_neg, inv_eq_one_div]
   exact one_div_le_one_div_of_le hy (by linarith [Real.add_one_le_exp y])
 
@@ -6040,7 +6040,7 @@ lemma struveSc_inner_est {lam : ℝ} (h0 : 0 < lam) (h1 : lam < 1) {δ : ℝ} (h
   have hsq : 0 < Real.sqrt n := Real.sqrt_pos.2 hn0
   have htail' : Real.sqrt n * ‖Tl‖ ≤ 2 * T0 / (Real.sin δ * η) / Real.sqrt n := by
     have hy : 0 < (x - 1) * η := mul_pos (by linarith) hη0
-    have he := struveSc_exp_neg_le_inv hy
+    have he := struveSc_exp_neg_le_recip hy
     have hxs : n * Real.sin δ ≤ x := by rw [hx]; gcongr
     have hx1 : x ≤ 2 * (x - 1) := by linarith
     have hsn : Real.sqrt n * Real.sqrt n = n := Real.mul_self_sqrt hn0.le
@@ -6149,7 +6149,7 @@ lemma struveSc_inner_rhs {lam : ℝ} (h0 : 0 < lam) (h1 : lam < 1) {n θ : ℝ} 
   field_simp
 
 
-lemma struveSc_one_sub_inv_sqrt (s : ℝ) : |1 - (Real.sqrt (1 + s ^ 2))⁻¹| ≤ s ^ 2 := by
+lemma struveSc_one_sub_recip_sqrt (s : ℝ) : |1 - (Real.sqrt (1 + s ^ 2))⁻¹| ≤ s ^ 2 := by
   have hS := struveSc_sqrt_pos s
   have h1 := struveSc_one_le_sqrt s
   have h2 := struveSc_sqrt_sq s
@@ -6330,7 +6330,7 @@ lemma struveSc_turnU_est {M : ℝ} (hM : 0 ≤ M) {τ : ℝ} (hτ1 : 1 ≤ τ) (
       rw [norm_exp]; exact Real.exp_le_exp.2 hA
     have h2 : ‖(((Real.sqrt (1 + s ^ 2))⁻¹ : ℝ) : ℂ) - 1‖ ≤ s ^ 2 := by
       rw [← ofReal_one, ← ofReal_sub, norm_real, Real.norm_eq_abs, abs_sub_comm]
-      exact struveSc_one_sub_inv_sqrt s
+      exact struveSc_one_sub_recip_sqrt s
     have h3 : ‖(-((ν : ℂ) * ((struveSc_phiR 1 s : ℝ) : ℂ)) - a * τ * s) -
         (-((ν : ℂ) * (s : ℂ) ^ 3 / 6) - a * τ * s)‖ ≤ ν * (3 / 10 * s ^ 5) := by
       have : (-((ν : ℂ) * ((struveSc_phiR 1 s : ℝ) : ℂ)) - a * τ * s) -

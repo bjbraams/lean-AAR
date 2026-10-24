@@ -38,14 +38,14 @@ namespace DLMF.Gamma
 
 /-- Taylor coefficients of `1/Γ` at zero, DLMF 5.7.1. -/
 @[dlmf 5.7.E1]
-def invGammaCoeff (k : ℕ) : ℂ :=
+def recipGammaCoeff (k : ℕ) : ℂ :=
   iteratedDeriv k (fun z : ℂ => (Complex.Gamma z)⁻¹) 0 / k.factorial
 
 /-- The reciprocal Gamma Taylor series at zero converges at every complex argument. -/
 @[dlmf 5.7.E1]
-theorem hasSum_invGammaCoeff (z : ℂ) :
-    HasSum (fun k : ℕ => invGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ := by
-  simpa [invGammaCoeff, div_eq_mul_inv, smul_eq_mul,
+theorem hasSum_recipGammaCoeff (z : ℂ) :
+    HasSum (fun k : ℕ => recipGammaCoeff k * z ^ k) (Complex.Gamma z)⁻¹ := by
+  simpa [recipGammaCoeff, div_eq_mul_inv, smul_eq_mul,
     mul_comm, mul_left_comm, mul_assoc] using
     Complex.hasSum_taylorSeries_of_entire Complex.differentiable_one_div_Gamma 0 z
 
@@ -198,23 +198,23 @@ lemma eq_zero_of_hasSum_pow {d : ℕ → ℂ} {r : ℝ} (hr : 0 < r) (h0 : d 0 =
   have hd := (FormalMultilinearSeries.ofScalars_series_eq_zero ℂ).mp this
   exact congrFun hd n
 
-lemma differentiable_inv_Gamma' : Differentiable ℂ fun z : ℂ => (Complex.Gamma z)⁻¹ := by
+lemma differentiable_recip_Gamma' : Differentiable ℂ fun z : ℂ => (Complex.Gamma z)⁻¹ := by
   simpa [one_div] using Complex.differentiable_one_div_Gamma
 
-lemma invGammaCoeff_zero : invGammaCoeff 0 = 0 := by
-  simp [invGammaCoeff, Complex.Gamma_zero]
+lemma recipGammaCoeff_zero : recipGammaCoeff 0 = 0 := by
+  simp [recipGammaCoeff, Complex.Gamma_zero]
 
 /-- Taylor series of the derivative of `1/Γ`. -/
-lemma hasSum_deriv_invGamma (z : ℂ) :
-    HasSum (fun k : ℕ => ((k : ℂ) + 1) * invGammaCoeff (k + 1) * z ^ k)
+lemma hasSum_deriv_recipGamma (z : ℂ) :
+    HasSum (fun k : ℕ => ((k : ℂ) + 1) * recipGammaCoeff (k + 1) * z ^ k)
       (deriv (fun w : ℂ => (Complex.Gamma w)⁻¹) z) := by
   have hd : Differentiable ℂ (deriv fun w : ℂ => (Complex.Gamma w)⁻¹) := by
     simpa [iteratedDeriv_one] using
-      (differentiable_inv_Gamma'.contDiff (n := ⊤)).differentiable_iteratedDeriv 1
+      (differentiable_recip_Gamma'.contDiff (n := ⊤)).differentiable_iteratedDeriv 1
         (by exact_mod_cast WithTop.coe_lt_top _)
   convert Complex.hasSum_taylorSeries_of_entire hd 0 z using 1
   funext k
-  rw [← iteratedDeriv_succ', invGammaCoeff, sub_zero, smul_eq_mul, smul_eq_mul,
+  rw [← iteratedDeriv_succ', recipGammaCoeff, sub_zero, smul_eq_mul, smul_eq_mul,
     Nat.factorial_succ]
   push_cast
   have : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
@@ -222,7 +222,7 @@ lemma hasSum_deriv_invGamma (z : ℂ) :
   field_simp
 
 /-- `z (1/Γ)'(z) = (1/Γ)(z) - z ψ(1+z) (1/Γ)(z)` in the punctured unit disc. -/
-lemma mul_deriv_invGamma {z : ℂ} (hz0 : z ≠ 0) (hz : ‖z‖ < 1) :
+lemma mul_deriv_recipGamma {z : ℂ} (hz0 : z ≠ 0) (hz : ‖z‖ < 1) :
     z * deriv (fun w : ℂ => (Complex.Gamma w)⁻¹) z =
       (Complex.Gamma z)⁻¹ - z * (Complex.digamma (1 + z) + Real.eulerMascheroniConstant) *
         (Complex.Gamma z)⁻¹ + Real.eulerMascheroniConstant * z * (Complex.Gamma z)⁻¹ := by
@@ -243,12 +243,12 @@ lemma mul_deriv_invGamma {z : ℂ} (hz0 : z ≠ 0) (hz : ‖z‖ < 1) :
   ring
 
 @[dlmf 5.7.E2]
-theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
-    (k - 1 : ℂ) * invGammaCoeff k =
-      Real.eulerMascheroniConstant * invGammaCoeff (k - 1) -
+theorem recipGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
+    (k - 1 : ℂ) * recipGammaCoeff k =
+      Real.eulerMascheroniConstant * recipGammaCoeff (k - 1) -
         ∑ j ∈ Finset.Icc 2 (k - 1),
-          (-1 : ℂ) ^ j * (riemannZeta j) * invGammaCoeff (k - j) := by
-  set c := invGammaCoeff
+          (-1 : ℂ) ^ j * (riemannZeta j) * recipGammaCoeff (k - j) := by
+  set c := recipGammaCoeff
   set γ : ℂ := (Real.eulerMascheroniConstant : ℂ)
   set a : ℕ → ℂ := fun m => (-1 : ℂ) ^ (m + 2) * riemannZeta (m + 2)
   set P4 : ℕ → ℂ := fun n =>
@@ -256,22 +256,22 @@ theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
   set P3 : ℕ → ℂ := fun n => if n = 0 then 0 else γ * c (n - 1)
   set D : ℕ → ℂ := fun n => n * c n - c n + P4 n - P3 n
   have hD : ∀ n, D n = 0 := by
-    refine eq_zero_of_hasSum_pow one_pos (by simp [D, P4, P3, c, invGammaCoeff_zero]) ?_
+    refine eq_zero_of_hasSum_pow one_pos (by simp [D, P4, P3, c, recipGammaCoeff_zero]) ?_
     intro z hz0 hz
     -- the four pieces
     have h1 : HasSum (fun n : ℕ => n * c n * z ^ n)
         (z * deriv (fun w : ℂ => (Complex.Gamma w)⁻¹) z) := by
       refine (hasSum_nat_add_iff' 1).mp ?_
       simp only [Finset.range_one, Finset.sum_singleton, Nat.cast_zero, zero_mul, sub_zero]
-      convert (hasSum_deriv_invGamma z).mul_left z using 1
+      convert (hasSum_deriv_recipGamma z).mul_left z using 1
       funext n
       push_cast
       ring
-    have h2 : HasSum (fun n : ℕ => c n * z ^ n) (Complex.Gamma z)⁻¹ := hasSum_invGammaCoeff z
+    have h2 : HasSum (fun n : ℕ => c n * z ^ n) (Complex.Gamma z)⁻¹ := hasSum_recipGammaCoeff z
     have h3 : HasSum (fun n : ℕ => P3 n * z ^ n) (γ * z * (Complex.Gamma z)⁻¹) := by
       refine (hasSum_nat_add_iff' 1).mp ?_
       simp only [Finset.range_one, Finset.sum_singleton, P3, ↓reduceIte, zero_mul, sub_zero]
-      convert ((hasSum_invGammaCoeff z).mul_left (γ * z)) using 1
+      convert ((hasSum_recipGammaCoeff z).mul_left (γ * z)) using 1
       funext n
       simp only [Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel, c]
       ring
@@ -280,10 +280,10 @@ theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
         (fun w hw => (hasSum_digamma_one_add_zeta hw).summable) hz
     have hC : Summable fun m => ‖c m * z ^ m‖ := by
       simpa using summable_norm_mul_pow_of_summable (r := ‖z‖ + 1) 0
-        (fun w _ => by simpa using (hasSum_invGammaCoeff w).summable) (by linarith)
+        (fun w _ => by simpa using (hasSum_recipGammaCoeff w).summable) (by linarith)
     have hprod := (summable_norm_sum_mul_antidiagonal_of_summable_norm hA hC).of_norm.hasSum
     rw [← tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm hA hC,
-      (hasSum_digamma_one_add_zeta hz).tsum_eq, (hasSum_invGammaCoeff z).tsum_eq] at hprod
+      (hasSum_digamma_one_add_zeta hz).tsum_eq, (hasSum_recipGammaCoeff z).tsum_eq] at hprod
     have h4 : HasSum (fun n : ℕ => P4 n * z ^ n)
         (z * (Complex.digamma (1 + z) + γ) * (Complex.Gamma z)⁻¹) := by
       refine (hasSum_nat_add_iff' 2).mp ?_
@@ -300,7 +300,7 @@ theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
         ring
       · ring
     have htot := ((h1.sub h2).add h4).sub h3
-    rw [mul_deriv_invGamma hz0 hz] at htot
+    rw [mul_deriv_recipGamma hz0 hz] at htot
     convert htot using 1
     · funext n
       simp only [D]
@@ -310,9 +310,9 @@ theorem invGammaCoeff_recurrence {k : ℕ} (hk : 1 < k) :
   have := hD k
   simp only [D, P4, P3, show ¬ k < 2 by omega, show k ≠ 0 by omega, ↓reduceIte] at this
   rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk, Finset.sum_range_succ] at this
-  simp only [Nat.sub_self, c, invGammaCoeff_zero, mul_zero, add_zero] at this
-  have hsum : ∑ j ∈ Finset.Icc 2 (k - 1), (-1 : ℂ) ^ j * (riemannZeta j) * invGammaCoeff (k - j) =
-      ∑ i ∈ Finset.range (k - 2), a i * invGammaCoeff (k - 2 - i) := by
+  simp only [Nat.sub_self, c, recipGammaCoeff_zero, mul_zero, add_zero] at this
+  have hsum : ∑ j ∈ Finset.Icc 2 (k - 1), (-1 : ℂ) ^ j * (riemannZeta j) * recipGammaCoeff (k - j) =
+      ∑ i ∈ Finset.range (k - 2), a i * recipGammaCoeff (k - 2 - i) := by
     rw [show Finset.Icc 2 (k - 1) = Finset.Ico 2 (k - 2 + 2) by
       ext j; simp only [Finset.mem_Icc, Finset.mem_Ico]; omega, Finset.sum_Ico_eq_sum_range,
       Nat.add_sub_cancel]

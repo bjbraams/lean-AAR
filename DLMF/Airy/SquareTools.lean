@@ -7,6 +7,7 @@ module
 
 public import DLMF.Airy.Integrals
 public import DLMF.Airy.Zeros
+public import ToMathlib.Analysis.ODE.SymmetricSquare
 
 /-!
 # Ai² as a Gaussian average of Ai
@@ -327,25 +328,15 @@ def airySq_det (y y1 y2 u u1 u2 v v1 v2 : ℝ → ℝ) (x : ℝ) : ℝ :=
 /-- The Wronskian of three solutions of the product equation is constant (no `y''` term). -/
 lemma airySq_det_const {y y1 y2 u u1 u2 v v1 v2 : ℝ → ℝ} (hy : airySq_IsProdSol y y1 y2)
     (hu : airySq_IsProdSol u u1 u2) (hv : airySq_IsProdSol v v1 v2) (x : ℝ) :
-    airySq_det y y1 y2 u u1 u2 v v1 v2 x = airySq_det y y1 y2 u u1 u2 v v1 v2 0 := by
-  have hd : ∀ x, HasDerivAt (airySq_det y y1 y2 u u1 u2 v v1 v2) 0 x := fun x => by
-    obtain ⟨y0, y1', y2'⟩ := hy x
-    obtain ⟨u0, u1', u2'⟩ := hu x
-    obtain ⟨v0, v1', v2'⟩ := hv x
-    have := ((y0.mul ((u1'.mul v2').sub (v1'.mul u2'))).sub
-      (u0.mul ((y1'.mul v2').sub (v1'.mul y2')))).add
-      (v0.mul ((y1'.mul u2').sub (u1'.mul y2')))
-    refine this.congr_deriv ?_
-    simp only [Pi.mul_apply, Pi.sub_apply]
-    ring
-  exact is_const_of_deriv_eq_zero (fun x => (hd x).differentiableAt) (fun x => (hd x).deriv) x 0
+    airySq_det y y1 y2 u u1 u2 v v1 v2 x = airySq_det y y1 y2 u u1 u2 v v1 v2 0 :=
+  ODE.thirdOrderWronskian_const (p := fun x => 4*x) (q := fun _ => 2) hy hu hv x 0
 
 /-- Cramer's rule for the first component of three-vectors. -/
 lemma airySq_cramer (y y1 y2 u u1 u2 v v1 v2 w w1 w2 : ℝ → ℝ) (x : ℝ) :
     airySq_det u u1 u2 v v1 v2 w w1 w2 x * y x =
       airySq_det y y1 y2 v v1 v2 w w1 w2 x * u x + airySq_det u u1 u2 y y1 y2 w w1 w2 x * v x +
-        airySq_det u u1 u2 v v1 v2 y y1 y2 x * w x := by
-  unfold airySq_det; ring
+        airySq_det u u1 u2 v v1 v2 y y1 y2 x * w x :=
+  ODE.thirdOrder_cramer y y1 y2 u u1 u2 v v1 v2 w w1 w2 x
 
 /-- Decomposition along a fundamental system with constant nonzero Wronskian. -/
 lemma airySq_decomp_gen {y y1 y2 u u1 u2 v v1 v2 w w1 w2 : ℝ → ℝ} (hy : airySq_IsProdSol y y1 y2)
@@ -353,26 +344,18 @@ lemma airySq_decomp_gen {y y1 y2 u u1 u2 v v1 v2 w w1 w2 : ℝ → ℝ} (hy : ai
     {D : ℝ} (hW : ∀ x, airySq_det u u1 u2 v v1 v2 w w1 w2 x = D) (hD : D ≠ 0) (x : ℝ) :
     y x = airySq_det y y1 y2 v v1 v2 w w1 w2 0 / D * u x +
       airySq_det u u1 u2 y y1 y2 w w1 w2 0 / D * v x +
-      airySq_det u u1 u2 v v1 v2 y y1 y2 0 / D * w x := by
-  have c := airySq_cramer y y1 y2 u u1 u2 v v1 v2 w w1 w2 x
-  rw [hW x, airySq_det_const hy hv hw x, airySq_det_const hu hy hw x,
-    airySq_det_const hu hv hy x] at c
-  field_simp
-  linear_combination c
+      airySq_det u u1 u2 v v1 v2 y y1 y2 0 / D * w x :=
+  ODE.thirdOrder_decomp (p := fun x => 4*x) (q := fun _ => 2) hy hu hv hw hW hD x 0
 
 /-- Products of real Airy solutions solve the product equation. -/
 lemma airySq_isProdSol_mul {f f' g g' : ℝ → ℝ} (hf : ∀ x, HasDerivAt f (f' x) x)
     (hf' : ∀ x, HasDerivAt f' (x * f x) x) (hg : ∀ x, HasDerivAt g (g' x) x)
     (hg' : ∀ x, HasDerivAt g' (x * g x) x) :
     airySq_IsProdSol (fun x => f x * g x) (fun x => f' x * g x + f x * g' x)
-      (fun x => 2 * x * f x * g x + 2 * f' x * g' x) := fun x => by
-  refine ⟨(hf x).mul (hg x), (((hf' x).mul (hg x)).add ((hf x).mul (hg' x))).congr_deriv ?_, ?_⟩
-  · ring
-  · have := ((((hasDerivAt_id x).const_mul 2).mul (hf x)).mul (hg x)).add
-      (((hf' x).mul (hg' x)).const_mul 2)
-    refine (this.congr_of_eventuallyEq (Eventually.of_forall fun t => ?_)).congr_deriv ?_
-    · simp only [Pi.mul_apply, Pi.add_apply, _root_.id]; ring
-    · simp only [Pi.mul_apply, _root_.id]; ring
+      (fun x => 2 * x * f x * g x + 2 * f' x * g' x) := by
+  change ODE.IsThirdOrderSolution (fun x => 4*x) (fun _ => 2) _ _ _
+  simpa only [mul_one] using ODE.product_isThirdOrderSolution
+    (fun x => ⟨hf x, hf' x⟩) (fun x => ⟨hg x, hg' x⟩) (fun x => hasDerivAt_id x)
 
 /-- The triple of `F`. -/
 lemma airySq_isProdSol_F :

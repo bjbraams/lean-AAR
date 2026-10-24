@@ -7,7 +7,7 @@ Usage (from the project root):
 
 Input is the JSON written by scripts/DumpDLMF.lean. Per-section denominators come from the
 project's enumerations of DLMF chapters: the equation lines of the root acquisition ledgers
-(every numbered equation of Chapters 6–9, 11, 12 and 14, with a note for equations that carry
+(every numbered equation of Chapters 4, 6–9, 11, 12, 14, 16 and 17, with a note for equations that carry
 no tagged declaration) and the "tagged / numbered" columns of the coverage tables for
 Chapters 13 and 18. The page template is scripts/dlmf_index_template.html.
 """
@@ -36,18 +36,14 @@ CHAPTERS = {
     33: 'Coulomb Functions', 34: '3j, 6j, 9j Symbols', 35: 'Functions of Matrix Argument',
     36: 'Integrals with Coalescing Saddles',
 }
-LEDGERS = ['AiryAcquisition.md', 'DLMF678Acquisition.md', 'DLMF111214Acquisition.md']
+LEDGERS = ['AiryAcquisition.md', 'DLMF678Acquisition.md', 'DLMF111214Acquisition.md',
+           'DLMF4Acquisition.md', 'DLMF16Acquisition.md', 'DLMF17Acquisition.md']
 TABLES = ['DLMF/Confluent/DLMFCoverage.md', 'DLMF/OrthogonalPolynomials/DLMFCoverage.md']
 STATUS = {'proved': 0, 'admitted': 1, 'proved from admissions': 2, 'nonstandard': 3}
 
 
 def natkey(s):
     return [int(x) if x.isdigit() else x for x in re.split(r'(\d+)', s)]
-
-
-def base_id(i):
-    """The numbered equation a key belongs to (`13.6.E11_1` → `13.6.E11`)."""
-    return re.sub(r'_\d+$', '', i)
 
 
 def main():
@@ -92,12 +88,13 @@ def main():
                 i, rest = m.group(1), m.group(2)
                 if 'retired' in rest.lower():
                     continue
-                listed['.'.join(i.split('.')[:2])].add(base_id(i))
+                # Explicit ledger IDs include distinct inserted equations such as16.4.E2_5.
+                listed['.'.join(i.split('.')[:2])].add(i)
                 if i not in ids:
                     if 'refuted' in rest.lower():
                         notes[i] = 'printed statement refuted; counterexample proved'
-                    elif 'excluded: numerical' in rest:
-                        notes[i] = 'excluded: numerical'
+                    elif 'excluded:' in rest:
+                        notes[i] = re.search(r'excluded:[^;.]*', rest).group(0).strip()
                     elif 'Mathlib' in rest:
                         notes[i] = 'upstream pointer, untagged'
                     else:

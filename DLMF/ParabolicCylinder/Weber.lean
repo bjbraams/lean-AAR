@@ -228,9 +228,9 @@ theorem pcfW_wronskian (a : ℝ) (z : ℂ) :
 def pcfWK (a : ℝ) : ℝ :=
   Real.sqrt (1+Real.exp (2*π*a))-Real.exp (π*a)
 
-/-- pcfWK inv. -/
+/-- pcfWK reciprocal. -/
 @[dlmf 12.14.E5]
-theorem pcfWK_inv (a : ℝ) :
+theorem pcfWK_recip (a : ℝ) :
     0 < pcfWK a ∧ (pcfWK a)⁻¹=Real.sqrt (1+Real.exp (2*π*a))+Real.exp (π*a) := by
   unfold pcfWK
   have hE : Real.exp (2*π*a)=(Real.exp (π*a))^2 := by
@@ -693,8 +693,8 @@ lemma pcfW_aux_K (a : ℝ) {A B N : ℝ} (hA : A = Real.exp (π*a/2)) (hB : B = 
       have : B = A⁻¹ := eq_inv_of_mul_eq_one_right hAB
       rw [this]; field_simp; ring
     exact (pow_left_inj₀ (by positivity) hQ0 two_ne_zero).mp hsq
-  have hK := (pcfWK_inv a).2
-  have hKpos := (pcfWK_inv a).1
+  have hK := (pcfWK_recip a).2
+  have hKpos := (pcfWK_recip a).1
   refine ⟨?_, ?_, hAB⟩
   · have : pcfWK a * A * (2*N + A) =
         pcfWK a * (Real.sqrt (1 + Real.exp (2*π*a)) + Real.exp (π*a)) := by
@@ -749,7 +749,7 @@ lemma pcfW_aux_scalar (a : ℝ) :
     rw [hTre] at this; simp at this; linarith [Real.exp_pos (π*a/2)]
   have hA0 : 0 < A := Real.exp_pos _
   have hE : Real.exp (π*a/4)^2 = A := by rw [hA, ← Real.exp_nat_mul]; congr 1; push_cast; ring
-  have hK0 := (pcfWK_inv a).1
+  have hK0 := (pcfWK_recip a).1
   have hs := Real.sq_sqrt (show 0 ≤ pcfWK a / 2 by positivity)
   have hs' := Real.sq_sqrt (show 0 ≤ 2 * pcfWK a by positivity)
   have hs'p : 0 < Real.sqrt (2 * pcfWK a) := Real.sqrt_pos.mpr (by positivity)
@@ -920,7 +920,7 @@ theorem pcfW_connection_neg (a : ℝ) (z : ℂ) :
     ⟨((hasDerivAt_pcfW a (-w)).comp w (hasDerivAt_neg w)).congr_deriv (by ring),
       ((hasDerivAt_pcfWDeriv a (-w)).comp w (hasDerivAt_neg w)).neg.congr_deriv (by ring)⟩
   have hsp : (Real.sqrt (2*pcfWK a) : ℂ) ≠ 0 := by
-    have := (pcfWK_inv a).1
+    have := (pcfWK_recip a).1
     exact_mod_cast (Real.sqrt_pos.mpr (by positivity)).ne'
   have hc1 : eρ' * pcfU (-I*a) 0 = conj (eρ * pcfU (I*a) 0) := by
     rw [map_mul, conj_exp_I_ofReal, conj_pcfU]; congr 2 <;> simp
@@ -1347,7 +1347,7 @@ theorem pcfW_amplitude (a : ℝ) {x : ℝ} (hx : 0 < x) :
   have h1r := pcfW_ofReal_im a x
   have h2r := pcfW_ofReal_im a (-x)
   push_cast at h2r
-  have hk := (pcfWK_inv a).1
+  have hk := (pcfWK_recip a).1
   set ω := pcfWOmega a x
   set k := pcfWK a
   set p := Real.sqrt (x/(2*k))
@@ -1396,7 +1396,7 @@ lemma pcfSect_pcfWS_eq (a : ℝ) {x : ℝ} (hx : 0 < x) :
     simp only [v]
     rw [Complex.exp_add, ← Complex.ofReal_exp, Real.exp_log hx]
     congr 1; push_cast; ring_nf
-  have hk := (pcfWK_inv a).1
+  have hk := (pcfWK_recip a).1
   have hs1 : (Real.sqrt (x / (2 * pcfWK a)) : ℂ) * (Real.sqrt (pcfWK a / 2) : ℂ) =
       (Real.sqrt x : ℂ) / 2 := by
     rw [← Complex.ofReal_mul, ← Real.sqrt_mul (by positivity),
@@ -1492,7 +1492,7 @@ def pcfWTheta (a x : ℝ) : ℝ :=
 @[dlmf 12.14.E37]
 theorem pcfWF_phase (a x : ℝ) :
     0 < pcfWF a x ∧ 1/Real.sqrt (pcfWK a)*(pcfW a) x+I*Real.sqrt (pcfWK a)*(pcfW a) (-x)=(pcfWF a x*exp (I*pcfWTheta a x)) := by
-  have hk := (pcfWK_inv a).1
+  have hk := (pcfWK_recip a).1
   have hs : (Real.sqrt (pcfWK a) : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr hk).ne'
   have hne : 1/Real.sqrt (pcfWK a)*(pcfW a) x+I*Real.sqrt (pcfWK a)*(pcfW a) (-x) ≠ 0 := by
     rw [mul_assoc I]
@@ -1521,7 +1521,7 @@ def pcfWPsi (a x : ℝ) : ℝ :=
 @[dlmf 12.14.E38]
 theorem pcfWG_phase (a x : ℝ) :
     0 < pcfWG a x ∧ 1/Real.sqrt (pcfWK a)*(deriv (pcfW a)) x+I*Real.sqrt (pcfWK a)*(deriv (pcfW a)) (-x)=-(pcfWG a x*exp (I*pcfWPsi a x)) := by
-  have hk := (pcfWK_inv a).1
+  have hk := (pcfWK_recip a).1
   have hs : (Real.sqrt (pcfWK a) : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr hk).ne'
   have hne : 1/Real.sqrt (pcfWK a)*(deriv (pcfW a)) x+I*Real.sqrt (pcfWK a)*(deriv (pcfW a)) (-x) ≠ 0 := by
     rw [mul_assoc I, deriv_pcfW]

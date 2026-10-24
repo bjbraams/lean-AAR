@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.ParametricHolomorphy
 public import Mathlib.Tactic.CrossRefAttribute
 public import DLMF.Hypergeometric.Basic
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
@@ -1268,62 +1269,10 @@ theorem differentiableOn_integral_of_dominated {α : Type*} [MeasurableSpace α]
     (hbound : ∀ z₀ ∈ U, ∃ ε > 0, Metric.closedBall z₀ ε ⊆ U ∧ ∃ g : α → ℝ, Integrable g μ ∧
       ∀ᵐ x ∂μ, ∀ z ∈ Metric.closedBall z₀ ε, ‖F z x‖ ≤ g x) :
     DifferentiableOn ℂ (fun z => ∫ x, F z x ∂μ) U := by
+  apply Complex.differentiableOn_integral_of_locally_dominated hU hmeas hdiff
   intro z₀ hz₀
-  obtain ⟨ε, hε, hsub, g, hg, hgb⟩ := hbound z₀ hz₀
-  set r := ε / 2 with hr
-  have hr0 : 0 < r := by positivity
-  set F' : ℂ → α → ℂ := fun z x => deriv (fun w => F w x) z with hF'
-  have hball : Metric.ball z₀ r ⊆ U := fun z hz =>
-    hsub (Metric.ball_subset_closedBall (Metric.ball_subset_ball (by linarith) hz))
-  have hderiv : ∀ᵐ x ∂μ, ∀ z ∈ Metric.ball z₀ r, HasDerivAt (fun w => F w x) (F' z x) z := by
-    filter_upwards [hdiff] with x hx z hz
-    exact ((hx z (hball hz)).differentiableAt (hU.mem_nhds (hball hz))).hasDerivAt
-  have hdb : ∀ᵐ x ∂μ, ∀ z ∈ Metric.ball z₀ r, ‖F' z x‖ ≤ g x / r := by
-    filter_upwards [hdiff, hgb] with x hx hxg z hz
-    have hcl : Metric.closedBall z r ⊆ Metric.closedBall z₀ ε := by
-      intro w hw
-      rw [Metric.mem_closedBall] at hw ⊢
-      rw [Metric.mem_ball] at hz
-      calc dist w z₀ ≤ dist w z + dist z z₀ := dist_triangle _ _ _
-        _ ≤ r + r := by linarith
-        _ = ε := by rw [hr]; ring
-    refine Complex.norm_deriv_le_of_forall_mem_sphere_norm_le hr0
-      ((hx.mono hsub).diffContOnCl_ball (subset_refl _) |>.mono ?_) fun w hw => ?_
-    · exact Metric.ball_subset_ball' (by rw [Metric.mem_ball] at hz; linarith)
-    · exact hxg w (hcl (Metric.sphere_subset_closedBall hw))
-  have hz₀ε : z₀ ∈ Metric.closedBall z₀ ε := Metric.mem_closedBall_self hε.le
-  have hint : Integrable (F z₀) μ :=
-    hg.mono' (hmeas z₀ hz₀) (by filter_upwards [hgb] with x hx using hx z₀ hz₀ε)
-  have hF'meas : AEStronglyMeasurable (F' z₀) μ := by
-    set t : ℕ → ℂ := fun n => ((ε / (n + 2) : ℝ) : ℂ) with ht
-    have htmem : ∀ n, z₀ + t n ∈ U := by
-      intro n
-      refine hsub ?_
-      rw [Metric.mem_closedBall, dist_eq_norm, add_sub_cancel_left, ht, Complex.norm_real,
-        Real.norm_eq_abs, abs_of_pos (by positivity)]
-      rw [div_le_iff₀ (by positivity)]
-      nlinarith
-    have htlim : Tendsto t atTop (𝓝[≠] 0) := by
-      refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun n => ?_⟩
-      · have h1 : Tendsto (fun n : ℕ => ε / ((n : ℝ) + 2)) atTop (𝓝 0) := by
-          refine tendsto_const_nhds.div_atTop ?_
-          exact tendsto_atTop_add_const_right _ 2 tendsto_natCast_atTop_atTop
-        have := (Complex.continuous_ofReal.tendsto 0).comp h1
-        simpa only [ht, Function.comp_def, Complex.ofReal_zero] using this
-      · simp only [ht, Set.mem_compl_iff, Set.mem_singleton_iff, Complex.ofReal_eq_zero]
-        positivity
-    refine aestronglyMeasurable_of_tendsto_ae atTop
-      (f := fun n x => (t n)⁻¹ • (F (z₀ + t n) x - F z₀ x))
-      (fun n => by
-        have := ((hmeas _ (htmem n)).sub (hmeas z₀ hz₀)).const_smul (t n)⁻¹
-        exact this) ?_
-    filter_upwards [hderiv] with x hx
-    exact (hx z₀ (Metric.mem_ball_self hr0)).tendsto_slope_zero.comp htlim
-  have key := hasDerivAt_integral_of_dominated_loc_of_deriv_le (bound := fun x => g x / r)
-    (Metric.ball_mem_nhds z₀ hr0)
-    (Eventually.mono (hU.mem_nhds hz₀) fun z hz => hmeas z hz) hint hF'meas hdb
-    (hg.div_const r) hderiv
-  exact key.2.differentiableAt.differentiableWithinAt
+  obtain ⟨ε, hε, _, g, hg, hgb⟩ := hbound z₀ hz₀
+  exact ⟨Metric.closedBall z₀ ε, Metric.closedBall_mem_nhds z₀ hε, g, hg, hgb⟩
 
 /-! ### The right-hand side -/
 
@@ -1578,7 +1527,7 @@ lemma differentiableOn_selbergRHS_a (N : ℕ) {b c : ℂ} (hb : 0 < b.re) (hc : 
       (Gamma_ne_zero_of_re_pos' (by simp; linarith))
 
 /-- Polynomial growth of `1/R` on the strip `1 ≤ Re a ≤ 2`. -/
-lemma exists_norm_inv_selbergRHS_le (N : ℕ) {b c : ℂ} (hb : 0 < b.re) (hc : 0 ≤ c.re) :
+lemma exists_norm_recip_selbergRHS_le (N : ℕ) {b c : ℂ} (hb : 0 < b.re) (hc : 0 ≤ c.re) :
     ∃ C : ℝ, ∃ K : ℕ, ∀ a : ℂ, 1 ≤ a.re → a.re ≤ 2 →
       ‖(selbergRHS N a b c)⁻¹‖ ≤ C * (1 + |a.im|) ^ K := by
   have hp : ∀ j : Fin N, 0 < (b + ((N + j - 1 : ℕ) : ℂ) * c).re :=
@@ -1592,7 +1541,7 @@ lemma exists_norm_inv_selbergRHS_le (N : ℕ) {b c : ℂ} (hb : 0 < b.re) (hc : 
   have h2 : ∀ j : Fin N, ∃ C : ℝ, ∃ K : ℕ, 0 ≤ C ∧ ∀ d : ℂ,
       |(d + ((j : ℕ) : ℂ) * c).re| ≤ 2 + |(((j : ℕ) : ℂ) * c).re| →
       ‖(Gamma (d + ((j : ℕ) : ℂ) * c))⁻¹‖ ≤ C * (1 + |d.im|) ^ K * Real.exp (π * |d.im| / 2) :=
-    fun j => DLMF.Hypergeometric.CarlsonAux.exists_norm_inv_Gamma_add_le_strip _ _
+    fun j => DLMF.Hypergeometric.CarlsonAux.exists_norm_recip_Gamma_add_le_strip _ _
   choose C1 K1 hC1 hb1 using h1
   choose C2 K2 hC2 hb2 using h2
   set D : Fin N → ℝ := fun j => C1 j * C2 j * ‖Gamma (1 + c)‖ * ‖(Gamma (b + (j : ℕ) * c))⁻¹‖ *
@@ -1665,7 +1614,7 @@ lemma selbergRatio_eq_one_left {N : ℕ} {b c : ℂ} (hb : 0 < b.re) (hc : 1 / 2
     (differentiableOn_selbergInt_a N hb hc0).div (differentiableOn_selbergRHS_a N hb hc0)
       fun a ha => selbergRHS_ne_zero ha hb hc0
   set f : ℂ → ℂ := fun w => F (w + 1) - F 1 with hf
-  obtain ⟨C, K, hC⟩ := exists_norm_inv_selbergRHS_le N hb hc0
+  obtain ⟨C, K, hC⟩ := exists_norm_recip_selbergRHS_le N hb hc0
   set B := ∫ t in cube N, ‖∏ i, weight 1 b (t i)‖ with hB
   have hB0 : 0 ≤ B := setIntegral_nonneg (measurableSet_cube N) fun _ _ => norm_nonneg _
   have hfz : ∀ w : ℂ, 0 ≤ w.re → f w = 0 := by

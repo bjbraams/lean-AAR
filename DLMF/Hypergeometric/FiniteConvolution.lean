@@ -28,19 +28,7 @@ lemma hasSum_coefficient_convolution {c d : ℕ → ℂ} {z u v : ℂ}
     (hc : HasSum (fun n => c n * z ^ n) u)
     (hd : HasSum (fun n => d n * z ^ n) v) :
     HasSum (fun n => (∑ k ∈ Finset.range (n + 1), c k * d (n - k)) * z ^ n) (u * v) := by
-  have h := hasSum_sum_range_mul_of_summable_norm hc.summable.norm hd.summable.norm
-  rw [hc.tsum_eq, hd.tsum_eq] at h
-  refine h.congr_fun fun n => ?_
-  rw [Finset.sum_mul]
-  apply Finset.sum_congr rfl
-  intro k hk
-  have hk' : k ≤ n := by simpa using Finset.mem_range.mp hk
-  have hp : z ^ n = z ^ k * z ^ (n - k) := by
-    rw [← pow_add, Nat.add_sub_cancel' hk']
-  rw [hp]
-  ring
-
-
+  exact Complex.hasSum_powerSeries_convolution hc hd
 
 /-- Chu–Vandermonde with a regular denominator, in binomial form. -/
 lemma poch_ratio_vandermonde (Q R : ℂ) (hR : ∀ k : ℕ, poch R k ≠ 0) (n : ℕ) :

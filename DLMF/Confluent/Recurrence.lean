@@ -457,8 +457,8 @@ theorem kummerU_contiguous_a_b_of_mem {a c z : ℂ} (hc : c ∈ integerComplemen
     (nonpole_of_intCompl hc1)
   have E4 := kummerM_contiguous_shift_a (a := a - c + 2) (b := 2 - c) (z := z)
     (nonpole_of_intCompl h2c)
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c + 1)
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one a
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c + 1)
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one a
   have hG1 := Gamma_add_one (1 - c) (ne_zero_of_intCompl (by simpa using intCompl_int_sub hc 1))
   have hc2 : c - 2 ∈ integerComplement := by simpa using intCompl_sub_int hc 2
   have hG2 := Gamma_add_one (c - 2) (ne_zero_of_intCompl hc2)
@@ -491,8 +491,8 @@ theorem kummerU_contiguous_shift_a_of_mem {a c z : ℂ} (hc : c ∈ integerCompl
     (by simpa [show (2 : ℂ) - c - 1 = 1 - c by ring] using nonpole_of_intCompl h1c)
   rw [show a - c - (2 - c) + 1 = a - 1 by ring, show a - c + 1 = a - c + 1 by ring,
     show (2 : ℂ) - c - 1 = 1 - c by ring] at E3
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c)
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one (a - 1)
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c)
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one (a - 1)
   rw [show a - 1 + 1 = a by ring] at hS
   have hG0 := Gamma_add_one (-c) (ne_zero_of_intCompl (intCompl_neg hc))
   rw [show -c + 1 = 1 - c by ring] at hG0
@@ -519,10 +519,10 @@ theorem kummerU_contiguous_a_of_mem {a c z : ℂ} (hc : c ∈ integerComplement)
   have E1' := kummerM_contiguous_a (a := a - c + 1) (b := 2 - c) (z := z)
     (nonpole_of_intCompl h2c)
   rw [show a - c + 1 - 1 = a - c by ring, show a - c + 1 + 1 = a - c + 2 by ring] at E1'
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c)
-  have hR' := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c + 1)
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one (a - 1)
-  have hS' := inv_Gamma_eq_mul_inv_Gamma_add_one a
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c)
+  have hR' := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c + 1)
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one (a - 1)
+  have hS' := recip_Gamma_eq_mul_recip_Gamma_add_one a
   rw [show a - c + 1 + 1 = a - c + 2 by ring] at hR'
   rw [show a - 1 + 1 = a by ring] at hS
   rw [show a - 1 - c + 1 = a - c by ring, show a + 1 - c + 1 = a - c + 2 by ring]
@@ -547,8 +547,8 @@ theorem kummerU_contiguous_b_of_mem {a c z : ℂ} (hc : c ∈ integerComplement)
     (nonpole_of_intCompl h1c)
   rw [show a - c + 2 = a - c + 2 by ring, show 1 - c + 2 = 3 - c by ring,
     show a - c + 1 = a - c + 1 by ring, show 1 - c + 1 = 2 - c by ring] at E13
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c)
-  have hR' := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c + 1)
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c)
+  have hR' := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c + 1)
   rw [show a - c + 1 + 1 = a - c + 2 by ring] at hR'
   have hG0 := Gamma_add_one (-c) (ne_zero_of_intCompl (intCompl_neg hc))
   rw [show -c + 1 = 1 - c by ring] at hG0
@@ -591,10 +591,10 @@ theorem kummerU_contiguous_mixed_of_mem {a c z : ℂ} (hc : c ∈ integerComplem
   rw [show a - c + 1 - (2 - c) + 1 = a by ring, show a - c + 1 + 1 = a - c + 2 by ring,
     show (2 : ℂ) - c - 1 = 1 - c by ring] at E3
   rw [show a - c + 1 - 1 = a - c by ring, show 1 - c + 1 = 2 - c by ring] at E4
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c)
-  have hR' := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c + 1)
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c)
+  have hR' := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c + 1)
   rw [show a - c + 1 + 1 = a - c + 2 by ring] at hR'
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one a
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one a
   have hG0 := Gamma_add_one (-c) (ne_zero_of_intCompl (intCompl_neg hc))
   rw [show -c + 1 = 1 - c by ring] at hG0
   have hG1 := Gamma_add_one (c - 1) (ne_zero_of_intCompl (intCompl_sub_one hc))
@@ -628,10 +628,10 @@ theorem kummerU_contiguous_down_of_mem {a c z : ℂ} (hc : c ∈ integerCompleme
   rw [show a - c + 1 - 1 = a - c by ring, show 2 - c + 1 = 3 - c by ring] at E4
   rw [show a - c + 1 + 1 = a - c + 2 by ring, show 2 - c + 1 = 3 - c by ring,
     show a - c + 1 - (2 - c) = a - 1 by ring] at SBS
-  have hR := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c)
-  have hR' := inv_Gamma_eq_mul_inv_Gamma_add_one (a - c + 1)
+  have hR := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c)
+  have hR' := recip_Gamma_eq_mul_recip_Gamma_add_one (a - c + 1)
   rw [show a - c + 1 + 1 = a - c + 2 by ring] at hR'
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one (a - 1)
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one (a - 1)
   rw [show a - 1 + 1 = a by ring] at hS
   have hG0' := Gamma_add_one (1 - c) (ne_zero_of_intCompl h1c)
   rw [show 1 - c + 1 = 2 - c by ring] at hG0'
@@ -670,8 +670,8 @@ theorem kummerU_ode_contiguous_of_mem {a c z : ℂ} (hc : c ∈ integerComplemen
   have hG1 := Gamma_add_one (c - 1) (ne_zero_of_intCompl (intCompl_sub_one hc))
   rw [show c - 1 + 1 = c by ring] at hG1
   have hGc := Gamma_add_one c (ne_zero_of_intCompl hc)
-  have hS := inv_Gamma_eq_mul_inv_Gamma_add_one a
-  have hS' := inv_Gamma_eq_mul_inv_Gamma_add_one (a + 1)
+  have hS := recip_Gamma_eq_mul_recip_Gamma_add_one a
+  have hS' := recip_Gamma_eq_mul_recip_Gamma_add_one (a + 1)
   rw [show a + 1 + 1 = a + 2 by ring] at hS'
   have hz1 : z ^ (-c) = z * z ^ (-1 - c) := by
     rw [show -c = (-1 - c) + 1 by ring, cpow_add _ _ hz, cpow_one, mul_comm]

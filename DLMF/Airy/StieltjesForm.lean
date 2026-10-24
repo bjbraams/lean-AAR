@@ -241,7 +241,7 @@ lemma airySt_M_pos {θ : ℝ} (hθ : |θ| < π) : 0 < airySt_M θ := by
       (by linarith [le_abs_self θ]) |>.mp hs with rfl
     simp
 
-lemma airySt_norm_inv_le {θ : ℝ} (hθ : |θ| < π) {s : ℝ} (hs : 0 ≤ s) :
+lemma airySt_norm_recip_le {θ : ℝ} (hθ : |θ| < π) {s : ℝ} (hs : 0 ≤ s) :
     ‖(1 + (s : ℂ) * exp (θ * I))⁻¹‖ ≤ airySt_M θ := by
   rw [norm_inv]
   unfold airySt_M
@@ -267,7 +267,7 @@ lemma airySt_factor_bound {a : ℝ} (ha0 : 0 < a) (ha1 : a < 1) {θ : ℝ} (hθ 
     have h0 : 0 ≤ τ ^ N * airySt_w a τ := mul_nonneg (pow_nonneg hτ.1.le _) (airySt_w_nonneg a hτ)
     rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg h0]
     refine mul_le_mul_of_nonneg_left ?_ h0
-    have := airySt_norm_inv_le hθ (s := r * τ) (mul_nonneg hr hτ.1.le)
+    have := airySt_norm_recip_le hθ (s := r * τ) (mul_nonneg hr hτ.1.le)
     convert this using 3; push_cast; ring
   rw [integral_mul_const, airySt_moment ha0 ha1] at hI
   have h1 : Real.Gamma (1 - a) ≠ 0 := (Real.Gamma_pos_of_pos (by linarith)).ne'
@@ -578,6 +578,166 @@ theorem airySt_rem_le_chi {a b W θ : ℝ} (ha0 : 0 < a) (ha1 : a < 1) (hb : 0 <
   calc _ ≤ ‖airySt_T b a θ W N‖ + airySt_chi (b + N) * ‖airySt_T b a θ W N‖ :=
         (norm_add_le _ _).trans (by gcongr; exact airySt_rem_succ_le ha0 ha1 hb hW hθ hsin N)
     _ = _ := by ring
+
+
+/-- The chi estimate for a single positive exponential density. -/
+lemma laplaceChi_kernel {m W X θ : ℝ} (hm : 0 < m) (hW : 0 < W)
+    (hX : 0 < X) (hsin : Real.sin θ ≠ 0) :
+    ‖∫ r in Ioi (0 : ℝ), (r : ℂ) ^ (m : ℂ) * Complex.exp (-(W * r)) /
+      (X + r * exp (θ * I))‖ ≤
+      airySt_chi m * ∫ r in Ioi (0 : ℝ), r ^ (m - 1) * Real.exp (-(W * r)) := by
+  obtain ⟨β, hβ, hσ⟩ : ∃ β : ℝ, 0 < Real.cos β ∧ Real.cos (θ + β) = 0 := by
+    rcases lt_or_gt_of_ne hsin with h | h
+    · refine ⟨-(π / 2) - θ, ?_, ?_⟩
+      · rw [Real.cos_sub, Real.cos_neg, Real.sin_neg, Real.cos_pi_div_two, Real.sin_pi_div_two]
+        linarith
+      · rw [show θ + (-(π / 2) - θ) = -(π / 2) by ring, Real.cos_neg, Real.cos_pi_div_two]
+    · refine ⟨π / 2 - θ, ?_, ?_⟩
+      · rw [Real.cos_pi_div_two_sub]; exact h
+      · rw [show θ + (π / 2 - θ) = π / 2 by ring, Real.cos_pi_div_two]
+  have h := stRem_chi_ray hm hW hX hβ hσ
+  rw [airySt_chi_integral hm hW] at h
+  rw [Real.integral_rpow_mul_exp_neg_mul_Ioi hm hW]
+  convert h using 1
+  rw [Real.rpow_neg hW.le, one_div, Real.inv_rpow hW.le]
+  ring
+
+
+/-- Positive Laplace mixtures retain the unshifted chi multiplier. -/
+lemma laplaceChi_mixture {m X θ : ℝ} (hm : 0 < m) (hX : 0 < X)
+    (hsin : Real.sin θ ≠ 0) (g : ℝ → ℝ)
+    (hg0 : ∀ v ∈ Ioi (0 : ℝ), 0 ≤ g v)
+    (hprod : Integrable (fun p : ℝ × ℝ =>
+      p.1 ^ (m - 1) * Real.exp (-((1 + p.2) * p.1)) * g p.2)
+      ((volume.restrict (Ioi (0 : ℝ))).prod (volume.restrict (Ioi (0 : ℝ))))) :
+    ‖∫ r in Ioi (0 : ℝ), (r : ℂ) ^ (m : ℂ) *
+      (∫ v in Ioi (0 : ℝ), (Real.exp (-((1 + v) * r)) * g v : ℝ)) /
+        (X + r * exp (θ * I))‖ ≤
+      airySt_chi m * ∫ r in Ioi (0 : ℝ), r ^ (m - 1) *
+        ∫ v in Ioi (0 : ℝ), Real.exp (-((1 + v) * r)) * g v := by
+  let f : ℝ → ℝ → ℝ := fun r v => r ^ (m - 1) * Real.exp (-((1 + v) * r)) * g v
+  let H : ℝ → ℝ → ℂ := fun r v => (r : ℂ) ^ (m : ℂ) *
+      Complex.exp (-((1 + v) * r)) / (X + r * exp (θ * I)) * g v
+  have hden (r : ℝ) : (X : ℂ) + r * exp (θ * I) ≠ 0 := by
+    intro he
+    have hi := congrArg Complex.im he
+    simp only [add_im, ofReal_im, mul_im, ofReal_re, exp_ofReal_mul_I_im,
+      mul_zero, zero_mul, add_zero, zero_add, zero_im] at hi
+    have hr : r = 0 := (mul_eq_zero.mp hi).resolve_right hsin
+    simp only [hr, ofReal_zero, zero_mul, add_zero, ofReal_eq_zero] at he
+    exact hX.ne' he
+  have hkcont : Continuous (fun r : ℝ => (r : ℂ) / (X + r * exp (θ * I))) := by
+    exact (by fun_prop : Continuous (fun r : ℝ => (r : ℂ))).div (by fun_prop) hden
+  have hH_eq (r v : ℝ) (hr : 0 < r) : H r v = (f r v : ℂ) *
+      ((r : ℂ) / (X + r * exp (θ * I))) := by
+    have hp : r ^ m = r ^ (m - 1) * r := by
+      calc r ^ m = r ^ ((m - 1) + 1) := by congr 1; ring
+        _ = r ^ (m - 1) * r := by rw [Real.rpow_add hr, Real.rpow_one]
+    have hc : (r : ℂ) ^ (m : ℂ) = (r ^ m : ℝ) := by
+      rw [Complex.ofReal_cpow hr.le]
+    dsimp [H, f]
+    rw [hc, hp]
+    push_cast
+    ring
+  have hkbound (r : ℝ) (hr : 0 < r) :
+      ‖(r : ℂ) / (X + r * exp (θ * I))‖ ≤ 1 / |Real.sin θ| := by
+    have hi := abs_im_le_norm ((X : ℂ) + r * exp (θ * I))
+    simp only [add_im, ofReal_im, mul_im, ofReal_re, exp_ofReal_mul_I_im,
+      mul_zero, zero_mul, add_zero, zero_add, abs_mul, abs_of_pos hr] at hi
+    rw [norm_div, Complex.norm_real, Real.norm_of_nonneg hr.le]
+    apply (div_le_div_iff₀ (norm_pos_iff.mpr (hden r)) (abs_pos.mpr hsin)).mpr
+    simpa using hi
+  have hHi : Integrable (Function.uncurry H)
+      ((volume.restrict (Ioi (0 : ℝ))).prod (volume.restrict (Ioi (0 : ℝ)))) := by
+    refine (hprod.div_const |Real.sin θ|).mono' ?_ ?_
+    · have hc := (Complex.continuous_ofReal.comp_aestronglyMeasurable hprod.aestronglyMeasurable).mul hkcont.aestronglyMeasurable.comp_fst
+      refine hc.congr ?_
+      change ∀ᵐ p ∂((volume.restrict (Ioi (0 : ℝ))).prod (volume.restrict (Ioi (0 : ℝ)))),
+        (f p.1 p.2 : ℂ) * ((p.1 : ℂ) / (X + p.1 * exp (θ * I))) = H p.1 p.2
+      rw [Measure.prod_restrict, ae_restrict_iff' (measurableSet_Ioi.prod measurableSet_Ioi)]
+      exact Eventually.of_forall fun p hp => (hH_eq p.1 p.2 hp.1).symm
+    · rw [Measure.prod_restrict, ae_restrict_iff' (measurableSet_Ioi.prod measurableSet_Ioi)]
+      refine Eventually.of_forall fun p hp => ?_
+      have hf0 : 0 ≤ f p.1 p.2 := by
+        dsimp [f]; exact mul_nonneg (mul_nonneg (Real.rpow_nonneg hp.1.le _) (Real.exp_pos _).le) (hg0 p.2 hp.2)
+      change ‖H p.1 p.2‖ ≤ f p.1 p.2 / |Real.sin θ|
+      rw [hH_eq p.1 p.2 hp.1, norm_mul,
+        Complex.norm_real, Real.norm_of_nonneg hf0]
+      exact (mul_le_mul_of_nonneg_left (hkbound p.1 hp.1) hf0).trans_eq (by dsimp [f]; ring)
+  have hpt (r : ℝ) : (r : ℂ) ^ (m : ℂ) *
+      (∫ v in Ioi (0 : ℝ), (Real.exp (-((1 + v) * r)) * g v : ℝ)) /
+        (X + r * exp (θ * I)) = ∫ v in Ioi (0 : ℝ), H r v := by
+    rw [← integral_complex_ofReal, ← integral_const_mul, ← integral_div]
+    congr 1
+    funext v
+    dsimp [H]
+    rw [ofReal_mul, ofReal_exp]
+    push_cast
+    ring
+  rw [setIntegral_congr_fun measurableSet_Ioi (fun r _ => hpt r), integral_integral_swap hHi]
+  have hbound (v : ℝ) (hv : v ∈ Ioi (0 : ℝ)) :
+      ‖∫ r in Ioi (0 : ℝ), H r v‖ ≤ airySt_chi m * ∫ r in Ioi (0 : ℝ), f r v := by
+    have hv0 : 0 < 1 + v := by have : 0 < v := hv; linarith
+    have he : (∫ r in Ioi (0 : ℝ), H r v) =
+      (∫ r in Ioi (0 : ℝ), (r : ℂ) ^ (m : ℂ) * Complex.exp (-((1 + v) * r)) /
+        (X + r * exp (θ * I))) * (g v : ℂ) := by
+      exact integral_mul_const _ _
+    rw [he, norm_mul, Complex.norm_real, Real.norm_of_nonneg (hg0 v hv)]
+    have hb := mul_le_mul_of_nonneg_right
+      (laplaceChi_kernel hm hv0 hX hsin) (hg0 v hv)
+    dsimp only [f]
+    rw [integral_mul_const]
+    simpa only [ofReal_add, ofReal_one, mul_assoc] using hb
+  calc ‖∫ v in Ioi (0 : ℝ), ∫ r in Ioi (0 : ℝ), H r v‖
+      ≤ ∫ v in Ioi (0 : ℝ), airySt_chi m * ∫ r in Ioi (0 : ℝ), f r v :=
+        norm_integral_le_of_norm_le (hprod.integral_prod_right.const_mul _)
+          ((ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall hbound))
+    _ = airySt_chi m * ∫ r in Ioi (0 : ℝ), r ^ (m - 1) *
+        ∫ v in Ioi (0 : ℝ), Real.exp (-((1 + v) * r)) * g v := by
+      have hswap : Integrable (Function.uncurry fun v r => f r v)
+          ((volume.restrict (Ioi (0 : ℝ))).prod (volume.restrict (Ioi (0 : ℝ)))) := hprod.swap
+      rw [integral_const_mul, integral_integral_swap hswap]
+      congr 1
+      apply integral_congr_ae
+      exact Eventually.of_forall fun r => by dsimp [f]; rw [← integral_const_mul]; congr 1; funext v; ring
+
+
+/-- A finite moment of a nonnegative Laplace density supplies product integrability. -/
+lemma laplaceChi_prod_integrable {m : ℝ} (hm : 0 < m) (g : ℝ → ℝ)
+    (hgm : Measurable g) (hg0 : ∀ v ∈ Ioi (0 : ℝ), 0 ≤ g v)
+    (hLap : ∀ r ∈ Ioi (0 : ℝ), IntegrableOn
+      (fun v : ℝ => Real.exp (-(v * r)) * g v) (Ioi 0))
+    (hMom : IntegrableOn (fun r : ℝ => r ^ (m - 1) * Real.exp (-r) *
+      (1 + ∫ v in Ioi (0 : ℝ), Real.exp (-(v * r)) * g v)) (Ioi 0)) :
+    Integrable (fun p : ℝ × ℝ =>
+      p.1 ^ (m - 1) * Real.exp (-((1 + p.2) * p.1)) * g p.2)
+      ((volume.restrict (Ioi (0 : ℝ))).prod (volume.restrict (Ioi (0 : ℝ)))) := by
+  let f : ℝ × ℝ → ℝ := fun p =>
+    p.1 ^ (m - 1) * Real.exp (-((1 + p.2) * p.1)) * g p.2
+  have hfmeas : Measurable f := by dsimp [f]; fun_prop
+  apply (integrable_prod_iff hfmeas.aestronglyMeasurable).mpr
+  have heq (r v : ℝ) : f (r, v) =
+      (r ^ (m - 1) * Real.exp (-r)) * (Real.exp (-(v * r)) * g v) := by
+    dsimp [f]
+    rw [show -((1 + v) * r) = -r + -(v * r) by ring, Real.exp_add]
+    ring
+  constructor
+  · refine (ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun r hr => ?_)
+    exact ((hLap r hr).const_mul (r ^ (m - 1) * Real.exp (-r))).congr
+      ((ae_restrict_iff' measurableSet_Ioi).mpr (Eventually.of_forall fun v _ => (heq r v).symm))
+  · have hAtom : IntegrableOn (fun r : ℝ => r ^ (m - 1) * Real.exp (-r)) (Ioi 0) := by
+      simpa using stRem_integrableOn_rpow_exp (m := m - 1) (by linarith) (show (0 : ℝ) < 1 by norm_num)
+    refine (hMom.sub hAtom).congr_fun (fun r hr => ?_) measurableSet_Ioi
+    have hnonneg (v : ℝ) (hv : v ∈ Ioi (0 : ℝ)) : 0 ≤ f (r, v) := by
+      dsimp [f]
+      exact mul_nonneg (mul_nonneg (Real.rpow_nonneg hr.le _) (Real.exp_pos _).le) (hg0 v hv)
+    rw [setIntegral_congr_fun measurableSet_Ioi
+      (fun v hv => Real.norm_of_nonneg (hnonneg v hv))]
+    simp_rw [heq]
+    rw [integral_const_mul]
+    dsimp only [Pi.sub_apply]
+    ring
+
 
 
 end DLMF.Airy

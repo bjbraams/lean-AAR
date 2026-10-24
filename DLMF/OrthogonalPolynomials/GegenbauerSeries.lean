@@ -148,7 +148,7 @@ theorem ultrasphPoly_cos_sum {lam : ℂ} (hlam : -1 / 2 < lam.re) (n : ℕ) (θ 
   ring
 
 /-- Every complex number is `(w + w⁻¹)/2` for some nonzero `w`. -/
-lemma exists_eq_half_add_inv (x : ℂ) : ∃ w : ℂ, w ≠ 0 ∧ x = (w + w⁻¹) / 2 := by
+lemma exists_eq_half_add_recip (x : ℂ) : ∃ w : ℂ, w ≠ 0 ∧ x = (w + w⁻¹) / 2 := by
   obtain ⟨θ, rfl⟩ := Complex.cos_surjective x
   refine ⟨exp (θ * I), Complex.exp_ne_zero _, ?_⟩
   rw [← Complex.exp_neg, Complex.cos]
@@ -616,7 +616,7 @@ theorem hasSum_coeff_gegenbauerSeries_mul_pow (lam : ℂ) (θ : ℝ) {z : ℂ} (
 
 
 /-- For `|x| ≤ 1`, `x = (w + w⁻¹)/2` with `w = exp (i arccos x)`. -/
-lemma ofReal_eq_half_add_inv_of_abs_le_one {x : ℝ} (hx : |x| ≤ 1) :
+lemma ofReal_eq_half_add_recip_of_abs_le_one {x : ℝ} (hx : |x| ≤ 1) :
     (x : ℂ) = (exp (Real.arccos x * I) + (exp (Real.arccos x * I))⁻¹) / 2 := by
   rw [← Complex.exp_neg, ← neg_mul, ← Complex.cos, ← Complex.ofReal_cos,
     Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2]

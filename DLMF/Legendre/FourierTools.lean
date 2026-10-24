@@ -522,7 +522,7 @@ lemma legTr_root_three : legInt_root 3 = ((Real.sqrt 8 : ℝ) : ℂ) := by
 
 
 /-- `‖w^{-a}‖ ≤ e^{π|Im a|} ‖w‖^{-Re a}`. -/
-lemma legTr_norm_inv_cpow_le {w a : ℂ} (hw : w ≠ 0) :
+lemma legTr_norm_recip_cpow_le {w a : ℂ} (hw : w ≠ 0) :
     ‖1/w^a‖ ≤ Real.exp (π*|a.im|) * ‖w‖^(-a.re) := by
   rw [norm_div, norm_one, norm_cpow_of_ne_zero hw, one_div_div, Real.rpow_neg (norm_nonneg _),
     div_eq_mul_inv]
@@ -636,7 +636,7 @@ lemma legTr_side {ν μ : ℂ} (hμ : -1/2 < μ.re) (ha : 0 < (ν+μ+1).re) (h1 
     have hpow : ‖w‖^(-a.re) ≤ (κ * W3 t)^(-a.re) :=
       Real.rpow_le_rpow_of_nonpos (by have := hW3pos t; positivity) hW (by linarith)
     rw [Real.mul_rpow hκ0.le (hW3pos t).le] at hpow
-    have hinv := legTr_norm_inv_cpow_le (a := a) hw0
+    have hinv := legTr_norm_recip_cpow_le (a := a) hw0
     calc ‖c‖ * ‖legendreBranchPower μ (z ε)‖ * (‖(Real.sinh t:ℂ)^(2*μ)‖ * ‖1/w^a‖)
         ≤ ‖c‖ * (‖P‖+1) * (‖(Real.sinh t:ℂ)^(2*μ)‖ *
           (Real.exp (π*|a.im|) * (κ^(-a.re) * (W3 t)^(-a.re)))) := by

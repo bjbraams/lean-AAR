@@ -59,7 +59,7 @@ companion `digamma_eq_log_sub_binetBeta`). -/
 open Set
 
 /-- `∑ₘ (2π(m+1))^{-2k} = (-1)^{k+1} B₂ₖ/(2 (2k)!)` for `k ≥ 1`. -/
-lemma hasSum_inv_two_pi_pow {k : ℕ} (hk : k ≠ 0) :
+lemma hasSum_recip_two_pi_pow {k : ℕ} (hk : k ≠ 0) :
     HasSum (fun m : ℕ => 1 / (2 * π * (m + 1)) ^ (2 * k))
       ((-1 : ℝ) ^ (k + 1) * bernoulli (2 * k) / (2 * (2 * k).factorial)) := by
   have h := (hasSum_nat_add_iff' 1).mpr (hasSum_zeta_nat hk)
@@ -138,7 +138,7 @@ lemma abs_binetBeta_div_sub_binetPoly_le (n : ℕ) {t : ℝ} (ht : 0 < t) :
       (2 * π * (m + 1)) ^ (2 * j + 2))
       ((bernoulli (2 * (j + 1)) : ℝ) / (2 * (j + 1)).factorial * t ^ (2 * j)) := by
     intro j
-    have h := (hasSum_inv_two_pi_pow (k := j + 1) (by omega)).mul_left (2 * (-1 : ℝ) ^ j *
+    have h := (hasSum_recip_two_pi_pow (k := j + 1) (by omega)).mul_left (2 * (-1 : ℝ) ^ j *
       t ^ (2 * j))
     convert h using 1
     · funext m
@@ -177,7 +177,7 @@ lemma abs_binetBeta_div_sub_binetPoly_le (n : ℕ) {t : ℝ} (ht : 0 < t) :
     rw [mul_one_div]
     exact div_le_div_of_nonneg_left (by positivity) (by positivity) this
   have hsumS : Summable fun m : ℕ => 1 / (2 * π * (m + 1)) ^ (2 * n + 2) :=
-    (hasSum_inv_two_pi_pow (k := n + 1) (by omega)).summable.congr fun m => by
+    (hasSum_recip_two_pi_pow (k := n + 1) (by omega)).summable.congr fun m => by
       rw [show 2 * (n + 1) = 2 * n + 2 by ring]
   have hnorm : Summable fun m : ℕ => ‖2 * (-1 : ℝ) ^ n * t ^ (2 * n) /
       ((2 * π * (m + 1)) ^ (2 * n) * (t ^ 2 + (2 * π * (m + 1)) ^ 2))‖ :=
@@ -1025,7 +1025,7 @@ lemma coeff_trunc_mk (f : ℕ → ℂ) (M m : ℕ) :
     (PowerSeries.trunc M (PowerSeries.mk f)).coeff m = if m < M then f m else 0 := by
   simp [PowerSeries.coeff_trunc]
 
-lemma isBigO_rpow_neg_of_inv_pow (N : ℕ) :
+lemma isBigO_rpow_neg_of_recip_pow (N : ℕ) :
     (fun t : ℝ => t * (t⁻¹) ^ (N + 2)) =ᶠ[atTop] fun t => t ^ (-((N : ℝ) + 1)) := by
   filter_upwards [eventually_gt_atTop 0] with t ht
   rw [Real.rpow_neg ht.le, show (N : ℝ) + 1 = ((N + 1 : ℕ) : ℝ) by push_cast; ring,
@@ -1068,7 +1068,7 @@ theorem hasAsymptoticExpansion_stirlingLogPart (a : ℂ) :
       tendsto_inv_atTop_nhdsGT_zero
     have h2 : (fun t : ℝ => (t : ℂ)) =O[atTop] fun t => t :=
       IsBigO.of_bound 1 (Eventually.of_forall fun t => by simp)
-    exact ((h2.mul h1).trans_eventuallyEq (isBigO_rpow_neg_of_inv_pow N))
+    exact ((h2.mul h1).trans_eventuallyEq (isBigO_rpow_neg_of_recip_pow N))
   -- the logarithm remainder
   have hz : Tendsto (fun t : ℝ => a / (t : ℂ)) atTop (𝓝 0) := by
     have : Tendsto (fun t : ℝ => ((t⁻¹ : ℝ) : ℂ)) atTop (𝓝 0) := by
@@ -1098,7 +1098,7 @@ theorem hasAsymptoticExpansion_stirlingLogPart (a : ℂ) :
         linarith
       rw [Real.norm_eq_abs, abs_of_pos (by linarith : (0 : ℝ) < t)]
       nlinarith [norm_nonneg a]
-    exact (h2.mul h1').trans_eventuallyEq (isBigO_rpow_neg_of_inv_pow N)
+    exact (h2.mul h1').trans_eventuallyEq (isBigO_rpow_neg_of_recip_pow N)
   refine (hlogO.add hQO).congr' ?_ (EventuallyEq.refl _ _)
   filter_upwards [eventually_gt_atTop (2 * ‖a‖)] with t ht
   have ht0 : 0 < t := lt_of_le_of_lt (by positivity) ht
@@ -1324,7 +1324,7 @@ lemma cexp_poly_sub_isBigO (d G : ℕ → ℂ) (hG0 : G 0 = 1)
         mul_le_mul hKx hMV (norm_nonneg _) ((norm_nonneg _).trans hKx)
     _ = K * M * x ^ (N + 1) := by ring
 
-lemma rpow_neg_add_one_eq_inv_pow {t : ℝ} (ht : 0 < t) (n : ℕ) :
+lemma rpow_neg_add_one_eq_recip_pow {t : ℝ} (ht : 0 < t) (n : ℕ) :
     t ^ (-((n : ℝ) + 1)) = (t⁻¹) ^ (n + 1) := by
   rw [Real.rpow_neg ht.le, show (n : ℝ) + 1 = ((n + 1 : ℕ) : ℝ) by push_cast; ring,
     Real.rpow_natCast, inv_pow]
@@ -1345,7 +1345,7 @@ theorem isBigO_cexp_sub_of_hasAsymptoticExpansion {L : ℝ → ℂ} {d G : ℕ �
     simp only [hr, hPd, real_smul]
     congr 1
     refine Finset.sum_congr rfl fun k _ => ?_
-    rw [rpow_neg_add_one_eq_inv_pow ht]
+    rw [rpow_neg_add_one_eq_recip_pow ht]
     push_cast
     ring
   have hr0 : Tendsto r atTop (𝓝 0) := by
@@ -1364,7 +1364,7 @@ theorem isBigO_cexp_sub_of_hasAsymptoticExpansion {L : ℝ → ℂ} {d G : ℕ �
   have h1 := (hPdb.mul (hexp.trans hrO)).congr_right fun t => one_mul _
   have hev : (fun t : ℝ => (t⁻¹) ^ (N + 1)) =ᶠ[atTop] fun t => t ^ (-((N : ℝ) + 1)) := by
     filter_upwards [eventually_gt_atTop 0] with t ht
-    exact (rpow_neg_add_one_eq_inv_pow ht N).symm
+    exact (rpow_neg_add_one_eq_recip_pow ht N).symm
   have h2 := ((cexp_poly_sub_isBigO d G hG0 hG N).comp_tendsto
     tendsto_inv_atTop_nhdsGT_zero).trans_eventuallyEq hev
   refine (h1.add h2).congr_left fun t => ?_
@@ -1453,14 +1453,14 @@ theorem Gamma_ratio_expansion (a b : ℂ) (n : ℕ) :
     push_cast
     ring_nf
 
-/-! ### The inverse-factorial expansion 5.11.19
+/-! ### The reciprocal-factorial expansion 5.11.19
 
 For `Re (c - a) > 0` the remainder after `n` terms has the exact Beta-integral form
 `Γ(t+b)/Γ(c-a) ∫₀^∞ s^{c-a-1} (1+s)^{-t-b} R_n(s) ds`, where `R_n` is the remainder of the
 binomial series of `(1+s)^{b-c}` (`ratioThree_rem_eq`). The Taylor bound
 `|R_n(s)| ≤ K sⁿ (1+s)^M` and the real Beta integral then give the `O`-bound. The restriction
 on `a` is removed by the exact shift identity `ratioThreeSum_shift`, which lowers `a` by one
-at the cost of a factor `t` and one extra inverse-factorial term.
+at the cost of a factor `t` and one extra reciprocal-factorial term.
 -/
 
 section RatioThree
@@ -1468,20 +1468,20 @@ section RatioThree
 open Set
 
 /-- The binomial coefficient `β(β-1)⋯(β-k+1)/k!`, written with a Pochhammer symbol. -/
-def invFacBinom (β : ℂ) (k : ℕ) : ℂ := (-1) ^ k * poch (-β) k / k.factorial
+def recipFacBinom (β : ℂ) (k : ℕ) : ℂ := (-1) ^ k * poch (-β) k / k.factorial
 
 /-- The remainder of the binomial series of `(1+s)^β` after `n` terms. -/
-def invFacRem (β : ℂ) (n : ℕ) (s : ℝ) : ℂ :=
-  (1 + (s : ℂ)) ^ β - ∑ k ∈ Finset.range n, invFacBinom β k * (s : ℂ) ^ k
+def recipFacRem (β : ℂ) (n : ℕ) (s : ℝ) : ℂ :=
+  (1 + (s : ℂ)) ^ β - ∑ k ∈ Finset.range n, recipFacBinom β k * (s : ℂ) ^ k
 
-lemma invFacBinom_zero (β : ℂ) : invFacBinom β 0 = 1 := by simp [invFacBinom, poch_zero]
+lemma recipFacBinom_zero (β : ℂ) : recipFacBinom β 0 = 1 := by simp [recipFacBinom, poch_zero]
 
 lemma poch_succ_left' (a : ℂ) (n : ℕ) : poch a (n + 1) = a * poch (a + 1) n := by
   simp [poch, ascPochhammer_succ_left, Polynomial.eval_comp, add_comm]
 
-lemma invFacBinom_succ (β : ℂ) (k : ℕ) :
-    invFacBinom β (k + 1) * (k + 1) = β * invFacBinom (β - 1) k := by
-  simp only [invFacBinom, poch_succ_left', Nat.factorial_succ]
+lemma recipFacBinom_succ (β : ℂ) (k : ℕ) :
+    recipFacBinom β (k + 1) * (k + 1) = β * recipFacBinom (β - 1) k := by
+  simp only [recipFacBinom, poch_succ_left', Nat.factorial_succ]
   rw [show -β + 1 = -(β - 1) by ring]
   push_cast
   have hk : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
@@ -1499,61 +1499,61 @@ lemma hasDerivAt_one_add_cpow (β : ℂ) {s : ℝ} (hs : -1 < s) :
     (one_add_ofReal_mem_slitPlane hs)
   simpa using h.comp_ofReal
 
-lemma hasDerivAt_invFacRem (β : ℂ) (n : ℕ) {s : ℝ} (hs : -1 < s) :
-    HasDerivAt (invFacRem β (n + 1)) (β * invFacRem (β - 1) n s) s := by
+lemma hasDerivAt_recipFacRem (β : ℂ) (n : ℕ) {s : ℝ} (hs : -1 < s) :
+    HasDerivAt (recipFacRem β (n + 1)) (β * recipFacRem (β - 1) n s) s := by
   have hp : ∀ k ∈ Finset.range (n + 1), HasDerivAt
-      (fun u : ℝ => invFacBinom β k * (u : ℂ) ^ k)
-      (invFacBinom β k * ((k : ℂ) * (s : ℂ) ^ (k - 1))) s := fun k _ =>
+      (fun u : ℝ => recipFacBinom β k * (u : ℂ) ^ k)
+      (recipFacBinom β k * ((k : ℂ) * (s : ℂ) ^ (k - 1))) s := fun k _ =>
     ((hasDerivAt_pow k (s : ℂ)).comp_ofReal).const_mul _
   have h := (hasDerivAt_one_add_cpow β hs).sub (HasDerivAt.fun_sum hp)
   convert h using 1
   · funext u; rfl
-  rw [invFacRem, Finset.sum_range_succ', mul_sub, Finset.mul_sum]
+  rw [recipFacRem, Finset.sum_range_succ', mul_sub, Finset.mul_sum]
   simp only [Nat.cast_zero, zero_mul, mul_zero, add_zero, Nat.add_sub_cancel]
   congr 1
   refine Finset.sum_congr rfl fun k _ => ?_
-  rw [← mul_assoc, ← invFacBinom_succ]
+  rw [← mul_assoc, ← recipFacBinom_succ]
   push_cast
   ring
 
-lemma invFacRem_zero_right (β : ℂ) (n : ℕ) : invFacRem β (n + 1) 0 = 0 := by
-  rw [invFacRem, Finset.sum_range_succ']
-  simp [invFacBinom_zero]
+lemma recipFacRem_zero_right (β : ℂ) (n : ℕ) : recipFacRem β (n + 1) 0 = 0 := by
+  rw [recipFacRem, Finset.sum_range_succ']
+  simp [recipFacBinom_zero]
 
-lemma continuousOn_invFacRem (β : ℂ) (n : ℕ) : ContinuousOn (invFacRem β n) (Ioi (-1)) := by
+lemma continuousOn_recipFacRem (β : ℂ) (n : ℕ) : ContinuousOn (recipFacRem β n) (Ioi (-1)) := by
   intro s hs
   refine ContinuousAt.continuousWithinAt ?_
   refine ContinuousAt.sub ?_ (by fun_prop)
   exact ContinuousAt.cpow (by fun_prop) continuousAt_const (one_add_ofReal_mem_slitPlane hs)
 
-lemma exists_norm_invFacRem_le (n : ℕ) : ∀ β : ℂ, ∃ K : ℝ, 0 ≤ K ∧ ∀ s : ℝ, 0 ≤ s →
-    ‖invFacRem β n s‖ ≤ K * s ^ n * (1 + s) ^ max β.re 0 := by
+lemma exists_norm_recipFacRem_le (n : ℕ) : ∀ β : ℂ, ∃ K : ℝ, 0 ≤ K ∧ ∀ s : ℝ, 0 ≤ s →
+    ‖recipFacRem β n s‖ ≤ K * s ^ n * (1 + s) ^ max β.re 0 := by
   induction n with
   | zero =>
     intro β
     refine ⟨1, zero_le_one, fun s hs => ?_⟩
     have h1 : (1 + (s : ℂ)) = ((1 + s : ℝ) : ℂ) := by push_cast; ring
-    simp only [invFacRem, Finset.range_zero, Finset.sum_empty, sub_zero, pow_zero, one_mul]
+    simp only [recipFacRem, Finset.range_zero, Finset.sum_empty, sub_zero, pow_zero, one_mul]
     rw [h1, norm_cpow_eq_rpow_re_of_pos (by linarith)]
     exact Real.rpow_le_rpow_of_exponent_le (by linarith) (le_max_left _ _)
   | succ n ih =>
     intro β
     obtain ⟨K, hK, hb⟩ := ih (β - 1)
     refine ⟨‖β‖ * K, by positivity, fun s hs => ?_⟩
-    have hderiv : ∀ u ∈ uIcc 0 s, HasDerivAt (invFacRem β (n + 1))
-        (β * invFacRem (β - 1) n u) u := by
+    have hderiv : ∀ u ∈ uIcc 0 s, HasDerivAt (recipFacRem β (n + 1))
+        (β * recipFacRem (β - 1) n u) u := by
       intro u hu
       rw [uIcc_of_le hs] at hu
-      exact hasDerivAt_invFacRem β n (by linarith [hu.1])
-    have hcont : ContinuousOn (fun u => β * invFacRem (β - 1) n u) (uIcc 0 s) := by
-      refine continuousOn_const.mul ((continuousOn_invFacRem _ n).mono fun u hu => ?_)
+      exact hasDerivAt_recipFacRem β n (by linarith [hu.1])
+    have hcont : ContinuousOn (fun u => β * recipFacRem (β - 1) n u) (uIcc 0 s) := by
+      refine continuousOn_const.mul ((continuousOn_recipFacRem _ n).mono fun u hu => ?_)
       rw [uIcc_of_le hs] at hu
       exact show -1 < u by linarith [hu.1]
     have hftc := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv
       (hcont.intervalIntegrable)
-    rw [invFacRem_zero_right, sub_zero] at hftc
+    rw [recipFacRem_zero_right, sub_zero] at hftc
     rw [← hftc]
-    have hle : ∀ u ∈ Set.uIoc (0 : ℝ) s, ‖β * invFacRem (β - 1) n u‖ ≤
+    have hle : ∀ u ∈ Set.uIoc (0 : ℝ) s, ‖β * recipFacRem (β - 1) n u‖ ≤
         ‖β‖ * K * s ^ n * (1 + s) ^ max β.re 0 := by
       intro u hu
       rw [uIoc_of_le hs] at hu
@@ -1569,7 +1569,7 @@ lemma exists_norm_invFacRem_le (n : ℕ) : ∀ β : ℂ, ∃ K : ℝ, 0 ≤ K �
           (Real.rpow_le_rpow_of_exponent_le (by linarith) hre)
       have hun : u ^ n ≤ s ^ n := pow_le_pow_left₀ hu0 hu.2 n
       gcongr
-    calc ‖∫ u in (0 : ℝ)..s, β * invFacRem (β - 1) n u‖
+    calc ‖∫ u in (0 : ℝ)..s, β * recipFacRem (β - 1) n u‖
         ≤ ‖β‖ * K * s ^ n * (1 + s) ^ max β.re 0 * |s - 0| :=
           intervalIntegral.norm_integral_le_of_norm_le_const hle
       _ = ‖β‖ * K * s ^ (n + 1) * (1 + s) ^ max β.re 0 := by
@@ -1608,7 +1608,7 @@ lemma Gamma_add_nat_eq_poch_mul_Gamma {α : ℂ} (hα : 0 < α.re) (k : ℕ) :
     rw [Nat.cast_succ, ← add_assoc, Complex.Gamma_add_one _ hne, ih, poch_succ]
     ring
 
-/-- The Beta-integral representation of the remainder of the inverse-factorial expansion. -/
+/-- The Beta-integral representation of the remainder of the reciprocal-factorial expansion. -/
 lemma ratioThree_rem_eq {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re) {t : ℝ}
     (hta : 0 < (t + a).re) (htb : (c - a).re + n < (t + b).re) :
     Complex.Gamma (t + a) * Complex.Gamma (t + b) / Complex.Gamma (t + c) -
@@ -1617,7 +1617,7 @@ lemma ratioThree_rem_eq {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re) {t : ℝ}
             Complex.Gamma (a + b - c + t - k) =
       Complex.Gamma (t + b) / Complex.Gamma (c - a) *
         ∫ s in Ioi (0 : ℝ), (s : ℂ) ^ (c - a - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + b)) *
-          invFacRem (b - c) n s := by
+          recipFacRem (b - c) n s := by
   set α := c - a with hαdef
   have htb0 : 0 < (t + b).re := by
     have : (0 : ℝ) ≤ n := Nat.cast_nonneg n
@@ -1649,9 +1649,9 @@ lemma ratioThree_rem_eq {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re) {t : ℝ}
   simp only [smul_eq_mul] at hF
   -- pointwise identity of integrands
   have hpt : ∀ s ∈ Ioi (0 : ℝ),
-      (s : ℂ) ^ (α - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + b)) * invFacRem (b - c) n s =
+      (s : ℂ) ^ (α - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + b)) * recipFacRem (b - c) n s =
         (s : ℂ) ^ (α - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + c)) -
-          ∑ k ∈ Finset.range n, invFacBinom (b - c) k *
+          ∑ k ∈ Finset.range n, recipFacBinom (b - c) k *
             ((s : ℂ) ^ (α + k - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + b))) := by
     intro s hs
     have hs' : (0 : ℝ) < s := hs
@@ -1665,14 +1665,14 @@ lemma ratioThree_rem_eq {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re) {t : ℝ}
     have hspow : ∀ k : ℕ, (s : ℂ) ^ (α + k - 1) = (s : ℂ) ^ (α - 1) * (s : ℂ) ^ k := by
       intro k
       rw [← cpow_natCast, ← cpow_add _ _ hs0]; congr 1; ring
-    rw [invFacRem, hc1, hpow, mul_sub, Finset.mul_sum]
+    rw [recipFacRem, hc1, hpow, mul_sub, Finset.mul_sum]
     congr 1
     · ring
     · refine Finset.sum_congr rfl fun k _ => ?_
       rw [hspow]; ring
   rw [setIntegral_congr_fun measurableSet_Ioi hpt]
   have hintF := integrableOn_cpow_mul_one_add_cpow (p := α) (A := t + c) hα hαc
-  have hintK : ∀ k ∈ Finset.range n, Integrable (fun s : ℝ => invFacBinom (b - c) k *
+  have hintK : ∀ k ∈ Finset.range n, Integrable (fun s : ℝ => recipFacBinom (b - c) k *
       ((s : ℂ) ^ (α + k - 1) * ((1 + s : ℝ) : ℂ) ^ (-(t + b)))) (volume.restrict (Ioi 0)) :=
     fun k hk' => (integrableOn_cpow_mul_one_add_cpow (hkpos k) (hk k hk')).const_mul _
   rw [integral_sub hintF (integrable_finsetSum _ hintK), integral_finsetSum _ hintK, hF]
@@ -1682,16 +1682,16 @@ lemma ratioThree_rem_eq {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re) {t : ℝ}
   · rw [show t + c - α = t + a by rw [hαdef]; ring]
     field_simp
   · refine Finset.sum_congr rfl fun k hk' => ?_
-    rw [hK k hk', Gamma_add_nat_eq_poch_mul_Gamma hα, invFacBinom,
+    rw [hK k hk', Gamma_add_nat_eq_poch_mul_Gamma hα, recipFacBinom,
       show -(b - c) = c - b by ring, show t + b - (α + k) = a + b - c + t - k by
         simp [hαdef]; ring]
     field_simp
 
 /-- The norm bound on the Beta-integral remainder. -/
-lemma norm_integral_invFacRem_le {α β B : ℂ} {n : ℕ} {K M : ℝ}
-    (hb : ∀ s : ℝ, 0 ≤ s → ‖invFacRem β n s‖ ≤ K * s ^ n * (1 + s) ^ M)
+lemma norm_integral_recipFacRem_le {α β B : ℂ} {n : ℕ} {K M : ℝ}
+    (hb : ∀ s : ℝ, 0 ≤ s → ‖recipFacRem β n s‖ ≤ K * s ^ n * (1 + s) ^ M)
     (hα : 0 < α.re) (hB : α.re + n + M < B.re) :
-    ‖∫ s in Ioi (0 : ℝ), (s : ℂ) ^ (α - 1) * ((1 + s : ℝ) : ℂ) ^ (-B) * invFacRem β n s‖ ≤
+    ‖∫ s in Ioi (0 : ℝ), (s : ℂ) ^ (α - 1) * ((1 + s : ℝ) : ℂ) ^ (-B) * recipFacRem β n s‖ ≤
       K * (Real.Gamma (α.re + n) * Real.Gamma (B.re - M - (α.re + n)) /
         Real.Gamma (B.re - M)) := by
   set p : ℝ := α.re + n with hp
@@ -1708,7 +1708,7 @@ lemma norm_integral_invFacRem_le {α β B : ℂ} {n : ℕ} {K M : ℝ}
   have h1 : (0 : ℝ) < 1 + s := by linarith
   rw [norm_mul, norm_mul, norm_cpow_eq_rpow_re_of_pos hs0, norm_cpow_eq_rpow_re_of_pos h1]
   have hr := hb s hs0.le
-  calc s ^ (α - 1).re * (1 + s) ^ (-B).re * ‖invFacRem β n s‖
+  calc s ^ (α - 1).re * (1 + s) ^ (-B).re * ‖recipFacRem β n s‖
       ≤ s ^ (α - 1).re * (1 + s) ^ (-B).re * (K * s ^ n * (1 + s) ^ M) := by gcongr
     _ = K * (s ^ (p - 1) / (1 + s) ^ (B.re - M)) := by
       have e1 : s ^ (p - 1) = s ^ (α - 1).re * s ^ n := by
@@ -1718,7 +1718,7 @@ lemma norm_integral_invFacRem_le {α β B : ℂ} {n : ℕ} {K M : ℝ}
       rw [e1, div_eq_mul_inv, ← e2]; ring
 
 
-/-- The partial sum of the inverse-factorial expansion 5.11.19. -/
+/-- The partial sum of the reciprocal-factorial expansion 5.11.19. -/
 def ratioThreeSum (a b c : ℂ) (n : ℕ) (t : ℝ) : ℂ :=
   ∑ k ∈ Finset.range n, (-1 : ℂ) ^ k * poch (c - a) k * poch (c - b) k / k.factorial *
     Complex.Gamma (a + b - c + t - k)
@@ -1787,7 +1787,7 @@ lemma ratioThree_isBigO_of_re_pos {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re)
     (fun t : ℝ => Complex.Gamma (t + a) * Complex.Gamma (t + b) / Complex.Gamma (t + c) -
         ratioThreeSum a b c n t) =O[atTop]
       fun t : ℝ => Complex.Gamma t * (t : ℂ) ^ (a + b - c - n) := by
-  obtain ⟨K, hK0, hb⟩ := exists_norm_invFacRem_le n (b - c)
+  obtain ⟨K, hK0, hb⟩ := exists_norm_recipFacRem_le n (b - c)
   set M : ℝ := max (b - c).re 0 with hMdef
   have hM0 : 0 ≤ M := le_max_right _ _
   set p : ℝ := (c - a).re + n with hpdef
@@ -1810,7 +1810,7 @@ lemma ratioThree_isBigO_of_re_pos {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re)
     have htb' : (c - a).re + n < ((t : ℂ) + b).re := by rw [htbre]; linarith
     have hB : (c - a).re + n + M < ((t : ℂ) + b).re := by rw [htbre]; linarith
     have hrem := ratioThree_rem_eq (a := a) (b := b) (c := c) n hα hta' htb'
-    have hJ := norm_integral_invFacRem_le (α := c - a) (β := b - c) (B := t + b) (n := n)
+    have hJ := norm_integral_recipFacRem_le (α := c - a) (β := b - c) (B := t + b) (n := n)
       (K := K) (M := M) hb hα hB
     rw [htbre] at hJ
     have e1 : t + b.re - M - ((c - a).re + n) = t + u1 := by rw [hu1, hpdef]; ring
@@ -1828,7 +1828,7 @@ lemma ratioThree_isBigO_of_re_pos {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re)
     rw [hrem, norm_mul, norm_div, hC]
     calc ‖Complex.Gamma (t + b)‖ / ‖Complex.Gamma (c - a)‖ * ‖∫ s in Ioi (0 : ℝ),
           (s : ℂ) ^ (c - a - 1) * ((1 + s : ℝ) : ℂ) ^ (-((t : ℂ) + b)) *
-            invFacRem (b - c) n s‖
+            recipFacRem (b - c) n s‖
         ≤ ‖Complex.Gamma (t + b)‖ / ‖Complex.Gamma (c - a)‖ *
           (K * (Real.Gamma p * Real.Gamma (t + u1) / Real.Gamma (t + v1))) := by
           gcongr
@@ -1850,7 +1850,7 @@ lemma ratioThree_isBigO_of_re_pos {a b c : ℂ} (n : ℕ) (hα : 0 < (c - a).re)
   ring
 
 
-/-- Lowering `a` by one in 5.11.19 costs one factor `t` and adds one inverse-factorial term. -/
+/-- Lowering `a` by one in 5.11.19 costs one factor `t` and adds one reciprocal-factorial term. -/
 lemma ratioThree_isBigO_shift {a b c : ℂ} (n : ℕ)
     (h : (fun t : ℝ => Complex.Gamma (t + (a - 1)) * Complex.Gamma (t + b) /
         Complex.Gamma (t + c) - ratioThreeSum (a - 1) b c n t) =O[atTop]
@@ -1924,7 +1924,7 @@ lemma ratioThree_isBigO_aux {b c : ℂ} (n : ℕ) (m : ℕ) : ∀ a : ℂ, 0 < (
 
 end RatioThree
 
-/-- The inverse-factorial Gamma-ratio expansion. The remainder retains the
+/-- The reciprocal-factorial Gamma-ratio expansion. The remainder retains the
 parameter-dependent leading power `a + b - c`, which cannot be omitted. -/
 @[dlmf 5.11.E19]
 theorem Gamma_ratio_three {a b c : ℂ} (n : ℕ) :

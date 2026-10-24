@@ -16,7 +16,7 @@ public import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
 Tools for the Barnes integral of `H_ν` (DLMF 11.5.8), whose integrand on `s = t + iy` is
 `π/sin(πs) · w^s / (Γ(3/2+s) Γ(3/2+ν+s))`:
 
-* `struveBar_inv_Gamma_isBigO`: on a shifted vertical line,
+* `struveBar_recip_Gamma_isBigO`: on a shifted vertical line,
   `1/|Γ(a + i(y+m))| = O(y^{1/2-a} e^{πy/2})` as `y → +∞` (Stirling, DLMF 5.11.9, from
   `DLMF.Gamma.tendsto_norm_Gamma_vertical_div`);
 * `struveBar_pi_div_sin_le`, `struveBar_pi_div_sin_isBigO`: `π/|sin(π(t+iy))| ≤ 4π e^{-πy}`
@@ -52,7 +52,7 @@ lemma struveBar_rpow_shift_le {y m q : ℝ} (hy : 0 < y) (hym : 2 * |m| ≤ y) :
           div_eq_mul_inv, mul_comm]
 
 /-- Stirling on a shifted vertical line: `1/|Γ(a + i(y+m))| = O(y^{1/2-a} e^{πy/2})`. -/
-lemma struveBar_inv_Gamma_isBigO (a m : ℝ) :
+lemma struveBar_recip_Gamma_isBigO (a m : ℝ) :
     (fun y : ℝ => (‖Gamma ((a : ℂ) + ((y : ℂ) + m) * I)‖)⁻¹) =O[atTop]
       (fun y : ℝ => y ^ (1 / 2 - a) * Real.exp (π * y / 2)) := by
   have hE := (Asymptotics.isEquivalent_of_tendsto_one
@@ -119,8 +119,8 @@ lemma struveBar_isBigO (t a b m : ℝ) :
     (fun y : ℝ => π / ‖sin (π * ((t : ℂ) + y * I))‖ * (‖Gamma ((a : ℂ) + y * I)‖)⁻¹ *
       (‖Gamma ((b : ℂ) + ((y : ℂ) + m) * I)‖)⁻¹) =O[atTop] (fun y : ℝ => y ^ (1 - a - b)) := by
   have h1 := struveBar_pi_div_sin_isBigO t
-  have h2 := struveBar_inv_Gamma_isBigO a 0
-  have h3 := struveBar_inv_Gamma_isBigO b m
+  have h2 := struveBar_recip_Gamma_isBigO a 0
+  have h3 := struveBar_recip_Gamma_isBigO b m
   simp only [ofReal_zero, add_zero] at h2
   refine ((h1.mul h2).mul h3).trans (Filter.EventuallyEq.isBigO ?_)
   filter_upwards [eventually_gt_atTop 0] with y hy

@@ -257,7 +257,7 @@ theorem kumCF_tendsto_exp_half (c d z : ℂ) :
     calc ‖poch (c + m) n‖ / ‖poch (d + 2 * m) n‖ * ‖z‖ ^ n ≤ 1 * ‖z‖ ^ n := by gcongr
       _ = _ := one_mul _
 
-lemma kumCF_inv_tendsto (d : ℂ) (n : ℕ) :
+lemma kumCF_recip_tendsto (d : ℂ) (n : ℕ) :
     Tendsto (fun m : ℕ => 1 / (d + 2 * m + n)) atTop (𝓝 0) := by
   have h1 : Tendsto (fun m : ℕ => (1 / (m : ℂ)) / ((d + n) / (m : ℂ) + 2)) atTop
       (𝓝 (0 / (0 + 2))) :=
@@ -350,11 +350,11 @@ lemma kumCF_coeff_tendsto (a b : ℂ) :
     Tendsto (fun m : ℕ => kummerMContFractCoeff a b (2 * m)) atTop (𝓝 0) ∧
       Tendsto (fun m : ℕ => kummerMContFractCoeff a b (2 * m + 1)) atTop (𝓝 0) := by
   constructor
-  · have := ((kumCF_ratio_tendsto (-(a - b)) b 0).neg).mul (kumCF_inv_tendsto b 1)
+  · have := ((kumCF_ratio_tendsto (-(a - b)) b 0).neg).mul (kumCF_recip_tendsto b 1)
     rw [mul_zero] at this
     refine this.congr fun m => ?_
     rw [kumCF_coeff_even]; simp only [div_eq_mul_inv, mul_inv]; push_cast; ring
-  · have := (kumCF_ratio_tendsto (a + 1) (b + 1) 0).mul (kumCF_inv_tendsto (b + 1) 1)
+  · have := (kumCF_ratio_tendsto (a + 1) (b + 1) 0).mul (kumCF_recip_tendsto (b + 1) 1)
     rw [mul_zero] at this
     refine this.congr fun m => ?_
     rw [kumCF_coeff_odd]; simp only [div_eq_mul_inv, mul_inv]; push_cast; ring

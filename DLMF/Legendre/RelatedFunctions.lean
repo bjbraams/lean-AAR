@@ -170,7 +170,29 @@ def associatedDegreeA (ν μ z : ℂ) : ℂ :=
 @[dlmf 14.11.E1]
 theorem associatedP_degree_deriv {ν : ℂ} (hν : ∀ n : ℤ, ν ≠ n) (μ : ℂ) {z : ℂ} (hz : z-1 ∈ slitPlane) (hdisk : ‖1-z‖ < 2) :
     HasDerivAt (fun ν => associatedP ν μ z) (π*cos (ν*π)/sin (ν*π)*associatedP ν μ z-associatedDegreeA ν μ z/π) ν := by
-  sorry
+  have hw : ‖(1-z)/2‖ < 1 := by
+    rw [norm_div, norm_ofNat]
+    exact (div_lt_one (by norm_num)).mpr hdisk
+  set F : ℂ → ℂ := fun ν' => regularizedGaussHGFun (ν'+1) (-ν') (1-μ) ((1-z)/2)
+  set pref : ℂ := exp (μ/2*(log (z+1)-log (z-1)))
+  have hP : ∀ ν', associatedP ν' μ z = pref * F ν' := fun ν' => by
+    simp only [associatedP, pref, F]
+    rw [regularizedGaussHG_eq_regularizedGaussHGFun _ _ _ hw]
+  have hFd : Differentiable ℂ F :=
+    differentiable_regularizedGaussHGFun_of_differentiable (differentiable_id.add_const 1)
+      differentiable_neg (differentiable_const _) hw
+  have hd : HasDerivAt (fun ν' => associatedP ν' μ z) (pref * deriv F ν) ν := by
+    simp only [hP]; exact ((hFd ν).hasDerivAt).const_mul pref
+  refine hd.congr_deriv ?_
+  have hR := legHyp_hasSum_A_complex hν μ hw
+  unfold associatedDegreeA
+  rw [hR.tsum_eq, hP ν, mul_comm (ν:ℂ) π]
+  have hs := legHyp_sin_ne hν
+  have hπ : (π:ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
+  dsimp only [pref, F]
+  generalize sin (π*ν) = s at hs ⊢
+  field_simp
+  ring
 
 /- DLMF 14.27’s unqualified left-cut zero rule is not admitted: for
 ν=1, μ=-1/2 the first-kind function has its only algebraic zero at x=-1/2,

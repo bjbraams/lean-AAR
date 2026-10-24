@@ -108,7 +108,7 @@ theorem regularized_connection_one_div_one_sub
       ring
 
 @[dlmf 15.8.E5]
-theorem regularized_connection_one_sub_inv
+theorem regularized_connection_one_sub_recip
     (a b c : ℂ)
     {z : ℂ}
     (hz : ‖z‖ < 1)
@@ -155,7 +155,7 @@ lemma poch_one_sub_sub_mul {x : ℂ} {m j : ℕ} (hj : j ≤ m) :
   ring
 
 @[dlmf 15.8.E6]
-theorem terminating_inverse
+theorem terminating_reciprocal
     {b c z : ℂ}
     (m : ℕ)
     (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
@@ -232,7 +232,7 @@ lemma terminating_pfaff (m : ℕ) {b c w : ℂ} (hc : ∀ k : ℕ, c ≠ -(k : �
   exact congrFun hall w
 
 @[dlmf 15.8.E6]
-theorem terminating_inverse_one_sub
+theorem terminating_reciprocal_one_sub
     {b c z : ℂ}
     (m : ℕ)
     (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
@@ -249,7 +249,7 @@ theorem terminating_inverse_one_sub
     rw [ordinaryHypergeometric_zero, sub_zero, div_one, one_pow, mul_one, chu_vandermonde m ht,
       show 1 - b - m - (c - b) = 1 - c - m by ring, poch_one_sub_sub, poch_one_sub_sub]
     field_simp [poch_ne_zero_of_not_neg_nat hc m]
-  · rw [terminating_inverse m hc ht hz0,
+  · rw [terminating_reciprocal m hc ht hz0,
       terminating_pfaff m ht (by
         intro h
         apply hz
@@ -263,7 +263,7 @@ theorem terminating_inverse_one_sub
       show -z * (1 - 1 / z) = 1 - z by field_simp; ring]
 
 @[dlmf 15.8.E7]
-theorem terminating_one_sub_inv
+theorem terminating_one_sub_recip
     {b c z : ℂ}
     (m : ℕ)
     (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
@@ -279,7 +279,7 @@ theorem terminating_one_sub_inv
     have ht' : ∀ k : ℕ, 1 - (c - b) - m ≠ -(k : ℂ) := by
       simpa [show ∀ x : ℂ, b - c - m + 1 = x ↔ 1 - (c - b) - m = x from fun x => by
         constructor <;> intro h <;> linear_combination h] using ht
-    rw [terminating_pfaff m hc hz1, terminating_inverse m hc ht' hu0,
+    rw [terminating_pfaff m hc hz1, terminating_reciprocal m hc ht' hu0,
       show 1 - (c - b) - m = b - c - m + 1 by ring,
       show 1 / (z / (z - 1)) = 1 - 1 / z by field_simp,
       show (1 - z) ^ m * (poch (c - b) m / poch c m * (-(z / (z - 1))) ^ m *
@@ -309,7 +309,7 @@ theorem terminating_one_sub
       show b - c - m + 1 - b = 1 - c - m by ring, show b - c - m + 1 = 1 - (c - b) - m by ring,
       poch_one_sub_sub, poch_one_sub_sub]
     field_simp [poch_ne_zero_of_not_neg_nat hc m]
-  · rw [terminating_one_sub_inv m hc ht hz0, terminating_pfaff m ht (by
+  · rw [terminating_one_sub_recip m hc ht hz0, terminating_pfaff m ht (by
         intro h
         have h' : (1 : ℂ) / z = 0 := by linear_combination -h
         simp [hz0] at h'),
@@ -1134,7 +1134,7 @@ lemma sq_cpow {x : ℂ} (hx : 0 < x.re) (y : ℂ) : (x ^ 2) ^ y = x ^ (2 * y) :=
   ring_nf
 
 /-- `‖1 - 1/s‖ < 1` exactly when `Re s > 1/2`. -/
-lemma norm_one_sub_inv_lt_one_iff {s : ℂ} (hs : s ≠ 0) : ‖1 - 1 / s‖ < 1 ↔ 1 / 2 < s.re := by
+lemma norm_one_sub_recip_lt_one_iff {s : ℂ} (hs : s ≠ 0) : ‖1 - 1 / s‖ < 1 ↔ 1 / 2 < s.re := by
   rw [show 1 - 1 / s = (s - 1) / s by field_simp, norm_div, div_lt_one (norm_pos_iff.mpr hs),
     ← sq_lt_sq₀ (norm_nonneg _) (norm_nonneg _), ← normSq_eq_norm_sq, ← normSq_eq_norm_sq,
     normSq_apply, normSq_apply]
@@ -1175,8 +1175,8 @@ lemma isPreconnected_halfSum :
           (1 - 2 * (((1 - t : ℝ) : ℂ) * z)) ^ 2 =
           1 - 1 / (1 - 2 * ((1 - t : ℝ) : ℂ) * z) ^ 2 by
             rw [hv _ (by rwa [← mul_assoc]), ← mul_assoc]]
-      rw [hv z hz0, norm_one_sub_inv_lt_one_iff (pow_ne_zero 2 hz0)] at h3
-      rw [norm_one_sub_inv_lt_one_iff (pow_ne_zero 2 hz0')]
+      rw [hv z hz0, norm_one_sub_recip_lt_one_iff (pow_ne_zero 2 hz0)] at h3
+      rw [norm_one_sub_recip_lt_one_iff (pow_ne_zero 2 hz0')]
       have hsq : (1 - 2 * z) ^ 2 = (1 - 2 * z) * (1 - 2 * z) := sq _
       have hR : 1 / 2 < (1 - 2 * z).re ^ 2 - (1 - 2 * z).im ^ 2 := by
         rw [hsq, mul_re] at h3; nlinarith
@@ -1421,7 +1421,7 @@ lemma ofReal_cpow_eq_exp_log {u : ℝ} (hu : 0 < u) (s : ℂ) :
   rw [cpow_def_of_ne_zero (ofReal_ne_zero.mpr hu.ne'), ofReal_log hu.le]
 
 /-- Data for the real quadratic transformations on `(-1, 0)`. -/
-lemma inverse_sqrt_data {x : ℝ} (hx : -1 < x) (hx0 : x < 0) :
+lemma reciprocal_sqrt_data {x : ℝ} (hx : -1 < x) (hx0 : x < 0) :
     2 < 1 - 1 / x ∧ 1 < Real.sqrt (1 - 1 / x) ∧
       Real.sqrt (1 - 1 / x) ^ 2 = 1 - 1 / x ∧ x / (x - 1) = 1 / (1 - 1 / x) := by
   have hq : 2 < 1 - 1 / x := by
@@ -1436,7 +1436,7 @@ lemma inverse_sqrt_data {x : ℝ} (hx : -1 < x) (hx0 : x < 0) :
     field_simp
 
 @[dlmf 15.8.E22]
-theorem quadratic_inverse_sqrt
+theorem quadratic_reciprocal_sqrt
     {a b : ℂ}
     {x : ℝ}
     (hc : ∀ k : ℕ,
@@ -1447,7 +1447,7 @@ theorem quadratic_inverse_sqrt
     ₂F₁ a b ((a + b + 1) / 2) (x : ℂ) =
       ((((1 - 1 / x).sqrt - 1) / ((1 - 1 / x).sqrt + 1) : ℝ) : ℂ) ^ a * ₂F₁ a ((a + b) / 2) (a + b) ((4 * (1
         - 1 / x).sqrt / ((1 - 1 / x).sqrt + 1) ^ 2 : ℝ) : ℂ) := by
-  obtain ⟨hq, hr1, hrsq, hy⟩ := inverse_sqrt_data hx hx0
+  obtain ⟨hq, hr1, hrsq, hy⟩ := reciprocal_sqrt_data hx hx0
   set q := 1 - 1 / x with hqdef
   set r := Real.sqrt q with hrdef
   have hr0 : 0 < r := by linarith
@@ -1504,7 +1504,7 @@ theorem quadratic_inverse_sqrt
   ring
 
 @[dlmf 15.8.E23]
-theorem quadratic_inverse_sqrt_complementary
+theorem quadratic_reciprocal_sqrt_complementary
     {a c : ℂ}
     {x : ℝ}
     (hc : ∀ k : ℕ, c ≠ -(k : ℂ))
@@ -1515,12 +1515,12 @@ theorem quadratic_inverse_sqrt_complementary
       (((1 - 1 / x).sqrt - 1 : ℝ) : ℂ) ^ (1 - a) * (((1 - 1 / x).sqrt + 1 : ℝ) : ℂ) ^ (a - 2 * c + 1) * ((1
         - 1 / x : ℝ) : ℂ) ^ (c - 1) * ₂F₁ (c - a) (c - 1 / 2) (2 * c - 1) ((4 * (1 - 1 / x).sqrt / ((1 - 1 /
         x).sqrt + 1) ^ 2 : ℝ) : ℂ) := by
-  obtain ⟨hq, hr1, hrsq, hy⟩ := inverse_sqrt_data hx hx0
+  obtain ⟨hq, hr1, hrsq, hy⟩ := reciprocal_sqrt_data hx hx0
   set q := 1 - 1 / x with hqdef
   set r := Real.sqrt q with hrdef
   have hxn : ‖(x : ℂ)‖ < 1 := by
     rw [Complex.norm_real, Real.norm_eq_abs, abs_lt]; constructor <;> linarith
-  have h22 := quadratic_inverse_sqrt (a := c - a) (b := c + a - 1)
+  have h22 := quadratic_reciprocal_sqrt (a := c - a) (b := c + a - 1)
     (by rw [show (c - a + (c + a - 1) + 1) / 2 = c by ring]; exact hc)
     (by rw [show c - a + (c + a - 1) = 2 * c - 1 by ring]; exact ht) hx hx0
   rw [show (c - a + (c + a - 1) + 1) / 2 = c by ring,

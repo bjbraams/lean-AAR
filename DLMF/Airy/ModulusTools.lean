@@ -538,7 +538,7 @@ lemma airyInt_norm_oscPrefactor_biDeriv {s : ℝ} (hs : 0 < s) :
   ring
 
 /-- `ζ(s)⁻¹ = (3/2) s^{-3/2}`. -/
-lemma airyInt_airyZeta_inv {s : ℝ} (hs : 0 < s) :
+lemma airyInt_airyZeta_recip {s : ℝ} (hs : 0 < s) :
     (airyZeta s)⁻¹ = 3 / 2 * s ^ (-(3 / 2) : ℝ) := by
   rw [airyZeta, Real.rpow_neg hs.le]; field_simp
 
@@ -568,7 +568,7 @@ lemma airyInt_oscError_one_zero_le (kind : AiryKind) {s : ℝ} (hs : 1 ≤ s) :
   rw [airyInt_oscError_ofReal kind 1 0 hs0]
   have hz := airyInt_two_thirds_le_airyZeta hs
   have hz0 : 0 < airyZeta s := by linarith
-  have hi := airyInt_airyZeta_inv hs0
+  have hi := airyInt_airyZeta_recip hs0
   norm_num only [Nat.cast_one, Nat.cast_zero, mul_one, mul_zero, zero_add, zpow_neg_one]
   rw [show (-(2 : ℤ)) = (-1) * 2 by norm_num, zpow_mul, zpow_neg_one, hi]
   have hsr : s ^ (-(3 / 2) : ℝ) ≤ 1 := Real.rpow_le_one_of_one_le_of_nonpos hs (by norm_num)

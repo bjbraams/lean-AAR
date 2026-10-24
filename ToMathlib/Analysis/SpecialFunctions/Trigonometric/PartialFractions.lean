@@ -34,9 +34,8 @@ lemma hasSum_cotTerm {x : ℂ} (hx : x ∈ integerComplement) :
     HasSum (fun n => cotTerm x n) (π * cot (π * x) - 1 / x) := by
   rw [cot_series_rep' hx]; exact (summable_cotTerm hx).hasSum
 
-/-- Partial fractions for the tangent (DLMF 4.22.3, Duverney (2.41)):
+/-- Partial fractions for the tangent (Duverney (2.41)):
 `π tan(πx) = ∑ₖ 8x/((2k+1)² - 4x²)` for `2x ∉ ℤ`. -/
-@[dlmf 4.22.E3]
 theorem hasSum_tan_partial_fraction {x : ℂ} (hx : 2 * x ∈ integerComplement) :
     HasSum (fun k : ℕ => 8 * x / ((2 * k + 1) ^ 2 - 4 * x ^ 2)) (π * tan (π * x)) := by
   have hx1 : x ∈ integerComplement := by
@@ -99,9 +98,9 @@ theorem hasSum_tan_partial_fraction {x : ℂ} (hx : 2 * x ∈ integerComplement)
   convert he.mul_left (-2) using 1
   ring
 
-/-- Partial fractions for the cosecant (DLMF 4.22.4, Duverney (2.43)):
+/-- Partial fractions for the cosecant (DLMF 4.22.5, Duverney (2.43)):
 `π/sin(πx) = 1/x + ∑ₙ (-1)ⁿ⁺¹ 2x/(x² - (n+1)²)` for `x ∉ ℤ`. -/
-@[dlmf 4.22.E4]
+@[dlmf 4.22.E5]
 theorem hasSum_csc_partial_fraction {x : ℂ} (hx : x ∈ integerComplement) :
     HasSum (fun n : ℕ => (-1 : ℂ) ^ (n + 1) * cotTerm x n) (π / sin (π * x) - 1 / x) := by
   have hx2 : x / 2 ∈ integerComplement := by
@@ -151,10 +150,9 @@ theorem hasSum_csc_partial_fraction {x : ℂ} (hx : x ∈ integerComplement) :
   convert HasSum.even_add_odd (f := fun n => (-1 : ℂ) ^ (n + 1) * cotTerm x n) he' ho' using 1
   ring
 
-/-- Partial fractions for the secant (DLMF 4.22.5, Duverney (2.44)): for `x + ½ ∉ ℤ`, the
+/-- Partial fractions for the secant (Duverney (2.44)): for `x + ½ ∉ ℤ`, the
 partial sums of `∑ₖ (-1)ᵏ (2k+1)/((k+½)² - x²)` tend to `π/cos(πx)`. The series converges only
 conditionally. -/
-@[dlmf 4.22.E5]
 theorem tendsto_sec_partial_fraction {x : ℂ} (hx : x + 1 / 2 ∈ integerComplement) :
     Tendsto (fun N => ∑ k ∈ Finset.range N,
       (-1 : ℂ) ^ k * (2 * k + 1) / ((k + 1 / 2) ^ 2 - x ^ 2)) atTop (𝓝 (π / cos (π * x))) := by

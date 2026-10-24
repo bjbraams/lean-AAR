@@ -16,7 +16,7 @@ A *Neumann series* is an expansion `∑ₖ aₖ J_{ν+nₖ}(z)` (or with `I`) in
 orders increase by integers. Writing `J_{ν+n}(z) = (z/2)^ν (z/2)^n ₀F̃₁(;ν+n+1;-(z/2)²)`, such a
 series is a double series in `(k, m)`. This file proves:
 
-* `exists_norm_inv_Gamma_add_nat_le`: `|1/Γ(c+n)| ≤ C 2ⁿ/n!`, uniformly in `n`, for every `c`;
+* `exists_norm_recip_Gamma_add_nat_le`: `|1/Γ(c+n)| ≤ C 2ⁿ/n!`, uniformly in `n`, for every `c`;
   hence `exists_norm_regularized0F1Coeff_le`, a bound on the `₀F̃₁` coefficients uniform in
   the integer shift of the order;
 * `hasSum_neumann`: under `∑ₖ |aₖ| |w|^{eₖ} 2^{nₖ}/nₖ! < ∞` the double series is absolutely
@@ -68,7 +68,7 @@ theorem norm_Gamma_add_nat_ge {s : ℂ} (hs : 1 ≤ s.re) (i : ℕ) :
 
 /-- Uniform reciprocal-Gamma bound `|1/Γ(c+n)| ≤ C 2ⁿ/n!` for every `c` (zeros of `1/Γ`
 included). -/
-theorem exists_norm_inv_Gamma_add_nat_le (c : ℂ) :
+theorem exists_norm_recip_Gamma_add_nat_le (c : ℂ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ, ‖(Gamma (c + n))⁻¹‖ ≤ C * (2 ^ n / n !) := by
   set N : ℕ := ⌈1 - c.re⌉₊
   set s : ℂ := c + N
@@ -129,7 +129,7 @@ theorem exists_norm_regularized0F1Coeff_le (ν : ℂ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ n m : ℕ,
       ‖regularizedHGFunCoeff (∅ : Multiset ℂ) {ν + n + 1} m‖ ≤
         C * (2 ^ n / n !) * (2 ^ m / m !) := by
-  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (ν + 1)
+  obtain ⟨C, hC0, hC⟩ := exists_norm_recip_Gamma_add_nat_le (ν + 1)
   refine ⟨C, hC0, fun n m => ?_⟩
   rw [regularizedHGFunCoeff_empty,
     show ν + n + 1 + m = (ν + 1) + ((n + m : ℕ) : ℂ) by push_cast; ring,
@@ -557,7 +557,7 @@ theorem differentiable_neumann (ν σ : ℂ) (a : ℕ → ℂ) (n e : ℕ → �
   exact h.differentiableAt (Metric.isOpen_ball.mem_nhds (by simp [R]))
 
 /-- A uniform bound for `1/(n+c)` (with `1/0 = 0`). -/
-theorem exists_norm_inv_nat_add_le (c : ℂ) :
+theorem exists_norm_recip_nat_add_le (c : ℂ) :
     ∃ B : ℝ, 0 ≤ B ∧ ∀ n : ℕ, ‖((n : ℂ) + c)⁻¹‖ ≤ B := by
   set N : ℕ := ⌈‖c‖⌉₊ + 1
   refine ⟨1 + ∑ i ∈ range N, ‖((i : ℂ) + c)⁻¹‖, by positivity, fun n => ?_⟩
@@ -727,8 +727,8 @@ theorem hasSum_besselJ_neumann_lommel {l a b z : ℂ} (hab : a + b = l) (hl : �
       ((z / 2) ^ l * ∑' j : ℕ, (-1) ^ j / (∏ i ∈ range (j + 1), (((i : ℂ) + a) * (i + b))) *
         (z / 2) ^ (2 * j)) := by
   obtain ⟨C, hC0, hC⟩ := exists_norm_powerNeumannCoeff_le l
-  obtain ⟨Ba, hBa0, hBa⟩ := exists_norm_inv_nat_add_le a
-  obtain ⟨Bb, hBb0, hBb⟩ := exists_norm_inv_nat_add_le b
+  obtain ⟨Ba, hBa0, hBa⟩ := exists_norm_recip_nat_add_le a
+  obtain ⟨Bb, hBb0, hBb⟩ := exists_norm_recip_nat_add_le b
   have hbd : ∀ k : ℕ, ‖powerNeumannCoeff l k / ((k + a) * (k + b))‖ ≤ (C * Ba * Bb) * 4 ^ k := by
     intro k
     rw [div_eq_mul_inv, mul_inv, norm_mul, norm_mul]
@@ -1130,7 +1130,7 @@ theorem exists_norm_regularized0F1_mul_exp_coeff_le (ν : ℂ) :
     ∃ C X : ℝ, 0 ≤ C ∧ 1 ≤ X ∧ ∀ k K : ℕ,
       ‖poch (2 * (ν + k + 1) + K - 1) K / (K ! * Gamma (ν + k + 1 + K))‖ ≤
         C * (X ^ (k + K) / (k + K)!) := by
-  obtain ⟨C, hC0, hC⟩ := exists_norm_inv_Gamma_add_nat_le (ν + 1)
+  obtain ⟨C, hC0, hC⟩ := exists_norm_recip_Gamma_add_nat_le (ν + 1)
   refine ⟨C * Real.exp ‖2 * ν + 1‖, 2 * Real.exp 1 ^ 2, by positivity, ?_, fun k K => ?_⟩
   · nlinarith [Real.add_one_le_exp 1, pow_le_pow_left₀ (by norm_num : (0 : ℝ) ≤ 2)
       (by linarith [Real.add_one_le_exp 1] : (2 : ℝ) ≤ Real.exp 1) 2]

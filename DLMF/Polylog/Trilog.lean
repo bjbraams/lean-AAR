@@ -149,7 +149,7 @@ theorem Real.trilog_landen {x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
     refine h.congr_deriv ?_
     -- dilogarithm identities at the three points
     have R := Real.dilog_add_dilog_one_sub (x := y) ⟨hy0, hy1⟩
-    have I := Real.dilog_add_dilog_inv hz
+    have I := Real.dilog_add_dilog_recip hz
     have La := Real.dilog_add_dilog_div_sub_one hy1
     rw [show (1 - y⁻¹)⁻¹ = y / (y - 1) by field_simp,
       show -(1 - y⁻¹) = (1 - y) / y by field_simp; ring,

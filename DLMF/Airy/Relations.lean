@@ -108,7 +108,7 @@ lemma sqrt_three_eq_exp : ((Real.sqrt 3 : ℝ) : ℂ) = exp (1 / 2 * log 3) := b
   rw [Real.sqrt_eq_rpow, three_rpow_eq_exp]; push_cast; ring_nf
 
 /-- `3⁻¹ = exp (-log 3)` in `ℂ`. -/
-lemma inv_three_eq_exp : (3 : ℂ)⁻¹ = exp (-log 3) := by
+lemma recip_three_eq_exp : (3 : ℂ)⁻¹ = exp (-log 3) := by
   rw [exp_neg, exp_log (by norm_num)]
 
 /-- `log (z/3) = log z - log 3` for `z ≠ 0`. -/

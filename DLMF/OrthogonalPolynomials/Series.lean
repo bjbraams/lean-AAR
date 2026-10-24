@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import DLMF.Hypergeometric.Elementary
 public import DLMF.OrthogonalPolynomials.Topics
 public import DLMF.OrthogonalPolynomials.ScalarSeries
 public import DLMF.OrthogonalPolynomials.Mehler
@@ -454,7 +455,7 @@ theorem ultrasphPoly_generating_function {lam : ℂ} (hlam : -1 / 2 < lam.re) {x
   have h := hasSum_coeff_gegenbauerSeries_mul_pow lam (Real.arccos x) hz
   rw [Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2] at h
   refine h.congr_fun fun n => ?_
-  rw [ofReal_eq_half_add_inv_of_abs_le_one hx,
+  rw [ofReal_eq_half_add_recip_of_abs_le_one hx,
     ultrasphPoly_eq_coeff_gegenbauerSeries hlam (Complex.exp_ne_zero _)]
 
 @[dlmf 18.12.E5]
@@ -468,10 +469,10 @@ theorem ultrasphPoly_weighted_generating_function {lam : ℂ} (hlam : -1 / 2 < l
   have hQ := hasSum_coeff_gegenbauerSeries_mul_pow (lam + 1) (Real.arccos x) hz
   rw [Real.cos_arccos (abs_le.mp hx).1 (abs_le.mp hx).2] at hQ
   have h := hasSum_coeff_one_sub_mul hQ ((w + w⁻¹) / 2)
-  rw [← weightedGegenbauerSeries_eq hlam0 hw, ← ofReal_eq_half_add_inv_of_abs_le_one hx] at h
+  rw [← weightedGegenbauerSeries_eq hlam0 hw, ← ofReal_eq_half_add_recip_of_abs_le_one hx] at h
   rw [div_eq_mul_inv, ← Complex.cpow_neg]
   refine h.congr_fun fun n => ?_
-  rw [coeff_weightedGegenbauerSeries hlam0, ofReal_eq_half_add_inv_of_abs_le_one hx,
+  rw [coeff_weightedGegenbauerSeries hlam0, ofReal_eq_half_add_recip_of_abs_le_one hx,
     ultrasphPoly_eq_coeff_gegenbauerSeries hlam hw]
 
 /-- Generating function of a sequence with constant-coefficient three-term recurrence. -/
@@ -999,7 +1000,7 @@ theorem monomial_ultrasphPoly_expansion {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ
       have hkr : k ≤ r := Nat.le_of_lt_succ (Finset.mem_range.mp hk)
       rw [show r + 1 - 1 - k = r - k by omega, Nat.sub_sub_self hkr]
       exact hterm hrn hkr
-    rw [hh, sum_choose_weighted_inv_poch_eq ha]
+    rw [hh, sum_choose_weighted_recip_poch_eq ha]
     split_ifs with he
     · subst r; simp
     · simp
@@ -1569,7 +1570,7 @@ theorem ultrasphPoly_linearization {lam : ℝ} (hlam : 0 < lam) (m n : ℕ) (x :
 theorem ultrasphPoly_convolution {lam μ : ℂ} (hlam : 0 < lam.re) (hμ : 0 < μ.re) (n : ℕ) (x : ℂ) :
     ∑ k ∈ Finset.range (n + 1),
         ultrasphPoly lam k x * ultrasphPoly μ (n - k) x = ultrasphPoly (lam + μ) n x := by
-  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_inv x
+  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_recip x
   have h1 : -1 / 2 < lam.re := by linarith
   have h2 : -1 / 2 < μ.re := by linarith
   have h3 : -1 / 2 < (lam + μ).re := by rw [Complex.add_re]; linarith
@@ -1582,7 +1583,7 @@ theorem ultrasphPoly_convolution {lam μ : ℂ} (hlam : 0 < lam.re) (hμ : 0 < �
 theorem ultrasphPoly_geometric_convolution {lam : ℂ} (hlam : 0 < lam.re) (n : ℕ) (x : ℂ) :
     ∑ k ∈ Finset.range (n + 1), (k + 2 * lam) / (2 * lam) * ultrasphPoly lam k x * x ^ (n - k) =
       ultrasphPoly (lam + 1) n x := by
-  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_inv x
+  obtain ⟨w, hw, rfl⟩ := exists_eq_half_add_recip x
   have h1 : -1 / 2 < lam.re := by linarith
   have h2 : -1 / 2 < (lam + 1).re := by rw [Complex.add_re, Complex.one_re]; linarith
   have hlam0 : lam ≠ 0 := fun h => by rw [h, Complex.zero_re] at hlam; exact lt_irrefl _ hlam
@@ -2104,18 +2105,7 @@ open Metric Set
 
 /-- `|(μ)_m| ≤ (1 + |μ|)^m m!`. -/
 lemma jacW_norm_poch_le (μ : ℂ) (m : ℕ) : ‖poch μ m‖ ≤ (1 + ‖μ‖) ^ m * m ! := by
-  induction m with
-  | zero => simp [poch_zero]
-  | succ m ih =>
-    rw [poch_succ, norm_mul, Nat.factorial_succ, pow_succ]
-    have h1 : ‖μ + m‖ ≤ (1 + ‖μ‖) * (m + 1) := by
-      refine (norm_add_le _ _).trans ?_
-      rw [Complex.norm_natCast]
-      nlinarith [norm_nonneg μ, (Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
-    push_cast
-    calc ‖poch μ m‖ * ‖μ + m‖ ≤ ((1 + ‖μ‖) ^ m * m !) * ((1 + ‖μ‖) * (m + 1)) :=
-          mul_le_mul ih h1 (norm_nonneg _) (by positivity)
-      _ = _ := by ring
+  exact appF4_norm_poch_le μ m
 
 /-- `k! ≤ (1 + 1/(Re β + 1))^k |(β+1)_k|` for `Re β > -1`. -/
 lemma jacW_factorial_le_norm_poch {β : ℂ} (hβ : -1 < β.re) (k : ℕ) :
@@ -2211,13 +2201,7 @@ lemma jacWTerm_norm_le (l : ℂ) {β : ℂ} (hβ : -1 < β.re) {y : ℂ} (hy : �
 /-- Duplication for rising factorials: `(2a)_{2m} = 4^m (a)_m (a + 1/2)_m`. -/
 lemma jacW_poch_two_mul (a : ℂ) (m : ℕ) :
     poch (2 * a) (2 * m) = 4 ^ m * poch a m * poch (a + 1 / 2) m := by
-  induction m with
-  | zero => simp [poch_zero]
-  | succ m ih =>
-    rw [show 2 * (m + 1) = 2 * m + 1 + 1 by ring, poch_succ, poch_succ, ih, poch_succ a,
-      poch_succ (a + 1 / 2), pow_succ]
-    push_cast
-    ring
+  exact poch_two_mul_two_mul a m
 
 /-- The `m`-sums of `jacWTerm` are binomial series. -/
 lemma jacWTerm_hasSum_fiber (l β y : ℂ) {z : ℂ} (hz : ‖z‖ < 1) (k : ℕ) :
@@ -2308,10 +2292,7 @@ lemma jacW_coeff_eq_sum_antidiagonal {α β : ℂ} (hα : -1 < α.re) (hβ : -1 
 /-- Regrouping a summable double series along antidiagonals. -/
 lemma jacW_hasSum_antidiagonal {A : ℕ × ℕ → ℂ} {S : ℂ} (h : HasSum A S) :
     HasSum (fun n => ∑ p ∈ Finset.antidiagonal n, A p) S := by
-  have h' := (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd.hasSum_iff (f := A)).mpr h
-  refine h'.sigma fun n => ?_
-  have := hasSum_fintype (fun p : Finset.antidiagonal n => A p)
-  rwa [Finset.sum_coe_sort] at this
+  exact jacB_hasSum_antidiagonal h
 
 /-- 18.12.3 for small `|z|`, by summing the double series in two ways. -/
 lemma jacW_hasSum_small {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re) {x : ℝ} (hx : |x| ≤ 1)

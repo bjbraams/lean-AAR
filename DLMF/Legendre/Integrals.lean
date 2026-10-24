@@ -348,44 +348,44 @@ section Constants
 open DLMF.Gamma
 
 /-- `Γ(s)⁻¹ = s Γ(s+1)⁻¹` for all `s`. -/
-lemma legPI_inv_Gamma_eq (s : ℂ) : (Gamma s)⁻¹ = s * (Gamma (s+1))⁻¹ := by
-  have := poch_mul_inv_Gamma_add_nat s 1
+lemma legPI_recip_Gamma_eq (s : ℂ) : (Gamma s)⁻¹ = s * (Gamma (s+1))⁻¹ := by
+  have := poch_mul_recip_Gamma_add_nat s 1
   rw [poch_one] at this
   simpa using this.symm
 
 /-- Derivative of `Γ(s)⁻¹ = s Γ(s+1)⁻¹`: `(1/Γ)'(s) = 1/Γ(s+1) + s (1/Γ)'(s+1)`. -/
-lemma legPI_invGammaDeriv_rec (s : ℂ) :
-    invGammaDeriv 1 s = (Gamma (s+1))⁻¹ + s * invGammaDeriv 1 (s+1) := by
+lemma legPI_recipGammaDeriv_rec (s : ℂ) :
+    recipGammaDeriv 1 s = (Gamma (s+1))⁻¹ + s * recipGammaDeriv 1 (s+1) := by
   have hfun : (fun w : ℂ => (Gamma w)⁻¹) = fun w => w * (Gamma (w+1))⁻¹ :=
-    funext legPI_inv_Gamma_eq
-  have h1 := hasDerivAt_inv_Gamma' s
+    funext legPI_recip_Gamma_eq
+  have h1 := hasDerivAt_recip_Gamma' s
   rw [hfun] at h1
   have h2 : HasDerivAt (fun w : ℂ => w * (Gamma (w+1))⁻¹)
-      (1 * (Gamma (s+1))⁻¹ + s * invGammaDeriv 1 (s+1)) s :=
-    (hasDerivAt_id s).mul ((hasDerivAt_inv_Gamma' (s+1)).comp_add_const s 1)
+      (1 * (Gamma (s+1))⁻¹ + s * recipGammaDeriv 1 (s+1)) s :=
+    (hasDerivAt_id s).mul ((hasDerivAt_recip_Gamma' (s+1)).comp_add_const s 1)
   rw [h1.unique h2, one_mul]
 
 /-- `K_{α+1} = -K_α` for the constant `K_α = 1/(Γ(α+1)Γ(-α))`. -/
 lemma legPI_K_succ (α : ℂ) : legBdK (α+1+1) (-(α+1)) = -legBdK (α+1) (-α) := by
   unfold legBdK
-  rw [legPI_inv_Gamma_eq (α+1), legPI_inv_Gamma_eq (-(α+1)), show -(α+1)+1 = -α by ring]
+  rw [legPI_recip_Gamma_eq (α+1), legPI_recip_Gamma_eq (-(α+1)), show -(α+1)+1 = -α by ring]
   ring
 
 /-- `(α+1)(K'_{α+1} + K'_α) = 2K_α`. -/
 lemma legPI_K'_succ (α : ℂ) :
     (α+1) * (legBdK' (α+1+1) (-(α+1)) + legBdK' (α+1) (-α)) = 2 * legBdK (α+1) (-α) := by
   unfold legBdK' legBdK
-  have r1 := legPI_invGammaDeriv_rec (-(α+1))
-  have r2 := legPI_invGammaDeriv_rec (α+1)
-  have r3 := legPI_inv_Gamma_eq (α+1)
-  have r4 := legPI_inv_Gamma_eq (-(α+1))
+  have r1 := legPI_recipGammaDeriv_rec (-(α+1))
+  have r2 := legPI_recipGammaDeriv_rec (α+1)
+  have r3 := legPI_recip_Gamma_eq (α+1)
+  have r4 := legPI_recip_Gamma_eq (-(α+1))
   rw [show -(α+1)+1 = -α by ring] at r1 r4
-  linear_combination (α+1)*(Gamma (α+1+1))⁻¹ * r1 + (α+1)*invGammaDeriv 1 (α+1+1) * r4 +
-    ((α+1)*invGammaDeriv 1 (-α) - 2*(Gamma (-α))⁻¹) * r3 + (α+1)*(Gamma (-α))⁻¹ * r2
+  linear_combination (α+1)*(Gamma (α+1+1))⁻¹ * r1 + (α+1)*recipGammaDeriv 1 (α+1+1) * r4 +
+    ((α+1)*recipGammaDeriv 1 (-α) - 2*(Gamma (-α))⁻¹) * r3 + (α+1)*(Gamma (-α))⁻¹ * r2
 
 /-- `π K_α = -sin(πα)`. -/
 lemma legPI_K_eq (α : ℂ) : (π:ℂ) * legBdK (α+1) (-α) = -sin (π*α) := by
-  have := legendre_inv_Gamma_reflection (-α)
+  have := legendre_recip_Gamma_reflection (-α)
   rw [show (1:ℂ) - -α = α+1 by ring, mul_neg, sin_neg] at this
   unfold legBdK; rw [← this]; ring
 
@@ -396,7 +396,7 @@ lemma legPI_K'_eq {α : ℂ} (hα : ∀ m : ℕ, α+1 ≠ -(m:ℂ)) :
   rw [show (1:ℂ) - -α = α+1 by ring, mul_neg, cos_neg] at hr
   have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
   have hr' := mul_left_cancel₀ hpi hr
-  have hd := invGammaDeriv_one_eq hα
+  have hd := recipGammaDeriv_one_eq hα
   unfold legBdK' legBdK
   rw [← hr', hd]
   ring
@@ -969,7 +969,7 @@ lemma legPI_boundary_const {ν lam : ℂ} (hν : LegendreQRegular ν 0) (hlam : 
 
 /-- `K'_α = cos(πα) + 2 (1/Γ)'(α+1)/Γ(-α)` for every `α`. -/
 lemma legPI_K'_eq_all (α : ℂ) :
-    legBdK' (α+1) (-α) = cos (π*α) + 2*(DLMF.Gamma.invGammaDeriv 1 (α+1) * (Gamma (-α))⁻¹) := by
+    legBdK' (α+1) (-α) = cos (π*α) + 2*(DLMF.Gamma.recipGammaDeriv 1 (α+1) * (Gamma (-α))⁻¹) := by
   have hr := legBd_reflection_deriv (-α)
   rw [show (1:ℂ) - -α = α+1 by ring, mul_neg, cos_neg] at hr
   have hpi : (π:ℂ) ≠ 0 := ofReal_ne_zero.mpr Real.pi_ne_zero
@@ -982,8 +982,8 @@ lemma legPI_K'_eq_all (α : ℂ) :
 (the removable extension of `sin(πα) ψ(α+1)`). -/
 lemma legPI_boundary_const_all (ν lam : ℂ) :
     (π:ℂ)^2 * (legPIK ν * legPIC lam - legPIK lam * legPIC ν) =
-      π*sin ((lam-ν)*π) + 2*(sin (π*lam) * (π * DLMF.Gamma.invGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹) -
-        sin (π*ν) * (π * DLMF.Gamma.invGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) := by
+      π*sin ((lam-ν)*π) + 2*(sin (π*lam) * (π * DLMF.Gamma.recipGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹) -
+        sin (π*ν) * (π * DLMF.Gamma.recipGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) := by
   have e1 := legPI_K'_eq_all ν
   have e2 := legPI_K'_eq_all lam
   have k1 := legPI_K_eq ν
@@ -991,8 +991,8 @@ lemma legPI_boundary_const_all (ν lam : ℂ) :
   unfold legPIC legPIK
   rw [e1, e2]
   rw [show (lam-ν)*π = π*lam - π*ν by ring, sin_sub]
-  linear_combination ((π:ℂ)*cos (π*lam) + 2*π*(DLMF.Gamma.invGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) * k1 +
-    (-(π:ℂ)*cos (π*ν) - 2*π*(DLMF.Gamma.invGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹)) * k2
+  linear_combination ((π:ℂ)*cos (π*lam) + 2*π*(DLMF.Gamma.recipGammaDeriv 1 (lam+1) * (Gamma (-lam))⁻¹)) * k1 +
+    (-(π:ℂ)*cos (π*ν) - 2*π*(DLMF.Gamma.recipGammaDeriv 1 (ν+1) * (Gamma (-ν))⁻¹)) * k2
 
 /-! ### Parameter-uniform bounds and diagonal integrals
 
@@ -1042,12 +1042,12 @@ lemma legPIU_bound_H (R : ℝ) : ∃ M : ℝ, ∀ a b w : ℂ, ‖a‖ ≤ R →
   obtain ⟨MF, hMF⟩ := legPIU_bound_F (R+2)
   have cK : Continuous fun p : ℂ × ℂ => legBdK p.1 p.2 := by
     unfold legBdK
-    exact (continuous_inv_Gamma.comp continuous_fst).mul (continuous_inv_Gamma.comp continuous_snd)
+    exact (continuous_recip_Gamma.comp continuous_fst).mul (continuous_recip_Gamma.comp continuous_snd)
   have cK' : Continuous fun p : ℂ × ℂ => legBdK' p.1 p.2 := by
     unfold legBdK'
-    have h1 := DLMF.Gamma.continuous_invGammaDeriv 1
-    exact ((h1.comp continuous_snd).mul (continuous_inv_Gamma.comp continuous_fst)).add
-      ((continuous_inv_Gamma.comp continuous_snd).mul (h1.comp continuous_fst))
+    have h1 := DLMF.Gamma.continuous_recipGammaDeriv 1
+    exact ((h1.comp continuous_snd).mul (continuous_recip_Gamma.comp continuous_fst)).add
+      ((continuous_recip_Gamma.comp continuous_snd).mul (h1.comp continuous_fst))
   obtain ⟨MK, hMK⟩ := legPIU_bound_two cK R
   obtain ⟨MK', hMK'⟩ := legPIU_bound_two cK' R
   refine ⟨MK * MF + MK' * MF + MK * MF, fun a b w ha hb hw => ?_⟩
@@ -1108,7 +1108,7 @@ lemma legPIU_bound_P (R : ℝ) : ∃ M : ℝ, ∀ α : ℂ, ‖α‖ ≤ R → �
   obtain ⟨MH, hMH⟩ := legPIU_bound_H R1
   have cK : Continuous fun p : ℂ × ℂ => legBdK p.1 p.2 := by
     unfold legBdK
-    exact (continuous_inv_Gamma.comp continuous_fst).mul (continuous_inv_Gamma.comp continuous_snd)
+    exact (continuous_recip_Gamma.comp continuous_fst).mul (continuous_recip_Gamma.comp continuous_snd)
   obtain ⟨MK, hMK⟩ := legPIU_bound_two cK R1
   set A := max MF 0
   set B := 4 * max MK 0 * max MF 0 + max MH 0
@@ -1269,7 +1269,7 @@ lemma legPIU_bound_zb (R : ℝ) : ∃ C : ℝ, 0 ≤ C ∧ ∀ a b : ℂ, ‖a�
   obtain ⟨MH, hMH⟩ := legPIU_bound_H R1
   have cK : Continuous fun p : ℂ × ℂ => legBdK p.1 p.2 := by
     unfold legBdK
-    exact (continuous_inv_Gamma.comp continuous_fst).mul (continuous_inv_Gamma.comp continuous_snd)
+    exact (continuous_recip_Gamma.comp continuous_fst).mul (continuous_recip_Gamma.comp continuous_snd)
   obtain ⟨MK, hMK⟩ := legPIU_bound_two cK R1
   refine ⟨4 * max MK 0 * max MF 0 + max MH 0, by positivity, fun a b ha hb t ht0 ht1 => ?_⟩
   have hR1 : R ≤ |R| := le_abs_self R
@@ -1350,22 +1350,22 @@ lemma legPIU_bound_Q {ν : ℂ} (hν : LegendreQRegular ν 0) : ∃ r : ℝ, 0 <
       ∀ x ∈ Ioo (-1:ℝ) 1, ‖ferrersQ lam 0 x‖ ≤ M * legPIw x := by
   have hν1 := legHyp_nu hν
   have o : IsOpen {lam : ℂ | (Gamma (lam+0+1))⁻¹ ≠ 0} :=
-    isOpen_ne_fun (continuous_inv_Gamma.comp (by fun_prop)) continuous_const
+    isOpen_ne_fun (continuous_recip_Gamma.comp (by fun_prop)) continuous_const
   obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.mp o ν (by simpa using inv_ne_zero (Gamma_ne_zero hν1))
   set r := ε/2
   have hr : 0 < r := by positivity
   set K := Metric.closedBall ν r
   have hK : IsCompact K := isCompact_closedBall _ _
-  have hreg : ∀ lam ∈ K, LegendreQRegular lam 0 := fun lam hl => legHyp_regular_of_inv (hball (by
+  have hreg : ∀ lam ∈ K, LegendreQRegular lam 0 := fun lam hl => legHyp_regular_of_recip (hball (by
     rw [Metric.mem_ball]; have := Metric.mem_closedBall.mp hl; simp only [r] at this; linarith))
   obtain ⟨B1, hB10, hB1⟩ := legPIU_bound_on (f := fun lam : ℂ => Gamma ((lam+0+1)/2)) hK
     (fun lam hl => (continuousAt_Gamma_ferrersQ (hreg lam hl)).1.continuousWithinAt)
   obtain ⟨B2, hB20, hB2⟩ := legPIU_bound_on (f := fun lam : ℂ => Gamma ((lam+0+2)/2)) hK
     (fun lam hl => (continuousAt_Gamma_ferrersQ (hreg lam hl)).2.continuousWithinAt)
   obtain ⟨B3, hB30, hB3⟩ := legPIU_bound_on (f := fun lam : ℂ => (Gamma ((lam-0+2)/2))⁻¹) hK
-    (continuous_inv_Gamma.comp (by fun_prop)).continuousOn
+    (continuous_recip_Gamma.comp (by fun_prop)).continuousOn
   obtain ⟨B4, hB40, hB4⟩ := legPIU_bound_on (f := fun lam : ℂ => (Gamma ((lam-0+1)/2))⁻¹) hK
-    (continuous_inv_Gamma.comp (by fun_prop)).continuousOn
+    (continuous_recip_Gamma.comp (by fun_prop)).continuousOn
   obtain ⟨B5, hB50, hB5⟩ := legPIU_bound_on (f := fun lam : ℂ => sin ((lam+0)*π/2)) hK
     (by fun_prop)
   obtain ⟨B6, hB60, hB6⟩ := legPIU_bound_on (f := fun lam : ℂ => cos ((lam+0)*π/2)) hK
@@ -1504,9 +1504,9 @@ theorem ferrers_product_integral_11 (ν : ℂ) (hν : ν ≠ -1/2) (hr : Legendr
   -- eventually the off-diagonal identity holds
   have hreg : ∀ᶠ lam in 𝓝 ν, LegendreQRegular lam 0 := by
     have o : IsOpen {lam : ℂ | (Gamma (lam+0+1))⁻¹ ≠ 0} :=
-      isOpen_ne_fun (continuous_inv_Gamma.comp (by fun_prop)) continuous_const
+      isOpen_ne_fun (continuous_recip_Gamma.comp (by fun_prop)) continuous_const
     filter_upwards [o.mem_nhds (by simpa using inv_ne_zero (Gamma_ne_zero hν1))] with lam h
-    exact legHyp_regular_of_inv h
+    exact legHyp_regular_of_recip h
   have hne : ∀ᶠ lam in 𝓝 ν, lam ≠ -ν-1 :=
     continuousAt_id.eventually_ne (show ν ≠ -ν-1 from fun h => h2ν (by linear_combination h))
   have heq : (fun lam : ℂ => ∫ x : ℝ in -1..1, ferrersP ν 0 x * ferrersP lam 0 x) =ᶠ[𝓝[≠] ν]
@@ -2257,7 +2257,7 @@ lemma legExt_Q_isBigO {α : ℂ} (h : LegendreQRegular α 0) :
     Real.log_div h1.ne' (by norm_num)
   have h2 : log (2:ℂ) = ((Real.log 2 : ℝ) : ℂ) := by
     rw [ofReal_log (by norm_num : (0:ℝ) ≤ 2)]; norm_num
-  rw [DLMF.Gamma.invGammaDeriv_one_eq hp, hl, hl2, h2]
+  rw [DLMF.Gamma.recipGammaDeriv_one_eq hp, hl, hl2, h2]
   simp only [associatedQ, zero_mul, Complex.exp_zero, one_mul, legPIcpos]
   push_cast
   field_simp
@@ -2450,13 +2450,13 @@ lemma legPIU_bound_Qext {ν : ℂ} (hν : LegendreQRegular ν 0) {r0 : ℝ} (hr0
       ‖associatedQ lam 0 x‖ ≤ M * ((x-1)^(-(1/4:ℝ)) * x^(-(ν.re-r)-3/4)) := by
   have hν1 := legHyp_nu hν
   have o : IsOpen {lam : ℂ | (Gamma (lam+0+1))⁻¹ ≠ 0} :=
-    isOpen_ne_fun (continuous_inv_Gamma.comp (by fun_prop)) continuous_const
+    isOpen_ne_fun (continuous_recip_Gamma.comp (by fun_prop)) continuous_const
   obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.mp o ν (by simpa using inv_ne_zero (Gamma_ne_zero hν1))
   set r := min (ε/2) r0
   have hr : 0 < r := lt_min (by positivity) hr0
   set K := Metric.closedBall ν r
   have hK : IsCompact K := isCompact_closedBall _ _
-  have hreg : ∀ lam ∈ K, LegendreQRegular lam 0 := fun lam hl => legHyp_regular_of_inv (hball (by
+  have hreg : ∀ lam ∈ K, LegendreQRegular lam 0 := fun lam hl => legHyp_regular_of_recip (hball (by
     rw [Metric.mem_ball]; have := Metric.mem_closedBall.mp hl
     have : r ≤ ε/2 := min_le_left _ _; linarith))
   obtain ⟨B1, hB10, hB1⟩ := legPIU_bound_on (f := fun lam : ℂ => Gamma (lam+1)) hK

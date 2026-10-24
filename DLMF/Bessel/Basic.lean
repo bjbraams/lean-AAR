@@ -338,7 +338,7 @@ lemma cpow_half_div_two {z : ℂ} (hz : z ∈ slitPlane) :
   rw [cpow_def_of_ne_zero (div_ne_zero hz0 h2), log_div_ofNat_two hz, sub_mul, exp_sub,
     ← cpow_def_of_ne_zero hz0, ← cpow_def_of_ne_zero h2]
 
-lemma cpow_half_inv_div_two {z : ℂ} (hz : z ∈ slitPlane) :
+lemma cpow_half_recip_div_two {z : ℂ} (hz : z ∈ slitPlane) :
     (z / 2) ^ (-(1 / 2 : ℂ)) = (2 : ℂ) ^ (1 / 2 : ℂ) / z ^ (1 / 2 : ℂ) := by
   rw [cpow_neg, cpow_half_div_two hz, inv_div]
 
@@ -502,7 +502,7 @@ theorem besselJ_neg_half (z : ℂ) (hz : z ∈ slitPlane) :
     (cpow_ne_zero_iff.mpr (Or.inl hπ) : (π : ℂ) ^ (1 / 2 : ℂ) ≠ 0)
   have hpar : -(1 / 2 : ℂ) + 1 = 1 / 2 := by ring
   simp only [besselJ_eq_regularized]
-  rw [hpar, regularized0F1_half_eq_cos, cpow_half_inv_div_two hz, Gamma_one_half_eq,
+  rw [hpar, regularized0F1_half_eq_cos, cpow_half_recip_div_two hz, Gamma_one_half_eq,
     cpow_half_two_div_pi_z hz, cpow_half_div_pi]
   field [hz0, hg, h2h, hzh, hπh]
 

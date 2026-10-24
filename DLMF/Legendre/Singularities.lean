@@ -6,7 +6,7 @@ Authors: Bastiaan J Braams
 module
 
 public import DLMF.Legendre.Hypergeometric
-public import DLMF.Gamma.InvGammaDeriv
+public import DLMF.Gamma.RecipGammaDeriv
 public import DLMF.Legendre.BoundaryAsymptotics
 public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
 
@@ -27,11 +27,7 @@ namespace DLMF.Legendre
 /-- `u ~ v` when `u = v g` eventually and `g → 1`. -/
 lemma isEquivalent_of_eventuallyEq_mul {l : Filter ℝ} {u v g : ℝ → ℂ}
     (h : u =ᶠ[l] fun x => v x * g x) (hg : Tendsto g l (𝓝 1)) : u ~[l] v := by
-  have h1 : g ~[l] Function.const _ (1:ℂ) := (isEquivalent_const_iff_tendsto one_ne_zero).mpr hg
-  have h2 := (IsEquivalent.refl (u := v)).mul h1
-  have e : v * Function.const ℝ (1:ℂ) = v := by funext x; simp
-  rw [e] at h2
-  exact h2.congr_left (h.symm.trans (Eventually.of_forall fun x => rfl))
+  exact legBd_isEquivalent_of_eventuallyEq_mul h hg
 
 /-- The regularized Gauss pullback `x ↦ 𝐅(a,b;c;(1-x)/2)` is continuous at `x = 1`. -/
 lemma continuousAt_regularizedGaussHG_half_one (a b c : ℂ) :
@@ -345,24 +341,7 @@ theorem legendre_singular_14 (μ : ℂ) (hμ : ∀ n : ℕ, μ ≠ n+1/2) :
 /-- For `x > 1`, the inherited branch is `(x²-1)^(μ/2) = x^μ (1-1/x²)^(μ/2)`. -/
 lemma legendreBranchPower_eq_cpow_mul (μ : ℂ) {x : ℝ} (hx : 1 < x) :
     legendreBranchPower μ x = (x:ℂ)^μ * (1-1/(x:ℂ)^2)^(μ/2) := by
-  have h0 : (0:ℝ) < x := by linarith
-  have h1 : (0:ℝ) < x-1 := by linarith
-  have h2 : (0:ℝ) < x+1 := by linarith
-  have h3 : (0:ℝ) < 1-1/x^2 := by
-    rw [sub_pos, div_lt_one (by positivity)]; nlinarith
-  have e3 : (1-1/(x:ℂ)^2) = ((1-1/x^2:ℝ):ℂ) := by push_cast; ring
-  have l3 : Real.log (1-1/x^2) = Real.log (x-1) + Real.log (x+1) - 2*Real.log x := by
-    rw [show 1-1/x^2 = (x-1)*(x+1)/x^2 by field_simp; ring, Real.log_div (by positivity)
-      (by positivity), Real.log_mul h1.ne' h2.ne', Real.log_pow]
-    push_cast; ring
-  have hl1 : log ((x:ℂ)-1) = (Real.log (x-1):ℂ) := by
-    rw [show (x:ℂ)-1 = ((x-1:ℝ):ℂ) by push_cast; ring, ofReal_log h1.le]
-  have hl2 : log ((x:ℂ)+1) = (Real.log (x+1):ℂ) := by
-    rw [show (x:ℂ)+1 = ((x+1:ℝ):ℂ) by push_cast; ring, ofReal_log h2.le]
-  rw [legendreBranchPower, cpow_def_of_ne_zero (ofReal_ne_zero.mpr h0.ne'),
-    cpow_def_of_ne_zero (by rw [e3]; exact ofReal_ne_zero.mpr h3.ne'), ← exp_add, e3,
-    ← ofReal_log h3.le, ← ofReal_log h0.le, l3, hl1, hl2]
-  congr 1; push_cast; ring
+  exact legBd_branchPower_eq μ hx
 
 /-- `1/x² → 0` at infinity, as a complex function of real `x`. -/
 lemma tendsto_one_div_sq_atTop : Tendsto (fun x : ℝ => 1/(x:ℂ)^2) atTop (𝓝 0) := by
@@ -477,8 +456,8 @@ theorem ferrersQ_log_singular {ν : ℂ} (hν : LegendreQRegular ν 0) :
 /-- DLMF 14.8.9 with `ψ(ν+1)/Γ(ν+1)` written as `-(1/Γ)'(ν+1)`. Stronger than DLMF: valid for
 all `ν`, including `ν = -1, -2, …`. -/
 @[dlmf 14.8.E9]
-theorem olverQ_log_singular_invGamma (ν : ℂ) :
-    (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant)/Gamma (ν+1)-DLMF.Gamma.invGammaDeriv 1 (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) :=
+theorem olverQ_log_singular_recipGamma (ν : ℂ) :
+    (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant)/Gamma (ν+1)-DLMF.Gamma.recipGammaDeriv 1 (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) :=
   legBd_olverQ_log_isBigO ν
 
 /-- olverQ log singular. -/
@@ -486,8 +465,8 @@ theorem olverQ_log_singular_invGamma (ν : ℂ) :
 theorem olverQ_log_singular {ν : ℂ} (hν : LegendreQRegular ν 0) :
     (fun x : ℝ => olverQ ν 0 x+log (x-1:ℂ)/(2*Gamma (ν+1))-(log 2/2-Real.eulerMascheroniConstant-digamma (ν+1))/Gamma (ν+1)) =O[𝓝[>] (1:ℝ)] (fun x : ℝ => (x-1)*Real.log (x-1)) := by
   have hp : ∀ m : ℕ, ν + 1 ≠ -(m : ℂ) := fun m h => hν m (by linear_combination h)
-  refine (olverQ_log_singular_invGamma ν).congr_left fun x => ?_
-  rw [DLMF.Gamma.invGammaDeriv_one_eq hp]
+  refine (olverQ_log_singular_recipGamma ν).congr_left fun x => ?_
+  rw [DLMF.Gamma.recipGammaDeriv_one_eq hp]
   ring
 
 /-- olverQ negative degree singular. -/
@@ -498,11 +477,11 @@ theorem olverQ_negative_degree_singular (n : ℕ) (hn : 0 < n) :
   have hG : (Gamma ((-((m+1:ℕ):ℂ)) + 1))⁻¹ = 0 := by
     rw [show (-((m+1:ℕ):ℂ)) + 1 = -(m:ℂ) by push_cast; ring, inv_eq_zero]
     exact Complex.Gamma_neg_nat_eq_zero m
-  have hD : DLMF.Gamma.invGammaDeriv 1 ((-((m+1:ℕ):ℂ)) + 1) = (-1)^(m+1+1)*((m+1-1).factorial:ℂ) := by
-    rw [show (-((m+1:ℕ):ℂ)) + 1 = -(m:ℂ) by push_cast; ring, DLMF.Gamma.invGammaDeriv_one_neg_nat,
+  have hD : DLMF.Gamma.recipGammaDeriv 1 ((-((m+1:ℕ):ℂ)) + 1) = (-1)^(m+1+1)*((m+1-1).factorial:ℂ) := by
+    rw [show (-((m+1:ℕ):ℂ)) + 1 = -(m:ℂ) by push_cast; ring, DLMF.Gamma.recipGammaDeriv_one_neg_nat,
       Nat.add_sub_cancel, pow_succ, pow_succ]
     ring
-  have hB := olverQ_log_singular_invGamma (-((m+1:ℕ):ℂ))
+  have hB := olverQ_log_singular_recipGamma (-((m+1:ℕ):ℂ))
   have hT : Tendsto (fun x : ℝ => (x-1)*Real.log (x-1)) (𝓝[>] (1:ℝ)) (𝓝 0) := by
     have hc := (Real.continuous_mul_log.tendsto 0).comp
       ((tendsto_nhdsWithin_iff.mpr ⟨?_, Eventually.of_forall fun _ => trivial⟩ :
@@ -513,7 +492,7 @@ theorem olverQ_negative_degree_singular (n : ℕ) (hn : 0 < n) :
   have h0 := hB.trans_tendsto hT
   have e : ∀ x : ℝ, olverQ (-((m+1:ℕ):ℂ)) 0 x + log (x-1:ℂ)/(2*Gamma (-((m+1:ℕ):ℂ)+1)) -
       (log 2/2-Real.eulerMascheroniConstant)/Gamma (-((m+1:ℕ):ℂ)+1) -
-      DLMF.Gamma.invGammaDeriv 1 (-((m+1:ℕ):ℂ)+1) =
+      DLMF.Gamma.recipGammaDeriv 1 (-((m+1:ℕ):ℂ)+1) =
       olverQ (-((m+1:ℕ):ℂ)) 0 x - (-1)^(m+1+1)*((m+1-1).factorial:ℂ) := by
     intro x
     rw [hD, div_eq_mul_inv, div_eq_mul_inv, mul_inv, hG]

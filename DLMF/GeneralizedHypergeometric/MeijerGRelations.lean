@@ -1,0 +1,382 @@
+/-
+Copyright (c) 2026 Bastiaan J Braams. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bastiaan J Braams
+-/
+module
+
+public import DLMF.GeneralizedHypergeometric.MeijerG
+public import DLMF.GeneralizedHypergeometric.Basic
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+
+/-!
+# Meijer G expansions, identities and differential equations (DLMF §§16.17–16.27)
+
+All G-function equalities retain actual convergence predicates and logarithmic arguments.
+The residue formula is regularized before Gamma factors are cancelled; lower denominator poles
+and repeated bottom poles are treated by regularized expansions and combined parameter limits.
+The ordinary hypergeometric identity excludes terminating upper poles only in its direct Gamma
+quotient form, with the terminating limits stated separately. Divergent-series Barnes values
+use the separate convergence predicate from `Basic`.
+
+The differential equation retains the integer parity exponent. Fundamental G-solutions require
+nonresonance; a normalized parameter-limit statement supplies resonant frames. Bibliographic,
+graphical, physical-application and numerical-software discussion is recorded in the ledger.
+-/
+
+@[expose] public noncomputable section
+open Complex Filter Set MeasureTheory Polynomial
+open scoped Real Topology Nat
+namespace DLMF.Hypergeometric
+
+/-- Integer parity exponent; natural subtraction would change the Meijer normalization. -/
+def meijerParity (P : MeijerGParameters) : ℂ := (-1:ℂ)^((P.p:ℤ)-P.m-P.n)
+
+/-- The simple numerator bottom poles needed for the individual residue expansion. -/
+def MeijerGParameters.SimpleBottom (P : MeijerGParameters) : Prop :=
+  ∀ j<P.m,∀ k<P.m,j≠k→∀ r : ℤ,P.b[j]!-P.b[k]!≠r
+
+/-- Hypergeometric upper parameters in the residue at the kth numerator bottom pole. -/
+def meijerResidueUpper (P : MeijerGParameters) (k : ℕ) : Multiset ℂ :=
+  ((P.a.map fun a => 1+P.b[k]!-a) : Multiset ℂ)
+
+/-- Lower parameters omit exactly the kth entry, preserving repeated other entries. -/
+def meijerResidueLower (P : MeijerGParameters) (k : ℕ) : Multiset ℂ :=
+  (((P.b.eraseIdx k).map fun b => 1+P.b[k]!-b) : Multiset ℂ)
+
+/-- The source A_{p,q,k}^{m,n}, with indices starting at zero. It is used only for k<m≤q. -/
+@[dlmf 16.17.E3]
+def meijerResidueCoeff (P : MeijerGParameters) (k : ℕ) (w : ℂ) : ℂ :=
+  (((P.b.take P.m).eraseIdx k).map fun b => Gamma (b-P.b[k]!)).prod*
+  ((P.a.take P.n).map fun a => Gamma (1+P.b[k]!-a)).prod*Complex.exp (P.b[k]!*w)*
+  ((P.b.drop P.m).map fun b => (Gamma (1+P.b[k]!-b))⁻¹).prod*
+  ((P.a.drop P.n).map fun a => (Gamma (a-P.b[k]!))⁻¹).prod
+
+/-- The residue coefficient after regularization of the pF(q-1) factor. Denominator Gamma
+zeros are cancelled analytically before evaluation, including exceptional lower parameters. -/
+def meijerResidueRegularCoeff (P : MeijerGParameters) (k : ℕ) (w : ℂ) : ℂ :=
+  (((P.b.take P.m).eraseIdx k).map fun b => Gamma (b-P.b[k]!)).prod*
+  ((P.a.take P.n).map fun a => Gamma (1+P.b[k]!-a)).prod*Complex.exp (P.b[k]!*w)*
+  (((P.b.take P.m).eraseIdx k).map fun b => Gamma (1+P.b[k]!-b)).prod*
+  ((P.a.drop P.n).map fun a => (Gamma (a-P.b[k]!))⁻¹).prod
+
+/-- Actual hypergeometric-series region for the residue expansion; continuations follow below. -/
+def meijerResidueRegion (P : MeijerGParameters) (w : ℂ) : Prop :=
+  P.p<P.q ∨ (P.p=P.q ∧ 1≤P.p ∧ w.re<0)
+
+/-- The finite sum of regularized residue contributions. -/
+def meijerResidueExpansionLog (P : MeijerGParameters) (w : ℂ) : ℂ :=
+  ∑ k∈Finset.range P.m,meijerResidueRegularCoeff P k w*
+    genRegularizedHG (meijerResidueUpper P k) (meijerResidueLower P k) (meijerParity P*Complex.exp w)
+
+/-- A generic perturbation splits all bottom-parameter integer collisions. -/
+def meijerSplitBottom (P : MeijerGParameters) (t : ℂ) : MeijerGParameters :=
+  {P with b:=(P.b.zipIdx.map (fun p => p.1+(p.2:ℂ)*t))}
+
+/-- The full simple-bottom-pole formula, including exceptional nonnumerator lower parameters. -/
+@[dlmf 16.17.E2]
+theorem meijerG_regularized_residue_expansion {P : MeijerGParameters} (hP : P.Valid) (hs : P.SimpleBottom)
+    {w : ℂ} (hw : meijerResidueRegion P w) : meijerGLog P w=meijerResidueExpansionLog P w := by
+  sorry
+
+/-- 16.17.E2: meijerG ordinary residue expansion. -/
+@[dlmf 16.17.E2]
+theorem meijerG_ordinary_residue_expansion {P : MeijerGParameters} (hP : P.Valid) (hs : P.SimpleBottom)
+    (hreg : ∀ k<P.m,genDenRegular (meijerResidueLower P k))
+    {w : ℂ} (hw : meijerResidueRegion P w) :
+    meijerGLog P w=∑ k∈Finset.range P.m,meijerResidueCoeff P k w*
+      genHG (meijerResidueUpper P k) (meijerResidueLower P k) (meijerParity P*Complex.exp w) := by
+  sorry
+
+/-- Integer bottom-pole collisions are combined before taking the parameter limit. -/
+@[dlmf 16.17.E2]
+theorem meijerG_coalescing_residue_limit {P : MeijerGParameters} (hP : P.Valid) {w : ℂ}
+    (hw : meijerResidueRegion P w) :
+    Tendsto (fun t : ℂ => meijerResidueExpansionLog (meijerSplitBottom P t) w)
+      (𝓝[≠] 0) (𝓝 (meijerGLog P w)) := by
+  sorry
+
+/-- Matching branches of the residue identity continue beyond the hypergeometric series disk. -/
+@[dlmf 16.17.E2]
+theorem meijerG_residue_continuation {P : MeijerGParameters} (hP : P.Valid) (hs : P.SimpleBottom)
+    {F G : ℝ→ℂ→ℂ} {γ : ℝ→ℂ} (hγ : ContinuousOn γ (Icc 0 1))
+    (h0 : meijerResidueRegion P (γ 0))
+    (hF : TauCeti.IsAnalyticContinuationAlong F γ (Icc 0 1))
+    (hG : TauCeti.IsAnalyticContinuationAlong G γ (Icc 0 1))
+    (hF0 : F 0=ᶠ[𝓝 (γ 0)] meijerGLog P)
+    (hG0 : G 0=ᶠ[𝓝 (γ 0)] meijerResidueExpansionLog P) :
+    F 1=ᶠ[𝓝 (γ 1)] G 1 := by
+  sorry
+
+/-- Inversion swaps the numerator Gamma blocks and maps every parameter to one minus itself. -/
+def MeijerGParameters.dual (P : MeijerGParameters) : MeijerGParameters :=
+  ⟨P.b.map (fun b => 1-b),P.a.map (fun a => 1-a),P.n,P.m⟩
+
+/-- A common complex parameter shift preserves the full ordered block structure. -/
+def MeijerGParameters.shift (P : MeijerGParameters) (μ : ℂ) : MeijerGParameters :=
+  {P with a:=P.a.map (·+μ),b:=P.b.map (·+μ)}
+
+/-- An added upper numerator Gamma factor and matching lower denominator factor. -/
+def MeijerGParameters.cancelExtension (P : MeijerGParameters) (a : ℂ) : MeijerGParameters :=
+  ⟨a::P.a,P.b++[a],P.m,P.n+1⟩
+
+/-- Duplication of each ordered parameter, preserving both initial blocks. -/
+def MeijerGParameters.double (P : MeijerGParameters) : MeijerGParameters :=
+  ⟨P.a.flatMap (fun a => [a/2,a/2+1/2]),P.b.flatMap (fun b => [b/2,b/2+1/2]),2*P.m,2*P.n⟩
+
+/-- The upper first-parameter lowering in the derivative identity. -/
+def MeijerGParameters.lowerFirst (P : MeijerGParameters) : MeijerGParameters :=
+  {P with a:=P.a.modify 0 (·-1)}
+
+/-- The beta-convolution parameter extension. -/
+def MeijerGParameters.betaExtension (P : MeijerGParameters) (a b : ℂ) : MeijerGParameters :=
+  ⟨a::P.a,P.b++[b],P.m,P.n+1⟩
+
+/-- Hypergeometric parameters as a Meijer G with first bottom parameter zero. -/
+def meijerHypergeomData (A B : List ℂ) : MeijerGParameters :=
+  ⟨A.map (fun a => 1-a),0::B.map (fun b => 1-b),1,A.length⟩
+
+/-- The normalized G branch has the removable origin value supplied explicitly. -/
+def meijerHypergeomBranch (A B : List ℂ) (z : ℂ) : ℂ :=
+  if z=0 then 1 else genGamma (B:Multiset ℂ)/genGamma (A:Multiset ℂ)*
+    meijerGLog (meijerHypergeomData A B) (Complex.log (-z))
+
+/-- 16.18.E1: genHG meijerG. -/
+@[dlmf 16.18.E1]
+theorem genHG_meijerG (A B : List ℂ) (hcount : A.length≤B.length+1)
+    (hA : genDenRegular (A:Multiset ℂ)) (hB : genDenRegular (B:Multiset ℂ))
+    {z : ℂ} (hz : z∈cutPlane) : genHG (A:Multiset ℂ) (B:Multiset ℂ) z=meijerHypergeomBranch A B z := by
+  sorry
+
+/-- The dual G uses the inverse logarithmic sheet, avoiding a principal-log bank mismatch. -/
+@[dlmf 16.18.E1]
+theorem genHG_meijerG_dual (A B : List ℂ) (hcount : A.length≤B.length+1)
+    (hA : genDenRegular (A:Multiset ℂ)) (hB : genDenRegular (B:Multiset ℂ))
+    {z : ℂ} (hz : z∈cutPlane) (hz0 : z≠0) :
+    genHG (A:Multiset ℂ) (B:Multiset ℂ) z=genGamma (B:Multiset ℂ)/genGamma (A:Multiset ℂ)*
+      meijerGLog (meijerHypergeomData A B).dual (-Complex.log (-z)) := by
+  sorry
+
+/-- Terminating upper poles are retained as limits of the whole normalized G product. -/
+@[dlmf 16.18.E1]
+theorem genHG_meijerG_terminating_limit (A B : List ℂ) (hB : genDenRegular (B:Multiset ℂ))
+    (hA : genDenRegular (A:Multiset ℂ)) (N : ℕ) {z : ℂ} (hz : z∈cutPlane) :
+    Tendsto (fun a : ℂ => meijerHypergeomBranch (a::A) B z) (𝓝[≠] (-(N:ℂ)))
+      (𝓝 (genFiniteHG N ((-(N:ℂ))::ₘ(A:Multiset ℂ)) (B:Multiset ℂ) z)) := by
+  sorry
+
+/-- Divergent-series regimes use actual Barnes convergence, never the totalized native sum. -/
+@[dlmf 16.18.E1]
+theorem genBarnes_meijerG (A B : List ℂ) (hA : genDenRegular (A:Multiset ℂ))
+    (hB : genDenRegular (B:Multiset ℂ)) {w v : ℂ} {L : MeijerGContour}
+    (hL : L.Admissible (meijerHypergeomData A B))
+    (hw : meijerGContourRegion (meijerHypergeomData A B) L.kind w)
+    (hBarnes : genHasBarnesValueLog (A:Multiset ℂ) (B:Multiset ℂ) L.path w v) :
+    v=genGamma (B:Multiset ℂ)/genGamma (A:Multiset ℂ)*meijerGLog (meijerHypergeomData A B) w := by
+  sorry
+
+/-- 16.19.E1: meijerG inversion. -/
+@[dlmf 16.19.E1]
+theorem meijerG_inversion {P : MeijerGParameters} {w : ℂ} (h : MeijerGConvergesLog P (-w))
+    (hdual : MeijerGConvergesLog P.dual w) : meijerGLog P (-w)=meijerGLog P.dual w := by
+  sorry
+
+/-- 16.19.E2: meijerG parameter shift. -/
+@[dlmf 16.19.E2]
+theorem meijerG_parameter_shift {P : MeijerGParameters} (μ : ℂ) {w : ℂ}
+    (h : MeijerGConvergesLog P w) (hshift : MeijerGConvergesLog (P.shift μ) w) :
+    Complex.exp (μ*w)*meijerGLog P w=meijerGLog (P.shift μ) w := by
+  sorry
+
+/-- 16.19.E3: meijerG cancel parameter. -/
+@[dlmf 16.19.E3]
+theorem meijerG_cancel_parameter {P : MeijerGParameters} (a : ℂ) {w : ℂ}
+    (h : MeijerGConvergesLog P w) (hext : MeijerGConvergesLog (P.cancelExtension a) w) :
+    meijerGLog (P.cancelExtension a) w=meijerGLog P w := by
+  sorry
+
+/-- 16.19.E4: meijerG duplication. -/
+@[dlmf 16.19.E4]
+theorem meijerG_duplication {P : MeijerGParameters} {w : ℂ} (h : MeijerGConvergesLog P w)
+    (hd : MeijerGConvergesLog P.double (2*w+((2*P.p:ℂ)-2*P.q)*Real.log 2)) :
+    meijerGLog P w=
+      (2:ℂ)^((P.p:ℂ)+1+P.b.sum-P.m-P.n-P.a.sum)/
+      (π:ℂ)^((P.m:ℂ)+P.n-((P.p:ℂ)+P.q)/2)*
+      meijerGLog P.double (2*w+((2*P.p:ℂ)-2*P.q)*Real.log 2) := by
+  sorry
+
+/-- The displayed plus-sign recurrence requires the first upper parameter in the numerator block. -/
+@[dlmf 16.19.E5]
+theorem meijerG_log_derivative {P : MeijerGParameters} (hn : 0<P.n) {w : ℂ}
+    (h : MeijerGConvergesLog P w) (hl : MeijerGConvergesLog P.lowerFirst w) :
+    deriv (meijerGLog P) w=meijerGLog P.lowerFirst w+(P.a[0]!-1)*meijerGLog P w := by
+  sorry
+
+/-- Exact Fubini certificate for beta convolution. It states the actual joint integrability,
+contour separation, and inner beta conditions omitted from the short DLMF formula. -/
+def MeijerGBetaCertificate (P : MeijerGParameters) (w a b : ℂ) (L : MeijerGContour) : Prop :=
+  L.Admissible P ∧ L.Admissible (P.betaExtension a b) ∧
+  meijerGContourRegion P L.kind w ∧ meijerGContourRegion (P.betaExtension a b) L.kind w ∧
+  0<(a-b).re ∧ (∀ u : ℝ,a.re-1<(L.path u).re) ∧
+  (∀ t∈Ioo (0:ℝ) 1,meijerGContourRegion P L.kind (w+Real.log t)) ∧
+  IntegrableOn (fun p : ℝ×ℝ => (p.1:ℂ)^(-a)*((1-p.1:ℝ):ℂ)^(a-b-1)*
+    deriv L.path p.2*meijerGKernelLog P (w+Real.log p.1) (L.path p.2)) (Ioo (0:ℝ) 1×ˢuniv)
+
+/-- 16.19.E6: meijerG beta convolution. -/
+@[dlmf 16.19.E6]
+theorem meijerG_beta_convolution {P : MeijerGParameters} {w a b : ℂ} {L : MeijerGContour}
+    (h : MeijerGBetaCertificate P w a b L) :
+    IntegrableOn (fun t : ℝ => (t:ℂ)^(-a)*((1-t:ℝ):ℂ)^(a-b-1)*
+      meijerGLog P (w+Real.log t)) (Ioo (0:ℝ) 1) ∧
+    (∫ t in (0:ℝ)..1,(t:ℂ)^(-a)*((1-t:ℝ):ℂ)^(a-b-1)*meijerGLog P (w+Real.log t))=
+      Gamma (a-b)*meijerGLog (P.betaExtension a b) w := by
+  sorry
+
+/-- A product of shifted ordinary derivatives on the logarithmic plane. -/
+def meijerLogOperator : List ℂ→(ℂ→ℂ)→(ℂ→ℂ)
+  | [],f => f
+  | a::A,f => fun w => deriv (meijerLogOperator A f) w-a*meijerLogOperator A f w
+
+/-- The Meijer differential equation on the logarithmic plane; d/dw is z*d/dz. -/
+@[dlmf 16.21.E1]
+def MeijerLogEquation (P : MeijerGParameters) (f : ℂ→ℂ) (w : ℂ) : Prop :=
+  meijerParity P*Complex.exp w*meijerLogOperator (P.a.map (·-1)) f w-
+    meijerLogOperator P.b f w=0
+
+/-- Coefficients of a product of Euler operators, as ordinary-derivative polynomials. -/
+def meijerThetaCoeff : List ℂ→ℕ→ℂ[X]
+  | [],k => if k=0 then 1 else 0
+  | a::A,k => X*(meijerThetaCoeff A k).derivative-C a*meijerThetaCoeff A k+
+      if k=0 then 0 else X*meijerThetaCoeff A (k-1)
+
+/-- Ordinary-derivative coefficients of the displayed Meijer equation. -/
+def meijerODECoeff (P : MeijerGParameters) (k : ℕ) : ℂ[X] :=
+  C (meijerParity P)*X*meijerThetaCoeff (P.a.map (·-1)) k-meijerThetaCoeff P.b k
+
+/-- Fuchs's finite-point criterion, stated through actual analytic removable extensions. -/
+def MeijerRegularSingularAt (P : MeijerGParameters) (z : ℂ) : Prop :=
+  let N := max P.p P.q
+  0<N ∧ (meijerODECoeff P N).eval z=0 ∧ ∀ k<N,∃ f : ℂ→ℂ,AnalyticAt ℂ f z ∧
+    f=ᶠ[𝓝[≠] z] (fun u => (u-z)^(N-k)*(meijerODECoeff P k).eval u/(meijerODECoeff P N).eval u)
+
+/-- Irregular means singular and not Fuchs regular for this ordinary differential equation. -/
+def MeijerIrregularSingularAt (P : MeijerGParameters) (z : ℂ) : Prop :=
+  (meijerODECoeff P (max P.p P.q)).eval z=0 ∧ ¬MeijerRegularSingularAt P z
+
+/-- The jth displayed G-solution, with the jth bottom parameter moved to the first position. -/
+@[dlmf 16.21.E2]
+def meijerFundamentalTerm (P : MeijerGParameters) (j : ℕ) (w : ℂ) : ℂ :=
+  meijerGLog ⟨P.a,P.b[j]!::P.b.eraseIdx j,1,P.p⟩
+    (w+(((P.p:ℤ)-P.m-P.n-1:ℤ):ℂ)*π*I)
+
+/-- Full generic hypotheses for the displayed G-frame. Resonance is handled by limits below. -/
+def MeijerGenericFrame (P : MeijerGParameters) : Prop :=
+  P.p≤P.q ∧ 0<P.q ∧
+  (∀ j<P.q,∀ k<P.q,j≠k→∀ r : ℤ,P.b[j]!-P.b[k]!≠r) ∧
+  (∀ a∈P.a,∀ b∈P.b,∀ k : ℕ,a-b≠(k:ℂ)+1)
+
+/-- A perturbation avoids both numerator pole collisions and integer exponent resonances. -/
+def meijerGenericDeformation (P : MeijerGParameters) (t : ℂ) : MeijerGParameters :=
+  ⟨P.a.zipIdx.map (fun p => p.1+((p.2+P.q+1:ℕ):ℂ)*t),
+    P.b.zipIdx.map (fun p => p.1+(p.2:ℂ)*t),P.m,P.n⟩
+
+/-- 16.21.E1: meijerG log ode. -/
+@[dlmf 16.21.E1]
+theorem meijerG_log_ode {P : MeijerGParameters} {w : ℂ} (h : MeijerGConvergesLog P w) :
+    MeijerLogEquation P (meijerGLog P) w := by
+  sorry
+
+/-- 16.21: meijerG equation order. -/
+@[dlmf 16.21]
+theorem meijerG_equation_order (P : MeijerGParameters) :
+    (∀ k : ℕ,max P.p P.q<k→meijerODECoeff P k=0) ∧
+    meijerODECoeff P (max P.p P.q)=
+      if P.p<P.q then -(X:ℂ[X])^P.q else if P.q<P.p then
+        C (meijerParity P)*X^(P.p+1) else (C (meijerParity P)*X-1)*X^P.p := by
+  sorry
+
+/-- Inversion represents infinity; the two source singularity regimes are retained. -/
+@[dlmf 16.21]
+theorem meijerG_singularities {P : MeijerGParameters} (hP : P.Valid) (hpq : P.p≤P.q) (hq : 0<P.q) :
+    MeijerRegularSingularAt P 0 ∧
+    (P.p<P.q→MeijerIrregularSingularAt P.dual 0) ∧
+    (P.p=P.q→MeijerRegularSingularAt P (meijerParity P) ∧ MeijerRegularSingularAt P.dual 0) ∧
+    (∀ z : ℂ,z≠0→(P.p=P.q→z≠meijerParity P)→
+      (meijerODECoeff P (max P.p P.q)).eval z≠0) := by
+  sorry
+
+/-- 16.21.E2: meijerG fundamental frame. -/
+@[dlmf 16.21.E2]
+theorem meijerG_fundamental_frame {P : MeijerGParameters} (hP : P.Valid) (hg : MeijerGenericFrame P)
+    {w : ℂ} (hw : w.re<0) :
+    (∀ j<P.q,AnalyticAt ℂ (meijerFundamentalTerm P j) w ∧
+      MeijerLogEquation P (meijerFundamentalTerm P j) w) ∧
+    Matrix.det (fun i j : Fin P.q => iteratedDeriv i.val (meijerFundamentalTerm P j.val) w)≠0 := by
+  sorry
+
+/-- At integer exponent collisions, normalized combinations of the generic G-frame have a fundamental analytic limit. -/
+@[dlmf 16.21.E2]
+theorem meijerG_resonant_fundamental_limits {P : MeijerGParameters} (hP : P.Valid) (hpq : P.p≤P.q)
+    (hq : 0<P.q) {w : ℂ} (hw : w.re<0) :
+    ∃ U : Set ℂ,IsOpen U ∧ w∈U ∧ ∃ F : Fin P.q→ℂ→ℂ,∃ c : ℂ→ℕ→Fin P.q→ℂ,
+      (∀ k,AnalyticOnNhd ℂ (F k) U ∧ ∀ u∈U,MeijerLogEquation P (F k) u) ∧
+      (∀ i k : Fin P.q,iteratedDeriv i.val (F k) w=if i=k then 1 else 0) ∧
+      (∀ k,TendstoLocallyUniformlyOn
+        (fun t u => ∑ j∈Finset.range P.q,c t j k*meijerFundamentalTerm (meijerGenericDeformation P t) j u)
+        (F k) (𝓝[≠] 0) U) := by
+  sorry
+
+/-- Cancel the removable upper/lower parameter collision before evaluating the terminating
+Askey-Gasper coefficient; in particular alpha=-1 is retained. -/
+def askeyGasperPolynomial (n : ℕ) (α x : ℝ) : ℝ :=
+  1+∑ k∈Finset.range n,
+    (ascPochhammer ℝ (k+1)).eval (-(n:ℝ))*
+      (ascPochhammer ℝ (k+1)).eval ((n:ℝ)+α+2)/
+      ((α+2*(k+1)+1)*(ascPochhammer ℝ k).eval (α+2)*((k+1)!:ℝ))*x^(k+1)
+
+/-- The analytical positivity inequality retained independently of its application discussion. -/
+@[dlmf 16.23.E1]
+theorem askey_gasper_dlmf (n : ℕ) {α x : ℝ} (hα : -2<α) (hx : 0≤x) (hx1 : x<1) :
+    0<askeyGasperPolynomial n α x := by
+  sorry
+
+
+/-- The Meijer kernel for pFq is exactly its separately convergent Barnes kernel. -/
+@[dlmf 16.18.E1]
+theorem meijer_hypergeometric_kernel (A B : List ℂ) (w s : ℂ) :
+    meijerGKernelLog (meijerHypergeomData A B) w s=
+      genBarnesKernelLog (A:Multiset ℂ) (B:Multiset ℂ) w s := by
+  simp [meijerGKernelLog,meijerHypergeomData,genBarnesKernelLog,genGamma,genShift,
+    List.map_map,←List.map_take,←List.map_drop,List.prod_inv,Function.comp_def,div_eq_mul_inv,mul_assoc,mul_comm,mul_left_comm]
+
+/-- The normalized G expression has the prescribed removable hypergeometric origin. -/
+@[dlmf 16.18.E1]
+theorem meijer_hypergeometric_origin (A B : List ℂ) : meijerHypergeomBranch A B 0=1 := by
+  simp [meijerHypergeomBranch]
+
+/-- Degree zero of the acquired Askey-Gasper polynomial, including alpha=-1. -/
+@[dlmf 16.23.E1]
+theorem askey_gasper_degree_zero (α x : ℝ) : askeyGasperPolynomial 0 α x=1 := by
+  simp [askeyGasperPolynomial]
+
+/-- Inversion of the ordered parameter blocks is an involution. -/
+theorem meijer_parameter_dual_involutive (P : MeijerGParameters) : P.dual.dual=P := by
+  cases P
+  simp [MeijerGParameters.dual,List.map_map,Function.comp_def]
+
+/-- Relative contamination by a dominating mode diverges in either integration direction.
+This is the analytical instability behind the intermediate-solution warning in DLMF16.25. -/
+@[dlmf 16.25]
+theorem intermediate_solution_instability {ι : Type*} {L R : Filter ι} {u v w : ι→ℂ}
+    (hfast : Tendsto (fun i => ‖w i/v i‖) L atTop)
+    (hslow : Tendsto (fun i => ‖u i/v i‖) R atTop)
+    {ε η : ℂ} (hε : ε≠0) (hη : η≠0) :
+    Tendsto (fun i => ‖(v i+ε*w i-v i)/v i‖) L atTop ∧
+    Tendsto (fun i => ‖(v i+η*u i-v i)/v i‖) R atTop := by
+  constructor
+  · simpa only [add_sub_cancel_left,mul_div_assoc,norm_mul] using
+      hfast.const_mul_atTop (norm_pos_iff.mpr hε)
+  · simpa only [add_sub_cancel_left,mul_div_assoc,norm_mul] using
+      hslow.const_mul_atTop (norm_pos_iff.mpr hη)
+
+end DLMF.Hypergeometric

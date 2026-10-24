@@ -49,7 +49,7 @@ def airyAiZeroContinuous (k : ℝ) : ℝ :=
 /-- The continuous extension of the Ai' zero index. -/
 def airyAiDerivZeroContinuous (k : ℝ) : ℝ :=
   Classical.epsilon (fun x : ℝ => x ≤ 0 ∧ airyDerivPhase x = (k - 1) * π)
-/-- An all-order expansion in the common inverse even-power scale used in 9.9.18–9.9.21. -/
+/-- An all-order expansion in the common reciprocal even-power scale used in 9.9.18–9.9.21. -/
 def HasAiryZeroExpansion (q : ℝ) (f t : ℕ → ℂ) (c : ℕ → ℂ) : Prop :=
   HasAsymptoticExpansion atTop (fun n k => t k ^ (-2 * (n : ℂ))) c
     (fun k => f k / t k ^ (q : ℂ))
@@ -93,13 +93,7 @@ lemma airyBiDerivReal_zero_pos : 0 < airyBiDerivReal 0 := by
 
 /-- `Ai'(0) < 0`. -/
 lemma airyAiDerivReal_zero_neg : airyAiDerivReal 0 < 0 := by
-  have h := airyAiDeriv_zero
-  rw [show (1 / 3 : ℂ) = ((1 / 3 : ℝ) : ℂ) by push_cast; ring, Complex.Gamma_ofReal,
-    ← Complex.ofReal_mul, show (-1 : ℂ) = ((-1 : ℝ) : ℂ) by simp, ← Complex.ofReal_div] at h
-  simp only [airyAiDerivReal, ofReal_zero, h, ofReal_re]
-  have := Real.Gamma_pos_of_pos (by norm_num : (0 : ℝ) < 1 / 3)
-  have : 0 < (3 : ℝ) ^ (1 / 3 : ℝ) := by positivity
-  apply div_neg_of_neg_of_pos (by norm_num) (by positivity)
+  exact airyAiDerivReal_zero_lt
 
 /-- `((-1)^n)^2 = 1`. -/
 lemma neg_one_pow_sq_real (n : ℕ) : ((-1 : ℝ) ^ n) ^ 2 = 1 := by
@@ -761,7 +755,7 @@ lemma airyZ_arg_bounds {v : ℂ} (h1 : v.re < 0) (h2 : -v.re < v.im) :
   rw [hrot] at this; linarith
 
 
-lemma airyZ_zeta_inv_tendsto (α : ℝ) :
+lemma airyZ_zeta_recip_tendsto (α : ℝ) :
     Tendsto (fun z => ((airyZetaComplex z) ^ 1)⁻¹) (airySector α) (𝓝 0) := by
   rw [tendsto_zero_iff_norm_tendsto_zero]
   have hn : ∀ z : ℂ, ‖((airyZetaComplex z) ^ 1)⁻¹‖ = (2 / 3 * ‖z‖ ^ (3 / 2 : ℝ))⁻¹ := by
@@ -778,7 +772,7 @@ lemma airyZ_small {F : ℂ → ℂ} {c : ℕ → ℂ} {α : ℝ}
     (h : HasAsymptoticExpansion (airySector α) (fun (n : ℕ) z => ((airyZetaComplex z) ^ n)⁻¹) c F)
     (hc : c 0 = 1) {η : ℝ} (hη : 0 < η) :
     ∃ R, ∀ w : ℂ, w ≠ 0 → |arg w| ≤ α → R ≤ ‖w‖ → ‖F w - 1‖ < η := by
-  have h1 := (h 1).trans_tendsto (airyZ_zeta_inv_tendsto α)
+  have h1 := (h 1).trans_tendsto (airyZ_zeta_recip_tendsto α)
   have h2 : ∀ᶠ w in airySector α, ‖F w - 1‖ < η := by
     filter_upwards [(tendsto_zero_iff_norm_tendsto_zero.mp h1).eventually (gt_mem_nhds hη)]
       with w hw
@@ -793,7 +787,7 @@ lemma airyZ_exp_neg_pi_half : exp (-(π * I / 6)) * exp (-(π * I / 3)) = -I := 
 
 lemma airyZ_bi_eq (z : ℂ) :
     airyBi z = 2 * exp (-(π * I / 6)) * airyAi (z * exp (-(2 * π * I / 3))) + I * airyAi (z * 1) := by
-  rw [airyAi_mul_omega_inv, mul_one]
+  rw [airyAi_mul_omega_recip, mul_one]
   have h := airyZ_exp_neg_pi_half
   linear_combination (-(airyAi z + I * airyBi z)) * h + airyBi z * I_sq
 

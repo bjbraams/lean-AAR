@@ -88,7 +88,7 @@ theorem isPIIOn_zero (s : Set 𝕜) : IsPIIOn (0 : 𝕜) (fun _ => 0) s := by
   simpa using (hasDerivAt_const x (0 : 𝕜))
 
 /-- The explicit rational solution `1/x` of `PII(1)`, away from its pole. -/
-theorem isPIIOn_inv : IsPIIOn (1 : 𝕜) (fun x => x⁻¹) {x | x ≠ 0} := by
+theorem isPIIOn_recip : IsPIIOn (1 : 𝕜) (fun x => x⁻¹) {x | x ≠ 0} := by
   apply isPIIOn_of_hasDerivAt isOpen_ne
     (v := fun x => -(x ^ 2)⁻¹)
   · intro x hx

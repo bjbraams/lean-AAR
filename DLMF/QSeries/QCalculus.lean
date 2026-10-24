@@ -58,6 +58,7 @@ theorem qDeriv_const_mul (q c : ℂ) (u : ℂ → ℂ) (x : ℂ) :
   simp only [qDeriv]; rw [mul_div_assoc']; congr 1; ring
 
 /-- `δ_q f(x) → f'(x)` as `q → 1` (Duverney (10.12)). -/
+@[dlmf 17.2.iv "partial: q-derivative limit away from zero; extended origin convention handled by the proved local adapter"]
 theorem tendsto_qDeriv {f : ℂ → ℂ} {f' x : ℂ} (hf : HasDerivAt f f' x) (hx : x ≠ 0) :
     Tendsto (fun q => qDeriv q f x) (𝓝[≠] 1) (𝓝 f') := by
   have hs := hasDerivAt_iff_tendsto_slope.mp hf

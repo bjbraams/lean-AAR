@@ -173,7 +173,7 @@ theorem one_second_ode
     using hc) hz hs
 
 /-- Derivatives of `w ↦ w^s H(1/w)`. -/
-lemma iteratedDeriv_two_cpow_mul_inv {H : ℂ → ℂ} {s z : ℂ} {U : Set ℂ} (hU : IsOpen U)
+lemma iteratedDeriv_two_cpow_mul_recip {H : ℂ → ℂ} {s z : ℂ} {U : Set ℂ} (hU : IsOpen U)
     (hzU : z ∈ U) (hH : ∀ w ∈ U, AnalyticAt ℂ H w⁻¹) (hUs : U ⊆ slitPlane) :
     deriv (fun w => w ^ s * H w⁻¹) z =
       s * z ^ (s - 1) * H z⁻¹ - z ^ s * deriv H z⁻¹ / z ^ 2 ∧
@@ -229,7 +229,7 @@ theorem infinity_first_ode
   have hH : ∀ w ∈ U, AnalyticAt ℂ H w⁻¹ := fun w hw =>
     (hasFPowerSeriesOnBall_ordinaryHypergeometric _ _ _).analyticAt_of_mem
       (mem_eball_one_of_norm_lt_one (hinvlt w hw.1))
-  obtain ⟨h1, h2⟩ := iteratedDeriv_two_cpow_mul_inv (s := -a) hU hzU hH Set.inter_subset_right
+  obtain ⟨h1, h2⟩ := iteratedDeriv_two_cpow_mul_recip (s := -a) hU hzU hH Set.inter_subset_right
   have hz0 : z ≠ 0 := slitPlane_ne_zero hs
   have hu := hinvlt z hz
   have hu0 : z⁻¹ ≠ 0 := inv_ne_zero hz0
@@ -397,7 +397,7 @@ lemma solutionWronskian_mul_left {p f g : ℂ → ℂ} {z : ℂ} (hp : Different
   ring
 
 /-- Wronskian after the inversion `w ↦ w⁻¹`. -/
-lemma solutionWronskian_comp_inv {f g : ℂ → ℂ} {z : ℂ} (hz : z ≠ 0)
+lemma solutionWronskian_comp_recip {f g : ℂ → ℂ} {z : ℂ} (hz : z ≠ 0)
     (hf : DifferentiableAt ℂ f z⁻¹) (hg : DifferentiableAt ℂ g z⁻¹) :
     solutionWronskian (fun w => f w⁻¹) (fun w => g w⁻¹) z =
       -(z ^ 2)⁻¹ * solutionWronskian f g z⁻¹ := by
@@ -461,7 +461,7 @@ theorem infinity_wronskian
   have hFi : DifferentiableAt ℂ (fun w => ₂F₁ a B C w⁻¹) z := hFa.comp z (differentiableAt_inv hz0)
   have hSi : DifferentiableAt ℂ (fun w => zeroSecond a B C w⁻¹) z :=
     hSa.comp z (differentiableAt_inv hz0)
-  rw [hW, solutionWronskian_mul_left hp hFi hSi, solutionWronskian_comp_inv hz0 hFa hSa, h0]
+  rw [hW, solutionWronskian_mul_left hp hFi hSi, solutionWronskian_comp_recip hz0 hFa hSa, h0]
   -- power bookkeeping
   have hz1 : z - 1 ≠ 0 := by intro h; rw [sub_eq_zero] at h; rw [h] at hz; simp at hz
   have hargz : z.arg ≠ π := (mem_slitPlane_iff_arg.mp hzs).1
@@ -683,7 +683,7 @@ lemma gaussOperator_mul_log {a b c : ℂ} {F : ℂ → ℂ} {z : ℂ} (hF : Anal
   field_simp
   ring
 
-lemma hasDerivAt_inv_pow (p : ℕ) {v : ℂ} (hv : v ≠ 0) :
+lemma hasDerivAt_recip_pow (p : ℕ) {v : ℂ} (hv : v ≠ 0) :
     HasDerivAt (fun w : ℂ => w⁻¹ ^ p) (-(p : ℂ) * v⁻¹ ^ (p + 1)) v := by
   have h := (hasDerivAt_inv hv).pow p
   refine h.congr_deriv ?_
@@ -722,11 +722,11 @@ theorem gaussOperator_logSing {a b : ℂ} {n : ℕ} (hn : 0 < n)
       (∑ j ∈ Finset.range (n - 1), σ j * (-((j + 1 : ℕ) : ℂ) * v⁻¹ ^ (j + 2))) v := by
     intro v hv
     rw [hS]
-    exact HasDerivAt.fun_sum fun j _ => (hasDerivAt_inv_pow (j + 1) hv).const_mul (σ j)
+    exact HasDerivAt.fun_sum fun j _ => (hasDerivAt_recip_pow (j + 1) hv).const_mul (σ j)
   have hS2 : HasDerivAt (fun v => ∑ j ∈ Finset.range (n - 1), σ j * (-((j + 1 : ℕ) : ℂ) * v⁻¹ ^ (j + 2)))
       (∑ j ∈ Finset.range (n - 1), σ j * (-((j + 1 : ℕ) : ℂ) * (-((j + 2 : ℕ) : ℂ) * z⁻¹ ^ (j + 3))))
       z :=
-    HasDerivAt.fun_sum fun j _ => ((hasDerivAt_inv_pow (j + 2) hz).const_mul _).const_mul (σ j)
+    HasDerivAt.fun_sum fun j _ => ((hasDerivAt_recip_pow (j + 2) hz).const_mul _).const_mul (σ j)
   have hev : deriv (logSing a b n) =ᶠ[𝓝 z]
       fun v => ∑ j ∈ Finset.range (n - 1), σ j * (-((j + 1 : ℕ) : ℂ) * v⁻¹ ^ (j + 2)) := by
     filter_upwards [isOpen_ne.mem_nhds hz] with v hv
@@ -900,7 +900,7 @@ lemma hasDerivAt_logSing (a b : ℂ) (n : ℕ) {v : ℂ} (hv : v ≠ 0) :
   have h : logSing a b n = fun v => ∑ j ∈ Finset.range (n - 1), logSingCoeff a b n j * v⁻¹ ^ (j + 1) :=
     funext (logSing_eq a b n)
   rw [h]
-  exact HasDerivAt.fun_sum fun j _ => (hasDerivAt_inv_pow (j + 1) hv).const_mul _
+  exact HasDerivAt.fun_sum fun j _ => (hasDerivAt_recip_pow (j + 1) hv).const_mul _
 
 /-- `z^n` times the pole part, a polynomial. -/
 def logSingPoly0 (a b : ℂ) (n : ℕ) (v : ℂ) : ℂ :=
@@ -910,7 +910,7 @@ def logSingPoly0 (a b : ℂ) (n : ℕ) (v : ℂ) : ℂ :=
 def logSingPoly1 (a b : ℂ) (n : ℕ) (v : ℂ) : ℂ :=
   ∑ j ∈ Finset.range (n - 1), logSingCoeff a b n j * (-((j + 1 : ℕ) : ℂ) * v ^ (n - j - 2))
 
-lemma pow_mul_inv_pow {v : ℂ} (hv : v ≠ 0) {n k : ℕ} (hk : k ≤ n) :
+lemma pow_mul_recip_pow {v : ℂ} (hv : v ≠ 0) {n k : ℕ} (hk : k ≤ n) :
     v ^ n * v⁻¹ ^ k = v ^ (n - k) := by
   obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hk
   rw [Nat.add_sub_cancel_left, pow_add, inv_pow]
@@ -921,7 +921,7 @@ lemma pow_mul_logSing (a b : ℂ) (n : ℕ) {v : ℂ} (hv : v ≠ 0) :
   rw [logSing_eq, logSingPoly0, Finset.mul_sum]
   refine Finset.sum_congr rfl fun j hj => ?_
   rw [Finset.mem_range] at hj
-  rw [mul_left_comm, pow_mul_inv_pow hv (by omega), show n - (j + 1) = n - j - 1 by omega]
+  rw [mul_left_comm, pow_mul_recip_pow hv (by omega), show n - (j + 1) = n - j - 1 by omega]
 
 lemma pow_mul_deriv_logSing (a b : ℂ) (n : ℕ) {v : ℂ} (hv : v ≠ 0) :
     v ^ n * deriv (logSing a b n) v = logSingPoly1 a b n v := by
@@ -930,7 +930,7 @@ lemma pow_mul_deriv_logSing (a b : ℂ) (n : ℕ) {v : ℂ} (hv : v ≠ 0) :
   rw [Finset.mem_range] at hj
   rw [show v ^ n * (logSingCoeff a b n j * (-((j + 1 : ℕ) : ℂ) * v⁻¹ ^ (j + 2))) =
       logSingCoeff a b n j * (-((j + 1 : ℕ) : ℂ) * (v ^ n * v⁻¹ ^ (j + 2))) by ring,
-    pow_mul_inv_pow hv (by omega), show n - (j + 2) = n - j - 2 by omega]
+    pow_mul_recip_pow hv (by omega), show n - (j + 2) = n - j - 2 by omega]
 
 lemma differentiable_logSingPoly0 (a b : ℂ) (n : ℕ) : Differentiable ℂ (logSingPoly0 a b n) := by
   unfold logSingPoly0
@@ -1019,7 +1019,7 @@ theorem wronskian_logSolution_ne_zero {a b : ℂ} {n : ℕ} (hn : 0 < n)
     have hP0 := pow_mul_logSing a b n hv0
     have hP1 := pow_mul_deriv_logSing a b n hv0
     have hvn : v ^ n * v⁻¹ = v ^ (n - 1) := by
-      rw [← pow_mul_inv_pow hv0 (show 1 ≤ n by omega), pow_one]
+      rw [← pow_mul_recip_pow hv0 (show 1 ≤ n by omega), pow_one]
     simp only [hG, hWdef, solutionWronskian]
     rw [hdw]
     simp only [hw]

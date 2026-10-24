@@ -46,7 +46,7 @@ namespace MeasureTheory
 
 /-- The excised integrals of `(t - c)⁻¹` on `[a, c - ε]` and `[c + ε, b]` add up to
 `log ((b - c)/(c - a))`, independently of `ε`. -/
-theorem pv_integral_inv_sub_add {a b c ε : ℝ} (hε : 0 < ε) (hεa : ε < c - a) (hεb : ε < b - c) :
+theorem pv_integral_recip_sub_add {a b c ε : ℝ} (hε : 0 < ε) (hεa : ε < c - a) (hεb : ε < b - c) :
     (∫ t in a..c - ε, (t - c)⁻¹) + (∫ t in c + ε..b, (t - c)⁻¹) =
       Real.log ((b - c) / (c - a)) := by
   rw [intervalIntegral.integral_comp_sub_right (fun t => t⁻¹),
@@ -108,7 +108,7 @@ theorem pv_tendsto_of_integrableOn_sub {F : ℝ → ℂ} {a b c : ℝ} (A : ℂ)
       rw [← intervalIntegral.integral_add (hGi _ _ ⟨by linarith, by linarith⟩ ⟨hab, le_rfl⟩)
         (hSi _ _ hc2)]
       simp [G]
-    rw [hF1, hF2, hsing _ _ hc1, hsing _ _ hc2, ← pv_integral_inv_sub_add hε0 hεa hεb]
+    rw [hF1, hF2, hsing _ _ hc1, hsing _ _ hc2, ← pv_integral_recip_sub_add hε0 hεa hεb]
     push_cast
     ring
   refine Tendsto.congr' (EventuallyEq.symm hev) (Tendsto.add_const _ ?_)

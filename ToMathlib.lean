@@ -5,6 +5,8 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.ScalarSeries
+public import ToMathlib.Analysis.SpecialFunctions.ChebyshevSeries
 public import ToMathlib.NumberTheory.EulerPolynomials
 public import ToMathlib.NumberTheory.EulerNumbers
 public import ToMathlib.NumberTheory.BernoulliTaylor
@@ -21,6 +23,7 @@ public import ToMathlib.Analysis.Integral.Improper
 public import ToMathlib.Analysis.Complex.Carlson
 public import ToMathlib.Analysis.Complex.FactorialSeries
 public import ToMathlib.Analysis.Complex.ParametricHolomorphy
+public import ToMathlib.Analysis.Complex.TaylorParameter
 public import ToMathlib.Analysis.Complex.SegmentPrimitive
 public import ToMathlib.Analysis.Complex.StarPrimitive
 public import ToMathlib.Analysis.Complex.BarnesResidue
@@ -28,6 +31,7 @@ public import ToMathlib.Analysis.Complex.ZeroLocalization
 public import ToMathlib.Analysis.ContinuedFraction.Convergence
 public import ToMathlib.Analysis.SpecificLimits.Pincherle
 public import ToMathlib.Analysis.ODE.SturmComparison
+public import ToMathlib.Analysis.ODE.SymmetricSquare
 public import ToMathlib.Analysis.ODE.PowerSeriesUniqueness
 public import ToMathlib.Analysis.ODE.SoninePolya
 public import ToMathlib.Analysis.ODE.Volterra
@@ -47,6 +51,10 @@ public import ToMathlib.Analysis.ODE.SturmDeformation
 public import ToMathlib.Analysis.Asymptotics.StieltjesRemainder
 public import ToMathlib.Analysis.Asymptotics.LaplaceSaddle
 public import ToMathlib.Analysis.Calculus.InverseSeries
+
+public import ToMathlib.Analysis.ODE.Singularities
+
+public import ToMathlib.Analysis.Complex.SeparatingContour
 
 /-!
 # Supporting results for Mathlib

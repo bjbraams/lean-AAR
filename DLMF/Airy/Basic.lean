@@ -31,7 +31,7 @@ given by explicit series.
 * `wronskian_airyAi_airyBi`: `𝒲{Ai, Bi} = 1/π` (9.2.7);
 * `IsAirySol.eq_of_initial`: solutions of Airy's equation are determined by `w(0), w'(0)`;
 * rotations by `e^{±2πi/3}`: `airyBi_eq_airyAi_omega` (9.2.10), `airyAi_mul_omega`,
-  `airyAi_mul_omega_inv` (9.2.11), `airyAi_add_omega` (9.2.12), `airyBi_add_omega` (9.2.13);
+  `airyAi_mul_omega_recip` (9.2.11), `airyAi_add_omega` (9.2.12), `airyBi_add_omega` (9.2.13);
 * `airyAi_conj`, `airyBi_conj`: both functions are real on the real line.
 -/
 
@@ -414,7 +414,7 @@ lemma exp_neg_pi_I_div_three :
   push_cast
   ring
 
-lemma omega_inv_cube : exp (-(2 * π * I / 3)) ^ 3 = 1 := by
+lemma omega_recip_cube : exp (-(2 * π * I / 3)) ^ 3 = 1 := by
   rw [← Complex.exp_nat_mul, show ((3 : ℕ) : ℂ) * (-(2 * π * I / 3)) = -(2 * π * I) by
     push_cast; ring, exp_neg, exp_two_pi_mul_I, inv_one]
 
@@ -424,8 +424,8 @@ theorem airyBi_eq_airyAi_omega (z : ℂ) :
     airyBi z = exp (-(π * I / 6)) * airyAi (z * exp (-(2 * π * I / 3))) +
       exp (π * I / 6) * airyAi (z * exp (2 * π * I / 3)) := by
   rw [mul_comm z, mul_comm z]
-  simp only [airyAi, airyBi, airyF_mul omega_cube, airyF_mul omega_inv_cube,
-    airyG_mul omega_cube, airyG_mul omega_inv_cube]
+  simp only [airyAi, airyBi, airyF_mul omega_cube, airyF_mul omega_recip_cube,
+    airyG_mul omega_cube, airyG_mul omega_recip_cube]
   rw [exp_pi_I_div_six, exp_neg_pi_I_div_six, exp_two_pi_I_div_three,
     exp_neg_two_pi_I_div_three]
   push_cast
@@ -433,11 +433,11 @@ theorem airyBi_eq_airyAi_omega (z : ℂ) :
 
 /-- `Ai(z e^{-2πi/3}) = ½ e^{-πi/3} (Ai(z) + i Bi(z))` (DLMF 9.2.11, upper signs). -/
 @[dlmf 9.2.E11]
-theorem airyAi_mul_omega_inv (z : ℂ) :
+theorem airyAi_mul_omega_recip (z : ℂ) :
     airyAi (z * exp (-(2 * π * I / 3))) =
       1 / 2 * exp (-(π * I / 3)) * (airyAi z + I * airyBi z) := by
   rw [mul_comm z]
-  simp only [airyAi, airyBi, airyF_mul omega_inv_cube, airyG_mul omega_inv_cube]
+  simp only [airyAi, airyBi, airyF_mul omega_recip_cube, airyG_mul omega_recip_cube]
   rw [exp_neg_pi_I_div_three, exp_neg_two_pi_I_div_three]
   have h3 := sqrt_three_sq
   push_cast at h3 ⊢
@@ -462,8 +462,8 @@ theorem airyAi_add_omega (z : ℂ) :
     airyAi z + exp (-(2 * π * I / 3)) * airyAi (z * exp (-(2 * π * I / 3))) +
       exp (2 * π * I / 3) * airyAi (z * exp (2 * π * I / 3)) = 0 := by
   rw [mul_comm z, mul_comm z]
-  simp only [airyAi, airyF_mul omega_cube, airyF_mul omega_inv_cube, airyG_mul omega_cube,
-    airyG_mul omega_inv_cube]
+  simp only [airyAi, airyF_mul omega_cube, airyF_mul omega_recip_cube, airyG_mul omega_cube,
+    airyG_mul omega_recip_cube]
   rw [exp_two_pi_I_div_three, exp_neg_two_pi_I_div_three]
   have h3 := sqrt_three_sq
   push_cast at h3 ⊢
@@ -476,8 +476,8 @@ theorem airyBi_add_omega (z : ℂ) :
     airyBi z + exp (-(2 * π * I / 3)) * airyBi (z * exp (-(2 * π * I / 3))) +
       exp (2 * π * I / 3) * airyBi (z * exp (2 * π * I / 3)) = 0 := by
   rw [mul_comm z, mul_comm z]
-  simp only [airyBi, airyF_mul omega_cube, airyF_mul omega_inv_cube, airyG_mul omega_cube,
-    airyG_mul omega_inv_cube]
+  simp only [airyBi, airyF_mul omega_cube, airyF_mul omega_recip_cube, airyG_mul omega_cube,
+    airyG_mul omega_recip_cube]
   rw [exp_two_pi_I_div_three, exp_neg_two_pi_I_div_three]
   have h3 := sqrt_three_sq
   push_cast at h3 ⊢

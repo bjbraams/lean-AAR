@@ -1272,7 +1272,7 @@ theorem regularized_barnes_integral {a b : ℂ} {x σ : ℝ}
         ≤ (Ca * (1 + |y|) ^ Ka * Real.exp (-(π * |y|) / 2)) *
             (Cs * (1 + |y|) ^ Ks * Real.exp (-(π * |y|) / 2)) * x ^ σ := by gcongr
       _ = _ := by rw [pow_add, ← hE]; ring
-  have hR := DLMF.Gamma.differentiable_integral_mul_inv_Gamma hAc hAb σ
+  have hR := DLMF.Gamma.differentiable_integral_mul_recip_Gamma hAc hAb σ
   have hrw : ∀ b : ℂ, ∫ y : ℝ, Gamma (a + σ + I * y) * Gamma (-((σ : ℂ) + I * y)) /
       Gamma (b + σ + I * y) * (x : ℂ) ^ ((σ : ℂ) + I * y) =
       ∫ y : ℝ, A y * (Gamma (b + σ + I * y))⁻¹ := fun b => by
@@ -1318,11 +1318,11 @@ theorem kummerM_eq_barnes_integral {a c z : ℂ} {σ : ℝ}
     refine ContinuousAt.mul (ContinuousAt.mul ?_ ?_) ?_
     · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
     · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
-    · exact (DLMF.Gamma.differentiable_inv_Gamma.continuous.comp (by fun_prop)).continuousAt
+    · exact (DLMF.Gamma.differentiable_recip_Gamma.continuous.comp (by fun_prop)).continuousAt
   -- the decay of `B`
   obtain ⟨Cs, Ks, hCs⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le (x := -σ) (by linarith) 0
   obtain ⟨Ca, Ka, hCa⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le (x := a.re + σ) ha a.im
-  obtain ⟨Cc, Kc, hCc⟩ := DLMF.Gamma.exists_norm_inv_Gamma_shift_le (c.re + σ) c.im
+  obtain ⟨Cc, Kc, hCc⟩ := DLMF.Gamma.exists_norm_recip_Gamma_shift_le (c.re + σ) c.im
   have hCs0 : 0 ≤ Cs := (norm_nonneg _).trans (by simpa using hCs 0)
   have hCa0 : 0 ≤ Ca := (norm_nonneg _).trans (by simpa using hCa 0)
   have hBb : ∀ y : ℝ, ‖B y‖ ≤ Cs * Ca * Cc * (1 + |y|) ^ (Ks + Ka + Kc) *
@@ -1521,7 +1521,7 @@ lemma integrable_kummerU_barnes_exp_integrand {a b : ℂ} {x σ : ℝ} (hx : 0 <
       Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
   obtain ⟨C1, K1, h1⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le hb (b - 1).im
   obtain ⟨C2, K2, h2⟩ := DLMF.Gamma.exists_norm_Gamma_shift_le hσ 0
-  obtain ⟨C3, K3, h3⟩ := DLMF.Gamma.exists_norm_inv_Gamma_shift_le (a.re + σ) a.im
+  obtain ⟨C3, K3, h3⟩ := DLMF.Gamma.exists_norm_recip_Gamma_shift_le (a.re + σ) a.im
   have hcont : Continuous (fun t : ℝ => Gamma (b - 1 + σ + I * t) * Gamma (σ + I * t) /
       Gamma (a + σ + I * t) * (x : ℂ) ^ (-(σ + I * t)) * I) := by
     refine continuous_iff_continuousAt.mpr fun y => ?_
@@ -1529,7 +1529,7 @@ lemma integrable_kummerU_barnes_exp_integrand {a b : ℂ} {x σ : ℝ} (hx : 0 <
       continuousAt_const
     · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp at hb ⊢; linarith)).comp (by fun_prop)
     · exact (DLMF.Gamma.continuousAt_Gamma_of_re_pos (by simp; linarith)).comp (by fun_prop)
-    · exact (DLMF.Gamma.differentiable_inv_Gamma.continuous.comp (by fun_prop)).continuousAt
+    · exact (DLMF.Gamma.differentiable_recip_Gamma.continuous.comp (by fun_prop)).continuousAt
     · exact ContinuousAt.cpow continuousAt_const (by fun_prop) (ofReal_mem_slitPlane.mpr hx)
   refine ((DLMF.Gamma.integrable_one_add_abs_pow_mul_exp_neg (c := π / 2) (by positivity)
     (K1 + K2 + K3)).const_mul (C1 * C2 * C3 * x ^ (-σ))).mono' hcont.aestronglyMeasurable
@@ -1724,7 +1724,7 @@ theorem kummerU_barnes_exp {a b : ℂ} {x σ : ℝ}
         rw [show b + 1 - 1 + σ + I * t = (b - 1 + σ + I * t) + 1 by ring,
           Complex.Gamma_add_one _ hw, show a + 1 + σ + I * t = (a + σ + I * t) + 1 by ring,
           div_eq_mul_inv, div_eq_mul_inv, div_eq_mul_inv,
-          inv_Gamma_eq_mul_inv_Gamma_add_one (a + σ + I * t)]
+          recip_Gamma_eq_mul_recip_Gamma_add_one (a + σ + I * t)]
         ring
       rw [integral_congr_ae (ae_of_all _ hpt), integral_add hi1 (hi2.const_mul _),
         MeasureTheory.integral_const_mul]

@@ -5,6 +5,7 @@ Authors: Bastiaan J Braams
 -/
 module
 
+public import ToMathlib.Analysis.Complex.ParametricHolomorphy
 public import DLMF.Gamma.Basic
 public import TauCeti.Analysis.SpecialFunctions.Beta
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -1349,62 +1350,10 @@ lemma vb_differentiableOn_integral {α : Type*} [MeasurableSpace α] {μ : Measu
     (hbound : ∀ z₀ ∈ U, ∃ ε > 0, Metric.closedBall z₀ ε ⊆ U ∧ ∃ g : α → ℝ, Integrable g μ ∧
       ∀ᵐ x ∂μ, ∀ z ∈ Metric.closedBall z₀ ε, ‖F z x‖ ≤ g x) :
     DifferentiableOn ℂ (fun z => ∫ x, F z x ∂μ) U := by
+  apply Complex.differentiableOn_integral_of_locally_dominated hU hmeas hdiff
   intro z₀ hz₀
-  obtain ⟨ε, hε, hsub, g, hg, hgb⟩ := hbound z₀ hz₀
-  set r := ε / 2 with hr
-  have hr0 : 0 < r := by positivity
-  set F' : ℂ → α → ℂ := fun z x => deriv (fun w => F w x) z with hF'
-  have hball : Metric.ball z₀ r ⊆ U := fun z hz =>
-    hsub (Metric.ball_subset_closedBall (Metric.ball_subset_ball (by linarith) hz))
-  have hderiv : ∀ᵐ x ∂μ, ∀ z ∈ Metric.ball z₀ r, HasDerivAt (fun w => F w x) (F' z x) z := by
-    filter_upwards [hdiff] with x hx z hz
-    exact ((hx z (hball hz)).differentiableAt (hU.mem_nhds (hball hz))).hasDerivAt
-  have hdb : ∀ᵐ x ∂μ, ∀ z ∈ Metric.ball z₀ r, ‖F' z x‖ ≤ g x / r := by
-    filter_upwards [hdiff, hgb] with x hx hxg z hz
-    have hcl : Metric.closedBall z r ⊆ Metric.closedBall z₀ ε := by
-      intro w hw
-      rw [Metric.mem_closedBall] at hw ⊢
-      rw [Metric.mem_ball] at hz
-      calc dist w z₀ ≤ dist w z + dist z z₀ := dist_triangle _ _ _
-        _ ≤ r + r := by linarith
-        _ = ε := by rw [hr]; ring
-    refine Complex.norm_deriv_le_of_forall_mem_sphere_norm_le hr0
-      ((hx.mono hsub).diffContOnCl_ball (subset_refl _) |>.mono ?_) fun w hw => ?_
-    · exact Metric.ball_subset_ball' (by rw [Metric.mem_ball] at hz; linarith)
-    · exact hxg w (hcl (Metric.sphere_subset_closedBall hw))
-  have hz₀ε : z₀ ∈ Metric.closedBall z₀ ε := Metric.mem_closedBall_self hε.le
-  have hint : Integrable (F z₀) μ :=
-    hg.mono' (hmeas z₀ hz₀) (by filter_upwards [hgb] with x hx using hx z₀ hz₀ε)
-  have hF'meas : AEStronglyMeasurable (F' z₀) μ := by
-    set t : ℕ → ℂ := fun n => ((ε / (n + 2) : ℝ) : ℂ) with ht
-    have htmem : ∀ n, z₀ + t n ∈ U := by
-      intro n
-      refine hsub ?_
-      rw [Metric.mem_closedBall, dist_eq_norm, add_sub_cancel_left, ht, Complex.norm_real,
-        Real.norm_eq_abs, abs_of_pos (by positivity)]
-      rw [div_le_iff₀ (by positivity)]
-      nlinarith
-    have htlim : Tendsto t atTop (𝓝[≠] 0) := by
-      refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun n => ?_⟩
-      · have h1 : Tendsto (fun n : ℕ => ε / ((n : ℝ) + 2)) atTop (𝓝 0) := by
-          refine tendsto_const_nhds.div_atTop ?_
-          exact tendsto_atTop_add_const_right _ 2 tendsto_natCast_atTop_atTop
-        have := (Complex.continuous_ofReal.tendsto 0).comp h1
-        simpa only [ht, Function.comp_def, Complex.ofReal_zero] using this
-      · simp only [ht, Set.mem_compl_iff, Set.mem_singleton_iff, Complex.ofReal_eq_zero]
-        positivity
-    refine aestronglyMeasurable_of_tendsto_ae atTop
-      (f := fun n x => (t n)⁻¹ • (F (z₀ + t n) x - F z₀ x))
-      (fun n => by
-        have := ((hmeas _ (htmem n)).sub (hmeas z₀ hz₀)).const_smul (t n)⁻¹
-        exact this) ?_
-    filter_upwards [hderiv] with x hx
-    exact (hx z₀ (Metric.mem_ball_self hr0)).tendsto_slope_zero.comp htlim
-  have key := hasDerivAt_integral_of_dominated_loc_of_deriv_le (bound := fun x => g x / r)
-    (Metric.ball_mem_nhds z₀ hr0)
-    (Eventually.mono (hU.mem_nhds hz₀) fun z hz => hmeas z hz) hint hF'meas hdb
-    (hg.div_const r) hderiv
-  exact key.2.differentiableAt.differentiableWithinAt
+  obtain ⟨ε, hε, _, g, hg, hgb⟩ := hbound z₀ hz₀
+  exact ⟨Metric.closedBall z₀ ε, Metric.closedBall_mem_nhds z₀ hε, g, hg, hgb⟩
 
 /-- The vertical Beta integral is holomorphic in `b` on `Re (a + b) > 1`. -/
 lemma vb_differentiableOn_b {a w z : ℂ} (hw : 0 < w.re) (hz : 0 < z.re) :

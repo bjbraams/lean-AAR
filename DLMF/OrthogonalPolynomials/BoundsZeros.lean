@@ -804,7 +804,7 @@ lemma multiset_sq_sum_le_card_mul_sum_sq (t : Multiset ℝ) :
     nlinarith
 
 /-- Derivative of `t ↦ ∑_{z ∈ s} 1/(t - z)` away from `s`. -/
-lemma hasDerivAt_multiset_sum_inv_sub (s : Multiset ℝ) {x : ℝ} (hx : x ∉ s) :
+lemma hasDerivAt_multiset_sum_recip_sub (s : Multiset ℝ) {x : ℝ} (hx : x ∉ s) :
     HasDerivAt (fun t => (s.map fun z => 1 / (t - z)).sum)
       (-(s.map fun z => 1 / (x - z) ^ 2).sum) x := by
   induction s using Multiset.induction_on with
@@ -836,7 +836,7 @@ theorem laguerre_inequality {g : ℝ[X]} (hs : g.Splits) {x : ℝ} (hx : g.eval 
     exact hs.eval_derivative_eq_eval_mul_sum ht
   have hd1 : HasDerivAt (fun t => g.eval t * L t)
       ((derivative g).eval x * L x + g.eval x * (-P x)) x :=
-    (g.hasDerivAt x).mul (hasDerivAt_multiset_sum_inv_sub s hxs)
+    (g.hasDerivAt x).mul (hasDerivAt_multiset_sum_recip_sub s hxs)
   have hd2 : HasDerivAt (fun t => (derivative g).eval t)
       ((derivative (derivative g)).eval x) x := (derivative g).hasDerivAt x
   have h2 : (derivative (derivative g)).eval x =

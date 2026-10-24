@@ -17,14 +17,14 @@ public import Mathlib.Analysis.Calculus.Deriv.Polynomial
 `Complex.digamma` takes the value `0` at those poles, so a product such as
 `ψ(x) · (1/Γ(x))` evaluates to `0` there although its continuous extension is
 `(-1)^{n+1} n!` at `x = -n`. Statements in which digamma occurs only through such products
-are therefore best written with the entire functions `invGammaDeriv n = (1/Γ)^{(n)}`:
+are therefore best written with the entire functions `recipGammaDeriv n = (1/Γ)^{(n)}`:
 
-* `(1/Γ)' = -ψ/Γ` (`invGammaDeriv_one_eq`), with `(1/Γ)'(-n) = (-1)^n n!`;
-* `(1/Γ)'' = (ψ² - ψ')/Γ` (`invGammaDeriv_two_eq`), so that the entire function
-  `((1/Γ)')² - (1/Γ)(1/Γ)''` extends `ψ'/Γ²` (`deriv_digamma_mul_inv_Gamma_sq`);
-* `ψ(x+n)/Γ(x) = -(x)_n (1/Γ)'(x+n)` (`inv_Gamma_mul_digamma_add_nat`).
+* `(1/Γ)' = -ψ/Γ` (`recipGammaDeriv_one_eq`), with `(1/Γ)'(-n) = (-1)^n n!`;
+* `(1/Γ)'' = (ψ² - ψ')/Γ` (`recipGammaDeriv_two_eq`), so that the entire function
+  `((1/Γ)')² - (1/Γ)(1/Γ)''` extends `ψ'/Γ²` (`deriv_digamma_mul_recip_Gamma_sq`);
+* `ψ(x+n)/Γ(x) = -(x)_n (1/Γ)'(x+n)` (`recip_Gamma_mul_digamma_add_nat`).
 
-Results stated with `invGammaDeriv` hold for all parameters; the digamma forms follow on the
+Results stated with `recipGammaDeriv` hold for all parameters; the digamma forms follow on the
 complement of the poles.
 -/
 
@@ -38,48 +38,48 @@ namespace DLMF.Gamma
 open DLMF.Hypergeometric
 
 /-- `1/Γ` is entire (Mathlib's `differentiable_one_div_Gamma`, in the `⁻¹` form). -/
-lemma differentiable_inv_Gamma : Differentiable ℂ fun z : ℂ => (Gamma z)⁻¹ := by
+lemma differentiable_recip_Gamma : Differentiable ℂ fun z : ℂ => (Gamma z)⁻¹ := by
   simpa [one_div] using differentiable_one_div_Gamma
 
 /-- The `n`-th derivative of the reciprocal Gamma function, an entire function. -/
-def invGammaDeriv (n : ℕ) (z : ℂ) : ℂ :=
+def recipGammaDeriv (n : ℕ) (z : ℂ) : ℂ :=
   iteratedDeriv n (fun w : ℂ => (Gamma w)⁻¹) z
 
 @[simp]
-lemma invGammaDeriv_zero (z : ℂ) : invGammaDeriv 0 z = (Gamma z)⁻¹ := by
-  simp [invGammaDeriv]
+lemma recipGammaDeriv_zero (z : ℂ) : recipGammaDeriv 0 z = (Gamma z)⁻¹ := by
+  simp [recipGammaDeriv]
 
-lemma invGammaDeriv_succ (n : ℕ) : invGammaDeriv (n + 1) = deriv (invGammaDeriv n) := by
+lemma recipGammaDeriv_succ (n : ℕ) : recipGammaDeriv (n + 1) = deriv (recipGammaDeriv n) := by
   funext z
-  simp only [invGammaDeriv, iteratedDeriv_succ]
+  simp only [recipGammaDeriv, iteratedDeriv_succ]
   rfl
 
-lemma invGammaDeriv_one_eq_deriv (z : ℂ) :
-    invGammaDeriv 1 z = deriv (fun w : ℂ => (Gamma w)⁻¹) z := by
-  simp [invGammaDeriv]
+lemma recipGammaDeriv_one_eq_deriv (z : ℂ) :
+    recipGammaDeriv 1 z = deriv (fun w : ℂ => (Gamma w)⁻¹) z := by
+  simp [recipGammaDeriv]
 
-/-- Each `invGammaDeriv n` is entire. -/
-lemma differentiable_invGammaDeriv (n : ℕ) : Differentiable ℂ (invGammaDeriv n) := by
-  have h := (differentiable_inv_Gamma.contDiff (n := ⊤)).differentiable_iteratedDeriv n
+/-- Each `recipGammaDeriv n` is entire. -/
+lemma differentiable_recipGammaDeriv (n : ℕ) : Differentiable ℂ (recipGammaDeriv n) := by
+  have h := (differentiable_recip_Gamma.contDiff (n := ⊤)).differentiable_iteratedDeriv n
     (by exact_mod_cast WithTop.coe_lt_top _)
   exact h
 
-lemma hasDerivAt_invGammaDeriv (n : ℕ) (z : ℂ) :
-    HasDerivAt (invGammaDeriv n) (invGammaDeriv (n + 1) z) z := by
-  rw [invGammaDeriv_succ]
-  exact (differentiable_invGammaDeriv n z).hasDerivAt
+lemma hasDerivAt_recipGammaDeriv (n : ℕ) (z : ℂ) :
+    HasDerivAt (recipGammaDeriv n) (recipGammaDeriv (n + 1) z) z := by
+  rw [recipGammaDeriv_succ]
+  exact (differentiable_recipGammaDeriv n z).hasDerivAt
 
-lemma continuous_invGammaDeriv (n : ℕ) : Continuous (invGammaDeriv n) :=
-  (differentiable_invGammaDeriv n).continuous
+lemma continuous_recipGammaDeriv (n : ℕ) : Continuous (recipGammaDeriv n) :=
+  (differentiable_recipGammaDeriv n).continuous
 
-lemma hasDerivAt_inv_Gamma' (z : ℂ) :
-    HasDerivAt (fun w : ℂ => (Gamma w)⁻¹) (invGammaDeriv 1 z) z := by
-  have h := hasDerivAt_invGammaDeriv 0 z
-  have e : invGammaDeriv 0 = fun w : ℂ => (Gamma w)⁻¹ := funext invGammaDeriv_zero
+lemma hasDerivAt_recip_Gamma' (z : ℂ) :
+    HasDerivAt (fun w : ℂ => (Gamma w)⁻¹) (recipGammaDeriv 1 z) z := by
+  have h := hasDerivAt_recipGammaDeriv 0 z
+  have e : recipGammaDeriv 0 = fun w : ℂ => (Gamma w)⁻¹ := funext recipGammaDeriv_zero
   rwa [e] at h
 
 /-- `(x)_n / Γ(x+n) = 1/Γ(x)` for every `x`, including the poles of `Γ`. -/
-theorem poch_mul_inv_Gamma_add_nat (x : ℂ) (r : ℕ) :
+theorem poch_mul_recip_Gamma_add_nat (x : ℂ) (r : ℕ) :
     poch x r * (Gamma (x + r))⁻¹ = (Gamma x)⁻¹ := by
   induction r with
   | zero => simp [poch_zero]
@@ -92,7 +92,7 @@ lemma isOpen_setOf_Gamma_ne_zero : IsOpen {z : ℂ | Gamma z ≠ 0} := by
   have : {z : ℂ | Gamma z ≠ 0} = (fun z : ℂ => (Gamma z)⁻¹) ⁻¹' {0}ᶜ := by
     ext z; simp
   rw [this]
-  exact isOpen_compl_singleton.preimage differentiable_inv_Gamma.continuous
+  exact isOpen_compl_singleton.preimage differentiable_recip_Gamma.continuous
 
 lemma Gamma_ne_zero_iff {z : ℂ} : Gamma z ≠ 0 ↔ ∀ m : ℕ, z ≠ -(m : ℂ) := by
   rw [Ne, Gamma_eq_zero_iff]
@@ -115,21 +115,21 @@ lemma differentiableAt_digamma {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
   exact hd.div (differentiableAt_Gamma x hx) (Gamma_ne_zero hx)
 
 /-- `(1/Γ)' = -ψ/Γ` away from the poles. -/
-theorem invGammaDeriv_one_eq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
-    invGammaDeriv 1 x = -(digamma x) * (Gamma x)⁻¹ := by
+theorem recipGammaDeriv_one_eq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
+    recipGammaDeriv 1 x = -(digamma x) * (Gamma x)⁻¹ := by
   have hG := (differentiableAt_Gamma x hx).hasDerivAt
   have h0 := Gamma_ne_zero hx
-  refine (hasDerivAt_inv_Gamma' x).unique ((hG.inv h0).congr_deriv ?_)
+  refine (hasDerivAt_recip_Gamma' x).unique ((hG.inv h0).congr_deriv ?_)
   rw [digamma_def, logDeriv_apply]
   field_simp
 
 /-- `(1/Γ)'(-p) = (-1)^p p!`: the continuous extension of `-ψ/Γ` at its removable points. -/
-theorem invGammaDeriv_one_neg_nat (p : ℕ) :
-    invGammaDeriv 1 (-(p : ℂ)) = (-1 : ℂ) ^ p * (p ! : ℂ) := by
+theorem recipGammaDeriv_one_neg_nat (p : ℕ) :
+    recipGammaDeriv 1 (-(p : ℂ)) = (-1 : ℂ) ^ p * (p ! : ℂ) := by
   have heq : (fun y : ℂ => (Gamma y)⁻¹) =
       fun y => poch y p * (y + p) * (Gamma (y + (p + 1 : ℕ)))⁻¹ := by
     funext y
-    rw [← poch_mul_inv_Gamma_add_nat y (p + 1), poch_succ]
+    rw [← poch_mul_recip_Gamma_add_nat y (p + 1), poch_succ]
   have hp := Polynomial.hasDerivAt (ascPochhammer ℂ p) (-(p : ℂ))
   have h1 : HasDerivAt (fun y : ℂ => y + p) 1 (-(p : ℂ)) := (hasDerivAt_id _).add_const _
   have hpole : ∀ m : ℕ, -(p : ℂ) + ((p + 1 : ℕ) : ℂ) ≠ -(m : ℂ) := by
@@ -137,10 +137,10 @@ theorem invGammaDeriv_one_neg_nat (p : ℕ) :
     have := congrArg re hm
     simp at this
     linarith [(Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
-  have h2 := (hasDerivAt_inv_Gamma' (-(p : ℂ) + ((p + 1 : ℕ) : ℂ))).comp (-(p : ℂ))
+  have h2 := (hasDerivAt_recip_Gamma' (-(p : ℂ) + ((p + 1 : ℕ) : ℂ))).comp (-(p : ℂ))
     ((hasDerivAt_id (-(p : ℂ))).add_const ((p + 1 : ℕ) : ℂ))
   have h := (hp.mul h1).mul h2
-  rw [invGammaDeriv_one_eq_deriv, heq]
+  rw [recipGammaDeriv_one_eq_deriv, heq]
   refine HasDerivAt.deriv (h.congr_deriv ?_)
   have e1 : -(p : ℂ) + ((p + 1 : ℕ) : ℂ) = 1 := by push_cast; ring
   simp only [_root_.id, Function.comp_apply, Pi.mul_apply, e1, Gamma_one, inv_one, mul_one,
@@ -150,30 +150,30 @@ theorem invGammaDeriv_one_neg_nat (p : ℕ) :
   ring
 
 /-- `(1/Γ)'' = (ψ² - ψ')/Γ` away from the poles. -/
-theorem invGammaDeriv_two_eq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
-    invGammaDeriv 2 x = (digamma x ^ 2 - deriv digamma x) * (Gamma x)⁻¹ := by
+theorem recipGammaDeriv_two_eq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
+    recipGammaDeriv 2 x = (digamma x ^ 2 - deriv digamma x) * (Gamma x)⁻¹ := by
   have hU : {z : ℂ | Gamma z ≠ 0} ∈ 𝓝 x :=
     isOpen_setOf_Gamma_ne_zero.mem_nhds (Gamma_ne_zero_iff.mpr hx)
-  have hev : (fun y => -(digamma y) * (Gamma y)⁻¹) =ᶠ[𝓝 x] invGammaDeriv 1 := by
+  have hev : (fun y => -(digamma y) * (Gamma y)⁻¹) =ᶠ[𝓝 x] recipGammaDeriv 1 := by
     filter_upwards [hU] with y hy
-    exact (invGammaDeriv_one_eq (Gamma_ne_zero_iff.mp hy)).symm
+    exact (recipGammaDeriv_one_eq (Gamma_ne_zero_iff.mp hy)).symm
   have hψ := (differentiableAt_digamma hx).hasDerivAt
-  have hd := (hψ.neg.mul (hasDerivAt_inv_Gamma' x)).congr_of_eventuallyEq hev.symm
-  rw [show (2 : ℕ) = 1 + 1 from rfl, invGammaDeriv_succ]
-  rw [hd.deriv, invGammaDeriv_one_eq hx, Pi.neg_apply]
+  have hd := (hψ.neg.mul (hasDerivAt_recip_Gamma' x)).congr_of_eventuallyEq hev.symm
+  rw [show (2 : ℕ) = 1 + 1 from rfl, recipGammaDeriv_succ]
+  rw [hd.deriv, recipGammaDeriv_one_eq hx, Pi.neg_apply]
   ring
 
 /-- The entire function `((1/Γ)')² - (1/Γ)(1/Γ)''` extends `ψ'/Γ²`. -/
-theorem deriv_digamma_mul_inv_Gamma_sq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
+theorem deriv_digamma_mul_recip_Gamma_sq {x : ℂ} (hx : ∀ m : ℕ, x ≠ -(m : ℂ)) :
     deriv digamma x * ((Gamma x)⁻¹) ^ 2 =
-      invGammaDeriv 1 x ^ 2 - (Gamma x)⁻¹ * invGammaDeriv 2 x := by
-  rw [invGammaDeriv_one_eq hx, invGammaDeriv_two_eq hx]
+      recipGammaDeriv 1 x ^ 2 - (Gamma x)⁻¹ * recipGammaDeriv 2 x := by
+  rw [recipGammaDeriv_one_eq hx, recipGammaDeriv_two_eq hx]
   ring
 
 /-- `ψ(x+n)/Γ(x) = -(x)_n (1/Γ)'(x+n)` whenever `x + n` is not a pole. -/
-theorem inv_Gamma_mul_digamma_add_nat {x : ℂ} (n : ℕ) (hx : ∀ m : ℕ, x + n ≠ -(m : ℂ)) :
-    (Gamma x)⁻¹ * digamma (x + n) = -(poch x n * invGammaDeriv 1 (x + n)) := by
-  rw [← poch_mul_inv_Gamma_add_nat x n, invGammaDeriv_one_eq hx]
+theorem recip_Gamma_mul_digamma_add_nat {x : ℂ} (n : ℕ) (hx : ∀ m : ℕ, x + n ≠ -(m : ℂ)) :
+    (Gamma x)⁻¹ * digamma (x + n) = -(poch x n * recipGammaDeriv 1 (x + n)) := by
+  rw [← poch_mul_recip_Gamma_add_nat x n, recipGammaDeriv_one_eq hx]
   ring
 
 end DLMF.Gamma

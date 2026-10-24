@@ -601,22 +601,6 @@ lemma besselKMomentWronskian_besselI_eq_two (ν : ℂ) :
     linarith [(abs_lt.mp (lt_of_le_of_lt h1 h2)).1]
   exact congrFun (hf.eq_of_eventuallyEq hg hev) ν
 
-/-- `K_{-ν} = K_ν` (DLMF 10.27.3); a local copy of `besselK_neg`, which lives in a module that
-imports the Tricomi integral representations. -/
-private lemma besselK_neg_aux (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
-    besselK (-ν) z = besselK ν z := by
-  refine DLMF.Confluent.eq_of_continuousAt_of_integerComplement
-    (f := fun μ => besselK (-μ) z) (g := fun μ => besselK μ z)
-    (continuousAt_besselK_order (fun μ => -μ) continuous_neg ν hz)
-    (continuousAt_besselK_order (fun μ => μ) continuous_id ν hz) (fun c hc => ?_)
-  have hc' := DLMF.Confluent.forall_of_mem_integerComplement hc
-  have hcn : ∀ k : ℤ, -c ≠ k := fun k h => hc' (-k) (by push_cast; linear_combination -h)
-  have hs := sin_mul_pi_ne_zero hc'
-  rw [besselK_eq_of_not_int hcn, besselK_eq_of_not_int hc', besselE, besselE, neg_neg, neg_mul,
-    Complex.sin_neg]
-  field_simp
-  ring
-
 /-- `B(ν) = 0` for `ν ∉ ℤ`: the moment integral has no `I_ν` component. -/
 lemma besselKMomentWronskian_besselK_eq_zero {ν : ℂ} (hν : ∀ k : ℤ, ν ≠ k) :
     besselKMomentWronskian ν (besselK ν) 1 = 0 := by
@@ -627,7 +611,7 @@ lemma besselKMomentWronskian_besselK_eq_zero {ν : ℂ} (hν : ∀ k : ℤ, ν �
     have e1 := besselKMoment_eq_wronskian_combination ν hz
     have e2 := besselKMoment_eq_wronskian_combination (-ν) hz
     rw [besselKMoment_neg_order, besselKMomentWronskian_besselI_eq_two,
-      besselK_neg_aux ν (Or.inl hz)] at e2
+      besselK_neg ν (Or.inl hz)] at e2
     rw [besselKMomentWronskian_besselI_eq_two] at e1
     simp only [B]
     linear_combination e1 - e2

@@ -469,7 +469,7 @@ lemma Gamma_re_le_mul_norm_Gamma {x₁ Y : ℝ} (hx₁ : 0 < x₁) {z : ℂ} (hz
   exact (pow_le_pow_iff_left₀ hG.le (by positivity) two_ne_zero).1 h2
 
 /-- `1/Γ(z) = Γ(1-z) sin(πz)/π` for `re z < 1`. -/
-lemma inv_Gamma_eq_reflect {z : ℂ} (hz : z.re < 1) :
+lemma recip_Gamma_eq_reflect {z : ℂ} (hz : z.re < 1) :
     (Complex.Gamma z)⁻¹ = Complex.Gamma (1 - z) * Complex.sin (π * z) / π := by
   have hπ : (π : ℂ) ≠ 0 := ofReal_ne_zero.2 Real.pi_ne_zero
   by_cases hs : Complex.sin (π * z) = 0
@@ -640,13 +640,13 @@ lemma exists_Gamma_ratio_le (α β : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < T ∧
 
 /-- **Integrals against `1/Γ(a+t)` are holomorphic in `a`**, given an integrable majorant on a
 closed disc of radius `2r` about `a₀`. -/
-lemma differentiableAt_integral_inv_Gamma_mul {G : ℝ → ℂ} (hG : Continuous G) {a₀ : ℂ}
+lemma differentiableAt_integral_recip_Gamma_mul {G : ℝ → ℂ} (hG : Continuous G) {a₀ : ℂ}
     {r : ℝ} (hr : 0 < r) {M : ℝ → ℝ} (hM : Integrable M)
     (hb : ∀ a ∈ Metric.closedBall a₀ (2 * r), ∀ t : ℝ,
       ‖(Complex.Gamma (a + t))⁻¹ * G t‖ ≤ M t) :
     DifferentiableAt ℂ (fun a : ℂ => ∫ t : ℝ, (Complex.Gamma (a + t))⁻¹ * G t) a₀ := by
   set g : ℂ → ℂ := fun s => (Complex.Gamma s)⁻¹
-  have hg : Differentiable ℂ g := differentiable_inv_Gamma
+  have hg : Differentiable ℂ g := differentiable_recip_Gamma
   set F : ℂ → ℝ → ℂ := fun a t => g (a + t) * G t with hF
   set F' : ℂ → ℝ → ℂ := fun a t => deriv g (a + t) * G t with hF'
   have hcont : ∀ a : ℂ, Continuous (F a) := fun a =>
@@ -687,7 +687,7 @@ lemma differentiableAt_integral_inv_Gamma_mul {G : ℝ → ℂ} (hG : Continuous
 
 
 /-- A lower bound for `|Γ|` gives an upper bound for `1/|Γ|`. -/
-lemma norm_inv_Gamma_le_of_re {Y : ℝ} {z : ℂ} (hz : 1 ≤ z.re) (hy : |z.im| ≤ Y) :
+lemma norm_recip_Gamma_le_of_re {Y : ℝ} {z : ℂ} (hz : 1 ≤ z.re) (hy : |z.im| ≤ Y) :
     ‖(Complex.Gamma z)⁻¹‖ ≤ Real.sqrt (gammaVertProd 1 Y) / Real.Gamma z.re := by
   have h := Gamma_re_le_mul_norm_Gamma one_pos hz hy
   have hG := Real.Gamma_pos_of_pos (show 0 < z.re by linarith)
@@ -699,9 +699,9 @@ lemma norm_inv_Gamma_le_of_re {Y : ℝ} {z : ℂ} (hz : 1 ≤ z.re) (hy : |z.im|
   linarith
 
 /-- The reflection bound `1/|Γ(z)| ≤ |Γ(1-z)| e^{π|im z|}/π` for `re z < 1`. -/
-lemma norm_inv_Gamma_le_reflect {z : ℂ} (hz : z.re < 1) :
+lemma norm_recip_Gamma_le_reflect {z : ℂ} (hz : z.re < 1) :
     ‖(Complex.Gamma z)⁻¹‖ ≤ ‖Complex.Gamma (1 - z)‖ * Real.exp (π * |z.im|) / π := by
-  rw [inv_Gamma_eq_reflect hz, norm_div, norm_mul, norm_real, Real.norm_of_nonneg Real.pi_pos.le]
+  rw [recip_Gamma_eq_reflect hz, norm_div, norm_mul, norm_real, Real.norm_of_nonneg Real.pi_pos.le]
   gcongr
   have := norm_sin_le_exp_abs_im (π * z)
   simpa [abs_mul, abs_of_pos Real.pi_pos] using this
@@ -728,7 +728,7 @@ lemma exists_norm_Gamma_ratio_le (u v : ℂ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < T 
           ‖Complex.Gamma (t + v)‖) := by gcongr
     _ = _ := by ring
 
-lemma mul_inv_le_of_le_mul {x y k : ℝ} (hk : 0 ≤ k) (hy : 0 ≤ y) (h : x ≤ k * y) :
+lemma mul_recip_le_of_le_mul {x y k : ℝ} (hk : 0 ≤ k) (hy : 0 ≤ y) (h : x ≤ k * y) :
     x * y⁻¹ ≤ k := by
   rcases hy.lt_or_eq with hy | rfl
   · rw [← div_eq_mul_inv, div_le_iff₀ hy]; exact h
@@ -792,7 +792,7 @@ lemma right_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < 
   have hGα := Real.Gamma_pos_of_pos (show 0 < t + α by linarith)
   -- the four factors
   have hA : ‖(Complex.Gamma (a + t))⁻¹‖ ≤ P / Real.Gamma (t + α) := by
-    have h := norm_inv_Gamma_le_of_re (z := a + t) (Y := Y) (by simp; linarith)
+    have h := norm_recip_Gamma_le_of_re (z := a + t) (Y := Y) (by simp; linarith)
       (by simpa using him)
     refine h.trans ?_
     have hmono : Real.Gamma (t + α) ≤ Real.Gamma (a + t : ℂ).re := by
@@ -801,7 +801,7 @@ lemma right_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < 
         (mem_Ici.2 (by linarith)) (by linarith)
     exact div_le_div_of_nonneg_left (Real.sqrt_nonneg _) hGα hmono
   have hC : ‖(Complex.Gamma (c - t))⁻¹‖ ≤ Real.Gamma (t + (1 - c.re)) * Ec / π := by
-    have h := norm_inv_Gamma_le_reflect (z := c - t) (by simp; linarith [le_abs_self c.re])
+    have h := norm_recip_Gamma_le_reflect (z := c - t) (by simp; linarith [le_abs_self c.re])
     refine h.trans ?_
     have hre : 0 < (1 - (c - t)).re := by simp; linarith [le_abs_self c.re]
     have h' := norm_Gamma_le_Gamma_re hre
@@ -809,7 +809,7 @@ lemma right_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < 
     rw [show 1 - (c.re - t) = t + (1 - c.re) by ring] at h'
     gcongr
   have hD : ‖(Complex.Gamma (d - t))⁻¹‖ ≤ ‖Complex.Gamma (t + (1 - d))‖ * Ed / π := by
-    have h := norm_inv_Gamma_le_reflect (z := d - t) (by simp; linarith [le_abs_self d.re])
+    have h := norm_recip_Gamma_le_reflect (z := d - t) (by simp; linarith [le_abs_self d.re])
     rw [show (1 : ℂ) - (d - t) = t + (1 - d) by ring] at h
     simpa using h
   have hB : ‖(Complex.Gamma (b + t))⁻¹‖ = ‖Complex.Gamma (t + b)‖⁻¹ := by
@@ -818,10 +818,10 @@ lemma right_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < 
   have hr2 := h2 t htT2
   have hq1 : Real.Gamma (t + (1 - c.re)) * (Real.Gamma (t + α))⁻¹ ≤
       K1 * t ^ (1 - c.re - α) :=
-    mul_inv_le_of_le_mul (by positivity) hGα.le hr1
+    mul_recip_le_of_le_mul (by positivity) hGα.le hr1
   have hq2 : ‖Complex.Gamma (t + (1 - d))‖ * ‖Complex.Gamma (t + b)‖⁻¹ ≤
       K2 * t ^ (1 - d - b).re :=
-    mul_inv_le_of_le_mul (by positivity) (norm_nonneg _) hr2
+    mul_recip_le_of_le_mul (by positivity) (norm_nonneg _) hr2
   have hexp : t ^ (1 - c.re - α) * t ^ (1 - d - b).re =
       t ^ (2 - (a₀.re - ρ) - (b + c + d).re) := by
     rw [← Real.rpow_add ht0]; congr 1; simp [hα]; ring
@@ -870,7 +870,7 @@ lemma left_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < T
   have har : a.re + 1 ≤ u := by linarith [le_abs_self a₀.re, le_abs_self ρ]
   have hGc := Real.Gamma_pos_of_pos (show 0 < u + c.re by linarith [neg_abs_le c.re])
   have hA : ‖(Complex.Gamma (a - u))⁻¹‖ ≤ Real.Gamma (u + (1 - α)) * Ea / π := by
-    have h := norm_inv_Gamma_le_reflect (z := a - u) (by simp; linarith)
+    have h := norm_recip_Gamma_le_reflect (z := a - u) (by simp; linarith)
     refine h.trans ?_
     have hre : 0 < (1 - (a - u)).re := by simp; linarith
     have h' := norm_Gamma_le_Gamma_re hre
@@ -884,20 +884,20 @@ lemma left_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < T
     have hG0 : 0 ≤ Real.Gamma (u + (1 - α)) := (norm_nonneg _).trans hm
     gcongr
   have hB : ‖(Complex.Gamma (b - u))⁻¹‖ ≤ ‖Complex.Gamma (u + (1 - b))‖ * Eb / π := by
-    have h := norm_inv_Gamma_le_reflect (z := b - u) (by simp; linarith [le_abs_self b.re])
+    have h := norm_recip_Gamma_le_reflect (z := b - u) (by simp; linarith [le_abs_self b.re])
     rw [show (1 : ℂ) - (b - u) = u + (1 - b) by ring] at h
     simpa using h
   have hC : ‖(Complex.Gamma (c + u))⁻¹‖ ≤ Pc / Real.Gamma (u + c.re) := by
-    have h := norm_inv_Gamma_le_of_re (z := c + u) (Y := |c.im|)
+    have h := norm_recip_Gamma_le_of_re (z := c + u) (Y := |c.im|)
       (by simp; linarith [neg_abs_le c.re]) (by simp)
     simpa [add_comm] using h
   have hD : ‖(Complex.Gamma (d + u))⁻¹‖ = ‖Complex.Gamma (u + d)‖⁻¹ := by
     rw [norm_inv, add_comm]
   have hq3 : Real.Gamma (u + (1 - α)) * (Real.Gamma (u + c.re))⁻¹ ≤ K3 * u ^ (1 - α - c.re) :=
-    mul_inv_le_of_le_mul (by positivity) hGc.le (h3 u huT3)
+    mul_recip_le_of_le_mul (by positivity) hGc.le (h3 u huT3)
   have hq4 : ‖Complex.Gamma (u + (1 - b))‖ * ‖Complex.Gamma (u + d)‖⁻¹ ≤
       K4 * u ^ (1 - b - d).re :=
-    mul_inv_le_of_le_mul (by positivity) (norm_nonneg _) (h4 u huT4)
+    mul_recip_le_of_le_mul (by positivity) (norm_nonneg _) (h4 u huT4)
   have hexp : u ^ (1 - α - c.re) * u ^ (1 - b - d).re =
       u ^ (2 - (a₀.re - ρ) - (b + c + d).re) := by
     rw [← Real.rpow_add hu0]; congr 1; simp [hα]; ring
@@ -920,7 +920,7 @@ lemma left_tail (a₀ b c d : ℂ) (ρ : ℝ) : ∃ K T : ℝ, 0 ≤ K ∧ 0 < T
 
 lemma continuous_ramanujanIntegrand_uncurry (b c d : ℂ) :
     Continuous fun p : ℂ × ℝ => ramanujanIntegrand p.1 b c d p.2 := by
-  have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_inv_Gamma.continuous
+  have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_recip_Gamma.continuous
   have e : (fun p : ℂ × ℝ => ramanujanIntegrand p.1 b c d p.2) = fun p : ℂ × ℝ =>
       (Complex.Gamma (p.1 + p.2))⁻¹ * (Complex.Gamma (b + p.2))⁻¹ *
         (Complex.Gamma (c - p.2))⁻¹ * (Complex.Gamma (d - p.2))⁻¹ := by
@@ -1006,14 +1006,14 @@ lemma differentiableOn_integral_ramanujanIntegrand (b c d : ℂ) :
       nlinarith [mul_nonneg hKp h1, mul_nonneg hKm h2]
   have hG : Continuous fun t : ℝ =>
       1 / (Complex.Gamma (b + t) * Complex.Gamma (c - t) * Complex.Gamma (d - t)) := by
-    have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_inv_Gamma.continuous
+    have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_recip_Gamma.continuous
     have e : (fun t : ℝ => 1 / (Complex.Gamma (b + t) * Complex.Gamma (c - t) *
         Complex.Gamma (d - t))) = fun t : ℝ => (Complex.Gamma (b + t))⁻¹ *
           (Complex.Gamma (c - t))⁻¹ * (Complex.Gamma (d - t))⁻¹ := by
       funext t; simp only [one_div, mul_inv]
     rw [e]
     exact ((hg.comp (by fun_prop)).mul (hg.comp (by fun_prop))).mul (hg.comp (by fun_prop))
-  have key := differentiableAt_integral_inv_Gamma_mul hG hr0 hM hbound
+  have key := differentiableAt_integral_recip_Gamma_mul hG hr0 hM hbound
   have e2 : (fun a : ℂ => ∫ t : ℝ, ramanujanIntegrand a b c d t) = fun a : ℂ =>
       ∫ t : ℝ, (Complex.Gamma (a + t))⁻¹ *
         (1 / (Complex.Gamma (b + t) * Complex.Gamma (c - t) * Complex.Gamma (d - t))) := by
@@ -1090,7 +1090,7 @@ lemma integral_cos_rpow_mul_cexp {α : ℝ} (hα : -1 < α) (ζ : ℂ) :
   have hL := differentiable_integral_cos_rpow_mul_exp hα
   have hR : Differentiable ℂ fun ζ : ℂ => ((π * Real.Gamma (α + 1) / 2 ^ α : ℝ) : ℂ) *
       ((Complex.Gamma (1 + α / 2 + ζ / 2))⁻¹ * (Complex.Gamma (1 + α / 2 - ζ / 2))⁻¹) := by
-    have hg := differentiable_inv_Gamma
+    have hg := differentiable_recip_Gamma
     exact ((hg.comp (by fun_prop)).mul (hg.comp (by fun_prop))).const_mul _
   refine (AnalyticOnNhd.eqOn_of_preconnected_of_frequently_eq (z₀ := 0)
     (hL.differentiableOn.analyticOnNhd isOpen_univ)
@@ -1160,9 +1160,9 @@ lemma integrable_of_tails {f : ℝ → ℂ} (hf : Continuous f) {K T e : ℝ} (h
   exact (h2.union h3).union h1
 
 /-- The two-factor product `1/(Γ(b+x)Γ(d-x))` is integrable when `re(b+d) > 2`. -/
-lemma integrable_inv_Gamma_mul_inv_Gamma {b d : ℂ} (h : 2 < (b + d).re) :
+lemma integrable_recip_Gamma_mul_recip_Gamma {b d : ℂ} (h : 2 < (b + d).re) :
     Integrable fun x : ℝ => (Complex.Gamma (b + x))⁻¹ * (Complex.Gamma (d - x))⁻¹ := by
-  have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_inv_Gamma.continuous
+  have hg : Continuous fun s : ℂ => (Complex.Gamma s)⁻¹ := differentiable_recip_Gamma.continuous
   obtain ⟨K1, T1, hK1, hT1, h1⟩ := exists_norm_Gamma_ratio_le (1 - d) b
   obtain ⟨K2, T2, hK2, hT2, h2⟩ := exists_norm_Gamma_ratio_le (1 - b) d
   set e : ℝ := 1 - (b + d).re
@@ -1176,10 +1176,10 @@ lemma integrable_inv_Gamma_mul_inv_Gamma {b d : ℂ} (h : 2 < (b + d).re) :
     have htT : T1 ≤ t := le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) ht
     have htd : |d.re| + 1 ≤ t := le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) ht
     have ht0 : 0 < t := by linarith [abs_nonneg d.re]
-    have hD := norm_inv_Gamma_le_reflect (z := d - t) (by simp; linarith [le_abs_self d.re])
+    have hD := norm_recip_Gamma_le_reflect (z := d - t) (by simp; linarith [le_abs_self d.re])
     rw [show (1 : ℂ) - (d - t) = t + (1 - d) by ring] at hD
     simp only [sub_im, ofReal_im, sub_zero] at hD
-    have hq := mul_inv_le_of_le_mul (by positivity) (norm_nonneg _) (h1 t htT)
+    have hq := mul_recip_le_of_le_mul (by positivity) (norm_nonneg _) (h1 t htT)
     have hexp : (1 - d - b).re = e := by simp [e]; ring
     rw [hexp] at hq
     rw [norm_mul, norm_inv, add_comm b]
@@ -1195,10 +1195,10 @@ lemma integrable_inv_Gamma_mul_inv_Gamma {b d : ℂ} (h : 2 < (b + d).re) :
     have huT : T2 ≤ u := le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hu
     have hub : |b.re| + 1 ≤ u := le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hu
     have hu0 : 0 < u := by linarith [abs_nonneg b.re]
-    have hB := norm_inv_Gamma_le_reflect (z := b - u) (by simp; linarith [le_abs_self b.re])
+    have hB := norm_recip_Gamma_le_reflect (z := b - u) (by simp; linarith [le_abs_self b.re])
     rw [show (1 : ℂ) - (b - u) = u + (1 - b) by ring] at hB
     simp only [sub_im, ofReal_im, sub_zero] at hB
-    have hq := mul_inv_le_of_le_mul (by positivity) (norm_nonneg _) (h2 u huT)
+    have hq := mul_recip_le_of_le_mul (by positivity) (norm_nonneg _) (h2 u huT)
     have hexp : (1 - b - d).re = e := by simp [e]; ring
     rw [hexp] at hq
     simp only [ofReal_neg, ← sub_eq_add_neg, sub_neg_eq_add]
@@ -1313,7 +1313,7 @@ lemma integral_ramanujanIntegrand_of_real {a b c d : ℝ} (hac : 1 < a + c) (hbd
     intro w; rw [fourier_kern hp₂]
     congr 4 <;> simp only [hp₂d, hζ₂d] <;> push_cast <;> ring
   set g : ℝ → ℂ := fun x => (Complex.Gamma (b + x))⁻¹ * (Complex.Gamma (d - x))⁻¹ with hgd
-  have hg : Integrable g := integrable_inv_Gamma_mul_inv_Gamma (by simp; linarith)
+  have hg : Integrable g := integrable_recip_Gamma_mul_recip_Gamma (by simp; linarith)
   set G : ℝ → ℂ := fun ξ => g (π * ξ) with hGd
   have hG : Integrable G := hg.comp_mul_left' Real.pi_ne_zero
   have hFG : 𝓕 (kern p₂ ζ₂) = fun ξ => C₂ * G ξ := by
@@ -1422,7 +1422,7 @@ lemma differentiableOn_ramanujanR (b c d : ℂ) :
     DifferentiableOn ℂ (fun a : ℂ => ramanujanR a b c d) {a | 3 < (a + b + c + d).re} := by
   intro a ha
   change 3 < (a + b + c + d).re at ha
-  have hg := differentiable_inv_Gamma
+  have hg := differentiable_recip_Gamma
   have hΓ : DifferentiableAt ℂ (fun a : ℂ => Complex.Gamma (a + b + c + d - 3)) a := by
     refine (Complex.differentiableAt_Gamma _ fun m hm => ?_).comp a (by fun_prop)
     have := congrArg re hm; simp at this
@@ -1480,7 +1480,7 @@ end RamanujanAux
 open RamanujanAux
 
 @[dlmf 5.13.E4]
-theorem mellin_barnes_inv_four {a b c d : ℂ}
+theorem mellin_barnes_recip_four {a b c d : ℂ}
     (h : 3 < (a + b + c + d).re) :
     ∫ t : ℝ, 1 /
         (Complex.Gamma (a + t) * Complex.Gamma (b + t) *
@@ -1645,7 +1645,7 @@ open scoped ENNReal
 lemma trigamma_add_two_le (k : ℕ) : Real.trigamma (k + 2) ≤ 1 / (k + 1) := by
   rw [Real.trigamma_eq_tsum (by positivity)]
   refine Real.tsum_le_of_sum_range_le (fun n => by positivity) fun N => ?_
-  have h := Real.sum_inv_sub_inv_range ((k : ℝ) + 1) N
+  have h := Real.sum_recip_sub_recip_range ((k : ℝ) + 1) N
   have hle : ∀ n ∈ range N, ((k : ℝ) + 2 + n)⁻¹ ^ 2 ≤
       ((k : ℝ) + 1 + n)⁻¹ - ((k : ℝ) + 1 + n + 1)⁻¹ := by
     intro n _

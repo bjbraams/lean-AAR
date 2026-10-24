@@ -637,7 +637,7 @@ lemma tendsto_half_sub_atBot (c : ℝ) : Tendsto (fun a : ℝ => c / 2 - a) atBo
   (tendsto_neg_atBot_atTop.atTop_add (tendsto_const_nhds (x := c / 2))).congr fun a => by ring
 
 /-- `(c/2 - a)^{-1/2} = O(|a|^{-1/2})` as `a → -∞`. -/
-lemma inv_sqrt_half_sub_isBigO (c : ℝ) :
+lemma recip_sqrt_half_sub_isBigO (c : ℝ) :
     (fun a : ℝ => (Real.sqrt (c / 2 - a))⁻¹) =O[atBot] (fun a : ℝ => |a| ^ (-(1 / 2 : ℝ))) := by
   refine Asymptotics.IsBigO.of_bound (Real.sqrt 2) ?_
   filter_upwards [eventually_le_atBot (-|c| - 1)] with a ha
@@ -677,7 +677,7 @@ theorem regularizedConfluent_atBot_besselJ_isBigO (c : ℝ) {x : ℝ} (hx : 0 < 
     Asymptotics.IsBigO.of_bound 1 (by
       filter_upwards with a
       rw [Complex.norm_real, one_mul])
-  have h2 := hr.mul (h.trans (inv_sqrt_half_sub_isBigO c))
+  have h2 := hr.mul (h.trans (recip_sqrt_half_sub_isBigO c))
   refine h2.congr' ?_ EventuallyEq.rfl
   filter_upwards [hκ.eventually (eventually_gt_atTop 0)] with a ha
   obtain ⟨κ, rfl⟩ : ∃ κ, a = c / 2 - κ := ⟨c / 2 - a, by ring⟩
@@ -782,7 +782,7 @@ theorem regularizedConfluent_atBot_cos_isBigO (c : ℝ) {x : ℝ} (hx : 0 < x) :
       =O[atBot] (fun a : ℝ => |a| ^ (-(1 / 2 : ℝ))) := by
   have hκ := tendsto_half_sub_atBot c
   have h := (((largeAU_sub_cos_isBigO c hx).comp_tendsto hκ).const_mul_left
-    (((2 : ℝ) ^ (1 / 2 - c) * Real.sqrt π : ℝ) : ℂ)).trans (inv_sqrt_half_sub_isBigO c)
+    (((2 : ℝ) ^ (1 / 2 - c) * Real.sqrt π : ℝ) : ℂ)).trans (recip_sqrt_half_sub_isBigO c)
   refine h.congr' ?_ EventuallyEq.rfl
   filter_upwards [hκ.eventually (eventually_gt_atTop 0)] with a ha
   obtain ⟨κ, rfl⟩ : ∃ κ, a = c / 2 - κ := ⟨c / 2 - a, by ring⟩
@@ -1079,8 +1079,8 @@ lemma kummerU_large_a_eq_half (c : ℝ) (hc : ∀ k : ℤ, c ≠ k) {a x : ℝ} 
     rw [Complex.Gamma_ofReal]; exact_mod_cast (Real.Gamma_pos_of_pos hca).ne'
   have hG1a : Complex.Gamma (((1 - a : ℝ) : ℂ)) ≠ 0 := by
     rw [Complex.Gamma_ofReal]; exact_mod_cast (Real.Gamma_pos_of_pos h1a).ne'
-  have hr1 := inv_Gamma_one_sub_eq hGca
-  have hr2 := inv_Gamma_one_sub_eq hG1a
+  have hr1 := recip_Gamma_one_sub_eq hGca
+  have hr2 := recip_Gamma_one_sub_eq hG1a
   rw [show (1 : ℂ) - ((c - a : ℝ) : ℂ) = (a : ℂ) - c + 1 by push_cast; ring] at hr1
   rw [show (1 : ℂ) - ((1 - a : ℝ) : ℂ) = (a : ℂ) by push_cast; ring] at hr2
   have hΓ1 := Complex.Gamma_mul_Gamma_one_sub (c : ℂ)
@@ -1168,9 +1168,9 @@ lemma besselJ_sqrt_two_mul_isBigO (μ c : ℝ) {x : ℝ} (hx : 0 < x) :
   field_simp
 
 /-- `(c/2 - a)⁻¹ = O(|a|^{-1/2})` as `a → -∞`. -/
-lemma inv_half_sub_isBigO (c : ℝ) :
+lemma recip_half_sub_isBigO (c : ℝ) :
     (fun a : ℝ => (c / 2 - a)⁻¹) =O[atBot] (fun a : ℝ => |a| ^ (-(1 / 2 : ℝ))) := by
-  refine Asymptotics.IsBigO.trans ?_ (inv_sqrt_half_sub_isBigO c)
+  refine Asymptotics.IsBigO.trans ?_ (recip_sqrt_half_sub_isBigO c)
   refine Asymptotics.IsBigO.of_bound 1 ?_
   filter_upwards [(tendsto_half_sub_atBot c).eventually (eventually_ge_atTop 1)] with a ha
   have hk : 0 < c / 2 - a := by linarith
@@ -1281,13 +1281,13 @@ theorem kummerU_atBot_isBigO (c : ℝ) (hc : ∀ k : ℤ, c ≠ k) {x : ℝ} (hx
     rw [one_mul, norm_one, Real.norm_eq_abs, abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
     exact Real.rpow_le_one_of_one_le_of_nonpos h1 (by norm_num)
   have hH1 : (fun a => H1 a - 1) =O[atBot] (fun a : ℝ => |a| ^ (-(1 / 2 : ℝ))) := by
-    refine ((Gamma_half_ratio_isBigO c (c / 2)).trans (inv_half_sub_isBigO c)).congr' ?_
+    refine ((Gamma_half_ratio_isBigO c (c / 2)).trans (recip_half_sub_isBigO c)).congr' ?_
       EventuallyEq.rfl
     filter_upwards with a
     simp only [hH1def]
     rw [show c / 2 - a + c / 2 = c - a by ring, show c / 2 - 1 / 2 = (c - 1) / 2 by ring]
   have hH2 : (fun a => H2 a - 1) =O[atBot] (fun a : ℝ => |a| ^ (-(1 / 2 : ℝ))) := by
-    refine ((Gamma_half_ratio_isBigO c (1 - c / 2)).trans (inv_half_sub_isBigO c)).congr' ?_
+    refine ((Gamma_half_ratio_isBigO c (1 - c / 2)).trans (recip_half_sub_isBigO c)).congr' ?_
       EventuallyEq.rfl
     filter_upwards with a
     simp only [hH2def]

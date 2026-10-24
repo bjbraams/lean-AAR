@@ -66,7 +66,7 @@ lemma binetWeight_of_mem_Ico {t : ℝ} (ht : t ∈ Ico (0 : ℝ) 1) :
 
 /-! ### An integrable majorant -/
 
-lemma integrableOn_inv_one_add_sq :
+lemma integrableOn_recip_one_add_sq :
     IntegrableOn (fun t : ℝ => ((1 + t) ^ 2)⁻¹) (Ioi 0) := by
   have h := (integrable_one_add_norm (E := ℝ) (μ := volume) (r := 2) (by simp)).integrableOn
     (s := Ioi 0)
@@ -135,7 +135,7 @@ lemma norm_binetWeight_div_le {z : ℂ} {c t : ℝ} (hc : 0 < c) (ht : 0 ≤ t)
 lemma integrableOn_binetMu_integrand {z : ℂ} (hz : z ∈ slitPlane) :
     IntegrableOn (fun t : ℝ => (binetWeight t : ℂ) / (z + t) ^ 2) (Ioi 0) := by
   obtain ⟨c, hc, h⟩ := exists_mul_one_add_le_norm_add hz
-  refine (integrableOn_inv_one_add_sq.const_mul ((1 / 8) / c ^ 2)).mono' ?_ ?_
+  refine (integrableOn_recip_one_add_sq.const_mul ((1 / 8) / c ^ 2)).mono' ?_ ?_
   · refine (Measurable.aestronglyMeasurable ?_)
     exact (Complex.measurable_ofReal.comp measurable_binetWeight).div
       ((measurable_const.add Complex.measurable_ofReal).pow_const 2)
@@ -169,7 +169,7 @@ lemma hasDerivAt_binetMu {z : ℂ} (hz : z ∈ slitPlane) :
   refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (Metric.ball_mem_nhds z hc)
     (F' := fun w t => -2 * (binetWeight t : ℂ) / (w + t) ^ 3)
     (Eventually.of_forall hmeas) (integrableOn_binetMu_integrand hz) ?_ ?_
-    (integrableOn_inv_one_add_sq.const_mul (2 * ((1 / 8) / c ^ 3))) ?_).2
+    (integrableOn_recip_one_add_sq.const_mul (2 * ((1 / 8) / c ^ 3))) ?_).2
   · exact (((measurable_const.mul (Complex.measurable_ofReal.comp measurable_binetWeight)).div
       ((measurable_const.add Complex.measurable_ofReal).pow_const 3))).aestronglyMeasurable
   · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht w hw
@@ -270,7 +270,7 @@ lemma binetIntegral_sub_add_one {x : ℝ} (hx : 0 < x) :
   rw [Real.Gamma_add_one hx.ne', Real.log_mul hx.ne' (Real.Gamma_pos_of_pos hx).ne'] at h1
   linarith
 
-lemma integral_inv_add_sq {y : ℝ} (hy : 0 < y) :
+lemma integral_recip_add_sq {y : ℝ} (hy : 0 < y) :
     ∫ t in Ioi (0 : ℝ), 1 / (y + t) ^ 2 = 1 / y := by
   have h := integral_Ioi_of_hasDerivAt_of_nonneg' (a := 0) (l := 0)
     (g := fun t : ℝ => -(y + t)⁻¹) (g' := fun t => 1 / (y + t) ^ 2)
@@ -305,7 +305,7 @@ lemma binetMuReal_le {x : ℝ} (hx : 0 < x) : binetMuReal x ≤ 1 / (8 * x) := b
         rw [← mul_div_assoc, mul_one]
         exact div_le_div_of_nonneg_right (binetWeight_le t) (by positivity)
     _ = 1 / (8 * x) := by
-        rw [integral_const_mul, integral_inv_add_sq hx]
+        rw [integral_const_mul, integral_recip_add_sq hx]
         field_simp
 
 lemma binetMuReal_eq_binetIntegral {x : ℝ} (hx : 0 < x) : binetMuReal x = binetIntegral x := by

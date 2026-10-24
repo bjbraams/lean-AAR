@@ -387,7 +387,7 @@ def incGF_beta (z : ℂ) : ℝ := ‖(z ^ (2⁻¹ : ℂ))⁻¹‖ / ((z ^ (2⁻�
 /-- Stieltjes value-region bound for the convergents of Legendre's fraction. -/
 lemma incGF_LF_bound {α : ℝ} (hα : α < 1) {z : ℂ} (hz : z ∈ slitPlane) (n : ℕ) :
     (cfConv_ofFun 0 (incGF_LA α z) (fun _ => 1)).dens n ≠ 0 ∧ ‖incGF_LF α n z‖ ≤ incGF_beta z := by
-  have hs : 0 < ((z ^ (2⁻¹ : ℂ))⁻¹).re := cfConv_re_inv_pos (incGF_re_sqrt_pos hz)
+  have hs : 0 < ((z ^ (2⁻¹ : ℂ))⁻¹).re := cfConv_re_recip_pos (incGF_re_sqrt_pos hz)
   have hsq : ((z ^ (2⁻¹ : ℂ))⁻¹) ^ 2 = z⁻¹ := by rw [inv_pow, cpow_ofNat_inv_pow]
   obtain ⟨h1, h2⟩ := cfConv_sfrac_bound (h := 0) (a := incGF_LA α z) (b := fun _ => 1) hs
     (fun _ => rfl) (c := incGF_c α) (fun k hk => incGF_c_pos hα hk)
@@ -403,7 +403,7 @@ lemma incGF_beta_continuousOn : ContinuousOn incGF_beta slitPlane := by
   have hne : z ^ (2⁻¹ : ℂ) ≠ 0 := by
     intro h0; have := incGF_re_sqrt_pos hz; rw [h0, zero_re] at this; exact lt_irrefl _ this
   have hi : ContinuousAt (fun w : ℂ => (w ^ (2⁻¹ : ℂ))⁻¹) z := hc.inv₀ hne
-  have hre : ((z ^ (2⁻¹ : ℂ))⁻¹).re ≠ 0 := (cfConv_re_inv_pos (incGF_re_sqrt_pos hz)).ne'
+  have hre : ((z ^ (2⁻¹ : ℂ))⁻¹).re ≠ 0 := (cfConv_re_recip_pos (incGF_re_sqrt_pos hz)).ne'
   exact (hi.norm.div (Complex.continuous_re.continuousAt.comp hi) hre).continuousWithinAt
 
 /-- The convergents of Legendre's fraction are holomorphic on the slit plane. -/

@@ -322,7 +322,7 @@ theorem Real.dilog_add_dilog_div_sub_one {x : ℝ} (hx : x < 1) :
 
 /-- **The inversion formula** `Li₂(x) + Li₂(1/x) = -π²/6 - ½ ln²(-x)` for `x < 0`
 (Duverney, Exercise 8.11). -/
-theorem Real.dilog_add_dilog_inv {x : ℝ} (hx : x < 0) :
+theorem Real.dilog_add_dilog_recip {x : ℝ} (hx : x < 0) :
     Real.dilog x + Real.dilog x⁻¹ = -(π ^ 2 / 6) - Real.log (-x) ^ 2 / 2 := by
   set I : ℝ → ℝ := fun x => Real.dilog x + Real.dilog x⁻¹ + Real.log (-x) ^ 2 / 2
   have hd (y : ℝ) (hy : y ∈ Iio (0 : ℝ)) : HasDerivAt I 0 y := by

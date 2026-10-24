@@ -81,20 +81,12 @@ theorem analyticOnNhd_tsum_of_eventually_dominated {F : ℕ → ℂ → ℂ}
 /-- Pochhammer symbols with nonnegative real argument are nonnegative. -/
 lemma ascPochhammer_eval_nonneg {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
     0 ≤ (ascPochhammer ℝ n).eval x := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [ascPochhammer_succ_eval]
-    exact mul_nonneg ih (by positivity)
+  exact poch_eval_nonneg hx n
 
 /-- Pochhammer symbols are monotone on the nonnegative reals. -/
 lemma ascPochhammer_eval_mono {x y : ℝ} (hx : 0 ≤ x) (hxy : x ≤ y) (n : ℕ) :
     (ascPochhammer ℝ n).eval x ≤ (ascPochhammer ℝ n).eval y := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [ascPochhammer_succ_eval, ascPochhammer_succ_eval]
-    exact mul_le_mul ih (by linarith) (by linarith) (ascPochhammer_eval_nonneg (hx.trans hxy) n)
+  exact poch_eval_mono hx hxy n
 
 /-- Evaluating the complex Pochhammer polynomial at a real number. -/
 lemma ascPochhammer_eval_ofReal (x : ℝ) (n : ℕ) :
@@ -126,7 +118,7 @@ lemma factorial_le_norm_ascPochhammer_eval {w : ℂ} (hw : 1 ≤ w.re) (k : ℕ)
       _ = _ := by ring
 
 /-- `‖1/Γ(c+n)‖ ≤ 1/((n-N)! m)` for `n ≥ N`, when `1 ≤ Re (c+N)` and `m ≤ ‖Γ(c+N)‖`. -/
-lemma norm_inv_Gamma_add_nat_le {c : ℂ} {N : ℕ} (hre : 1 ≤ (c + N).re) {m : ℝ} (hm : 0 < m)
+lemma norm_recip_Gamma_add_nat_le {c : ℂ} {N : ℕ} (hre : 1 ≤ (c + N).re) {m : ℝ} (hm : 0 < m)
     (hΓ : m ≤ ‖Gamma (c + N)‖) {n : ℕ} (hn : N ≤ n) :
     ‖(Gamma (c + n))⁻¹‖ ≤ ((n - N).factorial : ℝ)⁻¹ * m⁻¹ := by
   have hpole : ∀ k : ℕ, c + N ≠ -k := fun k h => by
@@ -190,7 +182,7 @@ lemma ascPochhammer_eval_add (x : ℂ) (m k : ℕ) :
   simp
 
 /-- `1/Γ(y) = (y)_{p+1}/Γ(y+p+1)` for every `y`. -/
-lemma inv_Gamma_eq_poch_mul (p : ℕ) (y : ℂ) :
+lemma recip_Gamma_eq_poch_mul (p : ℕ) (y : ℂ) :
     (Gamma y)⁻¹ = poch y (p + 1) * (Gamma (y + (p + 1 : ℕ)))⁻¹ := by
   by_cases hy : ∀ m : ℕ, y ≠ -(m : ℂ)
   · have h := Gamma_add_nat_div_Gamma_eq (n := p + 1) y hy
@@ -263,7 +255,7 @@ lemma norm_term_le_majorant {a b c : ℂ} {z : ℂ} {α β : ℝ}
     norm_mul, norm_pow, Complex.norm_natCast]
   have hA := norm_ascPochhammer_eval_le ha n
   have hB := norm_ascPochhammer_eval_le hb n
-  have hG := norm_inv_Gamma_add_nat_le hre hm hΓ hn
+  have hG := norm_recip_Gamma_add_nat_le hre hm hΓ hn
   have hf : (0 : ℝ) < n.factorial := by positivity
   have hf' : (0 : ℝ) < (n - N).factorial := by positivity
   calc ‖(ascPochhammer ℂ n).eval a‖ * ‖(ascPochhammer ℂ n).eval b‖ * ‖z‖ ^ n / n.factorial *

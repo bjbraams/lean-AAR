@@ -41,6 +41,15 @@ The additional DLMF chapter entry points include `Struve` (eight submodules) and
 `ParabolicCylinder` (twelve submodules), extending the original cylinder API in
 `Confluent`. Their acquisition status is recorded below.
 
+The new chapter entry points are [Elementary](DLMF/Elementary.lean) (Chapter 4),
+[GeneralizedHypergeometric](DLMF/GeneralizedHypergeometric.lean) (Chapter 16,
+including Appell and Meijer G), and [QHypergeometric](DLMF/QHypergeometric.lean)
+(Chapter 17). Their acquisition ledgers are [Chapter 4](DLMF4Acquisition.md),
+[Chapter 16](DLMF16Acquisition.md), and [Chapter 17](DLMF17Acquisition.md).
+They include mathematical prose and exact tables; graphics, application notes and
+purely numerical data are excluded. Each chapter has checked upstream coverage;
+new proof obligations remain explicit.
+
 The [Beals–Wong inventory](BealsWongInventory.md) records further special-function
 gaps and their implementation status. The 18 October 2026 additions prove discrete
 polynomial addition identities, Rodrigues formulas for the four classical discrete
@@ -58,6 +67,10 @@ theory, and the real connection formulas remain open; see the
 
 ## Naming conventions for special functions
 
+- **Reciprocals use `recip` or `reciprocal` in project-defined names**, including
+  `recipGammaDeriv`, `zRecipDeriv`, and reciprocal-factorial expansions. Reserve
+  `inverse` for functional, compositional, or operator inverses. Imported Lean,
+  Mathlib and TauCeti identifiers retain their upstream spelling.
 - **Names follow DLMF via Miller's content-dictionary proposal** (Miller, *RFC: DLMF Content
   Dictionaries*, NIST 2018, in `References/`), adapted to Mathlib: lowerCamelCase with Mathlib's
   capitalization, Mathlib's names where Mathlib already has the function, project namespaces,
@@ -109,10 +122,27 @@ Mathlib's `Complex.digamma`; moving it into `DLMF.Gamma.Real` is left for a late
 
 ## Status
 
-Many statements are admitted (`sorry`) and remain proof obligations; the proved
-declarations do not depend on them. The acquired DLMF Chapters 6–9 hold most of the admissions; confluent functions
-and orthogonal polynomials contain most of the earlier obligations. Not every admitted statement has been checked for correctness:
-statements found to be false or weaker than intended are repaired as they are reviewed.
+The Chapter 4, 16 and 17 acquisition and proof round on 2026-10-24 leaves
+**887 explicit source admissions**, including **345 in Elementary**, **165 in
+GeneralizedHypergeometric**, and **188 in QHypergeometric**. The remaining 189
+are in the older areas. The compiled audit finds **14,148 project theorems**, with **900 depending transitively on `sorryAx`** (887 direct and 13 inherited) and
+no other nonstandard axiom.
+Counts in the dated development history describe their earlier scope.
+
+The [parallel priority round](REVIEW.md#priority-proof-implementation-with-parallel-ownership-2026-10-24)
+proved eight existing admissions and removed two downstream inverse-series dependencies.
+The [Elementary proof round](REVIEW.md#chapters-4-16-and-17-acquisition-and-elementary-proofs-2026-10-24)
+then proved 102 newly acquired admissions without changing their statements, reducing
+Chapter 4 from 447 to 345. The new ledgers distinguish direct admissions, proofs
+that inherit admissions, branch-dependent definitions, and corrected source formulas.
+
+The [duplication review](REVIEW.md#duplication-and-reuse-review-2026-10-22) consolidates
+repeated hypergeometric algebra, scalar-series arguments, Bessel symmetry, Legendre
+boundary limits, integral holomorphy, and spherical-harmonic helpers. It also records
+remaining consolidation candidates and the branch and parameter distinctions that prevent
+indiscriminate identification of special functions. Not every admitted statement has been
+checked for correctness; statements found to be false or weaker than intended are repaired
+as they are reviewed.
 
 ## Dependencies and upstream reuse
 

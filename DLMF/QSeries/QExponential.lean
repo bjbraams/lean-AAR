@@ -50,7 +50,7 @@ lemma norm_qPochhammer_le {q : ℂ} (hq : ‖q‖ < 1) (m k : ℕ) :
           (fun _ _ => by positivity)
 
 /-- `1/(q;q)_k` is bounded for `|q| < 1`. -/
-lemma exists_norm_inv_qPochhammer_le {q : ℂ} (hq : ‖q‖ < 1) :
+lemma exists_norm_recip_qPochhammer_le {q : ℂ} (hq : ‖q‖ < 1) :
     ∃ D, ∀ k, ‖(qPochhammer q q k)⁻¹‖ ≤ D := by
   have h := ((tendsto_qPochhammer (w := q) hq).inv₀
     (qPochhammerInf_ne_zero_of_norm_lt_one hq hq)).norm
@@ -58,6 +58,7 @@ lemma exists_norm_inv_qPochhammer_le {q : ℂ} (hq : ‖q‖ < 1) :
   exact ⟨D, fun k => hD ⟨k, rfl⟩⟩
 
 /-- `[k+m, k]_q = (q^{m+1};q)_k / (q;q)_k`. -/
+@[dlmf 17.2.E29 "exact: |q|<1, after q*q^n=q^(n+1)"]
 lemma qBinom_eq {q : ℂ} (hq : ‖q‖ < 1) (k m : ℕ) :
     qBinom q (k + m) k = qPochhammer (q * q ^ m) q k / qPochhammer q q k := by
   have h := qBinom_mul_qPochhammer q k m
@@ -75,6 +76,7 @@ lemma continuous_qPochhammer (q : ℂ) (k : ℕ) : Continuous fun w : ℂ => qPo
 
 /-- **Euler's second identity** `E_q(x) = ∑ q^{n(n-1)/2} xⁿ/(q;q)_n = (-x;q)_∞` for `|q| < 1` and
 every `x` (Duverney (10.33)–(10.34)). -/
+@[dlmf 17.5.E1 "exact: Euler q-exponential sum; local phase/exponent adapter proved"]
 theorem tsum_qExp {q : ℂ} (hq : ‖q‖ < 1) (x : ℂ) :
     ∑' n : ℕ, q ^ n.choose 2 * x ^ n / qPochhammer q q n = qPochhammerInf (-x) q := by
   set f : ℕ → ℕ → ℂ := fun N k => qBinom q N k * q ^ k.choose 2 * x ^ k
@@ -86,7 +88,7 @@ theorem tsum_qExp {q : ℂ} (hq : ‖q‖ < 1) (x : ℂ) :
     simp only [f]
     have h1 : ((-1 : ℂ)) ^ k * (-x) ^ k = x ^ k := by rw [← mul_pow]; ring
     linear_combination (-(qBinom q N k * q ^ k.choose 2)) * h1
-  obtain ⟨D, hD⟩ := exists_norm_inv_qPochhammer_le hq
+  obtain ⟨D, hD⟩ := exists_norm_recip_qPochhammer_le hq
   set E := Real.exp (1 / (1 - ‖q‖))
   have hlimk (k : ℕ) : Tendsto (fun N => f N k) atTop
       (𝓝 (q ^ k.choose 2 * x ^ k / qPochhammer q q k)) := by

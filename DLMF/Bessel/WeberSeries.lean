@@ -39,7 +39,7 @@ noncomputable section
 namespace DLMF.Bessel
 
 /-- `1/Γ(z) = z/Γ(z+1)` for every `z`. -/
-lemma inv_Gamma_succ' (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
+lemma recip_Gamma_succ' (z : ℂ) : (Gamma z)⁻¹ = z * (Gamma (z + 1))⁻¹ := by
   simpa [one_div] using one_div_Gamma_eq_self_mul_one_div_Gamma_add_one z
 
 
@@ -184,7 +184,7 @@ theorem besselY_zero_eq_series {z : ℂ} (hz : z ∈ slitPlane) :
         (harmonic k : ℂ) * w ^ k / (k ! : ℂ) ^ 2 := by
     have hk : ∀ m : ℕ, (1 + (k : ℂ)) ≠ -(m : ℂ) := fun m h => by
       have := congrArg re h; simp at this; linarith [(m.cast_nonneg : (0:ℝ) ≤ m)]
-    rw [DLMF.Hypergeometric.deriv_inv_Gamma_eq hk, show (1 : ℂ) + k = (k : ℂ) + 1 by ring,
+    rw [DLMF.Hypergeometric.deriv_recip_Gamma_eq hk, show (1 : ℂ) + k = (k : ℂ) + 1 by ring,
       digamma_nat_add_one, show ((k : ℂ) + 1) = ((k : ℕ) : ℂ) + 1 by rfl, Gamma_nat_eq_factorial]
     have hf : (k ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr k.factorial_ne_zero
     field_simp
@@ -220,7 +220,7 @@ theorem besselY_nat_eq_series (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
     have := congrArg re h; simp at this; linarith [(p.cast_nonneg : (0:ℝ) ≤ p)]
   have hdpos (m : ℕ) : deriv (fun y => (Gamma y)⁻¹) ((m : ℂ) + 1) =
       -(digamma ((m : ℂ) + 1)) / (m ! : ℂ) := by
-    rw [DLMF.Hypergeometric.deriv_inv_Gamma_eq (hpos m), Gamma_nat_eq_factorial]
+    rw [DLMF.Hypergeometric.deriv_recip_Gamma_eq (hpos m), Gamma_nat_eq_factorial]
     ring
   have hres := hA.neg.sub (hB.mul_right (w ^ n)⁻¹)
   have hJn : besselJ (-(n : ℂ)) z = (-1) ^ n * besselJ n z := by
@@ -241,7 +241,7 @@ theorem besselY_nat_eq_series (n : ℕ) {z : ℂ} (hz : z ∈ slitPlane) :
     have hk' := Finset.mem_range.mp hk
     have hcast : -(n : ℂ) + 1 + k = -((n - 1 - k : ℕ) : ℂ) := by
       rw [Nat.cast_sub (by omega), Nat.cast_sub (by omega)]; push_cast; ring
-    rw [hcast, DLMF.Hypergeometric.deriv_inv_Gamma_neg_nat, hw, neg_pow (z ^ 2 / 4) k,
+    rw [hcast, DLMF.Hypergeometric.deriv_recip_Gamma_neg_nat, hw, neg_pow (z ^ 2 / 4) k,
       show n - k - 1 = n - 1 - k by omega]
     have hsign : ((-1 : ℂ)) ^ n * ((-1) ^ k * (-1) ^ (n - 1 - k)) = -1 := by
       rw [← pow_add, ← pow_add, show n + (k + (n - 1 - k)) = 2 * (n - 1) + 1 by omega,
@@ -343,7 +343,7 @@ theorem eq_besselJ_besselY_of_ode (ν : ℂ) {U : Set ℂ} (hU : IsOpen U) (hUc 
   linear_combination (-f z) * e3
 
 /-- `∑_{i+j=n} C(n,i)/(Γ(a+i) Γ(b+j)) = (a+b+n-1)ₙ/(Γ(a+n) Γ(b+n))`, for all complex `a, b`. -/
-lemma sum_antidiagonal_choose_inv_Gamma (n : ℕ) : ∀ a b : ℂ,
+lemma sum_antidiagonal_choose_recip_Gamma (n : ℕ) : ∀ a b : ℂ,
     ∑ ij ∈ Finset.antidiagonal n, ((n.choose ij.1 : ℕ) : ℂ) * (Gamma (a + ij.1))⁻¹ *
         (Gamma (b + ij.2))⁻¹ =
       poch (a + b + n - 1) n * (Gamma (a + n))⁻¹ * (Gamma (b + n))⁻¹ := by
@@ -369,8 +369,8 @@ lemma sum_antidiagonal_choose_inv_Gamma (n : ℕ) : ∀ a b : ℂ,
       refine Finset.sum_congr rfl fun ij _ => ?_
       push_cast; ring_nf
     rw [h1, h2, ih a (b + 1), ih (a + 1) b]
-    rw [show (Gamma (a + n))⁻¹ = (a + n) * (Gamma (a + n + 1))⁻¹ from inv_Gamma_succ' _,
-      show (Gamma (b + n))⁻¹ = (b + n) * (Gamma (b + n + 1))⁻¹ from inv_Gamma_succ' _,
+    rw [show (Gamma (a + n))⁻¹ = (a + n) * (Gamma (a + n + 1))⁻¹ from recip_Gamma_succ' _,
+      show (Gamma (b + n))⁻¹ = (b + n) * (Gamma (b + n + 1))⁻¹ from recip_Gamma_succ' _,
       poch_succ]
     push_cast
     rw [show a + (b + 1) + n - 1 = a + b + (n + 1) - 1 by ring,
@@ -395,7 +395,7 @@ theorem besselJ_mul_besselJ (μ ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
   rw [besselJ_eq_regularized, besselJ_eq_regularized, mul_mul_mul_comm, ← cpow_add _ _ hz2,
     regularized0F1_eq_tsum, regularized0F1_eq_tsum, hprod]
   refine congrArg ((z / 2) ^ (μ + ν) * ·) (tsum_congr fun n => ?_)
-  have hc := sum_antidiagonal_choose_inv_Gamma n (μ + 1) (ν + 1)
+  have hc := sum_antidiagonal_choose_recip_Gamma n (μ + 1) (ν + 1)
   have hn : (n ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr n.factorial_ne_zero
   have hterm : ∀ ij ∈ Finset.antidiagonal n,
       w ^ ij.1 / (ij.1 ! : ℂ) * (Gamma (μ + 1 + ij.1))⁻¹ *

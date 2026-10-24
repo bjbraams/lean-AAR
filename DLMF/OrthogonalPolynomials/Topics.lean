@@ -31,7 +31,7 @@ noncomputable section
 namespace DLMF.OrthogonalPolynomials
 
 /-- The pole-free head form of the finite very-well-poised cancellation. -/
-lemma sum_choose_weighted_inv_poch_tail {a : ℂ} (ha : -1 < a.re) (N : ℕ) :
+lemma sum_choose_weighted_recip_poch_tail {a : ℂ} (ha : -1 < a.re) (N : ℕ) :
     1 / poch (a + 1) (N + 1) +
       ∑ k ∈ Finset.range (N + 1), (-1 : ℂ) ^ (k + 1) * ((N + 1).choose (k + 1) : ℂ) *
         (a + 2 * (k + 1)) / poch (a + (k + 1)) (N + 2) = 0 := by
@@ -78,10 +78,10 @@ lemma sum_choose_weighted_inv_poch_tail {a : ℂ} (ha : -1 < a.re) (N : ℕ) :
 
 
 /-- The finite very-well-poised cancellation underlying polynomial basis inversion. -/
-lemma sum_choose_weighted_inv_poch {a : ℂ} (ha : 0 < a.re) (N : ℕ) :
+lemma sum_choose_weighted_recip_poch {a : ℂ} (ha : 0 < a.re) (N : ℕ) :
     ∑ k ∈ Finset.range (N + 2), (-1 : ℂ) ^ k * ((N + 1).choose k : ℂ) * (a + 2 * k) /
       poch (a + k) (N + 2) = 0 := by
-  have hh := sum_choose_weighted_inv_poch_tail (by linarith : -1 < a.re) N
+  have hh := sum_choose_weighted_recip_poch_tail (by linarith : -1 < a.re) N
   have ha0 : a ≠ 0 := by intro he; simp [he] at ha
   have hz : a / poch a (N + 2) = 1 / poch (a + 1) (N + 1) := by
     rw [poch_succ_left]
@@ -115,17 +115,17 @@ lemma sum_triangle_by_total_degree (F : ℕ → ℕ → ℂ) (N : ℕ) :
     ring
 
 /-- Include the degree-zero value of the finite cancellation. -/
-lemma sum_choose_weighted_inv_poch_eq {a : ℂ} (ha : 0 < a.re) (r : ℕ) :
+lemma sum_choose_weighted_recip_poch_eq {a : ℂ} (ha : 0 < a.re) (r : ℕ) :
     ∑ k ∈ Finset.range (r + 1), (-1 : ℂ) ^ k * (r.choose k : ℂ) * (a + 2 * k) /
       poch (a + k) (r + 1) = if r = 0 then 1 else 0 := by
   cases r with
   | zero =>
     have ha0 : a ≠ 0 := by intro he; simp [he] at ha
     simp [poch_one, ha0]
-  | succ r => simpa using sum_choose_weighted_inv_poch ha r
+  | succ r => simpa using sum_choose_weighted_recip_poch ha r
 
 /-- Finite triangular Pochhammer inversion, including the exceptional zero base. -/
-lemma sum_choose_inv_poch {a : ℂ} (ha : -1 < a.re) (r : ℕ) :
+lemma sum_choose_recip_poch {a : ℂ} (ha : -1 < a.re) (r : ℕ) :
     ∑ k ∈ Finset.range (r + 1), (-1 : ℂ) ^ k * (r.choose k : ℂ) /
       (poch (a + k) k * poch (a + 2 * k + 1) (r - k)) = if r = 0 then 1 else 0 := by
   cases r with
@@ -159,7 +159,7 @@ lemma sum_choose_inv_poch {a : ℂ} (ha : -1 < a.re) (r : ℕ) :
       simp only [mul_comm] at hp1 hp2 hz ⊢
       field_simp [hp1, hp2, hz]
     rw [Finset.sum_congr rfl ht]
-    simpa [add_comm] using sum_choose_weighted_inv_poch_tail ha N
+    simpa [add_comm] using sum_choose_weighted_recip_poch_tail ha N
 
 /-- Inverse triangular Jacobi coefficients for powers of `(1-x)/2`. -/
 noncomputable def jacobiInverseCoeff (α β : ℂ) (n k : ℕ) : ℂ :=
@@ -278,7 +278,7 @@ lemma jacobi_monomial_inverse {α β : ℂ} (hα : -1 < α.re) (hβ : -1 < β.re
       intro t ht
       have htn : j + t ≤ n := by have := Finset.mem_range.mp ht; omega
       convert jacobiInverseCoeff_mul_gaussCoeff hα hβ n j t htn using 1 <;> congr 3 <;> ring
-    rw [he, sum_choose_inv_poch ha]
+    rw [he, sum_choose_recip_poch ha]
     by_cases hj' : j = n
     · subst j
       simp [poch_zero]

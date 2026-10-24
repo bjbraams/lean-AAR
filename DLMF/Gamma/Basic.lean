@@ -118,7 +118,7 @@ theorem multipliable_weierstrassGammaTerm (s : ℂ) :
   ext n
   simp [weierstrassGammaTerm]
 
-private lemma cpow_mul_inv_GammaSeq (s : ℂ) {n : ℕ} (hn : n ≠ 0) :
+private lemma cpow_mul_recip_GammaSeq (s : ℂ) {n : ℕ} (hn : n ≠ 0) :
     (n : ℂ) ^ s * (GammaSeq s n)⁻¹ =
       (∏ j ∈ range (n + 1), (s + j)) / n.factorial := by
   have hpow : (n : ℂ) ^ s ≠ 0 := by
@@ -170,7 +170,7 @@ theorem weierstrassGamma_partial_eq (s : ℂ) {n : ℕ} (hn : n ≠ 0) :
       s * exp (γ * s) * (P / n.factorial * exp (-s * (harmonic n : ℂ))) =
         exp (γ * s) * exp (-s * (harmonic n : ℂ)) * (s * P / n.factorial) := by
     ring
-  rw [hrearr, hshift, ← cpow_mul_inv_GammaSeq s hn, hpow]
+  rw [hrearr, hshift, ← cpow_mul_recip_GammaSeq s hn, hpow]
   have hexp_combine :
       exp (γ * s) * exp (-s * (harmonic n : ℂ)) * exp (s * log n) =
         exp (s * ((γ : ℂ) - ((harmonic n : ℝ) - Real.log n))) := by
@@ -180,7 +180,7 @@ theorem weierstrassGamma_partial_eq (s : ℂ) {n : ℕ} (hn : n ≠ 0) :
     ring
   rw [← mul_assoc, hexp_combine]
 
-private lemma tendsto_inv_GammaSeq (s : ℂ) :
+private lemma tendsto_recip_GammaSeq (s : ℂ) :
     Tendsto (fun n : ℕ => (GammaSeq s n)⁻¹) atTop (𝓝 (Gamma s)⁻¹) := by
   rcases eq_or_ne (Gamma s) 0 with hs0 | hs0
   · obtain ⟨m, rfl⟩ := (Gamma_eq_zero_iff s).mp hs0
@@ -213,7 +213,7 @@ theorem tendsto_weierstrassGamma_prod (s : ℂ) :
   have hexp : Tendsto (fun n : ℕ =>
       exp (s * ((γ : ℂ) - ((harmonic n : ℝ) - Real.log n)))) atTop (𝓝 1) := by
     simpa [exp_zero, Function.comp_def] using (continuous_exp.tendsto 0).comp harg'
-  have hmul := hexp.mul (tendsto_inv_GammaSeq s)
+  have hmul := hexp.mul (tendsto_recip_GammaSeq s)
   have : Tendsto (fun n : ℕ => s * exp (γ * s) * ∏ j ∈ range n, weierstrassGammaTerm s j)
       atTop (𝓝 (1 * (Gamma s)⁻¹)) := by
     refine hmul.congr' ?_

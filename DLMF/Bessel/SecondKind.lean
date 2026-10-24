@@ -67,7 +67,7 @@ lemma exists_regularized0F1_dominated (c₀ : ℂ) (R : ℝ) :
       simp only [add_re, natCast_re] at hre0 ⊢
       change c₀.re - 1 < c.re at hcre
       linarith
-    have hG := DLMF.Hypergeometric.norm_inv_Gamma_add_nat_le hre hm (hV c hcV).le hn
+    have hG := DLMF.Hypergeometric.norm_recip_Gamma_add_nat_le hre hm (hV c hcV).le hn
     have hf : (1 : ℝ) ≤ ((n - N) ! : ℝ) := by exact_mod_cast Nat.factorial_pos _
     have hG' : ‖(Gamma (c + n))⁻¹‖ ≤ (‖Gamma (c₀ + N)‖ / 2)⁻¹ := by
       refine hG.trans ?_
@@ -412,7 +412,7 @@ lemma besselWronskianSeries_eq (ν w : ℂ) :
   rw [hconst, besselWronskianSeries]
   simp only [zero_mul, sub_zero, DLMF.Confluent.regularizedHGFun_zero, regularizedHGFunCoeff_empty,
     Nat.factorial_zero, Nat.cast_one, one_mul, Nat.cast_zero, add_zero, one_div]
-  have h := DLMF.Confluent.inv_Gamma_mul_Gamma_one_sub (-ν)
+  have h := DLMF.Confluent.recip_Gamma_mul_Gamma_one_sub (-ν)
   rw [show 1 - -ν = ν + 1 by ring, mul_inv, mul_neg, sin_neg] at h
   linear_combination h
 
@@ -847,6 +847,21 @@ theorem wronskian_besselK_besselI (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) :
     besselK ν z * deriv (besselI ν) z - deriv (besselK ν) z * besselI ν z = 1 / z := by
   rw [(hasDerivAt_besselK ν hz).deriv, (hasDerivAt_besselI (ν := ν) hz).deriv,
     ← besselK_mul_besselI_succ_add ν hz]
+  ring
+
+/-- `K_{-ν} = K_ν` (DLMF 10.27.3). -/
+@[dlmf 10.27.E3]
+theorem besselK_neg (ν : ℂ) {z : ℂ} (hz : z ∈ slitPlane) : besselK (-ν) z = besselK ν z := by
+  refine DLMF.Confluent.eq_of_continuousAt_of_integerComplement
+    (f := fun μ => besselK (-μ) z) (g := fun μ => besselK μ z)
+    (continuousAt_besselK_order (fun μ => -μ) continuous_neg ν hz)
+    (continuousAt_besselK_order (fun μ => μ) continuous_id ν hz) (fun c hc => ?_)
+  have hc' := DLMF.Confluent.forall_of_mem_integerComplement hc
+  have hcn : ∀ k : ℤ, -c ≠ k := fun k h => hc' (-k) (by push_cast; linear_combination -h)
+  have hs := sin_mul_pi_ne_zero hc'
+  rw [besselK_eq_of_not_int hcn, besselK_eq_of_not_int hc', besselE, besselE, neg_neg, neg_mul,
+    Complex.sin_neg]
+  field_simp
   ring
 
 end DLMF.Bessel

@@ -54,7 +54,7 @@ section Laplace
 variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
 
 /-- `t e^{-δ t} ≤ 1/δ` for `δ > 0`. -/
-lemma mul_exp_neg_mul_le_inv {δ : ℝ} (hδ : 0 < δ) (t : ℝ) :
+lemma mul_exp_neg_mul_le_recip {δ : ℝ} (hδ : 0 < δ) (t : ℝ) :
     t * Real.exp (-δ * t) ≤ δ⁻¹ := by
   have h1 := Real.add_one_le_exp (δ * t)
   have h2 : Real.exp (-δ * t) * Real.exp (δ * t) = 1 := by
@@ -116,7 +116,7 @@ theorem differentiableOn_integral_cexp_neg_mul_smul {G : ℝ → V} {c : ℝ}
       apply Real.exp_le_exp.mpr
       simp only [neg_re, mul_re, ofReal_re, ofReal_im, mul_zero, sub_zero]
       nlinarith
-    have hm := mul_exp_neg_mul_le_inv hδ0 t
+    have hm := mul_exp_neg_mul_le_recip hδ0 t
     calc Real.exp (-(w * t)).re * t * ‖G t‖
         ≤ Real.exp (-c * t) * Real.exp (-δ * t) * t * ‖G t‖ := by gcongr
       _ = (t * Real.exp (-δ * t)) * (Real.exp (-c * t) * ‖G t‖) := by ring

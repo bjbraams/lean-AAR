@@ -117,7 +117,7 @@ lemma stRem_one_add_ne_zero {S : ℂ} (hS : S ∈ slitPlane) {τ : ℝ} (hτ : 0
   exact (stRem_c_pos hS).not_ge this
 
 /-- `‖1/(1+τ/S)‖ ≤ 1/stRem_c S`. -/
-lemma stRem_norm_inv_le {S : ℂ} (hS : S ∈ slitPlane) {τ : ℝ} (hτ : 0 ≤ τ) :
+lemma stRem_norm_recip_le {S : ℂ} (hS : S ∈ slitPlane) {τ : ℝ} (hτ : 0 ≤ τ) :
     ‖1 / (1 + (τ : ℂ) / S)‖ ≤ 1 / stRem_c S := by
   rw [norm_div, norm_one]
   exact one_div_le_one_div_of_le (stRem_c_pos hS) (stRem_c_le_norm hS hτ)
@@ -129,7 +129,7 @@ lemma stRem_integrableOn {ψ : ℝ → ℂ} (hψ : IntegrableOn ψ (Ioi 0)) {S :
   refine Integrable.mono' (hψ.norm.const_mul (1 / stRem_c S))
     (hψ.aestronglyMeasurable.mul hm.aestronglyMeasurable) ?_
   refine (ae_restrict_iff' measurableSet_Ioi).mpr (Filter.Eventually.of_forall fun τ hτ => ?_)
-  have h := stRem_norm_inv_le hS (le_of_lt (show (0:ℝ) < τ from hτ))
+  have h := stRem_norm_recip_le hS (le_of_lt (show (0:ℝ) < τ from hτ))
   rw [div_eq_mul_one_div, norm_mul]
   calc ‖ψ τ‖ * ‖1 / (1 + (τ : ℂ) / S)‖ ≤ ‖ψ τ‖ * (1 / stRem_c S) :=
         mul_le_mul_of_nonneg_left h (norm_nonneg _)
@@ -195,7 +195,7 @@ theorem stRem_remainder_le {φ : ℝ → ℝ} {N : ℕ} (hφ0 : ∀ τ ∈ Ioi (
     have hτ' : (0 : ℝ) < τ := hτ
     rw [div_eq_mul_one_div, norm_mul, Complex.norm_real,
       Real.norm_of_nonneg (mul_nonneg (pow_nonneg hτ'.le _) (hφ0 τ hτ))]
-    exact mul_le_mul_of_nonneg_left (stRem_norm_inv_le hS hτ'.le)
+    exact mul_le_mul_of_nonneg_left (stRem_norm_recip_le hS hτ'.le)
       (mul_nonneg (pow_nonneg hτ'.le _) (hφ0 τ hτ))
   rw [integral_mul_const] at hI
   calc 1 / ‖S‖ ^ N * ‖∫ τ in Ioi (0 : ℝ), ((τ ^ N * φ τ : ℝ) : ℂ) / (1 + τ / S)‖
@@ -409,7 +409,7 @@ is bounded by `Γ(m+1) ∫₀^∞ (W² + ρ²)^{-(m+1)/2} dρ = Γ(m) χ(m) W^{-
 `θ + β = ±π/2` with `|β| < π/2`, i.e. for `π/2 ≤ |θ| < π`.
 -/
 
-lemma stRem_inv_eq_integral {c : ℂ} (hc : 0 < c.re) :
+lemma stRem_recip_eq_integral {c : ℂ} (hc : 0 < c.re) :
     1 / c = ∫ ρ in Ioi (0 : ℝ), Complex.exp (-(c * ρ)) := by
   have h := integral_exp_mul_complex_Ioi (a := -c) (by simp; linarith) 0
   simp only [ofReal_zero, mul_zero, Complex.exp_zero] at h
@@ -461,7 +461,7 @@ theorem stRem_chi_ray {m W X θ β : ℝ} (hm : 0 < m) (hW : 0 < W) (hX : 0 < X)
     have hne : (X : ℂ) + r * exp (θ * I) ≠ 0 := by
       intro h; have := hcpos r; simp [hc, h] at this
     simp only [hf]
-    rw [integral_const_mul, integral_const_mul, ← stRem_inv_eq_integral (hcpos r)]
+    rw [integral_const_mul, integral_const_mul, ← stRem_recip_eq_integral (hcpos r)]
     simp only [hc]
     field_simp
   rw [setIntegral_congr_fun measurableSet_Ioi (fun r _ => hpt r)]

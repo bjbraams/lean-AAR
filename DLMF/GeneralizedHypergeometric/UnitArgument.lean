@@ -1,0 +1,279 @@
+/-
+Copyright (c) 2026 Bastiaan J Braams. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bastiaan J Braams
+-/
+module
+
+public import DLMF.GeneralizedHypergeometric.Basic
+public import DLMF.Hypergeometric.Identities
+public import DLMF.Hypergeometric.Saalschutz
+
+/-!
+# Argument unity: DLMF §16.4
+
+Existing proofs of Pfaff–Saalschütz, Dixon, terminating Whipple, and Dougall's bilateral
+sum are reused and indexed by the coverage ledger. Finite parity and finite Dougall
+identities use Pochhammer quotients, which retain the removable cases hidden by
+quotients of poles in the printed Gamma formulas. Lower parameters retain the
+chapter's nonpositive-integer exclusions, except the explicitly canceled finite pair
+in 16.4.2_5. Convergence at unity is always stated before using a nonterminating sum.
+-/
+
+@[expose] public section
+open Complex Filter Set Finset
+open scoped Topology Real
+noncomputable section
+namespace DLMF.Hypergeometric
+
+/-- Well-poised parameter vectors, in exactly the indexing order of16.4.1. -/
+@[dlmf 16.4.E1]
+def genWellPoised {q : ℕ} (a : Fin (q + 1) → ℂ) (b : Fin q → ℂ) : Prop :=
+  ∀ j, a j.castSucc + b j = a (Fin.last q) + 1
+
+/-- Very well-poised vectors also differ by one in their first corresponding entries. -/
+def genVeryWellPoised {q : ℕ} (a : Fin (q + 2) → ℂ) (b : Fin (q + 1) → ℂ) : Prop :=
+  genWellPoised a b ∧ a 0 = b 0 + 1
+
+/-- A k-balanced terminating unity series (16.4.2); balanced means k=1. -/
+@[dlmf 16.4.E2]
+def genKBalanced {q : ℕ} (k : ℤ) (a : Fin (q + 1) → ℂ) (b : Fin q → ℂ) : Prop :=
+  (∃ n : ℕ, a (Fin.last q) = -n) ∧ (∑ j, a j) + k = ∑ j, b j
+
+/-- The canceled finite 3F2 sum in a form without an artificial singularity at c=1. -/
+@[dlmf 16.4.E2_5]
+theorem genHG_finite_ratio_sum (n : ℕ) (a c : ℂ) (hc : genDenRegular {c}) :
+    genFiniteHG n {(-n : ℂ), a, 1} {(-n : ℂ), c} 1 =
+      ∑ k ∈ range (n + 1), poch a k / poch c k ∧
+    (c - a - 1) * (∑ k ∈ range (n + 1), poch a k / poch c k) =
+      c - 1 - (c + n) * poch a (n + 1) / poch c (n + 1) := by
+  sorry
+
+/-- The printed closed form wherever its displayed divisors are nonzero. -/
+@[dlmf 16.4.E2_5]
+theorem genHG_finite_ratio_sum_closed (n : ℕ) (a c : ℂ) (hc : genDenRegular {c})
+    (hca : c - a - 1 ≠ 0) (hc1 : poch (c - 1) (n + 1) ≠ 0) :
+    (∑ k ∈ range (n + 1), poch a k / poch c k) =
+      (c - 1) / (c - a - 1) * (1 - poch a (n + 1) / poch (c - 1) (n + 1)) := by
+  sorry
+
+/-- The limiting c=a+1 form; a=0 is retained separately as the removable value one. -/
+@[dlmf 16.4.E2_5]
+theorem genHG_finite_ratio_sum_limit (n : ℕ) (a : ℂ) (ha : genDenRegular {a}) :
+    (∑ k ∈ range (n + 1), poch a k / poch (a + 1) k) =
+      a * (Complex.digamma (a + n + 1) - Complex.digamma a) ∧
+    (∑ k ∈ range (n + 1), poch a k / poch (a + 1) k) =
+      a * deriv (fun a : ℂ => poch a (n + 1)) a / poch a (n + 1) := by
+  sorry
+
+/-- The removable limiting value at a=0,c=1. -/
+@[dlmf 16.4.E2_5]
+theorem genHG_finite_ratio_sum_zero (n : ℕ) : (∑ k ∈ range (n + 1), poch (0 : ℂ) k / poch 1 k) = 1 := by
+  induction n with
+  | zero => simp [poch_zero]
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ih, poch_zero_succ, zero_div, add_zero]
+
+/-- Dixon even terminating evaluation with all removable Gamma ratios replaced by finite products. -/
+@[dlmf 16.4.E5]
+theorem genHG_dixon_terminating_even (k : ℕ) (b c : ℂ) (hb : genDenRegular {1 - b - 2 * k, 1 - c - 2 * k}) :
+    genFiniteHG (2 * k) {(-(2 * k) : ℂ), b, c}
+      {1 - b - 2 * k, 1 - c - 2 * k} 1 =
+      (2 * k).factorial * poch (b + c + k) k /
+        (k.factorial * poch (b + k) k * poch (c + k) k) := by
+  sorry
+
+/-- Dixon odd terminating evaluation, retaining every regular lower-parameter case. -/
+@[dlmf 16.4.E5]
+theorem genHG_dixon_terminating_odd (k : ℕ) (b c : ℂ)
+    (hb : genDenRegular {1 - b - (2 * k + 1), 1 - c - (2 * k + 1)}) :
+    genFiniteHG (2 * k + 1) {(-(2 * k + 1) : ℂ), b, c}
+      {1 - b - (2 * k + 1), 1 - c - (2 * k + 1)} 1 = 0 := by
+  sorry
+
+/-- Watson sum in the full absolute convergence half-space. -/
+@[dlmf 16.4.E6]
+theorem genHG_watson_sum (a b c : ℂ) (hb : genDenRegular {(a + b + 1) / 2, 2 * c})
+    (hconv : -1 < (2 * c - a - b).re) :
+    genHG {a, b, c} {(a + b + 1) / 2, 2 * c} 1 =
+      Gamma (1 / 2) * Gamma (c + 1 / 2) * Gamma ((a + b + 1) / 2) *
+      Gamma (c + (1 - a - b) / 2) /
+      (Gamma ((a + 1) / 2) * Gamma ((b + 1) / 2) *
+        Gamma (c + (1 - a) / 2) * Gamma (c + (1 - b) / 2)) := by
+  sorry
+
+/-- Watson even terminating evaluation without extra Gamma-pole exclusions. -/
+@[dlmf 16.4.E6]
+theorem genHG_watson_terminating_even (k : ℕ) (b c : ℂ) (hb : genDenRegular {(b - 2 * k + 1) / 2, 2 * c}) :
+    genFiniteHG (2 * k) {(-(2 * k) : ℂ), b, c}
+      {(b - 2 * k + 1) / 2, 2 * c} 1 =
+      poch (1 / 2) k * poch (c + (1 - b) / 2) k /
+        (poch ((1 - b) / 2) k * poch (c + 1 / 2) k) := by
+  sorry
+
+/-- Watson odd terminating evaluation for every regular displayed lower parameter. -/
+@[dlmf 16.4.E6]
+theorem genHG_watson_terminating_odd (k : ℕ) (b c : ℂ) (hb : genDenRegular {(b - (2 * k + 1) + 1) / 2, 2 * c}) :
+    genFiniteHG (2 * k + 1) {(-(2 * k + 1) : ℂ), b, c}
+      {(b - (2 * k + 1) + 1) / 2, 2 * c} 1 = 0 := by
+  sorry
+
+/-- Whipple 3F2 sum, including every terminating integer a. -/
+@[dlmf 16.4.E7]
+theorem genHG_whipple_3F2_sum (a c d : ℂ) (hb : genDenRegular {d, 2 * c - d + 1})
+    (h : 0 < c.re ∨ ∃ n : ℤ, a = n) :
+    genHG {a, 1 - a, c} {d, 2 * c - d + 1} 1 =
+      Real.pi * Gamma d * Gamma (2 * c - d + 1) * (2 : ℂ) ^ (1 - 2 * c) /
+      (Gamma (c + (a - d + 1) / 2) * Gamma (c + 1 - (a + d) / 2) *
+        Gamma ((a + d) / 2) * Gamma ((d - a + 1) / 2)) := by
+  sorry
+
+/-- Whipple terminating 3F2 sum in finite products. -/
+@[dlmf 16.4.E8]
+theorem genHG_whipple_3F2_terminating (n : ℕ) (a d : ℂ) (hb : genDenRegular {d, 1 - d - 2 * n}) :
+    genFiniteHG n {(-n : ℂ), a, 1 - a} {d, 1 - d - 2 * n} 1 =
+      poch ((a + d) / 2) n * poch ((d - a + 1) / 2) n /
+        (poch (d / 2) n * poch ((d + 1) / 2) n) := by
+  sorry
+
+/-- Dougall very well-poised 5F4 in its full absolute convergence half-space. -/
+@[dlmf 16.4.E9]
+theorem genHG_dougall_5F4_sum (a b c d : ℂ) (hb : genDenRegular {a / 2, a - b + 1, a - c + 1, a - d + 1})
+    (hconv : (b + c + d - a).re < 1) :
+    genHG {a, a / 2 + 1, b, c, d} {a / 2, a - b + 1, a - c + 1, a - d + 1} 1 =
+      Gamma (a - b + 1) * Gamma (a - c + 1) * Gamma (a - d + 1) *
+        Gamma (a - b - c - d + 1) /
+      (Gamma (a + 1) * Gamma (a - b - c + 1) *
+        Gamma (a - b - d + 1) * Gamma (a - c - d + 1)) := by
+  sorry
+
+/-- Dougall terminating 5F4, with all removable cases retained by finite products. -/
+@[dlmf 16.4.E9]
+theorem genHG_dougall_5F4_terminating (n : ℕ) (a b c : ℂ) (hb : genDenRegular {a / 2, a - b + 1, a - c + 1, a + n + 1}) :
+    genFiniteHG n {a, a / 2 + 1, b, c, (-n : ℂ)}
+      {a / 2, a - b + 1, a - c + 1, a + n + 1} 1 =
+      poch (a + 1) n * poch (a - b - c + 1) n /
+        (poch (a - b + 1) n * poch (a - c + 1) n) := by
+  sorry
+
+/-- Dougall terminating 2-balanced 7F6, including n=0. -/
+@[dlmf 16.4.E10]
+theorem genHG_dougall_7F6 (n : ℕ) (a b c d f : ℂ)
+    (hbal : 2 * a + 1 = b + c + d + f - n)
+    (hb : genDenRegular {a / 2, a - b + 1, a - c + 1, a - d + 1, a - f + 1, a + n + 1}) :
+    genFiniteHG n {a, a / 2 + 1, b, c, d, f, (-n : ℂ)}
+      {a / 2, a - b + 1, a - c + 1, a - d + 1, a - f + 1, a + n + 1} 1 =
+      poch (a + 1) n * poch (a - b - c + 1) n * poch (a - b - d + 1) n *
+        poch (a - c - d + 1) n /
+      (poch (a - b + 1) n * poch (a - c + 1) n * poch (a - d + 1) n *
+        poch (a - b - c - d + 1) n) := by
+  sorry
+
+/-- The two convergent 3F2 unity sums in the common region. -/
+@[dlmf 16.4.E11]
+theorem genHG_3F2_unit_transformation (a b c d e : ℂ)
+    (hb : genDenRegular {d, e, d + e - b - c})
+    (hconv : 0 < (d + e - a - b - c).re) (hea : 0 < (e - a).re) :
+    genHG {a, b, c} {d, e} 1 = Gamma e * Gamma (d + e - a - b - c) /
+      (Gamma (e - a) * Gamma (d + e - b - c)) *
+      genHG {a, d - b, d - c} {d, d + e - b - c} 1 := by
+  sorry
+
+/-- The contiguous unity recurrence with convergence of every displayed series. -/
+@[dlmf 16.4.E12]
+theorem genHG_3F2_unit_recurrence (a b c d e : ℂ) (hb : genDenRegular {d - 1, d, d + 1, e})
+    (hconv : 1 < (d + e - a - b - c).re ∨ genTerminates {a, b, c}) :
+    (a - d) * (b - d) * (c - d) *
+      (genHG {a, b, c} {d + 1, e} 1 - genHG {a, b, c} {d, e} 1) +
+      a * b * c * genHG {a, b, c} {d, e} 1 =
+    d * (d - 1) * (a + b + c - d - e + 1) *
+      (genHG {a, b, c} {d, e} 1 - genHG {a, b, c} {d - 1, e} 1) := by
+  sorry
+
+/-- The second unity recurrence, with the full common convergence half-space. -/
+@[dlmf 16.4.E13]
+theorem genHG_3F2_unit_recurrence_two (a b c d e : ℂ) (hb : genDenRegular {d, d + 1, e, e + 1})
+    (hconv : 0 < (d + e - a - b - c).re) :
+    genHG {a, b, c} {d, e} 1 = c * (e - a) / (d * e) *
+      genHG {a, b + 1, c + 1} {d + 1, e + 1} 1 +
+      (d - c) / d * genHG {a, b + 1, c} {d + 1, e} 1 := by
+  sorry
+
+/-- The balanced terminating 4F3 transformation. -/
+@[dlmf 16.4.E14]
+theorem genHG_balanced_4F3_transformation (n : ℕ) (a b c d e f : ℂ) (hbal : a + b + c - n + 1 = d + e + f)
+    (hb : genDenRegular {d, e, f, a - e - n + 1, a - f - n + 1}) :
+    genFiniteHG n {(-n : ℂ), a, b, c} {d, e, f} 1 =
+      poch (e - a) n * poch (f - a) n / (poch e n * poch f n) *
+        genFiniteHG n {(-n : ℂ), a, d - b, d - c}
+          {d, a - e - n + 1, a - f - n + 1} 1 := by
+  sorry
+
+/-- Whipple transformation when the right side terminates through the transformed first upper parameter and the left converges absolutely. -/
+@[dlmf 16.4.E15]
+theorem genHG_whipple_nonterminating_left (n : ℕ) (a b c d e f : ℂ) (hn : a - b - c + 1 = -n)
+    (hb : genDenRegular {a / 2, a - b + 1, a - c + 1, a - d + 1, a - e + 1, a - f + 1,
+      d + e + f - a}) (hconv : 0 < (2 * a + 2 - b - c - d - e - f).re) :
+    genHG {a, a / 2 + 1, b, c, d, e, f}
+      {a / 2, a - b + 1, a - c + 1, a - d + 1, a - e + 1, a - f + 1} 1 =
+      Gamma (a - d + 1) * Gamma (a - e + 1) * Gamma (a - f + 1) *
+      Gamma (a - d - e - f + 1) /
+      (Gamma (a + 1) * Gamma (a - d - e + 1) *
+        Gamma (a - d - f + 1) * Gamma (a - e - f + 1)) *
+      genFiniteHG n {a - b - c + 1, d, e, f}
+        {a - b + 1, a - c + 1, d + e + f - a} 1 := by
+  sorry
+
+/-- Normalized Dougall bilateral sum in its full absolute convergence region. -/
+@[dlmf 16.4.E17]
+theorem genHG_dougall_bilateral (a b c d : ℂ) (ha : ∀ k : ℤ, a ≠ k) (hb : ∀ k : ℤ, b ≠ k)
+    (hcd : genDenRegular {c, d}) (hconv : 1 < (c + d - a - b).re) :
+    genBilateralHG {a, b} {c, d} 1 =
+      Gamma c * Gamma d * Gamma (1 - a) * Gamma (1 - b) * Gamma (c + d - a - b - 1) /
+      (Gamma (c - a) * Gamma (d - a) * Gamma (c - b) * Gamma (d - b)) := by
+  sorry
+
+/-- Whipple transformation wherever the printed Gamma numerator is defined, including
+all terminating upper choices. Removable Gamma-pole cases with d,e,f terminating
+are covered by the proved finite Pochhammer form `whipple_7F6` and symmetry. -/
+@[dlmf 16.4.E15]
+theorem genHG_whipple_general (a b c d e f : ℂ)
+    (hb : genDenRegular {a / 2, a - b + 1, a - c + 1, a - d + 1, a - e + 1,
+      a - f + 1, d + e + f - a})
+    (hnum : genDenRegular {a - d - e - f + 1})
+    (hterm : genTerminates {a - b - c + 1, d, e, f})
+    (hconv : 0 < (2 * a + 2 - b - c - d - e - f).re ∨
+      genTerminates {a, b, c, d, e, f}) :
+    genHG {a, a / 2 + 1, b, c, d, e, f}
+      {a / 2, a - b + 1, a - c + 1, a - d + 1, a - e + 1, a - f + 1} 1 =
+      Gamma (a - d + 1) * Gamma (a - e + 1) * Gamma (a - f + 1) *
+      Gamma (a - d - e - f + 1) /
+      (Gamma (a + 1) * Gamma (a - d - e + 1) *
+        Gamma (a - d - f + 1) * Gamma (a - e - f + 1)) *
+      genHG {a - b - c + 1, d, e, f} {a - b + 1, a - c + 1, d + e + f - a} 1 := by
+  sorry
+
+/-- The Thomae expression supplies parameter continuation beyond the original unit
+series region; at Gamma poles its totalized value is not an assigned finite limit. -/
+@[dlmf 16.4.E11]
+def gen3F2UnitThomae (a b c d e : ℂ) : ℂ :=
+  Gamma e * Gamma (d + e - a - b - c) /
+    (Gamma (e - a) * Gamma (d + e - b - c)) *
+    genHG {a, d - b, d - c} {d, d + e - b - c} 1
+
+/-- Joint analyticity in the convergent unit-series parameter region (16.4, prose). -/
+theorem gen3F2_unit_parameter_analytic :
+    AnalyticOnNhd ℂ (fun P : Fin 5 → ℂ => genHG {P 0, P 1, P 2} {P 3, P 4} 1)
+      {P | genDenRegular {P 3, P 4} ∧ 0 < (P 3 + P 4 - P 0 - P 1 - P 2).re} := by
+  sorry
+
+/-- The continued expression is jointly analytic at its regular parameter points in
+the full printed e−a half-space, including points outside original series convergence. -/
+@[dlmf 16.4.E11]
+theorem gen3F2_thomae_parameter_analytic :
+    AnalyticOnNhd ℂ (fun P : Fin 5 → ℂ => gen3F2UnitThomae (P 0) (P 1) (P 2) (P 3) (P 4))
+      {P | genDenRegular {P 3, P 4, P 3 + P 4 - P 1 - P 2,
+        P 3 + P 4 - P 0 - P 1 - P 2} ∧ 0 < (P 4 - P 0).re} := by
+  sorry
+
+end DLMF.Hypergeometric

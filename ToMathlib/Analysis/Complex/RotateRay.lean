@@ -123,7 +123,7 @@ lemma integral_sub_exp_mul_integral_rotate {ε R : ℝ} (hε : 0 < ε) (hR : 0 <
   linear_combination hrect
 
 /-- `∫_{1/n}^{n} g → ∫₀^∞ g` for `g` integrable on `(0, ∞)`. -/
-lemma tendsto_integral_inv_nat_nat {g : ℝ → ℂ} (hg : IntegrableOn g (Ioi 0)) :
+lemma tendsto_integral_recip_nat_nat {g : ℝ → ℂ} (hg : IntegrableOn g (Ioi 0)) :
     Tendsto (fun n : ℕ => ∫ r in (1 / (n + 1 : ℝ))..(n + 1), g r) atTop
       (𝓝 (∫ r in Ioi (0 : ℝ), g r)) := by
   have h1 : Tendsto (fun n : ℕ => ∫ r in (0 : ℝ)..(n + 1), g r) atTop
@@ -171,8 +171,8 @@ theorem integral_Ioi_eq_exp_mul_integral_Ioi_rotate (hσ : 0 < σ) (hκ : 0 < κ
       (fun r hr hr1 => h0 r hr hr1 y hy) (fun r hr => hinf r hr y hy)
   have hray0 : IntegrableOn (fun r : ℝ => f r) (Ioi 0) := by
     simpa using hray 0 left_mem_uIcc
-  have hL := tendsto_integral_inv_nat_nat hray0
-  have hR := (tendsto_integral_inv_nat_nat (hray α right_mem_uIcc)).const_mul (exp (α * I))
+  have hL := tendsto_integral_recip_nat_nat hray0
+  have hR := (tendsto_integral_recip_nat_nat (hray α right_mem_uIcc)).const_mul (exp (α * I))
   -- the vertical sides vanish in the limit
   have hC : 0 ≤ C := by
     have := (norm_nonneg _).trans (hinf 1 le_rfl 0 left_mem_uIcc)

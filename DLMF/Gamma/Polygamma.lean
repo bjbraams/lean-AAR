@@ -520,7 +520,7 @@ from `Asymptotics.lean` then gives the series with an explicit remainder. -/
 
 open MeasureTheory Set
 
-lemma summable_inv_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
+lemma summable_recip_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
     Summable fun k : ℕ => ((z + k) ^ (n + 1))⁻¹ := by
   refine Summable.of_norm_bounded_eventually_nat (g := fun k : ℕ => 1 / (k : ℝ) ^ 2)
     (Real.summable_one_div_nat_pow.mpr one_lt_two) ?_
@@ -548,7 +548,7 @@ lemma integrableOn_exp_mul_pow_mul_binetBeta {z : ℝ} (hz : 0 < z) (n : ℕ) :
     nlinarith [mul_pos he hp]
 
 /-- `n! ∑ₖ (z+k)^{-(n+1)} = (n-1)!/zⁿ + n!/(2z^{n+1}) + ∫₀^∞ e^{-zt} t^{n+1} β(t)/t dt`. -/
-lemma factorial_mul_tsum_inv_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
+lemma factorial_mul_tsum_recip_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 < z) :
     (n.factorial : ℝ) * ∑' k : ℕ, ((z + k) ^ (n + 1))⁻¹ =
       (n - 1).factorial / z ^ n + n.factorial / (2 * z ^ (n + 1)) +
         ∫ t in Ioi (0 : ℝ), Real.exp (-z * t) * (t ^ (n + 1) * (binetBeta t / t)) := by
@@ -563,7 +563,7 @@ lemma factorial_mul_tsum_inv_add_pow {n : ℕ} (hn : 1 ≤ n) {z : ℝ} (hz : 0 
       have : (0 : ℝ) < t := ht; positivity)
   have hsum : Summable fun k => ∫ t in Ioi (0 : ℝ), ‖F k t‖ := by
     simp_rw [hnorm, hFval]
-    exact (summable_inv_add_pow hn hz).mul_left _
+    exact (summable_recip_add_pow hn hz).mul_left _
   have key := integral_tsum_of_summable_integral_norm hFint hsum
   simp_rw [hFval] at key
   rw [← tsum_mul_left, key]
@@ -619,7 +619,7 @@ lemma abs_factorial_mul_tsum_sub_le {n : ℕ} (hn : 1 ≤ n) (m : ℕ) {z : ℝ}
         ∑ k ∈ Finset.Icc 1 m, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
           ((2 * k + n - 1).factorial / z ^ (2 * k + n)))| ≤
       2 * binetRemConst m * ((2 * m + (n + 1)).factorial / z ^ (2 * m + (n + 1) + 1)) := by
-  rw [factorial_mul_tsum_inv_add_pow hn hz]
+  rw [factorial_mul_tsum_recip_add_pow hn hz]
   have hP := integral_exp_mul_pow_mul_binetPoly hz m (n + 1)
   have hsum : ∑ k ∈ Finset.Icc 1 m, (bernoulli (2 * k) : ℝ) / (2 * k).factorial *
       ((2 * k + n - 1).factorial / z ^ (2 * k + n)) =
@@ -646,7 +646,7 @@ lemma abs_factorial_mul_tsum_sub_le {n : ℕ} (hn : 1 ≤ n) (m : ℕ) {z : ℝ}
   rw [hsum, show ∀ A B C D : ℝ, A + B + C - (A + B + D) = C - D from fun A B C D => by ring, hI]
   exact abs_integral_exp_mul_pow_mul_rem_le hz m (n + 1)
 
-lemma isBigO_inv_add_pow {x : ℝ} (hx : 0 < x) (N : ℕ) (C : ℝ) :
+lemma isBigO_recip_add_pow {x : ℝ} (hx : 0 < x) (N : ℕ) (C : ℝ) :
     Asymptotics.IsBigO atTop (fun t : ℝ => C / (t + x) ^ N) (fun t : ℝ => t ^ (-(N : ℝ))) := by
   refine Asymptotics.IsBigO.of_bound |C| ?_
   filter_upwards [eventually_gt_atTop 0] with t ht
@@ -663,7 +663,7 @@ theorem trigamma_asymptotic (n : ℕ) {x : ℝ} (hx : 1 < x) :
         (1 / (t + x) + 1 / (2 * (t + x) ^ 2) +
           ∑ k ∈ Finset.Icc 1 n, bernoulli (2 * k) / (t + x) ^ (2 * k + 1)))
       (fun t : ℝ => (t : ℝ) ^ (-(2 * n : ℝ) - 3)) := by
-  have h := (isBigO_inv_add_pow (by linarith : (0 : ℝ) < x) (2 * n + 3)
+  have h := (isBigO_recip_add_pow (by linarith : (0 : ℝ) < x) (2 * n + 3)
     (2 * binetRemConst n * (2 * n + 2).factorial))
   refine Asymptotics.IsBigO.trans ?_ (h.congr_right fun t => by push_cast; ring_nf)
   refine Asymptotics.IsBigO.of_bound 1 ?_

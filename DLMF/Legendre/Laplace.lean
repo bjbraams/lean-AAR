@@ -39,9 +39,9 @@ lemma sq_mem_slitPlane {z : ℂ} (hz : 0 < z.re) : z ^ 2 ∈ slitPlane := by
     exact mul_ne_zero (mul_ne_zero two_ne_zero hz.ne') hy
 
 /-- For `Re z > 0`, `1 - 1/z²` lies in the cut plane. -/
-lemma one_sub_inv_sq_mem_cutPlane {z : ℂ} (hz : 0 < z.re) : 1 - 1 / z ^ 2 ∈ cutPlane := by
+lemma one_sub_recip_sq_mem_cutPlane {z : ℂ} (hz : 0 < z.re) : 1 - 1 / z ^ 2 ∈ cutPlane := by
   rw [mem_cutPlane, sub_sub_cancel, one_div]
-  exact inv_mem_slitPlane' (sq_mem_slitPlane hz)
+  exact recip_mem_slitPlane' (sq_mem_slitPlane hz)
 
 /-- Near `x ∈ (1, √2)`, Gauss's quadratic transformation and Pfaff's transformation give
 `P_ν(x) = x^ν F(-ν/2, (1-ν)/2; 1; 1 - 1/x²)`. -/
@@ -101,7 +101,7 @@ theorem legendreP_eq_cpow_mul (ν : ℂ) {z : ℂ} (hz : 0 < z.re) :
     intro w hw
     have hw0 : w ≠ 0 := by rintro rfl; simp [U] at hw
     exact (analyticAt_id.cpow analyticAt_const (Or.inl hw)).mul
-      ((analyticAt_regularizedGaussHG _ _ _ (one_sub_inv_sq_mem_cutPlane hw)).comp_of_eq
+      ((analyticAt_regularizedGaussHG _ _ _ (one_sub_recip_sq_mem_cutPlane hw)).comp_of_eq
         (by fun_prop (disch := exact pow_ne_zero 2 hw0)) rfl)
   have hx0 : ((6 / 5 : ℝ) : ℂ) ∈ U := by simp [U]
   refine hf.eqOn_of_preconnected_of_frequently_eq hg hU hx0 ?_ hz

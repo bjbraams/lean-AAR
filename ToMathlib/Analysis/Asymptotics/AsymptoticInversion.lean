@@ -40,14 +40,14 @@ An equation `F(x) = T` with `F(x) ~ x (1 + ∑_{n≥1} cₙ x⁻ⁿ)` is the cas
 
 ## Main results
 
-* `HasAsymptoticPowerSeries.add`, `.mul`, `.pow`, `.aeval`, `.inv`, `.mul_var`, `.div_var`:
+* `HasAsymptoticPowerSeries.add`, `.mul`, `.pow`, `.aeval`, `.recip`, `.mul_var`, `.div_var`:
   algebra of asymptotic power series; `.unique`: uniqueness.
 * `HasAsymptoticPowerSeries.comp`: composition `H ∘ y ~ P.subst Q`.
 * `HasAsymptoticPowerSeries.analytic_comp`: composition with an analytic function.
 * `HasAsymptoticPowerSeries.inversion`: asymptotic inversion.
 * `HasAsymptoticPowerSeries.mcMahon`, `hasAsymptoticPowerSeries_mcMahon_atTop`: McMahon-type
   inversion `x = T + ∑ dₙ T⁻ⁿ`; `mcMahonSeries_spec`: the formal fixed-point identity.
-* `hasAsymptoticPowerSeries_inv_iff`: translation to the scale `ξ^{-n}` of
+* `hasAsymptoticPowerSeries_recip_iff`: translation to the scale `ξ^{-n}` of
   `HasAsymptoticExpansion`.
 * `mcMahonSeries_coeff_le_two`: `d₀ = -c₀`, `d₁ = -c₁`, `d₂ = -(c₂ + c₀c₁)`.
 
@@ -287,7 +287,7 @@ theorem inversion {m : Filter β} {σ H : β → 𝕜} (hσ : Tendsto σ m (𝓝
     exact h'.congr_left fun x => by simp
 
 /-- Reciprocal of an asymptotic power series with nonzero constant term. -/
-theorem inv (hw : Tendsto w l (𝓝 0)) (hf : HasAsymptoticPowerSeries l w P f)
+theorem recip (hw : Tendsto w l (𝓝 0)) (hf : HasAsymptoticPowerSeries l w P f)
     (hP : constantCoeff P ≠ 0) :
     HasAsymptoticPowerSeries l w P⁻¹ (fun x => (f x)⁻¹) := by
   have hlim : Tendsto (fun x => (f x)⁻¹) l (𝓝 (constantCoeff P)⁻¹) :=
@@ -389,7 +389,7 @@ theorem mcMahon {m : Filter β} {ξ G : β → 𝕜} {C : 𝕜⟦X⟧}
   have hP1' : coeff 1 P ≠ 0 := by rw [hP1]; exact one_ne_zero
   -- `1/(ξ + G) ~ P(1/ξ)`
   have hH : HasAsymptoticPowerSeries m σ P (fun b => (ξ b + G b)⁻¹) := by
-    have h1 := (((one hξ).add (hG.mul_var hξ)).inv hξ (by simp)).mul_var hξ
+    have h1 := (((one hξ).add (hG.mul_var hξ)).recip hξ (by simp)).mul_var hξ
     refine h1.congr' (hξ0.mono fun b hb => ?_)
     simp only [σ]
     rw [← mul_inv, mul_add, mul_one, mul_inv_cancel_left₀ hb]
@@ -414,7 +414,7 @@ theorem mcMahon {m : Filter β} {ξ G : β → 𝕜} {C : 𝕜⟦X⟧}
     rw [h0, norm_zero, mul_zero] at ha
     exact hsa (norm_le_zero_iff.mp ha)
   have hq := hs.div_var hQ0 hw0
-  have hq' := (hq.inv hw (by simp [hQ1])).sub (one hw)
+  have hq' := (hq.recip hw (by simp [hQ1])).sub (one hw)
   have hq'0 : constantCoeff ((mk fun k => coeff (k + 1) Q)⁻¹ - 1) = 0 := by
     simp [hQ1]
   have hfin := hq'.div_var hq'0 hw0
@@ -537,7 +537,7 @@ theorem mcMahonSeries_coeff_le_two (G : 𝕜⟦X⟧) :
     ring
 
 /-- Asymptotic power series in `ξ⁻¹` are expansions in the scale `ξ^{-n}`. -/
-theorem hasAsymptoticPowerSeries_inv_iff {ξ : α → 𝕜} {P : 𝕜⟦X⟧} {f : α → 𝕜} :
+theorem hasAsymptoticPowerSeries_recip_iff {ξ : α → 𝕜} {P : 𝕜⟦X⟧} {f : α → 𝕜} :
     HasAsymptoticPowerSeries l (fun x => (ξ x)⁻¹) P f ↔
       HasAsymptoticExpansion l (fun n x => ξ x ^ (-(n : ℤ))) (fun n => coeff n P) f := by
   have : (fun (n : ℕ) x => (ξ x)⁻¹ ^ n) = fun (n : ℕ) x => ξ x ^ (-(n : ℤ)) := by

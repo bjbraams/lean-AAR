@@ -155,10 +155,10 @@ lemma legQAdd_ferrersQ_bound {ν₀ : ℂ} (hr : LegendreQRegular ν₀ 0) {a b 
   set g2 : ℂ → ℂ := fun ν => cos (ν * π / 2) * Gamma ((ν + 2) / 2) * (Gamma ((ν + 1) / 2))⁻¹
   have hg1 : ContinuousAt g1 ν₀ :=
     (((by fun_prop : Continuous fun ν : ℂ => -sin (ν * π / 2)).continuousAt.mul c1).mul
-      (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν + 2) / 2)).continuousAt)
+      (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν + 2) / 2)).continuousAt)
   have hg2 : ContinuousAt g2 ν₀ :=
     (((by fun_prop : Continuous fun ν : ℂ => cos (ν * π / 2)).continuousAt.mul c2).mul
-      (continuous_inv_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν + 1) / 2)).continuousAt)
+      (continuous_recip_Gamma.comp (by fun_prop : Continuous fun ν : ℂ => (ν + 1) / 2)).continuousAt)
   obtain ⟨E, hE⟩ := legQAdd_hg_sq_bound (A := fun ν => -ν / 2) (B := fun ν => (ν + 1) / 2)
     (by fun_prop) (by fun_prop) (1 / 2) ν₀ ha hb
   obtain ⟨O, hO⟩ := legQAdd_hg_sq_bound (A := fun ν => (1 - ν) / 2) (B := fun ν => (ν + 2) / 2)
@@ -663,7 +663,7 @@ lemma legQAdd_associatedP_nat_eq (ν : ℂ) (m : ℕ) {z : ℂ} (hz : z - 1 ∈ 
     have hh : ∀ n : ℕ, ν - m + 1 ≠ -n := fun n h => by
       have := congrArg Complex.re h; simp at this; linarith [(n.cast_nonneg : (0:ℝ) ≤ n)]
     have hGa : Gamma (ν - m + 1) ≠ 0 := Gamma_ne_zero_of_re_pos (by simp; linarith)
-    have hP := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (ν - m + 1) (2 * m)
+    have hP := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (ν - m + 1) (2 * m)
     rw [show ν - m + 1 + ((2 * m : ℕ) : ℂ) = ν + m + 1 by push_cast; ring] at hP
     simp only [D]
     rw [associatedP_negative_integer_order ν m hh hz]

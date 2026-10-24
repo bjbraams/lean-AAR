@@ -322,11 +322,8 @@ theorem fresnelTail_norm_sq_nonpos {x : ℝ} (hx : x ≤ 0) :
   have htwo := Real.sq_sqrt (by norm_num : (0:ℝ)≤2)
   nlinarith [ht]
 
-/-- goodwinStatonG dawson. -/
-@[dlmf 7.5.E13]
-theorem goodwinStatonG_dawson {x : ℝ} (hx : 0 < x) :
-    goodwinStatonG x=Real.sqrt π*dawsonF x-Real.exp (-x^2)/2*Real.expIntEi (x^2) := by
-  sorry
+/- The relation `goodwinStatonG_dawson` (DLMF 7.5.13) is proved in
+`DLMF.ErrorFunctions.Integrals`, alongside the Gaussian Cauchy integral it uses. -/
 
 /-- iteratedDeriv erf hermite. -/
 @[dlmf 7.10.E1]

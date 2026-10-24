@@ -11,7 +11,7 @@ public import DLMF.Hypergeometric.AnalyticProperties
 public import DLMF.Hypergeometric.Asymptotics
 public import DLMF.Hypergeometric.Basic
 public import DLMF.Hypergeometric.ConnectionFormulas
-public import DLMF.Hypergeometric.LogConnectionsInvGamma
+public import DLMF.Hypergeometric.LogConnectionsRecipGamma
 public import DLMF.Hypergeometric.Contiguous
 public import DLMF.Hypergeometric.ContinuedFractions
 public import DLMF.Hypergeometric.Continuation

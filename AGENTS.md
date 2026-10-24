@@ -26,9 +26,10 @@ gaps in the special functions coverage of Mathlib and then we attempt to fill in
 DLMF has the focus of our attention. Results that come only from AAR or the other
 supporting sources and have no DLMF counterpart (for example Apéry's theorem, the
 Hasse–Davenport relation, the finite-field Selberg integral, Siegel's inequality, the
-Ramanujan partition congruences, Vietoris's inequality, the Askey–Gasper inequalities and
+Ramanujan partition congruences, Vietoris's inequality and
 Favard's theorem) are retained, admissions included, but have lower priority: plan proof
-rounds and new development around DLMF statements first.
+rounds and new development around DLMF statements first. The Askey–Gasper inequality
+has a DLMF counterpart in 16.23.E1 and remains in the DLMF priority scope.
 
 ## Dependencies and import layers
 

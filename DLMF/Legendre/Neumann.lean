@@ -71,7 +71,7 @@ lemma log_add_one_sub_log_sub_one {z : ℂ} (hz : z - 1 ∈ slitPlane) :
   push_cast; ring
 
 /-- `½ ∫₋₁¹ dt/(z - t) = Q₀(z)`. -/
-lemma integral_inv_sub {z : ℂ} (hz : z - 1 ∈ slitPlane) :
+lemma integral_recip_sub {z : ℂ} (hz : z - 1 ∈ slitPlane) :
     1 / 2 * ∫ t in (-1 : ℝ)..1, 1 / (z - t) = legendreQ 0 z := by
   have hd (t : ℝ) (ht : t ∈ uIcc (-1 : ℝ) 1) : HasDerivAt (fun t : ℝ => -log (z - t))
       (1 / (z - t)) t := by
@@ -172,7 +172,7 @@ theorem legendreQ_nat_eq_integral (n : ℕ) {z : ℂ} (hz : z - 1 ∈ slitPlane)
       (hne t ht)).continuousWithinAt
   rw [intervalIntegral.integral_congr hsplit, intervalIntegral.integral_sub (hinv.const_mul _)
     ((continuousOn_legendre_dq n hz).intervalIntegrable), intervalIntegral.integral_const_mul,
-    mul_sub, ← mul_assoc, mul_comm (1 / 2 : ℂ), mul_assoc, integral_inv_sub hz,
+    mul_sub, ← mul_assoc, mul_comm (1 / 2 : ℂ), mul_assoc, integral_recip_sub hz,
     ← legendreQPoly_eq_integral n hz, legendreQ_nat n hz,
     legendreP_nat n (one_add_mem_slitPlane_of_sub_one hz)]
 

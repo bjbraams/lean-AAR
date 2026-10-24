@@ -439,7 +439,7 @@ lemma hypSV_norm_poch_ge {c : ℂ} (hc : 0 < c.re) (n : ℕ) :
     exact mul_le_mul ih h1 (by positivity) (norm_nonneg _)
 
 /-- `‖Γ(c+N)‖⁻¹ ≤ (‖Γ(Re c)‖/‖Γ c‖) ‖Γ(Re c + N)‖⁻¹` for `Re c > 0`. -/
-lemma hypSV_norm_inv_Gamma_le {c : ℂ} (hc : 0 < c.re) (N : ℕ) :
+lemma hypSV_norm_recip_Gamma_le {c : ℂ} (hc : 0 < c.re) (N : ℕ) :
     ‖Gamma (c + N)‖⁻¹ ≤ ‖Gamma (c.re : ℂ)‖ / ‖Gamma c‖ * ‖Gamma ((c.re : ℂ) + N)‖⁻¹ := by
   have hcn : ∀ k : ℕ, c ≠ -k := not_neg_nat_of_re_pos hc
   have hCn : ∀ k : ℕ, (c.re : ℂ) ≠ -k := not_neg_nat_of_re_pos (by simpa using hc)
@@ -516,7 +516,7 @@ lemma hypSV_hasSum_shift_series (p q r s c A B : ℂ) (hc : 0 < c.re) {x : ℂ} 
       calc ‖s + m‖ ≤ ‖s‖ + ‖(m : ℂ)‖ := norm_add_le _ _
         _ ≤ M + m := by
           rw [Complex.norm_natCast, hM]; linarith [norm_nonneg p, norm_nonneg q, norm_nonneg r]
-    have e5 := hypSV_norm_inv_Gamma_le hc (m + k)
+    have e5 := hypSV_norm_recip_Gamma_le hc (m + k)
     rw [← hC] at e5
     rw [show c + (m : ℂ) + (k : ℂ) = c + ((m + k : ℕ) : ℂ) by push_cast; ring]
     have q0 := hP0 M hM0 m

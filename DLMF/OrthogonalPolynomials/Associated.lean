@@ -16,7 +16,7 @@ public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 # Associated, Bessel, Pollaczek, Freud, and exceptional polynomials
 
 Finite Bessel orthogonality expands into reciprocal Gamma moments and a finite
-Pochhammer Vandermonde convolution. Mathlib’s inverse-power and exponential changes
+Pochhammer Vandermonde convolution. Mathlib’s reciprocal-power and exponential changes
 of variables justify the integrals and transfer the Bessel norm to the Morse functions.
 
 Statements from NIST DLMF Chapter 18, each tagged with its equation number by `@[dlmf]`.
@@ -435,8 +435,8 @@ open Set
 
 set_option maxHeartbeats 1000000
 
-/-- A reciprocal Gamma moment, with integrability, from the inverse substitution. -/
-lemma inverse_gamma_moment {s : ℝ} (hs : 0 < s) :
+/-- A reciprocal Gamma moment, with integrability, from the reciprocal substitution. -/
+lemma reciprocal_gamma_moment {s : ℝ} (hs : 0 < s) :
     IntegrableOn (fun x : ℝ => (x : ℂ) ^ (-s - 1 : ℂ) * exp (-2 / x)) (Ioi 0) ∧
     (∫ x : ℝ in Ioi 0, (x : ℂ) ^ (-s - 1 : ℂ) * exp (-2 / x)) =
       (2 : ℂ) ^ (-(s : ℂ)) * Gamma (s : ℂ) := by
@@ -453,7 +453,7 @@ lemma inverse_gamma_moment {s : ℝ} (hs : 0 < s) :
       Real.rpow_neg_one, Real.inv_rpow hx.le, ← Real.rpow_neg hx.le,
       ← mul_assoc, ← Real.rpow_add hx]
     congr 2 <;> ring
-  -- Mathlib's inverse-power substitution transfers integrability as well as the integral.
+  -- Mathlib's reciprocal-power substitution transfers integrability as well as the integral.
   have hi := (integrableOn_Ioi_comp_rpow_iff g (p := (-1 : ℝ)) (by norm_num)).mpr hg
   simp only [smul_eq_mul] at hi
   have hi' := hi.congr_fun he measurableSet_Ioi
@@ -483,7 +483,7 @@ lemma bessel_weight_moment {a : ℝ} (j : ℕ) (ha : a + j < 1) :
       (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ)) =
       (2 : ℂ) ^ (a + j - 1 : ℂ) * Gamma (1 - a - j : ℂ) := by
   have hs : 0 < 1 - a - j := by linarith
-  have h := inverse_gamma_moment hs
+  have h := reciprocal_gamma_moment hs
   have he (x : ℝ) (hx : 0 < x) : (x : ℂ) ^ j *
       (Real.rpow x (a - 2) * Real.exp (-2 / x) : ℝ) =
       (x : ℂ) ^ (-(1 - a - j : ℝ) - 1 : ℂ) * exp (-2 / x) := by
@@ -788,7 +788,7 @@ lemma pollaczek_eq_coeff_binomProductSeries (lam a b : ℂ) {θ : ℂ} (hθ : si
     pollaczek lam a b 0 n (cos θ) = PowerSeries.coeff n (binomProductSeries
       (lam - I * ((a * cos θ + b) / sin θ)) (lam + I * ((a * cos θ + b) / sin θ))
       (exp (I * θ))) := by
-  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_inv θ
+  obtain ⟨hcos, hsin⟩ := exp_I_mul_add_recip θ
   set Φ := (a * cos θ + b) / sin θ with hΦ
   have hΦs : Φ * sin θ = a * cos θ + b := by rw [hΦ]; field_simp
   refine eq_coeff_binomProductSeries (f := fun n => pollaczek lam a b 0 n (cos θ))

@@ -2089,7 +2089,7 @@ lemma fresnel_moment {z : ℂ} (hz0 : z ≠ 0) (hz : |arg z| < π/4) (M : ℕ) :
   field_simp
 
 /-- `1 + s i r ≠ 0` for real `s, r`, with `‖(1 + s i r)⁻¹‖ ≤ 1`. -/
-lemma norm_one_add_sign_I_mul_inv_le (s r : ℝ) :
+lemma norm_one_add_sign_I_mul_recip_le (s r : ℝ) :
     1 + (s:ℂ)*I*r ≠ 0 ∧ ‖(1 + (s:ℂ)*I*r)⁻¹‖ ≤ 1 := by
   have hre : (1 + (s:ℂ)*I*r).re = 1 := by simp
   have h1 : 1 ≤ ‖1 + (s:ℂ)*I*r‖ := hre ▸ re_le_norm _
@@ -2097,13 +2097,13 @@ lemma norm_one_add_sign_I_mul_inv_le (s r : ℝ) :
   exact ⟨hne, by rw [norm_inv]; exact inv_le_one_of_one_le₀ h1⟩
 
 /-- Partial fractions: `(1+ir)⁻¹ ± (1-ir)⁻¹`. -/
-lemma one_add_I_mul_inv_add_sub (r : ℝ) :
+lemma one_add_I_mul_recip_add_sub (r : ℝ) :
     (1 + I*r)⁻¹ + (1 - I*r)⁻¹ = 2/((r:ℂ)^2+1) ∧
       (1 + I*r)⁻¹ - (1 - I*r)⁻¹ = -2*I*r/((r:ℂ)^2+1) := by
   have hu : (1 + I*r) ≠ 0 := by
-    simpa using (norm_one_add_sign_I_mul_inv_le 1 r).1
+    simpa using (norm_one_add_sign_I_mul_recip_le 1 r).1
   have hv : (1 - I*r) ≠ 0 := by
-    have := (norm_one_add_sign_I_mul_inv_le (-1) r).1
+    have := (norm_one_add_sign_I_mul_recip_le (-1) r).1
     push_cast at this; rwa [show (1:ℂ) + -1*I*r = 1 - I*r by ring] at this
   have hw : (r:ℂ)^2 + 1 ≠ 0 := by
     rw [← ofReal_pow, ← ofReal_one, ← ofReal_add]
@@ -2128,9 +2128,9 @@ lemma integrableOn_fresnel_signed (s : ℝ) {z : ℂ} (hz0 : z ≠ 0)
     have hm : (r:ℂ) ∈ slitPlane := by simp [mem_slitPlane_iff, hr]
     refine ContinuousAt.mul (by fun_prop) (ContinuousAt.mul ?_ ?_)
     · exact (continuousAt_ofReal_cpow_const _ _ (Or.inr hr.ne'))
-    · exact ContinuousAt.inv₀ (by fun_prop) (norm_one_add_sign_I_mul_inv_le s r).1
+    · exact ContinuousAt.inv₀ (by fun_prop) (norm_one_add_sign_I_mul_recip_le s r).1
   · rw [norm_mul, norm_mul, norm_mul]
-    have := (norm_one_add_sign_I_mul_inv_le s r).2
+    have := (norm_one_add_sign_I_mul_recip_le s r).2
     rw [show -(π*z^2/2*(r:ℂ)) = -π*z^2*r/2 by ring, show ((0:ℕ):ℂ) - 1/2 = -1/2 by push_cast; ring]
     calc ‖cexp (-π*z^2*r/2)‖ * (‖(r:ℂ)^(-1/2:ℂ)‖ * ‖(1 + (s:ℂ)*I*r)⁻¹‖)
         ≤ ‖cexp (-π*z^2*r/2)‖ * (‖(r:ℂ)^(-1/2:ℂ)‖ * 1) := by gcongr
@@ -2159,8 +2159,8 @@ theorem fresnelAux_laplace_open (aux : Bool) {z : ℂ} (hz0 : z ≠ 0) (hz : |ar
   have hden : ∀ r : ℝ, (1 + ((1:ℝ):ℂ)*I*r) ≠ 0 ∧ (1 + ((-1:ℝ):ℂ)*I*r) ≠ 0 ∧
       ((r:ℂ)^2 + 1) ≠ 0 := by
     intro r
-    refine ⟨(norm_one_add_sign_I_mul_inv_le 1 r).1,
-      (norm_one_add_sign_I_mul_inv_le (-1) r).1, ?_⟩
+    refine ⟨(norm_one_add_sign_I_mul_recip_le 1 r).1,
+      (norm_one_add_sign_I_mul_recip_le (-1) r).1, ?_⟩
     rw [← ofReal_pow, ← ofReal_one, ← ofReal_add]
     exact ofReal_ne_zero.mpr (by positivity)
   cases aux
@@ -2175,7 +2175,7 @@ theorem fresnelAux_laplace_open (aux : Bool) {z : ℂ} (hz0 : z ≠ 0) (hz : |ar
     obtain ⟨d1, d2, d3⟩ := hden r
     rw [← mul_add, show (1:ℂ) + ((1:ℝ):ℂ)*I*r = 1 + I*r by push_cast; ring,
       show (1:ℂ) + ((-1:ℝ):ℂ)*I*r = 1 - I*r by push_cast; ring, ← mul_add,
-      (one_add_I_mul_inv_add_sub r).1, show -(π*z^2/2*(r:ℂ)) = -π*z^2*r/2 by ring,
+      (one_add_I_mul_recip_add_sub r).1, show -(π*z^2/2*(r:ℂ)) = -π*z^2*r/2 by ring,
       show (-1/2:ℂ) = -(1/2) by ring]
     field_simp
   · simp only [ite_true, Nat.cast_one]
@@ -2192,7 +2192,7 @@ theorem fresnelAux_laplace_open (aux : Bool) {z : ℂ} (hz0 : z ≠ 0) (hz : |ar
       rw [show (1:ℂ) - 1/2 = -1/2 + 1 by ring, cpow_add _ _ hr0, cpow_one]
     rw [← mul_sub, show (1:ℂ) + ((1:ℝ):ℂ)*I*r = 1 + I*r by push_cast; ring,
       show (1:ℂ) + ((-1:ℝ):ℂ)*I*r = 1 - I*r by push_cast; ring, ← mul_sub,
-      (one_add_I_mul_inv_add_sub r).2, show -(π*z^2/2*(r:ℂ)) = -π*z^2*r/2 by ring, hcp, ← hc,
+      (one_add_I_mul_recip_add_sub r).2, show -(π*z^2/2*(r:ℂ)) = -π*z^2*r/2 by ring, hcp, ← hc,
       show (-1/2:ℂ) = -(1/2) by ring]
     field_simp
     ring_nf

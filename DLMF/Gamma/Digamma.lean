@@ -189,7 +189,7 @@ lemma eq_partial_digammaSeries (x : ℝ) (n : ℕ) :
       log n - (harmonic (n + 1) : ℝ) + ∑ k ∈ range (n + 1), digammaSeriesTerm x k := by
   simp [digammaSeriesTerm, harmonic, sum_sub_distrib]
 
-lemma tendsto_log_sub_sum_inv {x : ℝ} (hx : 0 < x) :
+lemma tendsto_log_sub_sum_recip {x : ℝ} (hx : 0 < x) :
     Tendsto (fun n : ℕ => log n - ∑ k ∈ range (n + 1), (x + k)⁻¹) atTop
       (𝓝 (-γ + ∑' n, digammaSeriesTerm x n)) := by
   simp_rw [eq_partial_digammaSeries]
@@ -274,7 +274,7 @@ lemma tendsto_deriv_log_GammaSeq {x : ℝ} (hx : 0 < x) :
 @[dlmf 5.7.E6]
 theorem digamma_eq_tsum {x : ℝ} (hx : 0 < x) :
     digamma x = -γ + ∑' n, digammaSeriesTerm x n :=
-  tendsto_nhds_unique (tendsto_deriv_log_GammaSeq hx) (tendsto_log_sub_sum_inv hx)
+  tendsto_nhds_unique (tendsto_deriv_log_GammaSeq hx) (tendsto_log_sub_sum_recip hx)
 
 lemma hasDerivAt_digammaSeriesTerm {x : ℝ} (hx : 0 < x) (n : ℕ) :
     HasDerivAt (fun y : ℝ => digammaSeriesTerm y n) ((x + (n : ℝ))⁻¹ ^ 2) x := by
@@ -350,7 +350,7 @@ theorem trigamma_eq_tsum {x : ℝ} (hx : 0 < x) :
     trigamma x = ∑' n : ℕ, (x + n)⁻¹ ^ 2 := by
   rw [trigamma, (hasDerivAt_digamma hx).deriv]
 
-lemma sum_inv_sub_inv_range (x : ℝ) (N : ℕ) :
+lemma sum_recip_sub_recip_range (x : ℝ) (N : ℕ) :
     ∑ n ∈ range N, ((x + n)⁻¹ - (x + n + 1)⁻¹) = x⁻¹ - (x + N)⁻¹ := by
   induction N with
   | zero => simp

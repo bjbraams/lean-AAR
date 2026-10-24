@@ -543,7 +543,7 @@ lemma kummerCoeff_zero (a b : ℂ) : kummerCoeff a b 0 = (Gamma a)⁻¹ := by
 lemma kummerCoeff_sub_one (a b : ℂ) (m : ℕ) :
     kummerCoeff (a - 1) b m = kummerCoeff a b (m + 1) - kummerCoeff a (b + 1) (m + 1) := by
   simp only [kummerCoeff]
-  rw [inv_Gamma_eq_mul_inv_Gamma_add_one (a - 1), sub_add_cancel,
+  rw [recip_Gamma_eq_mul_recip_Gamma_add_one (a - 1), sub_add_cancel,
     show 1 - (a - 1) = 2 - a by ring, show b - (a - 1) = b - a + 1 by ring,
     show b + 1 - a = b - a + 1 by ring, poch_succ_left (1 - a),
     show 1 - a + 1 = 2 - a by ring, poch_succ_left (b - a), poch_succ (b - a + 1),
@@ -1260,7 +1260,7 @@ theorem hcub_largeB_base (a z : ℂ) (ha : 0 < a.re) (n : ℕ) :
     · field_simp
     · refine Finset.sum_congr rfl fun s _ => ?_
       have hp : Gamma ((s : ℂ) + a) = Gamma a * poch a s := by
-        have h1 := DLMF.Gamma.poch_mul_inv_Gamma_add_nat a s
+        have h1 := DLMF.Gamma.poch_mul_recip_Gamma_add_nat a s
         have h2 : Gamma (a + s) ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos (by simp; positivity))
         rw [add_comm]
         field_simp at h1
@@ -1339,7 +1339,7 @@ theorem hcub_largeB_mix (a z : ℂ) (n : ℕ) :
       ((b : ℂ) ^ a * Gamma ((b : ℂ) - a) / Gamma (b : ℂ)) =
       poch a s * z ^ s / s ! * ((b : ℂ) ^ a * Gamma ((b : ℂ) - a) / Gamma ((b : ℂ) + s)) := by
     intro s _
-    have h := DLMF.Gamma.poch_mul_inv_Gamma_add_nat (b : ℂ) s
+    have h := DLMF.Gamma.poch_mul_recip_Gamma_add_nat (b : ℂ) s
     have hp : poch (b : ℂ) s ≠ 0 := poch_ne_zero_of_not_neg_nat hb' s
     have hGs : Gamma ((b : ℂ) + s) ≠ 0 := Gamma_ne_zero (not_neg_nat_of_re_pos (by simp; positivity))
     have hf : (s ! : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero _)
