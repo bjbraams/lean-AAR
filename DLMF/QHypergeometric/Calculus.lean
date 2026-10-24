@@ -73,7 +73,11 @@ theorem qPochhammer_negative_modular {t : ℝ} (ht : 0<t) :
 @[dlmf 17.2.E27]
 theorem qBinom_ratio {q : ℂ} (hq : ‖q‖<1) {m n : ℕ} (hm : m≤n) :
     qBinom q n m=qPochhammer q q n/(qPochhammer q q m*qPochhammer q q (n-m)) := by
-  sorry
+  have h := qBinom_mul_qPochhammer q m (n-m)
+  rw [Nat.add_sub_of_le hm] at h
+  apply (eq_div_iff (mul_ne_zero (qPochhammer_self_ne_zero hq m)
+    (qPochhammer_self_ne_zero hq (n-m)))).2
+  simpa [mul_assoc] using h
 
 /-- qBinom terminating ratio. -/
 @[dlmf 17.2.E27]
@@ -85,7 +89,14 @@ theorem qBinom_terminating_ratio {q : ℂ} (hq0 : q≠0) (hq : ‖q‖<1) {m n :
 /-- qBinomialInt nat. -/
 theorem qBinomialInt_nat {q : ℂ} (hq0 : q≠0) (hq : ‖q‖<1) (n m : ℕ) :
     qBinomialInt q n m=qBinom q n m := by
-  sorry
+  unfold qBinomialInt
+  by_cases hm : m≤n
+  · rw [show (n:ℤ)-(m:ℤ)+1=((n-m+1:ℕ):ℤ) by omega,zpow_natCast]
+    simpa [Nat.add_sub_of_le hm,pow_succ,mul_comm] using (qBinom_eq hq m (n-m)).symm
+  · have hmn : n<m := by omega
+    rw [qBinom_eq_zero_of_lt q hmn]
+    rw [show (n:ℤ)-(m:ℤ)+1= -((m-n-1:ℕ):ℤ) by omega]
+    rw [zpow_neg,zpow_natCast,qPochhammer_recip_pow_eq_zero hq0 (by omega : m-n-1<m),zero_div]
 
 /-- qBinomialInt negative. -/
 @[dlmf 17.2.E30]
@@ -104,14 +115,37 @@ theorem qBinom_pascal_second (q : ℂ) (n m : ℕ) :
 @[dlmf 17.2.E33]
 theorem qBinom_fixed_lower_limit {q : ℂ} (hq : ‖q‖<1) (m : ℕ) :
     Tendsto (fun n : ℕ => qBinom q n m) atTop (𝓝 (qPochhammer q q m)⁻¹) := by
-  sorry
+  apply (tendsto_add_atTop_iff_nat m).1
+  have hp := (tendsto_pow_atTop_nhds_zero_of_norm_lt_one hq).const_mul q
+  have hc := (continuous_qPochhammer q m).continuousAt.tendsto.comp hp
+  have h := hc.div_const (qPochhammer q q m)
+  simp only [mul_zero,qPochhammer_zero_param,one_div] at h
+  refine h.congr' (Eventually.of_forall fun n => ?_)
+  simpa only [Function.comp_apply,Nat.add_comm n m] using (qBinom_eq hq m n).symm
 
 /-- Both Gaussian indices tend to infinity; s>0 is necessary (s=0 gives a different fixed-index limit). -/
 @[dlmf 17.2.E34]
 theorem qBinom_two_growing_indices {q : ℂ} (hq : ‖q‖<1) {r s : ℕ} (hs : 0<s) (hrs : s<r)
     (u t : ℕ) : Tendsto (fun n : ℕ => qBinom q (r*n+u) (s*n+t)) atTop
       (𝓝 (qPochhammerInf q q)⁻¹) := by
-  sorry
+  have hP := qPochhammerInf_ne_zero_of_norm_lt_one hq hq
+  have htop : Tendsto (fun n : ℕ => r*n+u) atTop atTop :=
+    tendsto_atTop_atTop.mpr fun b => ⟨b, fun n hn => by nlinarith⟩
+  have hbot : Tendsto (fun n : ℕ => s*n+t) atTop atTop :=
+    tendsto_atTop_atTop.mpr fun b => ⟨b, fun n hn => by nlinarith⟩
+  have hdiff : Tendsto (fun n : ℕ => (r*n+u)-(s*n+t)) atTop atTop :=
+    tendsto_atTop_atTop.mpr fun b => ⟨b+t, fun n hn => by
+      have : b+(s*n+t)≤r*n+u := by nlinarith
+      omega⟩
+  have hlim := ((tendsto_qPochhammer (w := q) hq).comp htop).div
+    (((tendsto_qPochhammer (w := q) hq).comp hbot).mul ((tendsto_qPochhammer (w := q) hq).comp hdiff))
+    (mul_ne_zero hP hP)
+  have hval : qPochhammerInf q q/(qPochhammerInf q q*qPochhammerInf q q)=
+      (qPochhammerInf q q)⁻¹ := by field_simp
+  rw [hval] at hlim
+  refine hlim.congr' ?_
+  filter_upwards [eventually_ge_atTop t] with n hn
+  exact (qBinom_ratio hq (by nlinarith : s*n+t≤r*n+u)).symm
 
 -- DLMF 17.2.E36 is Mathlib `add_pow` specialized to -z and 1; see MathlibCoverage.
 
@@ -119,7 +153,21 @@ theorem qBinom_two_growing_indices {q : ℂ} (hq : ‖q‖<1) {r s : ℕ} (hs : 
 @[dlmf 17.2.E38]
 theorem q_binomial_series {q z : ℂ} (hq : ‖q‖<1) (hz : ‖z‖<1) (m : ℕ) :
     HasSum (fun n : ℕ => qBinom q (n+m) n*z^n) (qPochhammer z q (m+1))⁻¹ := by
-  sorry
+  have hs := (summable_q_binomial_series (a := q*q^m) hq hz).hasSum
+  rw [← q_binomial_theorem hq hz] at hs
+  have hshift := qPochhammerInf_mul_qPochhammer (a := z) hq (m+1)
+  have hi := qPochhammerInf_ne_zero_of_norm_lt_one hz hq
+  have htail := qPochhammerInf_shift_ne_zero hq
+    (fun j => one_sub_mul_pow_ne_zero_of_norm hz hq j) (m+1)
+  have hprod := qPochhammer_ne_zero_of_factors hq
+    (fun j => one_sub_mul_pow_ne_zero_of_norm hz hq j) (m+1)
+  have hv : qPochhammerInf ((q*q^m)*z) q/qPochhammerInf z q=
+      (qPochhammer z q (m+1))⁻¹ := by
+    rw [show (q*q^m)*z=z*q^(m+1) by rw [pow_succ]; ring]
+    rw [hshift]
+    field_simp
+  rw [hv] at hs
+  simpa [qBinom_eq hq] using hs
 
 /-- q binomial base square. -/
 @[dlmf 17.2.E39]
@@ -193,7 +241,17 @@ theorem qDeriv_iterate_limit {f : ℂ → ℂ} {z : ℂ} (hf : AnalyticAt ℂ f 
 @[dlmf 17.2.E45, dlmf 17.2.E46]
 theorem jackson_series_hasSum {q a : ℂ} (hq : ‖q‖<1) {f : ℂ → ℂ} (hf : ContinuousAt f 0) :
     HasSum (fun j : ℕ => a*(1-q)*f (a*q^j)*q^j) (jacksonIntegral q a f) := by
-  sorry
+  have hpow := (tendsto_pow_atTop_nhds_zero_of_norm_lt_one hq).const_mul a
+  simp only [mul_zero] at hpow
+  have hcont : Tendsto (fun j : ℕ => f (a*q^j)) atTop (𝓝 (f 0)) := by
+    simpa only [Function.comp_def] using hf.tendsto.comp hpow
+  obtain ⟨B,hB⟩ := hcont.norm.bddAbove_range
+  have hs : Summable (fun j : ℕ => f (a*q^j)*q^j) :=
+    Summable.of_norm_bounded
+      ((summable_geometric_of_lt_one (norm_nonneg q) hq).mul_left B)
+      (fun j => by simpa [norm_mul,norm_pow] using
+        mul_le_mul_of_nonneg_right (hB ⟨j,rfl⟩) (pow_nonneg (norm_nonneg q) j))
+  simpa only [jacksonIntegral,mul_assoc] using hs.hasSum.mul_left (a*(1-q))
 
 /-- jacksonBetween additivity. -/
 theorem jacksonBetween_additivity (q a b c : ℂ) (f : ℂ → ℂ) :
@@ -229,6 +287,13 @@ theorem jackson_bilateral_natural_limit {q : ℝ} (hq0 : 0<q) (hq1 : q<1) {f : �
 theorem qBinom_two_index_limit {q : ℂ} (hq : ‖q‖<1) {r s : ℕ} (hrs : s<r)
     (u t : ℕ) : Tendsto (fun n : ℕ => qBinom q (r*n+u) (s*n+t)) atTop
       (𝓝 (if s=0 then (qPochhammer q q t)⁻¹ else (qPochhammerInf q q)⁻¹)) := by
-  sorry
+  by_cases hs : s=0
+  · subst s
+    simp only [Nat.zero_mul,zero_add,ite_true]
+    have hr : 0<r := hrs
+    have ht : Tendsto (fun n : ℕ => r*n+u) atTop atTop :=
+      tendsto_atTop_atTop.mpr fun b => ⟨b, fun n hn => by nlinarith⟩
+    exact (qBinom_fixed_lower_limit hq t).comp ht
+  · simpa [hs] using qBinom_two_growing_indices hq (Nat.pos_of_ne_zero hs) hrs u t
 
 end DLMF.QHypergeometric

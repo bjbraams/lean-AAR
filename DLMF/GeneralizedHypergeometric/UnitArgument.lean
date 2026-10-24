@@ -47,7 +47,34 @@ theorem genHG_finite_ratio_sum (n : ℕ) (a c : ℂ) (hc : genDenRegular {c}) :
       ∑ k ∈ range (n + 1), poch a k / poch c k ∧
     (c - a - 1) * (∑ k ∈ range (n + 1), poch a k / poch c k) =
       c - 1 - (c + n) * poch a (n + 1) / poch c (n + 1) := by
-  sorry
+  have hc' (k : ℕ) : poch c k ≠ 0 := poch_ne_zero_of_not_neg_nat (hc c (by simp)) k
+  constructor
+  · unfold genFiniteHG
+    apply Finset.sum_congr rfl
+    intro k hk
+    have hkn : k ≤ n := Nat.le_of_lt_succ (Finset.mem_range.mp hk)
+    have hn : poch (-(n : ℂ)) k ≠ 0 := by
+      rw [poch_neg_coe_nat]
+      exact mul_ne_zero (pow_ne_zero _ (by norm_num))
+        (Nat.cast_ne_zero.mpr ((Nat.descFactorial_pos.mpr hkn).ne'))
+    have hf : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast k.factorial_ne_zero
+    simp only [genCoeff, genPoch, Multiset.insert_eq_cons, Multiset.map_cons, Multiset.map_singleton,
+      Multiset.prod_cons, Multiset.prod_singleton, one_pow, mul_one, poch_nat_one]
+    field_simp [hn, hf, hc' k]
+  · induction n with
+    | zero =>
+      have hc0 : c ≠ 0 := by simpa using hc c (by simp) 0
+      simp only [sum_range_one, poch_zero, poch_one, div_one, Nat.cast_zero, add_zero, zero_add, mul_one]
+      field_simp [hc0]
+      ring
+    | succ n ih =>
+      rw [Finset.sum_range_succ, mul_add, ih, poch_succ a (n + 1), poch_succ c (n + 1)]
+      have hcn : c + (n + 1 : ℕ) ≠ 0 := by
+        intro hzero
+        exact hc c (by simp) (n + 1) (eq_neg_of_add_eq_zero_left hzero)
+      field_simp [hc' (n + 1), hcn]
+      push_cast
+      ring
 
 /-- The printed closed form wherever its displayed divisors are nonzero. -/
 @[dlmf 16.4.E2_5]
@@ -55,7 +82,19 @@ theorem genHG_finite_ratio_sum_closed (n : ℕ) (a c : ℂ) (hc : genDenRegular 
     (hca : c - a - 1 ≠ 0) (hc1 : poch (c - 1) (n + 1) ≠ 0) :
     (∑ k ∈ range (n + 1), poch a k / poch c k) =
       (c - 1) / (c - a - 1) * (1 - poch a (n + 1) / poch (c - 1) (n + 1)) := by
-  sorry
+  have hC : poch c (n + 1) ≠ 0 := poch_ne_zero_of_not_neg_nat (hc c (by simp)) _
+  have hcross : poch (c - 1) (n + 1) * (c + n) = (c - 1) * poch c (n + 1) := by
+    rw [poch_succ_left, show c - 1 + 1 = c by ring, poch_succ c]
+    ring
+  have hratio : (c + n) * poch a (n + 1) / poch c (n + 1) =
+      (c - 1) * poch a (n + 1) / poch (c - 1) (n + 1) := by
+    field_simp
+    linear_combination poch a (n + 1) * hcross
+  have h := (genHG_finite_ratio_sum n a c hc).2
+  rw [hratio] at h
+  field_simp [hc1] at h
+  field_simp [hca, hc1]
+  linear_combination h
 
 /-- The limiting c=a+1 form; a=0 is retained separately as the removable value one. -/
 @[dlmf 16.4.E2_5]
@@ -64,7 +103,36 @@ theorem genHG_finite_ratio_sum_limit (n : ℕ) (a : ℂ) (ha : genDenRegular {a}
       a * (Complex.digamma (a + n + 1) - Complex.digamma a) ∧
     (∑ k ∈ range (n + 1), poch a k / poch (a + 1) k) =
       a * deriv (fun a : ℂ => poch a (n + 1)) a / poch a (n + 1) := by
-  sorry
+  have ha' : ∀ k : ℕ, a ≠ -(k : ℂ) := ha a (by simp)
+  have hap (k : ℕ) : a + k ≠ 0 := fun h => ha' k (eq_neg_of_add_eq_zero_left h)
+  have hp1 (k : ℕ) : poch (a + 1) k ≠ 0 :=
+    by simpa only [Nat.cast_one] using poch_ne_zero_of_not_neg_nat (not_neg_nat_add_nat ha' 1) k
+  have hratio (k : ℕ) : poch a k / poch (a + 1) k = a / (a + k) := by
+    have h := (poch_succ a k).symm.trans (poch_succ_left a k)
+    field_simp [hp1 k, hap k]
+    exact h
+  have hsum : (∑ k ∈ range (n + 1), poch a k / poch (a + 1) k) =
+      a * ∑ k ∈ range (n + 1), (a + k)⁻¹ := by
+    simp_rw [hratio, div_eq_mul_inv]
+    rw [Finset.mul_sum]
+  constructor
+  · rw [hsum, show a + n + 1 = a + (n + 1 : ℕ) by push_cast; ring,
+      Complex.digamma_apply_add_nat ha']
+    ring
+  · have hprod : (fun x : ℂ => poch x (n + 1)) =
+        (fun x : ℂ => ∏ k ∈ range (n + 1), (x + k)) := by
+      funext x
+      simpa using poch_mul_pow x 1 (n + 1)
+    have hlog : deriv (fun x : ℂ => ∏ k ∈ range (n + 1), (x + k)) a /
+          (∏ k ∈ range (n + 1), (a + k)) = ∑ k ∈ range (n + 1), (a + k)⁻¹ := by
+      simpa [logDeriv_apply] using (logDeriv_fun_prod
+        (s := range (n + 1)) (f := fun k (x : ℂ) => x + k)
+        (fun k _ => hap k) (fun k _ => by fun_prop))
+    rw [← hprod] at hlog
+    have hvalue := congrFun hprod a
+    change poch a (n + 1) = ∏ k ∈ range (n + 1), (a + k) at hvalue
+    rw [← hvalue] at hlog
+    rw [hsum, mul_div_assoc, hlog]
 
 /-- The removable limiting value at a=0,c=1. -/
 @[dlmf 16.4.E2_5]

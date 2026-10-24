@@ -2,13 +2,14 @@
 
 ## Scope and degree of completion
 
-**Current status, 2026-10-24:** 887 explicit source admissions after acquiring
-DLMF Chapters 4, 16 and 17. These new areas account for 345, 165 and 188 admissions,
-respectively; 189 remain in the older areas. The compiled audit finds **14,148 project theorems**, with **900 depending transitively on `sorryAx`** (887 direct and 13 inherited) and
-no other nonstandard axiom.
-`ToMathlib` has no source admissions. The latest scope, proof work and priorities
-are recorded in [the chapter acquisition and proof round](#chapters-4-16-and-17-acquisition-and-elementary-proofs-2026-10-24).
-Earlier inventories and priority lists below describe their dated snapshots.
+**Current status, 2026-10-24:** 753 explicit source admissions after the second
+parallel proof round for the newly acquired Chapters 4, 16 and 17. The round proves
+134 statements, taking Elementary from 345 to 253, GeneralizedHypergeometric from
+165 to 151, and QHypergeometric from 188 to 160. The older areas retain 189.
+The compiled audit finds 14,169 project theorems, with 766 depending on `sorryAx`
+(753 direct and 13 inherited), and no other nonstandard axiom. `ToMathlib` has no
+source admissions. See [the latest proof round](#parallel-proofs-in-chapters-4-16-and-17-2026-10-24-second-round).
+Earlier inventories describe their dated snapshots.
 
 **Historical status, 2026-10-21 (evening):** 590 explicit admissions after the
 [infrastructure round](#infrastructure-round-round-5-2026-10-21) (asymptotic inversion,
@@ -6451,3 +6452,124 @@ only the standard axioms. All 517/101/186 in-scope numbered/table IDs of Chapter
 `ToMathlib` has no admission or forbidden import; the shared Laplace/Carlson files
 remain identical. The build topology, toolchain and dependency pins are unchanged.
 `git diff --check` and checks of newly introduced whitespace pass.
+
+## Parallel proofs in Chapters 4, 16 and 17 (2026-10-24, second round)
+
+Starting from commit `01ef167`, three workers and the coordinator remove **134
+admissions**, all with unchanged theorem statements and only the standard three
+axioms. Explicit file ownership, immutable stages, source-hash guards and shared/
+exclusive integration locks prevent edits and compiled-import probes from clashing.
+The source total falls from **887 to 753**. Completed targets retain their original
+statements. A separate review of the remaining backlog found a false multivalued
+addition statement, recorded below.
+
+### Elementary: 92 proofs
+
+Sixteen trig proofs establish the principal arcsin/arccos inverse identities,
+full-cut-domain derivatives and analyticity, reciprocal-function analyticity,
+oddness/complement identities, branch-point equations and complex primitives.
+Forty-two hyperbolic proofs cover zeros, addition and multiple-angle identities,
+Cartesian/norm formulas, exact values and limits, multivalued reciprocal inverses,
+real and continued primitives, and full-domain arcsinh/arctanh/arccsch/arccoth
+calculus and real restrictions. The hyperbolic file imports the proved trig API
+for the rotated inverse-sine construction and norm formulas.
+
+The other 34 proofs cover both logarithms on the negative cut, general powers
+of exp(1), exact roots of unity and imaginary powers, logarithmic/exponential
+inequalities, complex-power limits on the real axis, a global exponential norm
+bound, and general logarithm/power sheet identities. The logarithmic, first-order
+linear and second-order constant-coefficient ODE solution formulas now have proofs
+on their original connected open domains, including the empty-domain case.
+
+Elementary has 253 remaining admissions: Hyperbolic 111, Trigonometric 55,
+LogExpAnalysis 20, LambertW 43, LogExpIntegrals 11, Generalized 9 and LogExpBasic 4.
+
+### Generalized hypergeometric: 14 proofs and a definition cleanup
+
+The new proofs establish uniqueness of a normalized principal continuation,
+the Gamma/Pochhammer coefficient bridge, disk and entire series sums, equality
+with terminating polynomials, exact radii one/zero, natural-order divergence at
+nonzero arguments in the overbalanced case, the regularized 0F1 contiguous adapter,
+and the finite cancelled unity-sum family of 16.4.E2_5, including its removable
+limit. Exceptional parameters and the full acquired domains are retained.
+
+`genRegularizedHG` now guards the existence of a continuation before selecting it,
+with the native series as fallback. Local and entire series proofs can therefore
+avoid the global existence admission. A proved equality identifies this definition
+with the previous one under the existing existence theorem, preserving the germ,
+upper cut values and endpoint convention. That equivalence explicitly inherits
+`sorryAx`; continuation existence remains admitted. The existing `genHG_entire`
+becomes admission-independent in addition to the 14 source removals.
+
+Finite-product ratio estimates adapt Moritz Doll's private Mathlib proofs, with
+module-header and inline attribution, and extend them to positive degree.
+There are 151 remaining admissions in this chapter.
+
+### q-hypergeometric: 28 proofs
+
+Twenty-one Basic proofs cover complex-order/natural shifted factorials, reversed
+base and index formulas, positive/negative shifts, even/block/square products,
+termination with the general integer phase, idem expansion, full complex parameter
+limits and the general qPhi series sum on its complete disk/entire domains.
+The latter uses the exact term recurrence and a norm-ratio convergence argument;
+zero or terminating upper parameters remain allowed.
+
+Seven Calculus proofs establish the Gaussian quotient and integer-upper bridge,
+fixed and jointly growing-index limits (including the exact s=0 boundary), the
+convergent q-binomial series and Jackson-series summability. They reuse the proved
+QSeries APIs. This chapter has 160 remaining admissions.
+
+### Validation and next priorities
+
+The ordinary build passes (10,339 jobs). All ten changed Lean files and both root
+entry modules pass separate checks with `autoImplicit=false` and
+`relaxedAutoImplicit=false`. The compiled audit confirms all 134 removed admissions
+are now independent of `sorryAx`, and separately confirms the newly pure
+`genHG_entire`. The intentional old-definition equivalence dependency remains
+visible. The full environment contains 14,169 project theorems, of which 766 depend
+on `sorryAx`, with no other nonstandard axiom. The acquisition ledgers are refreshed
+from the final compiled declarations, including inherited dependencies of untagged
+prose links. The import graph, Mathlib-only layer, mirrored files, unchanged pins,
+source census, file modes and whitespace checks pass.
+
+The strongest next steps are qPhi holomorphy and analytic coefficient APIs built
+on the new full-domain summability theorem; remaining q-calculus finite differences,
+Leibniz identities and Jackson limits; Elementary branch-qualified series/products
+and remaining inverse-hyperbolic formulas; and Chapter 16 unit-circle convergence
+and continuation foundations. The global continuation existence theorem remains
+the central Chapter 16 analytical obligation.
+
+### Nature of the remaining Chapter 4 admissions
+
+There are 253: 166 in trigonometric/hyperbolic modules, 43 for Lambert W,
+nine for generalized exponentials/logarithms, and 35 in logarithm/power analysis
+and integrals. They are a mixture of routine API adaptation and substantial
+complex analysis, rather than a uniform measure of proof difficulty.
+
+Within the 166 trig/hyperbolic admissions, a classification by main proof task gives
+18 algebra/table/adapters; 12 inequalities, limits and pole statements; 23 series;
+eight product/partial-fraction statements; eight continued fractions; 67 inverse-
+function and branch results; seven general ODE classifications; and 23 primitives
+or definite integrals. Boundary convergence and compatible branch choices account
+for much of the work beyond the corresponding real elementary identities.
+
+Lambert W needs construction and uniqueness of its normalized complex branch
+family, followed by real properties, derivatives, coefficient polynomials, nine
+series, asymptotics and integral representations. The generalized exponential/log
+pair needs finite-iteration and least-iterate arguments, its inverse specification,
+continuous differentiability and nonuniqueness. Neither family has a direct API in
+the pinned Mathlib or TauCeti.
+
+The other 35 admissions comprise three absolutely continuous path/log integral
+statements and a power-value uniqueness criterion; eight bounds, two complex
+asymptotic limits, eight log/binomial series and two higher derivative formulas;
+six continued fractions, four definite integrals and one primitive. Some are good
+adapter targets: Mathlib already proves `Complex.iteratedDeriv_succ_log`, for
+example, while the logarithm-sheet statement needs the constant-shift bridge.
+
+One acquired statement is **false and needs correction**:
+`DLMF.Elementary.arcsinh_values_add` (4.38.E15). At u=v=I, both auxiliary square
+roots on its right side may be zero, so the right side contains w=0. On the left,
+a+b=0 and sinh(a)=sinh(b)=I would imply I=-I. The set formulation therefore loses
+branch compatibility. This is a mathematical counterexample from the definitions;
+no Lean counterexample or corrected theorem is claimed in this round.

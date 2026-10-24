@@ -122,10 +122,10 @@ Mathlib's `Complex.digamma`; moving it into `DLMF.Gamma.Real` is left for a late
 
 ## Status
 
-The Chapter 4, 16 and 17 acquisition and proof round on 2026-10-24 leaves
-**887 explicit source admissions**, including **345 in Elementary**, **165 in
-GeneralizedHypergeometric**, and **188 in QHypergeometric**. The remaining 189
-are in the older areas. The compiled audit finds **14,148 project theorems**, with **900 depending transitively on `sorryAx`** (887 direct and 13 inherited) and
+The second parallel proof round for Chapters 4, 16 and 17 on 2026-10-24 leaves
+**753 explicit source admissions**, including **253 in Elementary**, **151 in
+GeneralizedHypergeometric**, and **160 in QHypergeometric**. The remaining 189
+are in the older areas. The compiled audit finds **14,169 project theorems**, with **766 depending transitively on `sorryAx`** (753 direct and 13 inherited) and
 no other nonstandard axiom.
 Counts in the dated development history describe their earlier scope.
 
@@ -135,6 +135,12 @@ The [Elementary proof round](REVIEW.md#chapters-4-16-and-17-acquisition-and-elem
 then proved 102 newly acquired admissions without changing their statements, reducing
 Chapter 4 from 447 to 345. The new ledgers distinguish direct admissions, proofs
 that inherit admissions, branch-dependent definitions, and corrected source formulas.
+
+The [second parallel proof round](REVIEW.md#parallel-proofs-in-chapters-4-16-and-17-2026-10-24-second-round)
+proves 134 further statements: 92 Elementary, 14 generalized hypergeometric and 28
+q-hypergeometric. It also makes `genHG_entire` independent of the continuation
+existence admission. The guarded function definition preserves the previous values
+under that explicitly retained existence theorem.
 
 The [duplication review](REVIEW.md#duplication-and-reuse-review-2026-10-22) consolidates
 repeated hypergeometric algebra, scalar-series arguments, Bessel symmetry, Legendre

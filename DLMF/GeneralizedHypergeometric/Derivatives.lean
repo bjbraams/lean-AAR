@@ -94,7 +94,16 @@ theorem genContiguous_linear_relation {p q : ℕ} (hpq : p ≤ q + 1)
 theorem genHG_0F1_contiguous (b z : ℂ) (hb : genDenRegular {b - 1, b, b + 1}) :
     z * genHG ∅ {b + 1} z + b * (b - 1) * genHG ∅ {b} z -
       b * (b - 1) * genHG ∅ {b - 1} z = 0 := by
-  sorry
+  have hb₀ : b ≠ 0 := by simpa using hb b (by simp) 0
+  have hb₁ : b - 1 ≠ 0 := by simpa using hb (b - 1) (by simp) 0
+  have hΓ₀ := Complex.Gamma_add_one b hb₀
+  have hΓ₁ := Complex.Gamma_add_one (b - 1) hb₁
+  have hcont := Complex.regularizedHGFun_zero_singleton_eq_mul_add_mul (b - 1) z
+  rw [show b - 1 + 1 = b by ring, show b - 1 + 2 = b + 1 by ring] at hcont
+  rw [show b - 1 + 1 = b by ring] at hΓ₁
+  simp [genHG, genRegularizedHG, genGamma, Multiset.empty_eq_zero]
+  rw [hΓ₀, hΓ₁, hcont]
+  ring
 
 /-- The full four-term contiguous 3F2 identity. -/
 @[dlmf 16.3.E7]

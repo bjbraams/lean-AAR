@@ -1,5 +1,6 @@
 /-
 Copyright (c) 2026 Bastiaan J Braams. All rights reserved.
+Copyright (c) 2026 Moritz Doll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Bastiaan J Braams
 -/
@@ -16,6 +17,10 @@ circle. The statement for `p>q+1` concerns the formal coefficient series, withou
 assigning its divergent sum an analytic meaning. Analytic continuation uses the
 pinned TauCeti predicate for continuation along a path; no new continuation notion
 is introduced. Parameter holomorphy applies to every such continued branch.
+
+The finite-product coefficient-ratio estimates adapt Moritz Doll's private lemmas
+in `Mathlib.Analysis.SpecialFunctions.RegularizedHypergeometric`, extending them
+to positive degree. The adaptation is identified again at the helper lemmas.
 -/
 
 @[expose] public section
@@ -29,24 +34,43 @@ theorem genHG_entire {a b : Multiset ℂ} (h : a.card ≤ b.card) (hb : genDenRe
     AnalyticOnNhd ℂ (genHG a b) univ := by
   have hne : a.card ≠ b.card + 1 := by omega
   unfold genHG genRegularizedHG
-  simp only [dite_eq_right hne]
+  simp only [ite_eq_right hne]
   exact analyticOnNhd_const.mul (Complex.analyticOnNhd_regularizedHGFun_of_card_le h)
 
 /-- The entire case has an absolutely convergent series for every finite z. -/
 theorem genHG_hasSum_entire {a b : Multiset ℂ} (h : a.card ≤ b.card) (hb : genDenRegular b) (z : ℂ) :
     HasSum (fun n : ℕ => genCoeff a b n * z ^ n) (genHG a b z) := by
-  sorry
+  have hne : a.card ≠ b.card + 1 := by omega
+  have hs : HasSum (fun n => Complex.regularizedHGFunCoeff a b n * z ^ n)
+      (Complex.regularizedHGFun a b z) := by
+    simpa [Complex.regularizedHGFun, Complex.regularizedHGFunSeries,
+      FormalMultilinearSeries.ofScalars_apply_eq, mul_comm] using
+      (Complex.regularizedHGFunSeries a b).hasSum (x := z)
+        (by simp [Complex.radius_regularizedHGFunSeries_eq_top h])
+  unfold genHG genRegularizedHG
+  simp only [ite_eq_right hne]
+  refine (hs.mul_left (genGamma b)).congr_fun fun n => ?_
+  rw [genCoeff_eq_gamma_mul_regularized hb]
+  ring
 
 /-- Any nonpositive integer upper parameter gives a polynomial for every p,q. -/
 theorem genHG_terminating_entire {a b : Multiset ℂ} (hb : genDenRegular b) (ha : genTerminates a) :
     ∃ P : Polynomial ℂ, ∀ z : ℂ, genHG a b z = P.eval z := by
-  sorry
+  obtain ⟨x, hx, m, rfl⟩ := ha
+  refine ⟨∑ n ∈ range (m + 1), Polynomial.monomial n (genCoeff a b n), ?_⟩
+  intro z
+  rw [genHG_eq_finite hb hx]
+  simp [genFiniteHG, Polynomial.eval_finsetSum, Polynomial.eval_monomial]
 
 /-- The nonterminating p=q+1 series has exactly radius one. -/
 theorem genHG_radius_one {a b : Multiset ℂ} (h : a.card = b.card + 1)
     (hb : genDenRegular b) (ha : ¬genTerminates a) :
     (FormalMultilinearSeries.ofScalars ℂ (genCoeff a b)).radius = 1 := by
-  sorry
+  rw [genScalarSeries_eq_gamma_smul hb,
+    FormalMultilinearSeries.radius_smul_eq _ (genGamma_ne_zero hb)]
+  apply Complex.radius_regularizedHGFunSeries_eq_one h
+  intro x hx n hxn
+  exact ha ⟨x, hx, n, hxn⟩
 
 /-- The principal branch is analytic on the plane cut from one to positive infinity. -/
 theorem genHG_principal_analytic {a b : Multiset ℂ} (h : a.card = b.card + 1) :
@@ -83,17 +107,85 @@ theorem genHG_unit_diverges {a b : Multiset ℂ} (h : a.card = b.card + 1)
     (hγ : (genExcess a b).re ≤ -1) : ¬∃ v : ℂ, genSeriesConvergesTo a b z v := by
   sorry
 
+/- The next finite-product normalization follows the private ratio-test lemmas
+in Mathlib's `RegularizedHypergeometric`, due to Moritz Doll.  Here it is
+extended to the positive-degree case, where the coefficient ratio tends to infinity. -/
+private lemma gen_prod_shift (a : Multiset ℂ) {n : ℕ} (hn : n ≠ 0) :
+    (a.map (· + (n : ℂ))).prod = n ^ a.card * (a.map (· / (n : ℂ) + 1)).prod := calc
+  _ = (a.map (fun j ↦ n * (j / (n : ℂ) + 1))).prod := by
+    congr; ext; field_simp
+  _ = _ := by simp [Multiset.prod_map_mul]
+
+private lemma gen_prod_ratio (a b : Multiset ℂ) {n : ℕ} (hn : n ≠ 0) :
+    (a.map (· + (n : ℂ))).prod / ((b.map (· + (n : ℂ))).prod * (n + 1)) =
+      n ^ (a.card - (b.card : ℤ) - 1) * (a.map (· / (n : ℂ) + 1)).prod /
+      ((b.map (· / (n : ℂ) + 1)).prod * (1 + (n : ℂ)⁻¹)) := by
+  rw [gen_prod_shift a hn, gen_prod_shift b hn]
+  field_simp
+  congr 1
+  calc
+    _ = n * n ^ b.card * n ^ (a.card - b.card - (1 : ℤ)) *
+        (a.map (fun x : ℂ ↦ (x + n) / n)).prod := by
+      congr 1
+      rw [← pow_succ', ← zpow_natCast, ← zpow_natCast, ← zpow_add' (by left; norm_cast)]
+      grind
+    _ = _ := by ring
+
+private lemma gen_prod_normalized_tendsto (a : Multiset ℂ) :
+    Tendsto (fun n : ℕ ↦ (a.map (· / (n : ℂ) + 1)).prod) atTop (𝓝 1) := by
+  suffices ∀ i ∈ a, Tendsto (fun n : ℕ ↦ (i / n + 1)) atTop (𝓝 ((fun _ : ℂ ↦ 1) i)) by
+    simpa using tendsto_multiset_prod _ this
+  intro i hi
+  simpa using (tendsto_const_div_atTop_nhds_zero_nat i).add_const 1
+
+private lemma gen_prod_normalized_ratio_tendsto (a b : Multiset ℂ) :
+    Tendsto (fun n : ℕ ↦ (a.map (· / (n : ℂ) + 1)).prod /
+      ((b.map (· / (n : ℂ) + 1)).prod * (1 + (n : ℂ)⁻¹))) atTop (𝓝 1) := by
+  have h : Tendsto (fun n : ℕ ↦ (n : ℂ)⁻¹) atTop (𝓝 0) := tendsto_inv_atTop_nhds_zero_nat
+  have := (gen_prod_normalized_tendsto a).div
+    ((gen_prod_normalized_tendsto b).mul (h.const_add 1)) (by simp)
+  simp only [add_zero, mul_one, ne_eq, one_ne_zero, not_false_eq_true, div_self] at this
+  apply this.congr
+  simp
+
 /-- The nonterminating p>q+1 formal series has radius zero. -/
 theorem genHG_radius_zero {a b : Multiset ℂ} (h : b.card + 1 < a.card)
     (hb : genDenRegular b) (ha : ¬genTerminates a) :
     (FormalMultilinearSeries.ofScalars ℂ (genCoeff a b)).radius = 0 := by
-  sorry
+  rw [genScalarSeries_eq_gamma_smul hb,
+    FormalMultilinearSeries.radius_smul_eq _ (genGamma_ne_zero hb)]
+  apply FormalMultilinearSeries.ofScalars_radius_eq_zero_of_tendsto
+  have hp : 0 < (a.card : ℤ) - b.card - 1 := by omega
+  have ht : Tendsto (fun n : ℕ => (n : ℝ) ^ ((a.card : ℤ) - b.card - 1)) atTop atTop :=
+    (tendsto_zpow_atTop_atTop hp).comp tendsto_natCast_atTop_atTop
+  have hprod := (gen_prod_normalized_ratio_tendsto a b).norm
+  simp only [norm_one] at hprod
+  have hlim := Filter.Tendsto.atTop_mul_pos (by norm_num : (0 : ℝ) < 1) ht hprod
+  apply hlim.congr'
+  have h_ne := Complex.eventually_atTop_regularizedHGFunCoeff_ne_zero b
+    (fun x hx n hxn => ha ⟨x, hx, n, hxn⟩)
+  filter_upwards [h_ne, Filter.eventually_ne_atTop 0] with n hn₁ hn₂
+  rw [Nat.succ_eq_add_one, ← Complex.norm_div,
+    Complex.regularizedHGFunCoeff_add_one_div_self hn₁, gen_prod_ratio a b hn₂, ← mul_div,
+    norm_mul, norm_zpow, Complex.norm_natCast]
 
 /-- The nonterminating overbalanced formal series diverges at every nonzero argument. -/
 theorem genHG_diverges_nonzero {a b : Multiset ℂ} (h : b.card + 1 < a.card)
     (hb : genDenRegular b) (ha : ¬genTerminates a) {z : ℂ} (hz : z ≠ 0) :
     ¬∃ v : ℂ, genSeriesConvergesTo a b z v := by
-  sorry
+  rintro ⟨v, hv⟩
+  have hS : Tendsto (fun N : ℕ => ∑ n ∈ range N, genCoeff a b n * z ^ n) atTop (𝓝 v) := hv
+  have hS' : Tendsto (fun N : ℕ => ∑ n ∈ range (N + 1), genCoeff a b n * z ^ n)
+      atTop (𝓝 v) := (tendsto_add_atTop_iff_nat 1).2 hS
+  have ht : Tendsto (fun n : ℕ => genCoeff a b n * z ^ n) atTop (𝓝 0) := by
+    simpa only [Finset.sum_range_succ, add_sub_cancel_left, sub_self] using hS'.sub hS
+  have htn : Tendsto (fun n : ℕ => ‖genCoeff a b n‖ * ‖z‖ ^ n) atTop (𝓝 0) := by
+    simpa only [norm_mul, norm_pow, norm_zero] using ht.norm
+  have hr := (FormalMultilinearSeries.ofScalars ℂ (genCoeff a b)).le_radius_of_tendsto
+    (r := ‖z‖₊) (by simpa only [FormalMultilinearSeries.ofScalars_norm, coe_nnnorm] using htn)
+  rw [genHG_radius_zero h hb ha] at hr
+  have : z = 0 := by simpa using hr
+  exact hz this
 
 /-- General branches continue along every path avoiding the possible finite singularities zero and one. -/
 theorem genHG_continuation_along {a b : Multiset ℂ} (h : a.card = b.card + 1)

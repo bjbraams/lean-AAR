@@ -808,15 +808,98 @@ theorem arccot_general_reciprocal {z : ℂ} (hz : z≠0) : arccotGeneral z=arcta
     exact inv_ne_zero hz this
 
 
+private theorem trig_arcsin_product (z:ℂ) :
+    (Complex.sqrt (1-z^2)+I*z)*(Complex.sqrt (1-z^2)-I*z)=1 := by
+  linear_combination trig_sqrt_sq (1-z^2) - z^2*Complex.I_sq
+
+private theorem trig_arcsin_log_arg_ne (z:ℂ) : Complex.sqrt (1-z^2)+I*z≠0 := by
+  intro h
+  have hp:=trig_arcsin_product z
+  rw [h,zero_mul] at hp
+  exact zero_ne_one hp
+
+private theorem trig_arcsin_log_slit (z:ℂ) : Complex.sqrt (1-z^2)+I*z∈Complex.slitPlane := by
+  let r:=Complex.sqrt (1-z^2)
+  change r+I*z∈Complex.slitPlane
+  rw [Complex.mem_slitPlane_iff]
+  by_cases hi:(r+I*z).im≠0
+  · exact Or.inr hi
+  · left
+    have hi0:(r+I*z).im=0 := not_ne_iff.mp hi
+    have hr:0≤r.re := by
+      dsimp [r]
+      rw [Complex.sqrt,Complex.cpow_inv_two_re]
+      positivity
+    have him:r.im= -z.re := by
+      simp only [Complex.add_im,Complex.I_mul_im] at hi0
+      linarith
+    have hp:=congrArg Complex.re (trig_arcsin_product z)
+    change ((r+I*z)*(r-I*z)).re=1 at hp
+    simp only [Complex.mul_re,Complex.add_re,Complex.sub_re,Complex.add_im,Complex.sub_im,
+      Complex.I_mul_re,Complex.I_mul_im,him] at hp
+    norm_num only [Complex.I_re,Complex.I_im,zero_mul,one_mul,zero_sub] at hp
+    simp only [Complex.add_re,Complex.I_mul_re]
+    nlinarith
+
+private theorem trig_one_sub_sq_slit {z:ℂ} (hz:z∈arcsinCutPlane) : 1-z^2∈Complex.slitPlane := by
+  rw [Complex.mem_slitPlane_iff]
+  by_cases hi:z.im=0
+  · left
+    have hr:|z.re|<1 := hz.resolve_left (not_ne_iff.mpr hi)
+    simp [pow_two,Complex.mul_re,hi]
+    nlinarith [(abs_lt.mp hr).1,(abs_lt.mp hr).2]
+  · by_cases hr:z.re=0
+    · left
+      simp [pow_two,Complex.mul_re,hr]
+      nlinarith [sq_nonneg z.im]
+    · right
+      simp [pow_two,Complex.mul_im]
+      convert neg_ne_zero.mpr (mul_ne_zero (mul_ne_zero two_ne_zero hr) hi) using 1 <;> ring
+
+private theorem trig_hasDerivAt_sqrt {q:ℂ} (hq:q∈Complex.slitPlane) :
+    HasDerivAt Complex.sqrt ((Complex.sqrt q)⁻¹/2) q := by
+  simpa only [Complex.sqrt,show (-1/2:ℂ)= -(2⁻¹:ℂ) by norm_num,Complex.cpow_neg] using
+    Complex.hasDerivAt_sqrt hq
+
+private theorem trig_hasDerivAt_arcsin {z:ℂ} (hz:z∈arcsinCutPlane) :
+    HasDerivAt arcsinPrincipal (Complex.sqrt (1-z^2))⁻¹ z := by
+  have hq:=trig_one_sub_sq_slit hz
+  have hr:Complex.sqrt (1-z^2)≠0 := by
+    intro h
+    have hs:=trig_sqrt_sq (1-z^2)
+    rw [h,zero_pow two_ne_zero] at hs
+    exact (Complex.mem_slitPlane_iff_arg.mp hq).2 hs.symm
+  have hd0:=(trig_hasDerivAt_sqrt hq).comp z (((hasDerivAt_id z).pow 2).const_sub 1)
+  have hd1:=hd0.add ((hasDerivAt_id z).const_mul I)
+  have hd2:=(Complex.hasDerivAt_log (trig_arcsin_log_slit z)).comp z hd1
+  have hd:=hd2.const_mul (-I)
+  convert hd using 1
+  · rfl
+  · dsimp only [id,Pi.pow_apply,Pi.add_apply]
+    norm_num only [Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one,one_mul]
+    generalize heq : Complex.sqrt (1-z^2)=r at hr ⊢
+    have hw:r+I*z≠0 := by rw [← heq]; exact trig_arcsin_log_arg_ne z
+    field_simp [hr,hw]
+    linear_combination r*Complex.I_sq
+
 /-- DLMF 4.23.ii: analytic arcsin principal. -/
 @[dlmf 4.23.ii]
 theorem analytic_arcsin_principal : AnalyticOnNhd ℂ arcsinPrincipal arcsinCutPlane := by
-  sorry
+  have hU:IsOpen arcsinCutPlane := by
+    change IsOpen ({z:ℂ | z.im≠0}∪{z:ℂ | |z.re|<1})
+    exact (isOpen_ne.preimage Complex.continuous_im).union
+      (isOpen_lt (continuous_abs.comp Complex.continuous_re) continuous_const)
+  exact (show DifferentiableOn ℂ arcsinPrincipal arcsinCutPlane from fun z hz=>
+    (trig_hasDerivAt_arcsin hz).differentiableAt.differentiableWithinAt).analyticOnNhd hU
+
 
 /-- DLMF 4.23.ii: analytic arccos principal. -/
 @[dlmf 4.23.ii]
 theorem analytic_arccos_principal : AnalyticOnNhd ℂ arccosPrincipal arcsinCutPlane := by
-  sorry
+  intro z hz
+  change AnalyticAt ℂ (fun w=>(π:ℂ)/2-arcsinPrincipal w) z
+  exact analyticAt_const.sub (analytic_arcsin_principal z hz)
+
 
 /-- DLMF 4.23.ii: analytic arctan principal. -/
 @[dlmf 4.23.ii]
@@ -832,12 +915,16 @@ theorem analytic_arctan_principal : AnalyticOnNhd ℂ Complex.arctan arctanCutPl
 /-- DLMF 4.23.ii: analytic arccsc principal. -/
 @[dlmf 4.23.ii]
 theorem analytic_arccsc_principal : AnalyticOnNhd ℂ arccscPrincipal arccscCutPlane := by
-  sorry
+  intro z hz
+  exact (analytic_arcsin_principal _ hz.2).comp (analyticAt_id.inv hz.1)
+
 
 /-- DLMF 4.23.ii: analytic arcsec principal. -/
 @[dlmf 4.23.ii]
 theorem analytic_arcsec_principal : AnalyticOnNhd ℂ arcsecPrincipal arccscCutPlane := by
-  sorry
+  intro z hz
+  exact (analytic_arccos_principal _ hz.2).comp (analyticAt_id.inv hz.1)
+
 
 /-- DLMF 4.23.ii: analytic arccot principal. -/
 @[dlmf 4.23.ii]
@@ -855,12 +942,22 @@ theorem inverse_principal_real {x : ℝ} (hx : x∈Icc (-1) 1) :
 /-- DLMF 4.23.E10: arcsin principal neg. -/
 @[dlmf 4.23.E10]
 theorem arcsin_principal_neg {z : ℂ} (hz : z∈arcsinCutPlane) : arcsinPrincipal (-z)= -arcsinPrincipal z := by
-  sorry
+  have hn:Complex.sqrt (1-(-z)^2)+I*(-z)=(Complex.sqrt (1-z^2)+I*z)⁻¹ := by
+    apply (mul_left_cancel₀ (trig_arcsin_log_arg_ne z))
+    rw [mul_inv_cancel₀ (trig_arcsin_log_arg_ne z)]
+    convert trig_arcsin_product z using 1 <;> ring
+  unfold arcsinPrincipal
+  rw [hn,Complex.log_inv _ (Complex.mem_slitPlane_iff_arg.mp (trig_arcsin_log_slit z)).1]
+  ring
+
 
 /-- DLMF 4.23.E11: arccos principal neg. -/
 @[dlmf 4.23.E11]
 theorem arccos_principal_neg {z : ℂ} (hz : z∈arcsinCutPlane) : arccosPrincipal (-z)=π-arccosPrincipal z := by
-  sorry
+  unfold arccosPrincipal
+  rw [arcsin_principal_neg hz]
+  ring
+
 
 /-- DLMF 4.23.E12: arctan principal neg. -/
 @[dlmf 4.23.E12]
@@ -875,12 +972,18 @@ theorem arctan_principal_neg {z : ℂ} (hz : z∈arctanCutPlane) : Complex.arcta
 /-- DLMF 4.23.E13: arccsc principal neg. -/
 @[dlmf 4.23.E13]
 theorem arccsc_principal_neg {z : ℂ} (hz : z∈arccscCutPlane) : arccscPrincipal (-z)= -arccscPrincipal z := by
-  sorry
+  unfold arccscPrincipal
+  rw [inv_neg]
+  exact arcsin_principal_neg hz.2
+
 
 /-- DLMF 4.23.E14: arcsec principal neg. -/
 @[dlmf 4.23.E14]
 theorem arcsec_principal_neg {z : ℂ} (hz : z∈arccscCutPlane) : arcsecPrincipal (-z)=π-arcsecPrincipal z := by
-  sorry
+  unfold arcsecPrincipal
+  rw [inv_neg]
+  exact arccos_principal_neg hz.2
+
 
 /-- DLMF 4.23.E15: arccot principal neg. -/
 @[dlmf 4.23.E15]
@@ -979,12 +1082,27 @@ theorem reciprocal_reverses_real_cut_bank {x : ℝ} (hx : x≠0) :
 /-- DLMF 4.23.E28: sin arcsin principal. -/
 @[dlmf 4.23.E28]
 theorem sin_arcsin_principal (z : ℂ) : Complex.sin (arcsinPrincipal z)=z := by
-  sorry
+  let w:=Complex.sqrt (1-z^2)+I*z
+  have hw:w≠0 := trig_arcsin_log_arg_ne z
+  have hp:w*(Complex.sqrt (1-z^2)-I*z)=1 := trig_arcsin_product z
+  have hi:w⁻¹=Complex.sqrt (1-z^2)-I*z := by
+    apply (mul_left_cancel₀ hw)
+    rw [mul_inv_cancel₀ hw,hp]
+  have he:Complex.exp (arcsinPrincipal z*I)=w := by
+    rw [arcsinPrincipal,show -I*Complex.log w*I=Complex.log w by linear_combination -Complex.log w*Complex.I_sq]
+    exact Complex.exp_log hw
+  have hn:Complex.exp (-(arcsinPrincipal z)*I)=w⁻¹ := by
+    rw [neg_mul,Complex.exp_neg,he]
+  rw [Complex.sin,he,hn,hi]
+  dsimp [w]
+  linear_combination -z*Complex.I_sq
+
 
 /-- DLMF 4.23.E29: cos arccos principal. -/
 @[dlmf 4.23.E29]
 theorem cos_arccos_principal (z : ℂ) : Complex.cos (arccosPrincipal z)=z := by
-  sorry
+  rw [arccosPrincipal,Complex.cos_pi_div_two_sub,sin_arcsin_principal]
+
 
 /-- DLMF 4.23.E31: arcsin general values. -/
 @[dlmf 4.23.E31]
@@ -1266,12 +1384,14 @@ theorem arctan_euler_domain (z : ℂ) : -(1/2:ℝ)<(z^2).re ↔ -(1/2:ℝ)<z.re^
 /-- DLMF 4.24.E7: hasDerivAt arcsin principal. -/
 @[dlmf 4.24.E7]
 theorem hasDerivAt_arcsin_principal {z : ℂ} (hz : z∈arcsinCutPlane) : HasDerivAt arcsinPrincipal ((Complex.sqrt (1-z^2))⁻¹) z := by
-  sorry
+  exact trig_hasDerivAt_arcsin hz
+
 
 /-- DLMF 4.24.E8: hasDerivAt arccos principal. -/
 @[dlmf 4.24.E8]
 theorem hasDerivAt_arccos_principal {z : ℂ} (hz : z∈arcsinCutPlane) : HasDerivAt arccosPrincipal (-(Complex.sqrt (1-z^2))⁻¹) z := by
-  sorry
+  exact (trig_hasDerivAt_arcsin hz).const_sub ((π:ℂ)/2)
+
 
 /-- DLMF 4.24.E9: hasDerivAt arctan principal. -/
 @[dlmf 4.24.E9]
@@ -1875,13 +1995,54 @@ theorem arctan_euler_boundary (z : ℂ) :
 theorem inverse_sin_cos_branch_points (a : ℂ) (ha : a=1 ∨ a= -1) :
     ¬∃ U : Set ℂ,IsOpen U ∧ a∈U ∧ ∃ f : ℂ→ℂ,AnalyticOnNhd ℂ f U ∧
       ((∀ z∈U,Complex.sin (f z)=z) ∨ (∀ z∈U,Complex.cos (f z)=z)) := by
-  sorry
+  rintro ⟨U,hU,haU,f,hf,hInv⟩
+  have hdf:=(hf a haU).differentiableAt.hasDerivAt
+  rcases hInv with hs|hc
+  · have hzero:Complex.cos (f a)=0 := by
+      apply sq_eq_zero_iff.mp
+      rw [Complex.cos_sq',hs a haU]
+      rcases ha with rfl|rfl <;> norm_num
+    have hd:=(Complex.hasDerivAt_sin (f a)).comp a hdf
+    rw [hzero,zero_mul] at hd
+    have heq:id=ᶠ[𝓝 a] Complex.sin∘f := by
+      filter_upwards [hU.mem_nhds haU] with z hz
+      exact (hs z hz).symm
+    have hcontra:=(hd.congr_of_eventuallyEq heq).unique (hasDerivAt_id a)
+    norm_num at hcontra
+  · have hzero:Complex.sin (f a)=0 := by
+      apply sq_eq_zero_iff.mp
+      rw [Complex.sin_sq,hc a haU]
+      rcases ha with rfl|rfl <;> norm_num
+    have hd:=(Complex.hasDerivAt_cos (f a)).comp a hdf
+    rw [hzero,neg_zero,zero_mul] at hd
+    have heq:id=ᶠ[𝓝 a] Complex.cos∘f := by
+      filter_upwards [hU.mem_nhds haU] with z hz
+      exact (hc z hz).symm
+    have hcontra:=(hd.congr_of_eventuallyEq heq).unique (hasDerivAt_id a)
+    norm_num at hcontra
+
 
 /-- The logarithmic tangent branch points have no finite nonpolar inverse images. -/
 @[dlmf 4.23.i]
 theorem inverse_tan_cot_branch_points (a : ℂ) (ha : a=I ∨ a= -I) :
     arctanGeneral a=∅ ∧ arccotGeneral a=∅ := by
-  sorry
+  have ha2:a^2= -1 := by rcases ha with rfl|rfl <;> simp
+  constructor
+  · apply Set.eq_empty_iff_forall_notMem.mpr
+    rintro w ⟨hc,ht⟩
+    have hs:Complex.sin w=a*Complex.cos w := (div_eq_iff hc).mp ht
+    have hp:=Complex.sin_sq_add_cos_sq w
+    rw [hs,mul_pow,ha2] at hp
+    ring_nf at hp
+    norm_num at hp
+  · apply Set.eq_empty_iff_forall_notMem.mpr
+    rintro w ⟨hs,ht⟩
+    have hc:Complex.cos w=a*Complex.sin w := (div_eq_iff hs).mp ht
+    have hp:=Complex.sin_sq_add_cos_sq w
+    rw [hc,mul_pow,ha2] at hp
+    ring_nf at hp
+    norm_num at hp
+
 
 /-- Reciprocal inverse sine/cosine branches have the same endpoint obstructions. -/
 @[dlmf 4.23.i]
@@ -1889,7 +2050,39 @@ theorem inverse_reciprocal_branch_points (a : ℂ) (ha : a=1 ∨ a= -1) :
     ¬∃ U : Set ℂ,IsOpen U ∧ a∈U ∧ ∃ f : ℂ→ℂ,AnalyticOnNhd ℂ f U ∧
       ((∀ z∈U,Complex.sin (f z)≠0 ∧ csc (f z)=z) ∨
        (∀ z∈U,Complex.cos (f z)≠0 ∧ sec (f z)=z)) := by
-  sorry
+  rintro ⟨U,hU,haU,f,hf,hInv⟩
+  have hdf:=(hf a haU).differentiableAt.hasDerivAt
+  have hai:a⁻¹=a := by rcases ha with rfl|rfl <;> norm_num
+  rcases hInv with hs|hc
+  · have hsval:Complex.sin (f a)=a := by
+      simpa only [csc,inv_inv,hai] using congrArg Inv.inv (hs a haU).2
+    have hzero:Complex.cos (f a)=0 := by
+      apply sq_eq_zero_iff.mp
+      rw [Complex.cos_sq',hsval]
+      rcases ha with rfl|rfl <;> norm_num
+    have hd:=(hasDerivAt_csc (hs a haU).1).comp a hdf
+    have hcot:Complex.cot (f a)=0 := by simp [Complex.cot,hzero]
+    rw [hcot,mul_zero,zero_mul] at hd
+    have heq:id=ᶠ[𝓝 a] csc∘f := by
+      filter_upwards [hU.mem_nhds haU] with z hz
+      exact (hs z hz).2.symm
+    have hcontra:=(hd.congr_of_eventuallyEq heq).unique (hasDerivAt_id a)
+    norm_num at hcontra
+  · have hcval:Complex.cos (f a)=a := by
+      simpa only [sec,inv_inv,hai] using congrArg Inv.inv (hc a haU).2
+    have hzero:Complex.sin (f a)=0 := by
+      apply sq_eq_zero_iff.mp
+      rw [Complex.sin_sq,hcval]
+      rcases ha with rfl|rfl <;> norm_num
+    have hd:=(hasDerivAt_sec (hc a haU).1).comp a hdf
+    have htan:Complex.tan (f a)=0 := by simp [Complex.tan,hzero]
+    rw [htan,mul_zero,zero_mul] at hd
+    have heq:id=ᶠ[𝓝 a] sec∘f := by
+      filter_upwards [hU.mem_nhds haU] with z hz
+      exact (hc z hz).2.symm
+    have hcontra:=(hd.congr_of_eventuallyEq heq).unique (hasDerivAt_id a)
+    norm_num at hcontra
+
 
 /-- Principal complex inverse-sine and cosine primitives on their common cut plane. -/
 @[dlmf 4.26.i]
@@ -1900,7 +2093,50 @@ theorem complex_inverse_sin_cos_primitives {z : ℂ} (hz : z∈arcsinCutPlane) :
       (z*arcsinPrincipal z) z ∧
     HasDerivAt (fun w : ℂ => (w^2/2-1/4)*arccosPrincipal w-w/4*Complex.sqrt (1-w^2))
       (z*arccosPrincipal z) z := by
-  sorry
+  have hq:=trig_one_sub_sq_slit hz
+  have hr:Complex.sqrt (1-z^2)≠0 := by
+    intro h
+    have hs:=trig_sqrt_sq (1-z^2)
+    rw [h,zero_pow two_ne_zero] at hs
+    exact (Complex.mem_slitPlane_iff_arg.mp hq).2 hs.symm
+  have hS:HasDerivAt (fun w:ℂ=>Complex.sqrt (1-w^2)) (-z/Complex.sqrt (1-z^2)) z := by
+    convert (trig_hasDerivAt_sqrt hq).comp z (((hasDerivAt_id z).pow 2).const_sub 1) using 1 <;>
+      simp only [id_eq,Function.comp_def,Pi.pow_apply,Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one] <;> ring
+  have hA:=trig_hasDerivAt_arcsin hz
+  have hC:=hasDerivAt_arccos_principal hz
+  have hroot:=trig_sqrt_sq (1-z^2)
+  refine ⟨?_,?_,?_,?_⟩
+  · have hd:=((hasDerivAt_id z).mul hA).add hS
+    convert hd using 1
+    · rfl
+    · dsimp only [id,Pi.mul_apply,Pi.add_apply]
+      field_simp
+      ring
+  · have hd:=((hasDerivAt_id z).mul hC).sub hS
+    convert hd using 1
+    · rfl
+    · dsimp only [id,Pi.mul_apply,Pi.sub_apply]
+      field_simp
+      ring
+  · have hd:=((((hasDerivAt_id z).pow 2).div_const 2).sub_const (1/4)).mul hA |>.add
+      (((hasDerivAt_id z).div_const 4).mul hS)
+    convert hd using 1
+    · rfl
+    · dsimp only [id,Pi.mul_apply,Pi.sub_apply,Pi.add_apply,Pi.pow_apply]
+      norm_num only [Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one,one_mul]
+      field_simp
+      rw [hroot]
+      ring
+  · have hd:=((((hasDerivAt_id z).pow 2).div_const 2).sub_const (1/4)).mul hC |>.sub
+      (((hasDerivAt_id z).div_const 4).mul hS)
+    convert hd using 1
+    · rfl
+    · dsimp only [id,Pi.mul_apply,Pi.sub_apply,Pi.add_apply,Pi.pow_apply]
+      norm_num only [Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one,one_mul]
+      field_simp
+      rw [hroot]
+      ring
+
 
 /-- The complex arctangent primitive on its principal cut plane. -/
 @[dlmf 4.26.i]

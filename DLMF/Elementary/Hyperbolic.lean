@@ -7,6 +7,7 @@ module
 
 public import DLMF.Core.Framework
 public import DLMF.Core.Upstream
+public import DLMF.Elementary.Trigonometric
 public import Mathlib.Analysis.Complex.SqrtDeriv
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
@@ -122,11 +123,40 @@ theorem cot_mul_I (z : ℂ) : (Complex.tan (I*z))⁻¹= -I*coth z := by
 
 /-- sinh zeros. -/
 theorem sinh_zeros (z : ℂ) : Complex.sinh z=0 ↔ ∃ k : ℤ, z=(k:ℂ)*π*I := by
-  sorry
+  constructor
+  · intro h
+    have hs:Complex.sin (z*I)=0 := by rw [Complex.sin_mul_I,h,zero_mul]
+    obtain ⟨k,hk⟩:=Complex.sin_eq_zero_iff.mp hs
+    refine ⟨-k,?_⟩
+    have hh:=congrArg (fun w:ℂ=>w*(-I)) hk
+    simp [mul_assoc] at hh
+    convert hh using 1 <;> push_cast <;> ring
+  · rintro ⟨k,rfl⟩
+    have hs:Complex.sin (((k:ℂ)*π*I)*I)=0 := by
+      rw [mul_assoc,Complex.I_mul_I,mul_neg_one]
+      exact Complex.sin_eq_zero_iff.mpr ⟨-k,by push_cast;ring⟩
+    rw [Complex.sin_mul_I] at hs
+    exact (mul_eq_zero.mp hs).resolve_right Complex.I_ne_zero
+
 
 /-- cosh zeros. -/
 theorem cosh_zeros (z : ℂ) : Complex.cosh z=0 ↔ ∃ k : ℤ, z=((k:ℂ)+1/2)*π*I := by
-  sorry
+  constructor
+  · intro h
+    have hs:Complex.cos (z*I)=0 := by rwa [Complex.cos_mul_I]
+    obtain ⟨k,hk⟩:=Complex.cos_eq_zero_iff.mp hs
+    refine ⟨-k-1,?_⟩
+    have hh:=congrArg (fun w:ℂ=>w*(-I)) hk
+    simp [mul_assoc] at hh
+    convert hh using 1 <;> push_cast <;> ring
+  · rintro ⟨k,rfl⟩
+    rw [← Complex.cos_mul_I]
+    apply Complex.cos_eq_zero_iff.mpr
+    refine ⟨-k-1,?_⟩
+    simp [mul_assoc]
+    push_cast
+    ring
+
 
 /-- Table4.30.1, column1: all six entries with the stated real nonnegative branch. -/
 @[dlmf 4.30.T1]
@@ -172,12 +202,32 @@ theorem sinh_div_limit  : Tendsto (fun z : ℂ => Complex.sinh z/z) (𝓝[≠] 0
 /-- tanh div limit. -/
 @[dlmf 4.31.E2]
 theorem tanh_div_limit  : Tendsto (fun z : ℂ => Complex.tanh z/z) (𝓝[≠] 0) (𝓝 1) := by
-  sorry
+  have hd:HasDerivAt Complex.tanh (1:ℂ) 0 := by
+    convert (Complex.hasDerivAt_sinh (0:ℂ)).div (Complex.hasDerivAt_cosh (0:ℂ)) (by simp) using 1
+    · ext w; exact Complex.tanh_eq_sinh_div_cosh w
+    · simp
+  simpa [slope_fun_def_field,Complex.tanh] using hd.tendsto_slope
+
 
 /-- cosh sub one div sq limit. -/
 @[dlmf 4.31.E3]
 theorem cosh_sub_one_div_sq_limit  : Tendsto (fun z : ℂ => (Complex.cosh z-1)/z^2) (𝓝[≠] 0) (𝓝 (1/2)) := by
-  sorry
+  have hd:HasDerivAt (fun z:ℂ=>Complex.sinh (z/2)) ((1:ℂ)/2) 0 := by
+    simpa only [zero_div,Complex.cosh_zero,one_mul,Function.comp_def,id_eq] using
+      (Complex.hasDerivAt_sinh ((0:ℂ)/2)).comp (0:ℂ) ((hasDerivAt_id (0:ℂ)).div_const (2:ℂ))
+  have hh:Tendsto (fun z:ℂ=>Complex.sinh (z/2)/z) (𝓝[≠] 0) (𝓝 ((1:ℂ)/2)) := by
+    simpa [slope_fun_def_field] using hd.tendsto_slope
+  have hlim:=(hh.pow 2).const_mul 2
+  convert hlim using 1
+  · ext z
+    have hc:Complex.cosh z-1=2*Complex.sinh (z/2)^2 := by
+      have h:=Complex.cosh_two_mul (z/2)
+      rw [show (2:ℂ)*(z/2)=z by ring] at h
+      linear_combination h+Complex.cosh_sq_sub_sinh_sq (z/2)
+    rw [hc,div_pow]
+    ring
+  · norm_num
+
 
 /-- Every finite entry of Table4.31.1; zeros at excluded pole entries are Lean totalizations, whose meromorphic poles are asserted separately below. -/
 @[dlmf 4.31.T1]
@@ -186,7 +236,12 @@ theorem hyperbolic_special_values  :
     hyperbolicSix (π*I/2) = ![I,0,0,-I,0,0] ∧
     hyperbolicSix (π*I) = ![0,-1,0,0,-1,0] ∧
     hyperbolicSix (3*π*I/2) = ![-I,0,0,I,0,0] := by
-  sorry
+  refine ⟨?_,?_,?_,?_⟩ <;> ext j <;> fin_cases j <;>
+    norm_num [hyperbolicSix,csch,sech,coth,Complex.tanh_eq_sinh_div_cosh,
+      show (π:ℂ)*I/2=(π/2)*I by ring,
+      show (3:ℂ)*π*I/2=(π+π/2)*I by ring,
+      Complex.sinh_mul_I,Complex.cosh_mul_I,Complex.sin_add,Complex.cos_add]
+
 
 /-- hyperbolic real infinity. -/
 @[dlmf 4.31.T1]
@@ -350,22 +405,32 @@ theorem hyperbolic_riccati_ode {U : Set ℂ} (hU : IsOpen U) (hc : IsConnected U
 /-- tanh add. -/
 @[dlmf 4.35.E3]
 theorem tanh_add {u v : ℂ} (hu : Complex.cosh u≠0) (hv : Complex.cosh v≠0) : Complex.tanh (u+v)=(Complex.tanh u+Complex.tanh v)/(1+Complex.tanh u*Complex.tanh v) := by
-  sorry
+  unfold Complex.tanh
+  rw [Complex.sinh_add,Complex.cosh_add]
+  field_simp <;> ring
+
 
 /-- tanh sub. -/
 @[dlmf 4.35.E3]
 theorem tanh_sub {u v : ℂ} (hu : Complex.cosh u≠0) (hv : Complex.cosh v≠0) : Complex.tanh (u-v)=(Complex.tanh u-Complex.tanh v)/(1-Complex.tanh u*Complex.tanh v) := by
-  sorry
+  simpa [sub_eq_add_neg,Complex.tanh_neg] using tanh_add hu (show Complex.cosh (-v)≠0 by simpa using hv)
+
 
 /-- coth add. -/
 @[dlmf 4.35.E4]
 theorem coth_add {u v : ℂ} (hu : Complex.sinh u≠0) (hv : Complex.sinh v≠0) : coth (u+v)=(coth u*coth v+1)/(coth u+coth v) := by
-  sorry
+  unfold coth
+  rw [Complex.sinh_add,Complex.cosh_add]
+  field_simp <;> ring
+
 
 /-- coth sub. -/
 @[dlmf 4.35.E4]
 theorem coth_sub {u v : ℂ} (hu : Complex.sinh u≠0) (hv : Complex.sinh v≠0) : coth (u-v)=(-coth u*coth v+1)/(coth u-coth v) := by
-  sorry
+  have hn:Complex.sinh (-v)≠0 := by simpa using hv
+  have hh:=coth_add hu hn
+  simpa [coth,sub_eq_add_neg,Complex.sinh_neg,Complex.cosh_neg,div_neg] using hh
+
 
 /-- sinh add sinh. -/
 @[dlmf 4.35.E5]
@@ -496,7 +561,11 @@ theorem cosh_half_sq (z : ℂ) : Complex.cosh (z/2)^2=(Complex.cosh z+1)/2 := by
 /-- tanh half sq. -/
 @[dlmf 4.35.E22]
 theorem tanh_half_sq {z : ℂ} (hz : Complex.cosh (z/2)≠0) : Complex.tanh (z/2)^2=(Complex.cosh z-1)/(Complex.cosh z+1) := by
-  sorry
+  have hs:Complex.cosh z-1=2*Complex.sinh (z/2)^2 := by linear_combination -2*sinh_half_sq z
+  have hc:Complex.cosh z+1=2*Complex.cosh (z/2)^2 := by linear_combination -2*cosh_half_sq z
+  rw [hs,hc,Complex.tanh,div_pow]
+  field_simp
+
 
 /-- tanh half ratios. -/
 @[dlmf 4.35.E22]
@@ -506,7 +575,11 @@ theorem tanh_half_ratios {z : ℂ} (hz : Complex.sinh z≠0) : Complex.tanh (z/2
 /-- sinh two mul tanh. -/
 @[dlmf 4.35.E26]
 theorem sinh_two_mul_tanh {z : ℂ} (hz : Complex.cosh z≠0) : Complex.sinh (2*z)=2*Complex.tanh z/(1-Complex.tanh z^2) := by
-  sorry
+  rw [Complex.tanh,Complex.sinh_two_mul]
+  field_simp
+  rw [Complex.cosh_sq]
+  ring
+
 
 /-- cosh two mul forms. -/
 @[dlmf 4.35.E27]
@@ -519,7 +592,9 @@ theorem cosh_two_mul_forms (z : ℂ) : Complex.cosh (2*z)=2*Complex.cosh z^2-1 �
 /-- tanh two mul. -/
 @[dlmf 4.35.E28]
 theorem tanh_two_mul {z : ℂ} (hz : Complex.cosh z≠0) : Complex.tanh (2*z)=2*Complex.tanh z/(1+Complex.tanh z^2) := by
-  sorry
+  have hh:=tanh_add hz hz
+  simpa only [← two_mul,pow_two] using hh
+
 
 /-- sinh four mul. -/
 @[dlmf 4.35.E31]
@@ -545,12 +620,20 @@ theorem cosh_add_sinh_int_mul (n : ℤ) (z : ℂ) : Complex.cosh ((n:ℂ)*z)+Com
 /-- sinh cartesian. -/
 @[dlmf 4.35.E34]
 theorem sinh_cartesian (z : ℂ) : Complex.sinh z=Real.sinh z.re*Real.cos z.im+I*(Real.cosh z.re*Real.sin z.im) := by
-  sorry
+  conv_lhs => rw [← Complex.re_add_im z,Complex.sinh_add,Complex.sinh_mul_I,Complex.cosh_mul_I]
+  simp only [← Complex.ofReal_sinh,← Complex.ofReal_cosh,← Complex.ofReal_sin,← Complex.ofReal_cos]
+  push_cast
+  ring
+
 
 /-- cosh cartesian. -/
 @[dlmf 4.35.E35]
 theorem cosh_cartesian (z : ℂ) : Complex.cosh z=Real.cosh z.re*Real.cos z.im+I*(Real.sinh z.re*Real.sin z.im) := by
-  sorry
+  conv_lhs => rw [← Complex.re_add_im z,Complex.cosh_add,Complex.sinh_mul_I,Complex.cosh_mul_I]
+  simp only [← Complex.ofReal_sinh,← Complex.ofReal_cosh,← Complex.ofReal_sin,← Complex.ofReal_cos]
+  push_cast
+  ring
+
 
 /-- tanh cartesian. -/
 @[dlmf 4.35.E36]
@@ -565,17 +648,29 @@ theorem coth_cartesian (z : ℂ) : coth z=((Real.sinh (2*z.re):ℂ)-I*Real.sin (
 /-- norm sinh cartesian. -/
 @[dlmf 4.35.E38]
 theorem norm_sinh_cartesian (z : ℂ) : ‖Complex.sinh z‖=Real.sqrt (Real.sinh z.re^2+Real.sin z.im^2) ∧ ‖Complex.sinh z‖=Real.sqrt ((Real.cosh (2*z.re)-Real.cos (2*z.im))/2) := by
-  sorry
+  have hn:‖Complex.sin (I*z)‖=‖Complex.sinh z‖ := by
+    rw [mul_comm I z,Complex.sin_mul_I,norm_mul,Complex.norm_I,mul_one]
+  simpa [hn,Complex.I_mul_re,Complex.I_mul_im,Real.sin_neg,Real.cos_neg,add_comm] using norm_sin_explicit (I*z)
+
 
 /-- norm cosh cartesian. -/
 @[dlmf 4.35.E39]
 theorem norm_cosh_cartesian (z : ℂ) : ‖Complex.cosh z‖=Real.sqrt (Real.sinh z.re^2+Real.cos z.im^2) ∧ ‖Complex.cosh z‖=Real.sqrt ((Real.cosh (2*z.re)+Real.cos (2*z.im))/2) := by
-  sorry
+  have hn:Complex.cos (I*z)=Complex.cosh z := by rw [mul_comm I z,Complex.cos_mul_I]
+  simpa [hn,Complex.I_mul_re,Complex.I_mul_im,Real.cos_neg,add_comm] using norm_cos_explicit (I*z)
+
 
 /-- norm tanh cartesian. -/
 @[dlmf 4.35.E40]
 theorem norm_tanh_cartesian (z : ℂ) : ‖Complex.tanh z‖=Real.sqrt ((Real.cosh (2*z.re)-Real.cos (2*z.im))/(Real.cosh (2*z.re)+Real.cos (2*z.im))) := by
-  sorry
+  have hp:0≤(Real.cosh (2*z.re)-Real.cos (2*z.im))/2 := by
+    rw [Real.cosh_two_mul,Real.cos_two_mul]
+    nlinarith [Real.cosh_sq_sub_sinh_sq z.re,Real.sin_sq_add_cos_sq z.im,
+      sq_nonneg (Real.sin z.im),sq_nonneg (Real.sinh z.re)]
+  rw [Complex.tanh_eq_sinh_div_cosh,norm_div,(norm_sinh_cartesian z).2,(norm_cosh_cartesian z).2,← Real.sqrt_div hp]
+  congr 1
+  exact div_div_div_cancel_right₀ (two_ne_zero : (2:ℝ)≠0) _ _
+
 
 /-- The half-angle square root selected on the positive real axis and continued analytically. -/
 @[dlmf 4.35.E20]
@@ -667,26 +762,192 @@ theorem arctanh_path_values {z : ℂ} (hz : z≠1 ∧ z≠ -1) : {w | IsArctanhP
 /-- arccsch values inv. -/
 @[dlmf 4.37.E4]
 theorem arccsch_values_inv {z : ℂ} (hz : z≠0) : arccschValues z=arcsinhValues z⁻¹ := by
-  sorry
+  ext w
+  change (Complex.sinh w≠0 ∧ (Complex.sinh w)⁻¹=z) ↔ Complex.sinh w=z⁻¹
+  constructor
+  · intro h
+    simpa only [inv_inv] using congrArg Inv.inv h.2
+  · intro h
+    exact ⟨by simpa only [h] using inv_ne_zero hz,by simp only [h,inv_inv]⟩
+
 
 /-- arcsech values inv. -/
 @[dlmf 4.37.E5]
 theorem arcsech_values_inv {z : ℂ} (hz : z≠0) : arcsechValues z=arccoshValues z⁻¹ := by
-  sorry
+  ext w
+  change (Complex.cosh w≠0 ∧ (Complex.cosh w)⁻¹=z) ↔ Complex.cosh w=z⁻¹
+  constructor
+  · intro h
+    simpa only [inv_inv] using congrArg Inv.inv h.2
+  · intro h
+    exact ⟨by simpa only [h] using inv_ne_zero hz,by simp only [h,inv_inv]⟩
+
 
 /-- arccoth values inv. -/
 @[dlmf 4.37.E6]
 theorem arccoth_values_inv {z : ℂ} (hz : z≠0) : arccothValues z=arctanhValues z⁻¹ := by
-  sorry
+  ext w
+  change (Complex.sinh w≠0 ∧ coth w=z) ↔ Complex.cosh w≠0 ∧ Complex.tanh w=z⁻¹
+  rw [coth_eq_inv_tanh]
+  constructor
+  · rintro ⟨hs,ht⟩
+    have ht0:Complex.tanh w≠0 := by
+      intro h
+      apply hz
+      simpa [h] using ht.symm
+    refine ⟨?_,?_⟩
+    · intro h; exact ht0 (by simp [Complex.tanh,h])
+    · simpa only [inv_inv] using congrArg Inv.inv ht
+  · rintro ⟨hc,ht⟩
+    refine ⟨?_,by simp only [ht,inv_inv]⟩
+    intro h
+    have hh:(z⁻¹:ℂ)=0 := by simpa [Complex.tanh,h] using ht.symm
+    exact inv_ne_zero hz hh
+
 
 /-- arccoth eq inv. -/
 @[dlmf 4.37.E9]
 theorem arccoth_eq_inv {z : ℂ} (hz : z≠0) : arccoth z=arctanh z⁻¹ := by
   simp [arccoth,hz]
 
+/-- Rotation identifies the chosen logarithm/square-root inverse with the trigonometric one. -/
+private theorem hyper_arcsinh_rotation (z:ℂ) : arcsinh z=I*arcsinPrincipal (-I*z) := by
+  have hq:1-(-I*z)^2=z^2+1 := by linear_combination -z^2*Complex.I_sq
+  have hi:I*(-I*z)=z := by linear_combination -z*Complex.I_sq
+  unfold arcsinh arcsinPrincipal
+  rw [hq,hi]
+  linear_combination Complex.log (Complex.sqrt (z^2+1)+z)*Complex.I_sq
+
+/-- Rotation maps the inverse-sinh cut plane to the inverse-sine cut plane. -/
+private theorem hyper_asinh_coord {z:ℂ} (hz:z∈arcsinhDomain) : -I*z∈arcsinCutPlane := by
+  simpa [arcsinhDomain,arcsinCutPlane,Complex.mul_re,Complex.mul_im] using hz
+
+/-- The inverse-sinh derivative follows from the proved rotated inverse-sine derivative. -/
+private theorem hyper_hasDerivAt_arcsinh {z:ℂ} (hz:z∈arcsinhDomain) :
+    HasDerivAt arcsinh (Complex.sqrt (1+z^2))⁻¹ z := by
+  have hd:=((hasDerivAt_arcsin_principal (hyper_asinh_coord hz)).comp z
+    ((hasDerivAt_id z).const_mul (-I))).const_mul I
+  convert hd using 1
+  · ext w
+    exact hyper_arcsinh_rotation w
+  · have hq:1-(-I*z)^2=1+z^2 := by linear_combination -z^2*Complex.I_sq
+    rw [hq]
+    linear_combination (Complex.sqrt (1+z^2))⁻¹*Complex.I_sq
+
+/-- The two logarithm factors multiply to one, including the square-root cut. -/
+private theorem hyper_asinh_product (z:ℂ) :
+    (Complex.sqrt (z^2+1)+z)*(Complex.sqrt (z^2+1)-z)=1 := by
+  linear_combination trig_sqrt_sq (z^2+1)
+
+/-- The inverse-sinh logarithm argument is nonzero. -/
+private theorem hyper_asinh_log_ne (z:ℂ) : Complex.sqrt (z^2+1)+z≠0 := by
+  intro h
+  have hp:=hyper_asinh_product z
+  rw [h,zero_mul] at hp
+  exact zero_ne_one hp
+
+/-- The inverse-sinh logarithm argument avoids the negative real axis. -/
+private theorem hyper_asinh_log_slit (z:ℂ) : Complex.sqrt (z^2+1)+z∈Complex.slitPlane := by
+  let r:=Complex.sqrt (z^2+1)
+  change r+z∈Complex.slitPlane
+  rw [Complex.mem_slitPlane_iff]
+  by_cases hi:(r+z).im≠0
+  · exact Or.inr hi
+  · left
+    have him:r.im= -z.im := by
+      have hi0:(r+z).im=0 := not_ne_iff.mp hi
+      simp only [Complex.add_im] at hi0
+      linarith
+    have hr:0≤r.re := by
+      dsimp [r]
+      rw [Complex.sqrt,Complex.cpow_inv_two_re]
+      positivity
+    have hp:=congrArg Complex.re (hyper_asinh_product z)
+    change ((r+z)*(r-z)).re=1 at hp
+    simp only [Complex.mul_re,Complex.add_re,Complex.sub_re,Complex.add_im,Complex.sub_im,him] at hp
+    simp only [Complex.add_re]
+    nlinarith
+
+/-- The inverse-tanh Möbius argument lies in the principal logarithm cut plane. -/
+private theorem hyper_atanh_slit {z:ℂ} (hz:z∈arctanhDomain) : (1+z)/(1-z)∈Complex.slitPlane := by
+  have hre:((1+z)/(1-z)).re=(1-z.re^2-z.im^2)/((1-z.re)^2+z.im^2) := by
+    simp [Complex.div_re,Complex.normSq]
+    ring
+  have him:((1+z)/(1-z)).im=(2*z.im)/((1-z.re)^2+z.im^2) := by
+    simp [Complex.div_im,Complex.normSq]
+    ring
+  rw [Complex.mem_slitPlane_iff]
+  by_cases hi:z.im≠0
+  · right
+    rw [him]
+    have hD:0<(1-z.re)^2+z.im^2 := add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero hi)
+    exact div_ne_zero (mul_ne_zero two_ne_zero hi) hD.ne'
+  · left
+    have hi0:z.im=0 := not_ne_iff.mp hi
+    have hx:|z.re|<1 := hz.resolve_left hi
+    rw [hre,hi0]
+    have hp:0<1-z.re := by linarith [(abs_lt.mp hx).2]
+    apply div_pos
+    · nlinarith [(abs_lt.mp hx).1,(abs_lt.mp hx).2]
+    · positivity
+
+/-- Neither linear factor vanishes on the inverse-tanh cut plane. -/
+private theorem hyper_atanh_nonzero {z:ℂ} (hz:z∈arctanhDomain) : 1+z≠0 ∧ 1-z≠0 := by
+  constructor
+  · intro h
+    have he:z= -1 := by linear_combination h
+    rw [he] at hz
+    norm_num [arctanhDomain] at hz
+  · intro h
+    have he:z=1 := by linear_combination -h
+    rw [he] at hz
+    norm_num [arctanhDomain] at hz
+
+/-- Differentiate the principal inverse-tanh logarithm on its full cut plane. -/
+private theorem hyper_hasDerivAt_arctanh {z:ℂ} (hz:z∈arctanhDomain) :
+    HasDerivAt arctanh (1/(1-z^2)) z := by
+  obtain ⟨hp,hm⟩:=hyper_atanh_nonzero hz
+  have hd0:=((hasDerivAt_id z).const_add 1).div ((hasDerivAt_id z).const_sub 1) hm
+  have hd:=((Complex.hasDerivAt_log (hyper_atanh_slit hz)).comp z hd0).div_const 2
+  convert hd using 1
+  · rfl
+  · dsimp only [id]
+    have hfac:(1+z)*(1-z)=1-z^2 := by ring
+    rw [← hfac]
+    field_simp [hp,hm]
+    ring
+
+/-- Inversion maps the inverse-coth cut plane into the inverse-tanh cut plane. -/
+private theorem hyper_acoth_inv_mem {z:ℂ} (hz:z∈arccothDomain) : z≠0 ∧ z⁻¹∈arctanhDomain := by
+  have hz0:z≠0 := by intro h;rw [h] at hz;norm_num [arccothDomain] at hz
+  refine ⟨hz0,?_⟩
+  by_cases hi:z.im≠0
+  · left
+    rw [Complex.inv_im]
+    have hn:Complex.normSq z≠0 := by
+      rw [Complex.normSq_eq_norm_sq]
+      exact pow_ne_zero 2 (norm_ne_zero_iff.mpr hz0)
+    exact div_ne_zero (neg_ne_zero.mpr hi) hn
+  · right
+    have hi0:z.im=0 := not_ne_iff.mp hi
+    have hx:1 < |z.re| := hz.resolve_left hi
+    have he:z=(z.re:ℂ) := by apply Complex.ext <;> simp [hi0]
+    rw [he,← Complex.ofReal_inv,Complex.ofReal_re,abs_inv]
+    exact inv_lt_one_of_one_lt₀ hx
+
+/-- The principal complex square root agrees with the nonnegative real square root. -/
+private theorem hyper_sqrt_ofReal (x:ℝ) (hx:0≤x) : Complex.sqrt (x:ℂ)=(Real.sqrt x:ℂ) := by
+  exact Complex.sqrt_of_nonneg (by exact_mod_cast hx)
+
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arcsinh_analytic  : AnalyticOnNhd ℂ arcsinh arcsinhDomain := by
-  sorry
+  have hU:IsOpen arcsinhDomain := by
+    change IsOpen ({z:ℂ | z.re≠0}∪{z:ℂ | |z.im|<1})
+    exact (isOpen_ne.preimage Complex.continuous_re).union
+      (isOpen_lt (continuous_abs.comp Complex.continuous_im) continuous_const)
+  exact (show DifferentiableOn ℂ arcsinh arcsinhDomain from fun z hz=>
+    (hyper_hasDerivAt_arcsinh hz).differentiableAt.differentiableWithinAt).analyticOnNhd hU
+
 
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arccosh_analytic  : AnalyticOnNhd ℂ arccosh arccoshDomain := by
@@ -694,11 +955,19 @@ theorem arccosh_analytic  : AnalyticOnNhd ℂ arccosh arccoshDomain := by
 
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arctanh_analytic  : AnalyticOnNhd ℂ arctanh arctanhDomain := by
-  sorry
+  have hU:IsOpen arctanhDomain := by
+    change IsOpen ({z:ℂ | z.im≠0}∪{z:ℂ | |z.re|<1})
+    exact (isOpen_ne.preimage Complex.continuous_im).union
+      (isOpen_lt (continuous_abs.comp Complex.continuous_re) continuous_const)
+  exact (show DifferentiableOn ℂ arctanh arctanhDomain from fun z hz=>
+    (hyper_hasDerivAt_arctanh hz).differentiableAt.differentiableWithinAt).analyticOnNhd hU
+
 
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arccsch_analytic  : AnalyticOnNhd ℂ arccsch arccschDomain := by
-  sorry
+  intro z hz
+  exact (arcsinh_analytic _ hz.2).comp (analyticAt_id.inv hz.1)
+
 
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arcsech_analytic  : AnalyticOnNhd ℂ arcsech arcsechDomain := by
@@ -706,7 +975,14 @@ theorem arcsech_analytic  : AnalyticOnNhd ℂ arcsech arcsechDomain := by
 
 /-- Analyticity of the principal inverse on precisely its open cut domain. -/
 theorem arccoth_analytic  : AnalyticOnNhd ℂ arccoth arccothDomain := by
-  sorry
+  intro z hz
+  obtain ⟨hz0,hi⟩:=hyper_acoth_inv_mem hz
+  have hh:AnalyticAt ℂ (fun w=>arctanh w⁻¹) z :=
+    (arctanh_analytic _ hi).comp (analyticAt_id.inv hz0)
+  apply hh.congr
+  filter_upwards [eventually_ne_nhds hz0] with w hw
+  exact (arccoth_eq_inv hw).symm
+
 
 /-- The two inverse branch points stated in the definition prose. -/
 theorem arcsinh_branch_points  : ¬AnalyticAt ℂ arcsinh I ∧ ¬AnalyticAt ℂ arcsinh (-I) := by
@@ -734,7 +1010,17 @@ theorem arccoth_branch_points  : ¬AnalyticAt ℂ arccoth (1:ℂ) ∧ ¬Analytic
 
 /-- Reality and agreement with the existing real inverse on the uncut real interval. -/
 theorem arcsinh_ofReal (x : ℝ)  : arcsinh x=(Real.arsinh x:ℂ) := by
-  sorry
+  have hq:Complex.sqrt ((x:ℂ)^2+1)=(Real.sqrt (1+x^2):ℂ) := by
+    rw [show (x:ℂ)^2+1=((1+x^2:ℝ):ℂ) by push_cast;ring]
+    exact hyper_sqrt_ofReal _ (by positivity)
+  have hp:0≤x+Real.sqrt (1+x^2) := by
+    apply le_of_lt
+    rw [← neg_lt_iff_pos_add']
+    apply Real.lt_sqrt_of_sq_lt
+    nlinarith
+  rw [arcsinh,hq,Real.arsinh]
+  rw [← Complex.ofReal_add,add_comm (Real.sqrt (1+x^2)) x,← Complex.ofReal_log hp]
+
 
 /-- Reality and agreement with the existing real inverse on the uncut real interval. -/
 theorem arccosh_ofReal (x : ℝ) (hx : 1≤x) : arccosh x=(Real.arcosh x:ℂ) := by
@@ -742,27 +1028,49 @@ theorem arccosh_ofReal (x : ℝ) (hx : 1≤x) : arccosh x=(Real.arcosh x:ℂ) :=
 
 /-- Reality and agreement with the existing real inverse on the uncut real interval. -/
 theorem arctanh_ofReal (x : ℝ) (hx : |x|<1) : arctanh x=(Real.artanh x:ℂ) := by
-  sorry
+  have hxp:0<1+x := by linarith [(abs_lt.mp hx).1]
+  have hxm:0<1-x := by linarith [(abs_lt.mp hx).2]
+  have hp:0≤(1+x)/(1-x) := (div_pos hxp hxm).le
+  have harg:(1+(x:ℂ))/(1-(x:ℂ))=(((1+x)/(1-x):ℝ):ℂ) := by push_cast;rfl
+  rw [arctanh,harg,← Complex.ofReal_log hp,Real.artanh_eq_half_log (mem_Icc_of_Ioo (abs_lt.mp hx))]
+  push_cast
+  ring
+
 
 /-- Oddness on the open cut plane; cut-side values are given separately. -/
 @[dlmf 4.37.E10]
 theorem arcsinh_neg (z : ℂ) : arcsinh (-z)= -arcsinh z := by
-  sorry
+  have hn:Complex.sqrt ((-z)^2+1)+(-z)=(Complex.sqrt (z^2+1)+z)⁻¹ := by
+    apply mul_left_cancel₀ (hyper_asinh_log_ne z)
+    rw [mul_inv_cancel₀ (hyper_asinh_log_ne z)]
+    convert hyper_asinh_product z using 1 <;> ring
+  unfold arcsinh
+  rw [hn,Complex.log_inv _ (Complex.mem_slitPlane_iff_arg.mp (hyper_asinh_log_slit z)).1]
+
 
 /-- Oddness on the open cut plane; cut-side values are given separately. -/
 @[dlmf 4.37.E12]
 theorem arctanh_neg {z : ℂ} (hz : z ∈ arctanhDomain) : arctanh (-z)= -arctanh z := by
-  sorry
+  have hn:(1+(-z))/(1-(-z))=((1+z)/(1-z))⁻¹ := by
+    simp only [sub_eq_add_neg,inv_div,neg_neg]
+  unfold arctanh
+  rw [hn,Complex.log_inv _ (Complex.mem_slitPlane_iff_arg.mp (hyper_atanh_slit hz)).1]
+  ring
+
 
 /-- Oddness on the open cut plane; cut-side values are given separately. -/
 @[dlmf 4.37.E13]
 theorem arccsch_neg (z : ℂ) : arccsch (-z)= -arccsch z := by
-  sorry
+  unfold arccsch
+  rw [inv_neg,arcsinh_neg]
+
 
 /-- Oddness on the open cut plane; cut-side values are given separately. -/
 @[dlmf 4.37.E15]
 theorem arccoth_neg {z : ℂ} (hz : z ∈ arccothDomain) : arccoth (-z)= -arccoth z := by
-  sorry
+  obtain ⟨hz0,hi⟩:=hyper_acoth_inv_mem hz
+  rw [arccoth_eq_inv (neg_ne_zero.mpr hz0),arccoth_eq_inv hz0,inv_neg,arctanh_neg hi]
+
 
 /-- Corrected principal-branch sign: E20 at z=±i contradicts the printed E11 sign pairing. -/
 @[dlmf 4.37.E11]
@@ -914,12 +1222,14 @@ theorem hasSum_arctanh_transformed {z : ℂ} (hz : (z^2).re<1/2) : HasSum (fun n
 /-- arctanh transformed region. -/
 @[dlmf 4.38.E8]
 theorem arctanh_transformed_region (z : ℂ) : (z^2).re<1/2 ↔ z.re^2-z.im^2<1/2 := by
-  sorry
+  simp [Complex.mul_re,pow_two]
+
 
 /-- hasDerivAt arcsinh. -/
 @[dlmf 4.38.E9]
 theorem hasDerivAt_arcsinh {z : ℂ} (hz : z∈arcsinhDomain) : HasDerivAt arcsinh ((Complex.sqrt (1+z^2))⁻¹) z := by
-  sorry
+  exact hyper_hasDerivAt_arcsinh hz
+
 
 /-- hasDerivAt arccosh. -/
 @[dlmf 4.38.E10]
@@ -934,12 +1244,18 @@ theorem hasDerivAt_arccosh_signed {z : ℂ} (hz : z∈arccoshDomain) (hre : z.re
 /-- hasDerivAt arctanh. -/
 @[dlmf 4.38.E11]
 theorem hasDerivAt_arctanh {z : ℂ} (hz : z∈arctanhDomain) : HasDerivAt arctanh (1/(1-z^2)) z := by
-  sorry
+  exact hyper_hasDerivAt_arctanh hz
+
 
 /-- hasDerivAt arccsch. -/
 @[dlmf 4.38.E12]
 theorem hasDerivAt_arccsch {z : ℂ} (hz : z∈arccschDomain) : HasDerivAt arccsch (-1/(z^2*Complex.sqrt (1+z⁻¹^2))) z := by
-  sorry
+  have hd:=(hyper_hasDerivAt_arcsinh hz.2).comp z ((hasDerivAt_id z).inv hz.1)
+  convert hd using 1
+  · rfl
+  · dsimp only [id]
+    field_simp <;> ring
+
 
 /-- hasDerivAt arccsch signed. -/
 @[dlmf 4.38.E12]
@@ -954,7 +1270,20 @@ theorem hasDerivAt_arcsech {z : ℂ} (hz : z∈arcsechDomain) : HasDerivAt arcse
 /-- hasDerivAt arccoth. -/
 @[dlmf 4.38.E14]
 theorem hasDerivAt_arccoth {z : ℂ} (hz : z∈arccothDomain) : HasDerivAt arccoth (1/(1-z^2)) z := by
-  sorry
+  obtain ⟨hz0,hi⟩:=hyper_acoth_inv_mem hz
+  have hd:=(hyper_hasDerivAt_arctanh hi).comp z ((hasDerivAt_id z).inv hz0)
+  have hd':HasDerivAt (fun w:ℂ=>arctanh w⁻¹) (1/(1-z^2)) z := by
+    convert hd using 1
+    · rfl
+    · dsimp only [id]
+      field_simp [hz0]
+      have heq:(1-z^2)⁻¹= -(-1+z^2)⁻¹ := by
+        rw [show (1-z^2)= -(-1+z^2) by ring,inv_neg]
+      convert heq using 1 <;> ring
+  apply hd'.congr_of_eventuallyEq
+  filter_upwards [eventually_ne_nhds hz0] with w hw
+  exact arccoth_eq_inv hw
+
 
 /-- arcsinh values add. -/
 @[dlmf 4.38.E15]
@@ -1054,7 +1383,8 @@ theorem arctanh_continued_fraction {z : ℂ} (hz : z∈arctanhDomain) :
 /-- antiderivative tanh. -/
 @[dlmf 4.40.E3]
 theorem antiderivative_tanh (x : ℝ) : HasDerivAt (fun t : ℝ => Real.log (Real.cosh t)) (Real.tanh x) x := by
-  sorry
+  simpa only [Real.tanh_eq_sinh_div_cosh] using (Real.hasDerivAt_cosh x).log (Real.cosh_pos x).ne'
+
 
 /-- antiderivative csch. -/
 @[dlmf 4.40.E4]
@@ -1064,12 +1394,17 @@ theorem antiderivative_csch {x : ℝ} (hx : 0<x) : HasDerivAt (fun t : ℝ => Re
 /-- antiderivative sech. -/
 @[dlmf 4.40.E5]
 theorem antiderivative_sech (x : ℝ) : HasDerivAt (fun t : ℝ => 2*Real.arctan (Real.exp t)-π/2) (Real.cosh x)⁻¹ x := by
-  sorry
+  have hd:=((Real.hasDerivAt_exp x).arctan.const_mul 2).sub_const (π/2)
+  convert hd using 1
+  rw [Real.cosh_eq,Real.exp_neg]
+  field_simp <;> ring
+
 
 /-- antiderivative coth. -/
 @[dlmf 4.40.E6]
 theorem antiderivative_coth {x : ℝ} (hx : 0<x) : HasDerivAt (fun t : ℝ => Real.log (Real.sinh t)) (Real.cosh x/Real.sinh x) x := by
-  sorry
+  exact (Real.hasDerivAt_sinh x).log (Real.sinh_pos_iff.mpr hx).ne'
+
 
 /-- integral exp sin div sinh. -/
 @[dlmf 4.40.E7]
@@ -1094,12 +1429,30 @@ theorem integral_tanh_difference {a b : ℝ} (ha : 0<a) (hb : 0<b) : IntegrableO
 /-- antiderivative arcsinh. -/
 @[dlmf 4.40.E11]
 theorem antiderivative_arcsinh (x : ℝ) : HasDerivAt (fun t : ℝ => t*Real.arsinh t-Real.sqrt (1+t^2)) (Real.arsinh x) x := by
-  sorry
+  have hp:0<1+x^2 := by positivity
+  have hd:=((hasDerivAt_id x).mul (Real.hasDerivAt_arsinh x)).sub
+    ((((hasDerivAt_id x).pow 2).const_add 1).sqrt hp.ne')
+  convert hd using 1
+  · rfl
+  · dsimp only [id,Pi.mul_apply,Pi.sub_apply,Pi.add_apply,Pi.pow_apply]
+    norm_num only [Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one,one_mul]
+    field_simp
+    ring
+
 
 /-- antiderivative arccosh. -/
 @[dlmf 4.40.E12]
 theorem antiderivative_arccosh {x : ℝ} (hx : 1<x) : HasDerivAt (fun t : ℝ => t*Real.arcosh t-Real.sqrt (t^2-1)) (Real.arcosh x) x := by
-  sorry
+  have hp:0<x^2-1 := by nlinarith
+  have hd:=((hasDerivAt_id x).mul (Real.hasDerivAt_arcosh hx)).sub
+    ((((hasDerivAt_id x).pow 2).sub_const 1).sqrt hp.ne')
+  convert hd using 1
+  · rfl
+  · dsimp only [id,Pi.mul_apply,Pi.sub_apply,Pi.add_apply,Pi.pow_apply]
+    norm_num only [Nat.cast_ofNat,Nat.reduceSub,pow_one,mul_one,one_mul]
+    field_simp
+    ring
+
 
 /-- antiderivative arctanh. -/
 @[dlmf 4.40.E13]
@@ -1229,14 +1582,28 @@ theorem continued_antiderivative_arcsinh {U : Set ℂ} (hU : IsOpen U) {z : ℂ}
     {A : ℂ → ℂ} (hA : AnalyticOnNhd ℂ A U)
     (hinv : ∀ w∈U, Complex.sinh (A w)=w) (hcrit : z≠I ∧ z≠ -I) :
     HasDerivAt (fun w => w*A w-Complex.cosh (A w)) (A z) z := by
-  sorry
+  have hdA:=(hA z hz).differentiableAt.hasDerivAt
+  have hd:=((hasDerivAt_id z).mul hdA).sub hdA.ccosh
+  convert hd using 1
+  · rfl
+  · dsimp only [id,Pi.mul_apply,Pi.sub_apply]
+    rw [hinv z hz]
+    ring
+
 
 /-- Continued inverse-cosh branches have the corresponding continued primitive. -/
 theorem continued_antiderivative_arccosh {U : Set ℂ} (hU : IsOpen U) {z : ℂ} (hz : z∈U)
     {A : ℂ → ℂ} (hA : AnalyticOnNhd ℂ A U)
     (hinv : ∀ w∈U, Complex.cosh (A w)=w) (hcrit : z≠1 ∧ z≠ -1) :
     HasDerivAt (fun w => w*A w-Complex.sinh (A w)) (A z) z := by
-  sorry
+  have hdA:=(hA z hz).differentiableAt.hasDerivAt
+  have hd:=((hasDerivAt_id z).mul hdA).sub hdA.csinh
+  convert hd using 1
+  · rfl
+  · dsimp only [id,Pi.mul_apply,Pi.sub_apply]
+    rw [hinv z hz]
+    ring
+
 
 /-- Continued inverse-tanh and logarithm branches have the corresponding primitive. -/
 theorem continued_antiderivative_arctanh {U : Set ℂ} (hU : IsOpen U) {z : ℂ} (hz : z∈U)

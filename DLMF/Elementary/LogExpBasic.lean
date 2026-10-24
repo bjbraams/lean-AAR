@@ -62,7 +62,37 @@ theorem closedLogValues_neg {x : ℝ} (hx : x < 0) :
     closedLogValues (x : ℂ) =
       {((Real.log |x| : ℝ) : ℂ) + Real.pi * I,
        ((Real.log |x| : ℝ) : ℂ) - Real.pi * I} := by
-  sorry
+  have hlog : Complex.log (x:ℂ)=(Real.log |x|:ℂ)+Real.pi*I := by
+    apply Complex.ext <;> simp [Complex.log_re,Complex.log_im,Complex.norm_real,Complex.arg_ofReal_of_neg hx]
+  ext w
+  constructor
+  · rintro ⟨hw,hs⟩
+    simp only [Set.mem_insert_iff,Set.mem_singleton_iff]
+    have hb := abs_le.mp hs
+    by_cases hlow : w.im = -Real.pi
+    · right
+      have he : Complex.exp (w+2*Real.pi*I)=(x:ℂ) := by
+        rw [Complex.exp_add,Complex.exp_two_pi_mul_I,hw,mul_one]
+      have hl : Complex.log (x:ℂ)=w+2*Real.pi*I := by
+        rw [← he]
+        apply Complex.log_exp <;>
+          norm_num [hlow,Complex.mul_im,Complex.mul_re] <;> linarith [Real.pi_pos]
+      rw [hlog] at hl
+      linear_combination -hl
+    · left
+      have hl := Complex.log_exp (lt_of_le_of_ne hb.1 (Ne.symm hlow)) hb.2
+      rw [hw,hlog] at hl
+      exact hl.symm
+  · simp only [Set.mem_insert_iff,Set.mem_singleton_iff]
+    rintro (rfl|rfl)
+    · constructor
+      · rw [Complex.exp_add,← Complex.ofReal_exp,Real.exp_log (abs_pos.mpr hx.ne),Complex.exp_pi_mul_I]
+        simp [abs_of_neg hx]
+      · simp [Complex.mul_im,abs_of_pos Real.pi_pos]
+    · constructor
+      · rw [Complex.exp_sub,← Complex.ofReal_exp,Real.exp_log (abs_pos.mpr hx.ne),Complex.exp_pi_mul_I]
+        simp [abs_of_neg hx]
+      · simp [Complex.mul_im,abs_of_pos Real.pi_pos]
 
 /-- The principal logarithm is the integral of `dt/t` along any absolutely
 continuous path in the slit plane from `1` to `z` (4.2.2). -/
@@ -210,7 +240,19 @@ theorem power_phase {z a : ℂ} (hz : z ≠ 0) :
 theorem generalPowerValues_exp_one (a : ℂ) :
     generalPowerValues (Complex.exp 1) a =
       {w | ∃ k : ℤ, w = Complex.exp a * Complex.exp (2 * k * a * Real.pi * I)} := by
-  sorry
+  have hlog1 : Complex.log (Complex.exp (1:ℂ))=1 := by
+    apply Complex.log_exp <;> norm_num [Real.pi_pos,Real.pi_pos.le]
+  ext w
+  constructor
+  · rintro ⟨l,hl,rfl⟩
+    obtain ⟨k,rfl⟩ := (mem_generalLogValues_iff (Complex.exp_ne_zero 1)).mp hl
+    refine ⟨k,?_⟩
+    have he : a*((k:ℂ)*(2*Real.pi*I))=2*k*a*Real.pi*I := by ring
+    simp only [logSheet,hlog1,mul_add,mul_one,Complex.exp_add,he]
+  · rintro ⟨k,rfl⟩
+    refine ⟨logSheet k (Complex.exp 1),(mem_generalLogValues_iff (Complex.exp_ne_zero 1)).mpr ⟨k,rfl⟩,?_⟩
+    have he : a*((k:ℂ)*(2*Real.pi*I))=2*k*a*Real.pi*I := by ring
+    simp only [logSheet,hlog1,mul_add,mul_one,Complex.exp_add,he]
 
 /-- Inversion of the full general power relation (4.2.35). -/
 @[dlmf 4.2.E35]

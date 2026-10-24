@@ -1109,3 +1109,26 @@ correction in 17.14.E3 follows by expanding its displayed Jacobi numerator.
 `ToMathlib/Analysis/ODE/Singularities.lean` and
 `ToMathlib/Analysis/Complex/SeparatingContour.lean` supply general predicates using
 Mathlib only. They have no admissions and no special-function dependency.
+
+## Second parallel Chapter 4/16/17 proof round (2026-10-24)
+
+The 92 Elementary proofs reuse Mathlib's principal logarithm and power calculus,
+trig/hyperbolic inverse identities, exact values, limits and exponential estimates.
+The ODE formulas use Mathlib's constancy theorem for zero derivatives on connected
+open sets and ordinary derivative/product rules. Hyperbolic branch calculus reuses
+the project's now-proved principal inverse-sine API through rotation, preserving
+all cut and sign conditions.
+
+The Chapter 16 coefficient and radius proofs use Moritz Doll's
+`Mathlib.Analysis.SpecialFunctions.RegularizedHypergeometric` and Mathlib's Gamma,
+polynomial and scalar-series APIs. Private finite-product normalization/ratio
+lemmas are adapted with their 2026 Moritz Doll copyright and explicit attribution
+in the module header and at use; the positive-degree divergence extension is local
+work. The 0F1 adapter directly applies the Tau Ceti contributors' regularized
+contiguous identity. The guarded principal-function definition has an explicit
+old-definition equivalence under the retained continuation-existence admission.
+
+The 28 q-series proofs reuse the project's QSeries shifted-factorial, Gaussian,
+q-binomial and Jackson APIs and Mathlib's product limits and ratio-test series
+convergence. The new generic qPhi summability proof preserves DLMF's integer phase
+and its full convergence domains. No copied TauCeti proof or new axiom is introduced.

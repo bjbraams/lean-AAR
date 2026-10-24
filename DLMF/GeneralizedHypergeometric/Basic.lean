@@ -89,15 +89,67 @@ theorem genPrincipalContinuation_exists (a b : Multiset ℂ) (h : a.card = b.car
 /-- Uniqueness of the normalized continuation and its declared cut values. -/
 theorem genPrincipalContinuation_unique (a b : Multiset ℂ)
     (F G : GenPrincipalContinuation a b) : F.value = G.value := by
-  sorry
+  have heq : EqOn F.value G.value cutPlane :=
+    eqOn_cutPlane_of_eqOn_disk F.analytic G.analytic fun z hz =>
+      (F.germ z hz).trans (G.germ z hz).symm
+  funext z
+  by_cases hz : z ∈ cutPlane
+  · exact heq hz
+  · have hbad : ¬(0 < (1 - z).re ∨ (1 - z).im ≠ 0) := hz
+    simp only [Complex.sub_re, Complex.one_re, Complex.sub_im, Complex.one_im,
+      zero_sub, neg_ne_zero] at hbad
+    push Not at hbad
+    have hreal : z = (z.re : ℂ) := by apply Complex.ext <;> simp [hbad.2]
+    rw [hreal]
+    by_cases hx : z.re = 1
+    · simpa only [hx, Complex.ofReal_one] using F.one.trans G.one.symm
+    · have hx' : 1 < z.re := lt_of_le_of_ne (by linarith [hbad.1]) (Ne.symm hx)
+      have : NeBot (𝓝[{w : ℂ | 0 < w.im}] (z.re : ℂ)) := by
+        apply mem_closure_iff_nhdsWithin_neBot.mp
+        rw [Complex.closure_setOfPred_lt_im]
+        simp
+      have hev : F.value =ᶠ[𝓝[{w : ℂ | 0 < w.im}] (z.re : ℂ)] G.value := by
+        filter_upwards [self_mem_nhdsWithin] with w hw
+        apply heq
+        change 0 < (1 - w).re ∨ (1 - w).im ≠ 0
+        right
+        simpa using neg_ne_zero.mpr hw.ne'
+      exact tendsto_nhds_unique (F.upper_boundary z.re hx')
+        ((G.upper_boundary z.re hx').congr' hev.symm)
 
 /-- Regularized principal generalized hypergeometric function.
-For `p>q+1` this expression retains only the totalized series; use Barnes values instead. -/
+For `p>q+1` this expression retains only the totalized series; use Barnes values instead.
+The guarded choice keeps local series facts independent of the separate existence admission. -/
 @[dlmf 16.2.E5]
-def genRegularizedHG (a b : Multiset ℂ) (z : ℂ) : ℂ :=
-  if h : a.card = b.card + 1 then
-    (Classical.choice (genPrincipalContinuation_exists a b h)).value z
+def genRegularizedHG (a b : Multiset ℂ) (z : ℂ) : ℂ := by
+  classical
+  exact if a.card = b.card + 1 then
+    if hF : Nonempty (GenPrincipalContinuation a b) then (Classical.choice hF).value z
+    else Complex.regularizedHGFun a b z
   else Complex.regularizedHGFun a b z
+
+/-- An explicitly supplied continuation gives the declared principal value, independently
+of the separate existence theorem. -/
+lemma genRegularizedHG_eq_choice {a b : Multiset ℂ} (h : a.card = b.card + 1)
+    (hF : Nonempty (GenPrincipalContinuation a b)) (z : ℂ) :
+    genRegularizedHG a b z = (Classical.choice hF).value z := by
+  classical
+  unfold genRegularizedHG
+  rw [ite_eq_left h, dite_eq_left hF]
+
+/-- The guarded definition preserves the previous choice of continuation, assuming
+exactly the recorded existence theorem. This does not prove existence. -/
+theorem genRegularizedHG_eq_original (a b : Multiset ℂ) (z : ℂ) :
+    genRegularizedHG a b z =
+      if h : a.card = b.card + 1 then
+        (Classical.choice (genPrincipalContinuation_exists a b h)).value z
+      else Complex.regularizedHGFun a b z := by
+  classical
+  unfold genRegularizedHG
+  split_ifs with h hF
+  · rfl
+  · exact False.elim (hF (genPrincipalContinuation_exists a b h))
+  · rfl
 
 /-- Ordinary principal generalized hypergeometric values, valid for regular lower parameters. -/
 def genHG (a b : Multiset ℂ) (z : ℂ) : ℂ := genGamma b * genRegularizedHG a b z
@@ -113,30 +165,133 @@ def genExcess (a b : Multiset ℂ) : ℂ := b.sum - a.sum
 /-- Shifting every parameter by the same complex number. -/
 def genShift (a : Multiset ℂ) (t : ℂ) : Multiset ℂ := a.map (· + t)
 
+/-- A regular lower-parameter Gamma product is nonzero, including the empty product. -/
+lemma genGamma_ne_zero {b : Multiset ℂ} (hb : genDenRegular b) : genGamma b ≠ 0 := by
+  apply Multiset.prod_ne_zero
+  intro h0
+  obtain ⟨x, hx, heq⟩ := Multiset.mem_map.mp h0
+  exact Complex.Gamma_ne_zero (hb x hx) heq
+
+/-- Every retained rising-factorial product is nonzero for regular lower parameters. -/
+lemma genPoch_ne_zero {b : Multiset ℂ} (hb : genDenRegular b) (n : ℕ) : genPoch b n ≠ 0 := by
+  apply Multiset.prod_ne_zero
+  intro h0
+  obtain ⟨x, hx, heq⟩ := Multiset.mem_map.mp h0
+  exact poch_ne_zero_of_not_neg_nat (hb x hx) n heq
+
+/-- The fixed Gamma product times the rising-factorial product gives all shifted
+Gamma factors; this is Mathlib's Gamma/Pochhammer identity multiplied over parameters. -/
+lemma genGamma_shift_nat {b : Multiset ℂ} (hb : genDenRegular b) (n : ℕ) :
+    (b.map fun x => Complex.Gamma (x + n)).prod = genPoch b n * genGamma b := by
+  unfold genPoch genGamma
+  rw [← Multiset.prod_map_mul]
+  apply congrArg Multiset.prod
+  apply Multiset.map_congr rfl
+  intro x hx
+  exact (div_eq_iff (Complex.Gamma_ne_zero (hb x hx))).mp
+    (Complex.Gamma_add_nat_div_Gamma_eq x (hb x hx))
+
 /-- The regularized principal germ agrees with the native power-series germ. -/
 theorem genRegularizedHG_eq_series {a b : Multiset ℂ} (h : a.card ≤ b.card + 1)
     {z : ℂ} (hz : ‖z‖ < 1) :
     genRegularizedHG a b z = Complex.regularizedHGFun a b z := by
-  sorry
+  classical
+  unfold genRegularizedHG
+  split_ifs with hc hF
+  · exact (Classical.choice hF).germ z hz
+  · rfl
+  · rfl
 
 /-- Ordinary and regularized coefficients differ by the fixed Gamma product. -/
 @[dlmf 16.2.E5]
 theorem genCoeff_eq_gamma_mul_regularized {a b : Multiset ℂ} (hb : genDenRegular b)
     (n : ℕ) : genCoeff a b n = genGamma b * Complex.regularizedHGFunCoeff a b n := by
-  sorry
+  unfold genCoeff genPoch Complex.regularizedHGFunCoeff
+  rw [genGamma_shift_nat hb n]
+  have hΓ := genGamma_ne_zero hb
+  have hP := genPoch_ne_zero hb n
+  have hn : (n.factorial : ℂ) ≠ 0 := by exact_mod_cast n.factorial_ne_zero
+  change (a.map (fun x => poch x n)).prod / (genPoch b n * n.factorial) = _
+  field_simp [hΓ, hP, hn]
 
 /-- The defining series converges to the principal value in its open disk. -/
 @[dlmf 16.2.E1]
 theorem genHG_hasSum_disk {a b : Multiset ℂ} (h : a.card ≤ b.card + 1)
     (hb : genDenRegular b) {z : ℂ} (hz : ‖z‖ < 1) :
     HasSum (fun n : ℕ => genCoeff a b n * z ^ n) (genHG a b z) := by
-  sorry
+  have hr : (1 : ℝ≥0∞) ≤ (Complex.regularizedHGFunSeries a b).radius := by
+    by_cases hc : a.card ≤ b.card
+    · rw [Complex.radius_regularizedHGFunSeries_eq_top hc]; exact le_top
+    · exact Complex.radius_regularizedHGFunSeries_ge_one (by omega)
+  have hzr : z ∈ Metric.eball (0 : ℂ) (Complex.regularizedHGFunSeries a b).radius :=
+    Metric.eball_subset_eball hr (mem_eball_one_of_norm_lt_one hz)
+  have hs : HasSum (fun n : ℕ => Complex.regularizedHGFunCoeff a b n * z ^ n)
+      (Complex.regularizedHGFun a b z) := by
+    simpa [Complex.regularizedHGFun, Complex.regularizedHGFunSeries,
+      FormalMultilinearSeries.ofScalars_apply_eq, mul_comm] using
+      (Complex.regularizedHGFunSeries a b).hasSum (x := z) hzr
+  rw [genHG, genRegularizedHG_eq_series h hz]
+  refine (hs.mul_left (genGamma b)).congr_fun fun n => ?_
+  rw [genCoeff_eq_gamma_mul_regularized hb]
+  ring
+
+/-- A terminating native regularized series is entire, including exceptional lower
+parameters; Mathlib already supplies its infinite convergence radius. -/
+lemma genRegularizedHG_terminating_analytic {a b : Multiset ℂ} (ha : genTerminates a) :
+    AnalyticOnNhd ℂ (Complex.regularizedHGFun a b) univ := by
+  obtain ⟨x, hx, m, hxm⟩ := ha
+  have hr := Complex.radius_regularizedHGFunSeries_eq_top_of_finite (b := b) hx hxm
+  convert! (Complex.regularizedHGFunSeries a b).analyticOnNhd
+  simp [hr]
+
+/-- On a terminating series the guarded continuation agrees everywhere with its
+entire polynomial germ, without assuming existence of a nonterminating continuation. -/
+lemma genRegularizedHG_eq_series_of_terminates {a b : Multiset ℂ} (ha : genTerminates a)
+    (z : ℂ) : genRegularizedHG a b z = Complex.regularizedHGFun a b z := by
+  classical
+  have han := genRegularizedHG_terminating_analytic (b := b) ha
+  have hc : Continuous (Complex.regularizedHGFun a b) := continuousOn_univ.mp han.continuousOn
+  let G : GenPrincipalContinuation a b := {
+    value := Complex.regularizedHGFun a b
+    analytic := han.mono (subset_univ _)
+    germ := fun _ _ => rfl
+    upper_boundary := fun x _ => (hc.tendsto (x : ℂ)).mono_left nhdsWithin_le_nhds
+    one := rfl }
+  unfold genRegularizedHG
+  split_ifs with h hF
+  · exact congrFun (genPrincipalContinuation_unique a b (Classical.choice hF) G) z
+  · rfl
+  · rfl
+
+/-- Scalar ordinary and regularized multilinear series differ by the same fixed
+nonzero Gamma product, so all convergence radii agree for regular bottoms. -/
+lemma genScalarSeries_eq_gamma_smul {a b : Multiset ℂ} (hb : genDenRegular b) :
+    FormalMultilinearSeries.ofScalars ℂ (genCoeff a b) =
+      genGamma b • Complex.regularizedHGFunSeries a b := by
+  have hc : genCoeff a b =
+      genGamma b • (fun n => Complex.regularizedHGFunCoeff a b n) := by
+    funext n
+    simpa only [Pi.smul_apply, smul_eq_mul] using genCoeff_eq_gamma_mul_regularized hb n
+  rw [hc, FormalMultilinearSeries.ofScalars_smul]
+  rfl
 
 /-- Terminating series are the retained polynomial, with the minimum terminating degree. -/
 theorem genHG_eq_finite {a b : Multiset ℂ} (hb : genDenRegular b)
     {m : ℕ} (hm : (-m : ℂ) ∈ a) (z : ℂ) :
     genHG a b z = genFiniteHG m a b z := by
-  sorry
+  rw [genHG, genRegularizedHG_eq_series_of_terminates ⟨-m, hm, m, rfl⟩,
+    regularizedHGFun_eq_tsum']
+  rw [tsum_eq_sum (s := range (m + 1)) (fun n hn => by
+    have hmn : m < n := by
+      simp only [Finset.mem_range, not_lt] at hn
+      omega
+    rw [Complex.regularizedHGFunCoeff_eq_zero_left a b n m hm hmn, zero_mul])]
+  unfold genFiniteHG
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro n hn
+  rw [genCoeff_eq_gamma_mul_regularized hb]
+  ring
 
 /-- The terminating inversion formula, with all retained denominator factors nonzero. -/
 @[dlmf 16.2.E3]
